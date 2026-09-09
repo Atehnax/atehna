@@ -742,7 +742,9 @@ test.describe('homepage toolbar short-viewport dismissal and overflow', () => {
   });
 
   test('bounds a tall panel away from its selected anchor and scrolls only its body', async ({ page }) => {
-    await page.setViewportSize({ width: 1024, height: 440 });
+    // Keep this viewport shorter than the spacing panel after the layers sidebar scales the preview.
+    const viewportHeight = 320;
+    await page.setViewportSize({ width: 1024, height: viewportHeight });
     const stage = page.getByTestId('homepage-preview-stage');
     const toolbar = homepageToolbar(page, 'floating');
     const heroTitle = page.locator(
@@ -780,7 +782,7 @@ test.describe('homepage toolbar short-viewport dismissal and overflow', () => {
 
     expect(panelSide).toBe(toolbarPlacement === 'top' ? 'above' : 'below');
     expect(dialogBox.y).toBeGreaterThanOrEqual(7);
-    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(441);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight + 1);
     expect(dialogBox.height).toBeLessThanOrEqual(metrics.panelMaxHeight + 1);
     expect(metrics.bodyOverflowY).toBe('auto');
     expect(metrics.bodyScrollHeight).toBeGreaterThan(metrics.bodyClientHeight);

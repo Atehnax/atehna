@@ -75,6 +75,7 @@ test.describe('admin podoba redesign', () => {
       const stack = actions[0]?.parentElement as HTMLElement;
       const tile = actions[0]?.closest('[data-testid="category-showcase-tile"]') as HTMLElement;
       const tileRect = tile.getBoundingClientRect();
+      const previewScale = Number(tile.closest('[data-preview-scale]')?.getAttribute('data-preview-scale')) || 1;
       const buttonRects = actions.map((action) => action.getBoundingClientRect());
       return {
         direction: getComputedStyle(stack).flexDirection,
@@ -82,9 +83,9 @@ test.describe('admin podoba redesign', () => {
         outsideMedia: actions[0]?.closest('[data-testid="category-showcase-media"]') === null,
         xPositions: buttonRects.map((rect) => Math.round(rect.x * 10) / 10),
         yPositions: buttonRects.map((rect) => rect.y),
-        topInset: buttonRects[0].top - tileRect.top,
-        rightInset: tileRect.right - Math.max(...buttonRects.map((rect) => rect.right)),
-        bottomInset: tileRect.bottom - buttonRects.at(-1)!.bottom
+        topInset: (buttonRects[0].top - tileRect.top) / previewScale,
+        rightInset: (tileRect.right - Math.max(...buttonRects.map((rect) => rect.right))) / previewScale,
+        bottomInset: (tileRect.bottom - buttonRects.at(-1)!.bottom) / previewScale
       };
     });
     expect(categoryActionRail.direction).toBe('column');
@@ -120,6 +121,71 @@ test.describe('admin podoba redesign', () => {
       expect.arrayContaining(['IBM Plex Sans', 'Source Sans 3', 'Space Grotesk'])
     );
     await expect(categoryImages.first()).toHaveCSS('filter', 'none');
+    await toolbar.getByRole('button', { name: 'Slog besedila', exact: true }).click();
+
+    const layers = page.getByTestId('homepage-layers-panel');
+    await expect(layers).toBeVisible();
+    const previewBox = await page.getByTestId('homepage-preview-stage').boundingBox();
+    const layersBox = await layers.boundingBox();
+    expect(layersBox!.x).toBeGreaterThanOrEqual(previewBox!.x + previewBox!.width);
+    const primaryRow = layers.locator('[data-homepage-appearance-layer="hero:primaryButton"]');
+    await primaryRow.getByRole('button', { name: /^Izberi ali premakni plast:/u }).click();
+    const labelInput = page.getByTestId('homepage-selected-button-label');
+    const urlInput = page.getByTestId('homepage-selected-button-url');
+    const originalHref = await urlInput.inputValue();
+    await labelInput.fill('');
+    await labelInput.pressSequentially('Razišči nove materiale');
+    await expect(labelInput).toHaveValue('Razišči nove materiale');
+    await expect(urlInput).toHaveValue(originalHref);
+    const primary = page.locator('[data-canvas-element-id="hero:primaryButton"]');
+    await expect(primary.locator('a')).toHaveText('Razišči nove materiale');
+    await expect(primaryRow).toHaveAttribute('data-homepage-appearance-layer-selected', 'true');
+    await primaryRow.getByRole('button', { name: /^Skrij:/u }).click();
+    await expect(primaryRow.getByRole('button', { name: /^Prikaži:/u })).toBeVisible();
+    await expect(labelInput).toHaveValue('Razišči nove materiale');
+    await primaryRow.getByRole('button', { name: /^Prikaži:/u }).click();
+    await primaryRow.getByRole('button', { name: /^Zakleni:/u }).click();
+    await expect(primaryRow.getByRole('button', { name: /^Odkleni:/u })).toBeVisible();
+    await primaryRow.getByRole('button', { name: /^Odkleni:/u }).click();
+    const heroTextStyles = () => page.locator('[data-homepage-section="hero"] [data-homepage-canvas-element] h1, [data-homepage-section="hero"] [data-homepage-canvas-element] p, [data-homepage-section="hero"] [data-homepage-canvas-element] a').evaluateAll(elements => elements.map(element => {
+      const style = getComputedStyle(element);
+      return { text: element.textContent, color: style.color, background: style.backgroundColor, fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, textAlign: style.textAlign, marginTop: style.marginTop };
+    }));
+    const stylesBeforeReorder = await heroTextStyles();
+    const handle = primaryRow.getByRole('button', { name: /^Izberi ali premakni plast:/u });
+    await handle.focus();
+    await handle.press('Space');
+    await handle.press('ArrowUp');
+    await handle.press('Space');
+    await expect.poll(() => layers.locator('[data-homepage-appearance-layer-parent="section:hero"]').evaluateAll(elements => elements.map(element => element.getAttribute('data-homepage-appearance-layer')))).toEqual(['hero:primaryButton', 'hero:secondaryButton', 'hero:description', 'hero:title']);
+    expect(await heroTextStyles()).toEqual(stylesBeforeReorder);
+
+    await primary.dblclick();
+    const inlinePrimary = page.getByRole('textbox', { name: 'Besedilo primarnega gumba', exact: true });
+    await inlinePrimary.fill('');
+    await inlinePrimary.pressSequentially('Nov glavni gumb');
+    await inlinePrimary.press('Home');
+    await inlinePrimary.pressSequentially('Moj ');
+    await inlinePrimary.press('Enter');
+    await expect(primary.locator('a')).toHaveText('Moj Nov glavni gumb');
+    await expect(labelInput).toHaveValue('Moj Nov glavni gumb');
+    await expect(page).toHaveURL(/\/admin\/podoba\/glavna-stran$/u);
+
+    const secondaryRow = layers.locator('[data-homepage-appearance-layer="hero:secondaryButton"]');
+    await secondaryRow.getByRole('button', { name: /^Izberi ali premakni plast:/u }).click();
+    await labelInput.fill('Za šole in delavnice');
+    await expect(page.locator('[data-canvas-element-id="hero:secondaryButton"] a')).toHaveText('Za šole in delavnice');
+    await layers.locator('[data-homepage-appearance-layer="categories:showAll"]').getByRole('button', { name: /^Izberi ali premakni plast:/u }).click();
+    await labelInput.fill('Vse naše kategorije');
+    await expect(page.locator('[data-canvas-element-id="categories:showAll"]')).toContainText('Vse naše kategorije');
+    await page.locator('[data-homepage-page-toolbar]').getByRole('button', { name: 'Dodaj besedilo, gumb ali sekcijo', exact: true }).click();
+    await page.getByRole('button', { name: 'Gumb', exact: true }).click();
+    const customId = await page.getByTestId('homepage-preview-stage').getAttribute('data-selected-element-id');
+    expect(customId).toMatch(/^hero:textBlock:/u);
+    await labelInput.fill('');
+    await labelInput.pressSequentially('Kontaktirajte nas');
+    await expect(labelInput).toHaveValue('Kontaktirajte nas');
+    await expect(page.locator('[data-canvas-element-id="' + customId + '"]')).toContainText('Kontaktirajte nas');
   });
 
   test('grid, rulers and guides follow the selected homepage section', async ({ page }) => {
@@ -1159,6 +1225,15 @@ test.describe('admin podoba redesign', () => {
     const currentLetterSpacing = Number(await letterSpacingInput.inputValue());
     await letterSpacingInput.fill(String(currentLetterSpacing + 0.25));
     await expect(saveButton).toBeEnabled();
+    const primaryLayer = page.getByTestId('homepage-layers-panel').locator('[data-homepage-appearance-layer="hero:primaryButton"]');
+    await primaryLayer.getByRole('button', { name: /^Izberi ali premakni plast:/u }).click();
+    const buttonHref = await page.getByTestId('homepage-selected-button-url').inputValue();
+    await page.getByTestId('homepage-selected-button-label').fill('Odpri naš katalog');
+    await saveButton.click();
+    await expect.poll(() => savedPayloads.length).toBe(3);
+    const buttonConfig = savedPayloads[2].config as { hero: { primaryButton: { label: string; href: string } } };
+    expect(buttonConfig.hero.primaryButton).toEqual({ label: 'Odpri naš katalog', href: buttonHref });
+    await expect(page.getByText('Objavljeno', { exact: true })).toBeVisible();
   });
 
   test('a pending section rename enables save before blur and is included in the payload', async ({ page }) => {

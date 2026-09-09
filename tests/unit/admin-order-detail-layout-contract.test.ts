@@ -549,8 +549,8 @@ test('order detail section titles share the order-data reference size', () => {
 
   assert.match(detail, new RegExp('<h2 className="' + headingClass + '">Podatki naročila<\\/h2>', 'u'));
   assert.match(itemsEditor, new RegExp('<h2 className="' + headingClass + '">Postavke<\\/h2>', 'u'));
-  assert.match(shippingOverride, new RegExp('className="' + headingClass + '"[\\s\\S]*?>\\s*Poštnina', 'u'));
-  assert.match(customerAccess, new RegExp('<h2 className="' + headingClass + '">Stranka in dostop<\\/h2>', 'u'));
+  assert.match(shippingOverride, new RegExp('<h2[^>]*className="[^"]*' + headingClass + '"[^>]*>\\s*Poštnina<\\/h2>', 'u'));
+  assert.match(customerAccess, new RegExp('<h2[^>]*className="' + headingClass + '"[^>]*>Stranka in dostop<\\/h2>', 'u'));
   assert.match(sharedNotesCard, new RegExp('className="' + headingClass + '"[\\s\\S]*?Opombe administratorja', 'u'));
   assert.match(sharedDocumentsPresentation, new RegExp('<h2 className="' + headingClass + '">PDF dokumenti<\\/h2>', 'u'));
 });
@@ -718,7 +718,7 @@ test('master edit keeps the reference-style shipping card in normal document flo
   assert.doesNotMatch(shippingOverride, /detailsOpen|setDetailsOpen|collapseStyles|data-open=|aria-expanded=/u);
   assert.match(
     shippingOverride,
-    /data-shipping-editor-row[\s\S]*?data-shipping-read-reason[\s\S]*?data-shipping-automatic-summary/u
+    /data-shipping-summary-row[\s\S]*?data-shipping-amount-slot[\s\S]*?data-shipping-editor-row[\s\S]*?data-shipping-read-reason/u
   );
   assert.match(shippingOverride, /aria-pressed=\{externalEditMode\}/u);
   assert.match(shippingOverride, /onClick=\{onRequestEdit\}/u);
@@ -729,7 +729,7 @@ test('master edit keeps the reference-style shipping card in normal document flo
   assert.match(sharedNotesCard, /block h-10 min-h-10 w-full resize-none/u);
 });
 
-test('card edit and manage actions share one icon-only top-right treatment', () => {
+test('card editing stays icon-only while customer access actions remain inline', () => {
   assert.match(
     adminTableStandards,
     /export const adminCardSectionEditIconButtonClassName =\s*`\$\{adminCardSectionActionButtonClassName\} !w-7 !gap-0 !px-0`;/u
@@ -737,16 +737,21 @@ test('card edit and manage actions share one icon-only top-right treatment', () 
   assert.match(shippingOverride, /data-shipping-summary-row/u);
   assert.match(shippingOverride, /data-admin-card-edit-action="shipping"/u);
   assert.doesNotMatch(shippingOverride, /<span>\{detailsOpen \? 'Končaj urejanje' : 'Preglej Poštnino'\}<\/span>/u);
-  assert.match(customerAccess, /className="flex items-center justify-between gap-4"/u);
-  assert.match(customerAccess, /data-admin-card-edit-action="customer-access"/u);
-  assert.match(customerAccess, /<PencilIcon className="h-4 w-4" \/>/u);
-  assert.match(customerAccess, /aria-controls=\{`admin-order-customer-access-management-\$\{orderId\}`\}/u);
-  assert.match(customerAccess, /id=\{`admin-order-customer-access-management-\$\{orderId\}`\}/u);
-  assert.doesNotMatch(customerAccess, /className="mt-3 text-xs font-semibold text-\[color:var\(--blue-500\)\] hover:underline"/u);
-  assert.doesNotMatch(
-    customerAccess,
-    />\s*\{compactExpanded \? 'Skrij upravljanje' : 'Upravljaj dostop'\}\s*<\/button>/u
-  );
+  const compactStart = customerAccess.indexOf('if (compact) {');
+  const compactEnd = customerAccess.indexOf('\n  return (', compactStart);
+  assert.ok(compactStart >= 0 && compactEnd > compactStart);
+  const compactSource = customerAccess.slice(compactStart, compactEnd);
+  const inlineCard = compactSource.slice(0, compactSource.indexOf('</section>'));
+
+  assert.match(inlineCard, /data-testid="admin-order-customer-access-compact"/u);
+  assert.match(inlineCard, /Dostop stranke[\s\S]*?Velja do[\s\S]*?Nazadnje uporabljena/u);
+  assert.match(inlineCard, /disabled=\{isWorking\} onClick=\{\(\) => void regenerate\(\)\}/u);
+  assert.match(inlineCard, /Obnovi povezavo[\s\S]*?Ustvari povezavo/u);
+  assert.match(inlineCard, /disabled=\{isWorking \|\| !latestActive\}/u);
+  assert.match(inlineCard, /onClick=\{\(\) => setConfirmAction\('revoke'\)\}/u);
+  assert.doesNotMatch(compactSource, /<Dialog\b|<PencilIcon\b|aria-haspopup="dialog"|customer-access-management|data-admin-card-edit-action="customer-access"/u);
+  assert.match(compactSource, /<ConfirmDialog[\s\S]*?onConfirm=\{\(\) => void revoke\(\)\}/u);
+
 });
 
 test('order item columns stay on one line while the article keeps separate name and SKU lines', () => {

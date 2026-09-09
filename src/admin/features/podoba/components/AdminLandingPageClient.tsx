@@ -147,6 +147,9 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import HomepageAppearanceLayersPanel, { type HomepageAppearanceLayerItem } from './HomepageAppearanceLayersPanel';
+import { rankProductAppearanceLayersTopFirst } from './ProductAppearanceLayersPanel';
+import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import {
   AppearanceEditorAlignmentControl,
   AppearanceEditorCompactSelect,
@@ -204,7 +207,7 @@ type HeroPositionUpdates = Partial<
     | 'secondaryButtonOffsetYPx'
   >
 >;
-type HeroTextContentUpdates = Partial<Pick<HomepageSettings['hero'], 'title' | 'description'>>;
+type HeroTextContentUpdates = Partial<Pick<HomepageSettings['hero'], 'title' | 'description' | 'primaryButton' | 'secondaryButton'>>;
 type CategoryTextUpdates = Partial<Pick<HomepageSettings['categories'], 'title' | 'subtitle' | 'showAllLabel'>>;
 type HeroTextBlockUpdates = Partial<HomepageHeroTextBlock>;
 
@@ -987,23 +990,59 @@ function TextField({
   value,
   onChange,
   placeholder,
-  type = 'text'
+  type = 'text',
+  testId
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  testId?: string;
 }) {
   return (
     <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
       <Input
         type={type}
+        data-testid={testId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className={inputClassName}
         placeholder={placeholder}
+      />
+    </label>
+  );
+}
+
+function ButtonLabelField({ value, maxLength, onChange, testId }: {
+  value: string;
+  maxLength: number;
+  onChange: (value: string) => void;
+  testId?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const lastEmittedValue = useRef(value);
+  useLayoutEffect(() => {
+    if (inputRef.current && value !== lastEmittedValue.current) inputRef.current.value = value;
+    lastEmittedValue.current = value;
+  }, [value]);
+
+  return (
+    <label className={inspectorFieldRowClassName}>
+      <span className={labelClassName}>Besedilo gumba</span>
+      <Input
+        ref={inputRef}
+        defaultValue={value}
+        maxLength={maxLength}
+        data-testid={testId}
+        className={inputClassName}
+        onChange={(event) => {
+          const draft = event.target.value;
+          lastEmittedValue.current = draft.trim().slice(0, maxLength);
+          onChange(draft);
+        }}
+        onBlur={(event) => { event.currentTarget.value = value; }}
       />
     </label>
   );
@@ -1991,6 +2030,7 @@ function ScaledSiteHeaderPreview({
 
 function SortableSectionRow({
   sectionId,
+  locked,
   index,
   label,
   selected,
@@ -2009,6 +2049,7 @@ function SortableSectionRow({
   onRenameCancel
 }: {
   sectionId: HomepageSectionId;
+  locked: boolean;
   index: number;
   label: string;
   selected: boolean;
@@ -2026,7 +2067,7 @@ function SortableSectionRow({
   onRenameCommit: () => void;
   onRenameCancel: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionId, disabled: locked });
 
   return (
     <div
@@ -2042,9 +2083,10 @@ function SortableSectionRow({
     >
       <button
         type="button"
-        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing`}
+        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40`}
         aria-label="Premakni sekcijo"
-        title="Premakni sekcijo"
+        disabled={locked}
+        title={locked ? 'Sekcija je zaklenjena' : 'Premakni sekcijo'}
         {...attributes}
         {...listeners}
       >
@@ -2138,12 +2180,14 @@ function SortableSectionRow({
 
 function SortableCategoryRow({
   category,
+  locked,
   index
 }: {
   category: HomepageCategoryCardData;
+  locked: boolean;
   index: number;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.slug });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.slug, disabled: locked });
 
   return (
     <div
@@ -2156,9 +2200,10 @@ function SortableCategoryRow({
     >
       <button
         type="button"
-        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing`}
+        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40`}
         aria-label="Premakni kategorijo"
-        title="Premakni kategorijo"
+        disabled={locked}
+        title={locked ? 'Kartica je zaklenjena' : 'Premakni kategorijo'}
         {...attributes}
         {...listeners}
       >
@@ -2392,6 +2437,8 @@ function AdminLandingPageClient({
   const [savedFooterDescription, setSavedFooterDescription] = useState(initialFooterDescription);
   const [selectedSectionId, setSelectedSectionId] = useState<HomepageSectionId>(normalizedInitialConfig.sectionOrder[0] ?? 'hero');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [layerSelection, setLayerSelection] = useState<{ anchor: string | null; ids: string[] } | null>(null);
+  const [mobileLayersOpen, setMobileLayersOpen] = useState(false);
   const [categoryTitleEditScope, setCategoryTitleEditScope] = useState<CategoryTitleEditScope>('selected');
   const [activeToolbarPopover, setActiveToolbarPopover] = useState<ToolbarPopover>(null);
   const [activeToolbarHost, setActiveToolbarHost] = useState<HomepageToolbarHost | null>(null);
@@ -2830,6 +2877,7 @@ function AdminLandingPageClient({
 
   function moveSection(sectionId: HomepageSectionId, direction: -1 | 1) {
     updateConfig((current) => {
+      if (resolveHomepageCanvasElementDeviceSettings(current.canvas, 'section:' + sectionId, previewDevice).locked) return current;
       const currentIndex = current.sectionOrder.indexOf(sectionId);
       const nextIndex = Math.min(current.sectionOrder.length - 1, Math.max(0, currentIndex + direction));
       if (currentIndex < 0 || nextIndex === currentIndex) return current;
@@ -2841,6 +2889,7 @@ function AdminLandingPageClient({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     updateConfig((current) => {
+      if (resolveHomepageCanvasElementDeviceSettings(current.canvas, 'section:' + String(active.id), previewDevice).locked) return current;
       const oldIndex = current.sectionOrder.indexOf(active.id as HomepageSectionId);
       const newIndex = current.sectionOrder.indexOf(over.id as HomepageSectionId);
       if (oldIndex < 0 || newIndex < 0) return current;
@@ -2873,6 +2922,7 @@ function AdminLandingPageClient({
   }
 
   function moveCategory(sourceSlug: string, targetSlug: string) {
+    if (resolveHomepageCanvasElementDeviceSettings(config.canvas, 'categories:card:' + sourceSlug, previewDevice).locked) return;
     const orderedSlugs = orderHomepageCategories(categories, config.categories).map((category) => category.slug);
     const oldIndex = orderedSlugs.indexOf(sourceSlug);
     const newIndex = orderedSlugs.indexOf(targetSlug);
@@ -3018,18 +3068,19 @@ function AdminLandingPageClient({
   function createCanvasStyleSeed(current: HomepageSettings, elementId: string, device: HomepagePreviewDevice): HomepageCanvasElementDeviceSettings {
     const base = {
       ...DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
-      zIndex: elementId.startsWith('hero:') ? 20 : DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS.zIndex
+      zIndex: elementId.startsWith('hero:textBlock:') ? 20 : DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS.zIndex
     };
     const hero = { ...current.hero, ...current.hero.responsive[device] };
 
     if (elementId === 'hero:title') {
-      return { ...base, color: '#ffffff', fontFamily: hero.titleFontFamily, fontSizePx: hero.titleFontSizePx, lineHeight: 1.08, fontWeight: hero.titleBold ? 800 : 600, horizontalAlign: hero.contentAlign, textAlign: hero.contentAlign };
+      return { ...base, fontFamily: hero.titleFontFamily, fontSizePx: hero.titleFontSizePx, lineHeight: 1.08, fontWeight: hero.titleBold ? 800 : 600 };
     }
     if (elementId === 'hero:description') {
-      return { ...base, color: '#ffffff', fontFamily: hero.descriptionFontFamily, fontSizePx: hero.descriptionFontSizePx, lineHeight: 1.65, fontWeight: hero.descriptionBold ? 700 : 400, horizontalAlign: hero.contentAlign, textAlign: hero.contentAlign };
+      return { ...base, marginTopPx: 20, fontFamily: hero.descriptionFontFamily, fontSizePx: hero.descriptionFontSizePx, lineHeight: 1.65, fontWeight: hero.descriptionBold ? 700 : 400 };
     }
     if (elementId === 'hero:primaryButton' || elementId === 'hero:secondaryButton') {
-      return { ...base, color: '#ffffff', fontFamily: 'Inter', fontSizePx: 15, lineHeight: 1.2, fontWeight: 600 };
+      // Empty color/family retain the renderer's CSS inheritance, including soft-button contrast.
+      return { ...base, fontFamily: '', fontSizePx: 15, lineHeight: globalStyle.typography.bodyLineHeight, fontWeight: 600 };
     }
     if (elementId.startsWith('hero:textBlock:')) {
       const blockId = elementId.slice('hero:textBlock:'.length);
@@ -3039,11 +3090,10 @@ function AdminLandingPageClient({
         ...base,
         visible: block?.visible ?? true,
         widthPx: resolved?.widthPx ?? 0,
-        color: '#ffffff',
         fontFamily: resolved?.fontFamily ?? 'Inter',
-        fontSizePx: resolved?.fontSizePx ?? (block?.kind === 'button' ? 15 : 24),
-        lineHeight: block?.kind === 'button' ? 1.2 : 1.25,
-        fontWeight: resolved?.bold ? 800 : block?.kind === 'button' ? 600 : 500
+        fontSizePx: block?.kind === 'button' ? 15 : resolved?.fontSizePx ?? 24,
+        lineHeight: 1.25,
+        fontWeight: block?.kind === 'button' ? 600 : resolved?.bold ? 800 : 500
       };
     }
     if (elementId === 'categories:heading') {
@@ -3056,25 +3106,12 @@ function AdminLandingPageClient({
       return { ...base, color: '#536070', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };
     }
     if (elementId === 'categories:showAll') {
-      return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 3 };
+      return { ...base, color: '#1982bf', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 500, zIndex: 3 };
     }
     if (elementId.startsWith('categories:image:')) return { ...base, zIndex: 1 };
     if (elementId.startsWith('categories:card:')) return { ...base, zIndex: 0 };
-    if (elementId === 'footer:logo') {
-      return { ...base, fontSizePx: 40, lineHeight: 1, horizontalAlign: 'left', textAlign: 'left', zIndex: 10 };
-    }
     if (elementId === 'footer:description') {
-      return {
-        ...base,
-        color: '',
-        fontFamily: 'Inter',
-        fontSizePx: 13,
-        lineHeight: 1.85,
-        fontWeight: 400,
-        horizontalAlign: 'left',
-        textAlign: 'left',
-        zIndex: 10
-      };
+      return { ...base, fontSizePx: 13, lineHeight: 1.85, fontWeight: 400 };
     }
     return base;
   }
@@ -3228,6 +3265,7 @@ function AdminLandingPageClient({
   }
 
   function selectCanvasElement(elementId: string | null) {
+    setLayerSelection(null);
     setSelectedElementId(elementId);
     setActiveToolbarPopover(null);
     if (!elementId) return;
@@ -3402,6 +3440,33 @@ function AdminLandingPageClient({
     setActiveToolbarPopover(null);
   }
 
+  function selectedButtonLabel() {
+    if (selectedElementId === 'hero:primaryButton') return config.hero.primaryButton.label;
+    if (selectedElementId === 'hero:secondaryButton') return config.hero.secondaryButton.label;
+    if (selectedElementId === 'categories:showAll') return config.categories.showAllLabel;
+    if (selectedElementId?.startsWith('hero:textBlock:')) {
+      return config.hero.textBlocks.find((block) => block.id === selectedElementId.slice('hero:textBlock:'.length))?.text ?? '';
+    }
+    return '';
+  }
+
+  function updateSelectedButtonLabel(label: string) {
+    if (selectedElementId === 'hero:primaryButton') updateHero({ primaryButton: { ...config.hero.primaryButton, label } });
+    else if (selectedElementId === 'hero:secondaryButton') updateHero({ secondaryButton: { ...config.hero.secondaryButton, label } });
+    else if (selectedElementId === 'categories:showAll') updateCategories({ showAllLabel: label });
+    else if (selectedElementId?.startsWith('hero:textBlock:')) {
+      const blockId = selectedElementId.slice('hero:textBlock:'.length);
+      // Keep the selected draft while its label is temporarily empty; saving still normalizes the block list.
+      setConfig((current) => ({
+        ...current,
+        hero: {
+          ...current.hero,
+          textBlocks: current.hero.textBlocks.map((block) => block.id === blockId ? { ...block, text: label.trim().slice(0, 900) } : block)
+        }
+      }));
+    }
+  }
+
   function selectedElementLink() {
     if (selectedElementId === 'hero:primaryButton') return config.hero.primaryButton.href;
     if (selectedElementId === 'hero:secondaryButton') return config.hero.secondaryButton.href;
@@ -3484,6 +3549,26 @@ function AdminLandingPageClient({
       }
     }
 
+    if (elementId === 'categories:showAll' && !config.categories.showAllLink) {
+      updateConfig((current) => {
+        const responsive = Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => [
+          device,
+          {
+            ...resolveCanvasStyleForDevice(current, current.canvas.elements, elementId, device),
+            visible: device === previewDevice
+          }
+        ])) as HomepageSettings['canvas']['elements'][string]['responsive'];
+        return {
+          ...current,
+          categories: { ...current.categories, showAllLink: true },
+          canvas: {
+            ...current.canvas,
+            elements: { ...current.canvas.elements, [elementId]: { ...responsive.desktop, responsive } }
+          }
+        };
+      });
+      return;
+    }
     updateCanvasElementStyle(elementId, { visible: true });
   }
 
@@ -3681,6 +3766,97 @@ function AdminLandingPageClient({
     return orderHomepageCategories(categoryShowcaseEditor.items, config.categories);
   }, [categoryShowcaseEditor.items, config.categories]);
 
+  function buildHomepageLayers() {
+    const items: HomepageAppearanceLayerItem[] = [];
+    const deleted = new Set(config.canvas.deletedElementIds);
+    const add = (id: string, label: string, parentId: string | null, group: string, order?: number, visible = true) => {
+      if (deleted.has(id)) return;
+      const style = resolveCanvasStyleForDevice(config, config.canvas.elements, id, previewDevice);
+      items.push({
+        id, label, parentId, group, domOrder: items.length, protectedElement: false,
+        settings: { visible: visible && style.visible, locked: style.locked, zIndex: order ?? style.zIndex }
+      });
+    };
+    config.sectionOrder.forEach((sectionId, index) => {
+      const parentId = 'section:' + sectionId;
+      add(parentId, getSectionLabel(sectionId), null, 'Vrstni red sekcij', config.sectionOrder.length - index, isSectionVisible(sectionId));
+      if (sectionId === 'hero') {
+        add('hero:title', 'Naslov', parentId, 'Plast uvodne sekcije');
+        add('hero:description', 'Opis', parentId, 'Plast uvodne sekcije');
+        add('hero:primaryButton', 'Primarni gumb', parentId, 'Gumb');
+        add('hero:secondaryButton', 'Sekundarni gumb', parentId, 'Gumb');
+        config.hero.textBlocks.forEach((block) => add('hero:textBlock:' + block.id, block.text || (block.kind === 'button' ? 'Gumb' : 'Besedilo'), parentId, block.kind === 'button' ? 'Gumb' : 'Besedilo', undefined, block.visible));
+      } else if (sectionId === 'categories') {
+        add('categories:heading', 'Naslov kategorij', parentId, 'Besedilo kategorij');
+        add('categories:subtitle', 'Podnaslov kategorij', parentId, 'Besedilo kategorij');
+        add('categories:showAll', 'Vse kategorije', parentId, 'Gumb', undefined, config.categories.showAllLink);
+        items.push({
+          id: 'categories:cards', label: 'Vrstni red kategorij', parentId, group: '', domOrder: items.length,
+          container: true, protectedElement: true, settings: { visible: true, locked: true, zIndex: -1000 }
+        });
+        categoryRows.slice(0, config.categories.limit).forEach((category, categoryIndex, rows) => {
+          const cardId = 'categories:card:' + category.slug;
+          if (deleted.has(cardId)) return;
+          add(cardId, category.title, 'categories:cards', 'Kartica kategorije', rows.length - categoryIndex);
+          add('categories:title:' + category.slug, 'Naslov · ' + category.title, cardId, 'Besedilo kartice');
+        });
+      } else if (sectionId === 'footer') {
+        add('footer:logo', 'Logotip noge', parentId, 'Plast noge');
+        add('footer:description', 'Opis noge', parentId, 'Plast noge');
+      }
+    });
+    return items;
+  }
+
+  const homepageLayers = buildHomepageLayers();
+  const selectedLayerAlias = selectedElementId?.startsWith('categories:image:')
+    ? selectedElementId.replace('categories:image:', 'categories:card:')
+    : selectedElementId;
+  const selectedLayerIds = layerSelection?.anchor === selectedElementId
+    ? layerSelection.ids.filter((id) => homepageLayers.some((layer) => layer.id === id))
+    : selectedLayerAlias ? [selectedLayerAlias] : [];
+
+  function selectHomepageLayer(id: string, options?: ProductCanvasSelectionOptions) {
+    const ids = options?.additive
+      ? selectedLayerIds.includes(id) ? selectedLayerIds.filter((selectedId) => selectedId !== id) : [...selectedLayerIds, id]
+      : [id];
+    const anchor = ids.at(-1) ?? null;
+    selectCanvasElement(anchor);
+    setLayerSelection({ anchor, ids });
+  }
+
+  function toggleHomepageLayerVisibility(id: string) {
+    const layer = homepageLayers.find((item) => item.id === id);
+    if (!layer || layer.container) return;
+    if (layer.settings.visible) updateCanvasElementStyle(id, { visible: false });
+    else restoreHiddenElement(id);
+  }
+
+  function reorderHomepageLayers(parentId: string | null, topFirstIds: readonly string[]) {
+    if (parentId === null) {
+      const order = topFirstIds.map((id) => id.slice('section:'.length) as HomepageSectionId);
+      updateConfig((current) => ({ ...current, sectionOrder: [...order, ...current.sectionOrder.filter((id) => !order.includes(id))] }));
+      return;
+    }
+    if (parentId === 'categories:cards') {
+      const order = topFirstIds.map((id) => id.slice('categories:card:'.length));
+      const reordered = new Set(order);
+      let nextIndex = 0;
+      updateCategories({
+        categoryOrderMode: 'custom',
+        categoryOrder: categoryRows.map((item) => reordered.has(item.slug) ? order[nextIndex++] : item.slug)
+      });
+      return;
+    }
+    updateConfig((current) => {
+      let elements = current.canvas.elements;
+      rankProductAppearanceLayersTopFirst(topFirstIds).forEach(({ id, zIndex }) => {
+        elements = { ...elements, [id]: applyCanvasElementStyleUpdates(current, elements, previewDevice, id, { zIndex }) };
+      });
+      return { ...current, canvas: { ...current.canvas, elements } };
+    });
+  }
+
   const sectionVisibilitySummary = HOMEPAGE_SECTION_IDS
     .map((sectionId) => `${getSectionLabel(sectionId)}: ${isSectionVisible(sectionId) ? 'vidno' : 'skrito'}`)
     .join(' · ');
@@ -3732,6 +3908,8 @@ function AdminLandingPageClient({
     || selectedElementId === 'footer:description'
     || selectedIsCategoryText
     || Boolean(selectedTextBlock);
+  const selectedHasButtonLabel = selectedIsButton || selectedElementId === 'categories:showAll';
+  const selectedButtonLabelMaxLength = selectedElementId === 'hero:primaryButton' || selectedElementId === 'hero:secondaryButton' ? 80 : selectedElementId === 'categories:showAll' ? 180 : 900;
   const selectedCanLink = selectedIsButton || Boolean(selectedTextBlock) || selectedElementId === 'categories:showAll';
   const selectedCanDelete = isDeletableHomepageCanvasElementId(selectedElementId);
   const selectedSectionElementId = selectedIsSection
@@ -4080,7 +4258,7 @@ function AdminLandingPageClient({
                 <SortableContext items={categoryRows.map((category) => category.slug)} strategy={verticalListSortingStrategy}>
                   <div className="grid gap-2">
                     {categoryRows.map((category, index) => (
-                      <SortableCategoryRow key={category.slug} category={category} index={index} />
+                      <SortableCategoryRow key={category.slug} category={category} index={index} locked={resolveHomepageCanvasElementDeviceSettings(config.canvas, 'categories:card:' + category.slug, previewDevice).locked} />
                     ))}
                   </div>
                 </SortableContext>
@@ -4226,6 +4404,7 @@ function AdminLandingPageClient({
                 <SortableSectionRow
                   key={sectionId}
                   sectionId={sectionId}
+                  locked={resolveHomepageCanvasElementDeviceSettings(config.canvas, 'section:' + sectionId, previewDevice).locked}
                   index={index}
                   label={getSectionLabel(sectionId)}
                   selected={selectedElementId === `section:${sectionId}`}
@@ -4501,14 +4680,21 @@ function AdminLandingPageClient({
         ) : null}
       </ToolbarPopoverPanel>
     );
-    if (activeToolbarPopover === 'structure') return <ToolbarPopoverPanel title="Struktura strani" description="Sekcije niso več stalno prikazane ob predogledu." onClose={close}>{renderSectionStructure()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'structure') return <ToolbarPopoverPanel title="Struktura strani" description="Dodajte ali preimenujte sekcije. Vrstni red lahko uredite tudi v panelu Plasti." onClose={close}>{renderSectionStructure()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'carousel') return <ToolbarPopoverPanel title="Slike in vrtiljak" description="Naložite medije, uredite njihov vrstni red in način menjave." onClose={close} wide>{renderHeroCarouselSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'section') return <ToolbarPopoverPanel title={`Nastavitve · ${getSectionLabel(selectedSectionId)}`} description={`Odzivne nastavitve za pogled ${selectedViewLabel}.`} onClose={close} wide>{renderSelectedSectionSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'page') return <ToolbarPopoverPanel title="Nastavitve strani" description={`Nastavitve glavne strani za pogled ${selectedViewLabel}.`} onClose={close}>{renderPageSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'style') return <ToolbarPopoverPanel title={`Besedilo · ${selectedEditTargetLabel}`} description={`Slog za pogled ${selectedViewLabel}.`} onClose={close}>{renderStyleControls()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'layout') return <ToolbarPopoverPanel title={`Mere in poravnava · ${selectedEditTargetLabel}`} onClose={close}>{renderLayoutControls()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'spacing') return <ToolbarPopoverPanel title={`Razmiki · ${selectedEditTargetLabel}`} onClose={close}>{renderSpacingControls()}</ToolbarPopoverPanel>;
-    if (activeToolbarPopover === 'link') return <ToolbarPopoverPanel title={`Povezava · ${selectedElementLabel}`} onClose={close}><TextField label="Cilj povezave" value={selectedElementLink()} onChange={updateSelectedElementLink} placeholder="/povezava ali https://..." /></ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'link') return (
+      <ToolbarPopoverPanel title={'Povezava · ' + selectedElementLabel} onClose={close}>
+        <div className="grid gap-2">
+          {selectedHasButtonLabel ? <ButtonLabelField key={selectedElementId} value={selectedButtonLabel()} maxLength={selectedButtonLabelMaxLength} onChange={updateSelectedButtonLabel} /> : null}
+          <TextField label="Cilj povezave" value={selectedElementLink()} onChange={updateSelectedElementLink} placeholder="/povezava ali https://..." />
+        </div>
+      </ToolbarPopoverPanel>
+    );
     if (activeToolbarPopover === 'media' && selectedCategoryMediaItem) return (
       <ToolbarPopoverPanel title="Uredi videz kategorije" description="Slika ter barve naslova, številke in ozadja so skupne v obeh urednikih in na javni strani." onClose={close}>
         <CategoryShowcaseEditor
@@ -4752,34 +4938,71 @@ function AdminLandingPageClient({
           </div>
 
           <div className="mx-4 h-px bg-slate-200" />
-          <div className="overflow-x-clip p-4">
-            <ScaledHomepagePreview
-              selectedViewport={previewDevice}
-              settings={config}
-              categories={categoryShowcaseEditor.items}
-              navigation={previewNavigation}
-              globalStyle={globalStyle}
-              selectedSectionId={selectedSectionId}
-              selectedElementId={selectedElementId}
-              onSelectSection={(sectionId) => selectCanvasElement(`section:${sectionId}`)}
-              onSelectElement={selectCanvasElement}
-              onHeroTextPositionChange={updateHeroViewForDevice}
-              onHeroTextContentChange={(updates) => updateHero(updates)}
-              onHeroTextBlockChange={updateHeroTextBlock}
-              onFooterDescriptionChange={setFooterDescription}
-              onCategoryTextChange={updateCategories}
-              onCategoryImageChange={replaceCategoryImage}
-              onCategoryImageRemove={removeCategoryImage}
-              onEditCategoryAppearance={editCategoryAppearance}
-              onCategoryPresentationChange={categoryShowcaseEditor.updatePresentation}
-              onCategoryMove={moveCategory}
-              onCanvasElementStyleChange={updateCanvasElementStyleFromPreview}
-              onRestoreHiddenElement={restoreHiddenElement}
-              onMoveSection={moveSection}
-              editorOptionsByDevice={editorOptionsByDevice}
-              contextToolbar={renderContextToolbar('floating')}
-              contextToolbarRef={floatingToolbarRef}
-            />
+          <div className="grid min-w-0 items-start lg:grid-cols-[minmax(0,1fr)_272px]">
+            <div className="min-w-0 overflow-x-clip p-4">
+              <ScaledHomepagePreview
+                selectedViewport={previewDevice}
+                settings={config}
+                categories={categoryShowcaseEditor.items}
+                navigation={previewNavigation}
+                globalStyle={globalStyle}
+                selectedSectionId={selectedSectionId}
+                selectedElementId={selectedElementId}
+                onSelectSection={(sectionId) => selectCanvasElement(`section:${sectionId}`)}
+                onSelectElement={selectCanvasElement}
+                onHeroTextPositionChange={updateHeroViewForDevice}
+                onHeroTextContentChange={(updates) => updateHero(updates)}
+                onHeroTextBlockChange={updateHeroTextBlock}
+                onFooterDescriptionChange={setFooterDescription}
+                onCategoryTextChange={updateCategories}
+                onCategoryImageChange={replaceCategoryImage}
+                onCategoryImageRemove={removeCategoryImage}
+                onEditCategoryAppearance={editCategoryAppearance}
+                onCategoryPresentationChange={categoryShowcaseEditor.updatePresentation}
+                onCategoryMove={moveCategory}
+                onCanvasElementStyleChange={updateCanvasElementStyleFromPreview}
+                onRestoreHiddenElement={restoreHiddenElement}
+                onMoveSection={moveSection}
+                editorOptionsByDevice={editorOptionsByDevice}
+                contextToolbar={renderContextToolbar('floating')}
+                contextToolbarRef={floatingToolbarRef}
+              />
+            </div>
+            <div className="min-w-0 border-t border-slate-200 p-3 lg:sticky lg:top-4 lg:border-l lg:border-t-0" data-homepage-selection-persistent-control>
+              <button
+                type="button"
+                className={'mb-2 flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs font-semibold text-slate-700 lg:hidden ' + adminControlFocusTokenClasses}
+                aria-expanded={mobileLayersOpen}
+                aria-controls="homepage-layer-controls"
+                onClick={() => setMobileLayersOpen((open) => !open)}
+                data-testid="homepage-layers-toggle"
+              >
+                <span className="inline-flex items-center gap-2"><Layers3 className="h-4 w-4" />Plasti</span>
+                <ChevronDown className={classNames('h-4 w-4 transition-transform', mobileLayersOpen && 'rotate-180')} />
+              </button>
+              <div id="homepage-layer-controls" className={classNames('space-y-3', !mobileLayersOpen && 'hidden lg:block')}>
+                {selectedHasButtonLabel ? (
+                  <section className="rounded-xl border border-slate-200 bg-white p-3" data-testid="homepage-selected-button-controls">
+                    <h3 className="mb-3 truncate text-xs font-semibold text-slate-900">{selectedElementLabel}</h3>
+                    <div className="grid gap-2">
+                      <ButtonLabelField key={selectedElementId} value={selectedButtonLabel()} maxLength={selectedButtonLabelMaxLength} onChange={updateSelectedButtonLabel} testId="homepage-selected-button-label" />
+                      <TextField label="Cilj povezave" value={selectedElementLink()} onChange={updateSelectedElementLink} placeholder="/povezava ali https://..." testId="homepage-selected-button-url" />
+                    </div>
+                  </section>
+                ) : null}
+                <HomepageAppearanceLayersPanel
+                  items={homepageLayers}
+                  selectedIds={selectedLayerIds}
+                  onSelect={selectHomepageLayer}
+                  onToggleVisibility={toggleHomepageLayerVisibility}
+                  onToggleLock={(id) => {
+                    const layer = homepageLayers.find((item) => item.id === id);
+                    if (layer && !layer.container) updateCanvasElementStyle(id, { locked: !layer.settings.locked });
+                  }}
+                  onReorder={reorderHomepageLayers}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </main>

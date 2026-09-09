@@ -550,9 +550,15 @@ test('quote access and email evidence share one compact order-style customer car
     /className="flex items-center justify-between gap-4 py-2"/u
   ];
   for (const pattern of sharedCompactCardPatterns) {
-    assert.match(orderAccess, pattern);
     assert.match(accessCard, pattern);
   }
+  const orderCompact = orderAccess.slice(orderAccess.indexOf('  if (compact) {'), orderAccess.indexOf('\n  return (', orderAccess.indexOf('  if (compact) {')));
+  assert.match(orderCompact, /adminWindowCardClassName \+ ' p-4'/u);
+  assert.match(orderCompact, /<h2[^>]*className="text-base font-semibold text-slate-900">Stranka in dostop<\/h2>/u);
+  assert.match(orderCompact, /<dl[^>]*grid-cols-3/u);
+  assert.match(orderCompact, />Dostop stranke<\/dt>[\s\S]*?>Velja do<\/dt>[\s\S]*?>Nazadnje uporabljena<\/dt>/u);
+  assert.match(orderCompact, /<AdminDetailDocumentPrimaryAction[\s\S]*?regenerate\(\)[\s\S]*?Prekliči dostop[\s\S]*?<\/section>/u);
+  assert.doesNotMatch(orderCompact, /<Dialog\b|PencilIcon|isManagementOpen/u);
 
   assert.match(accessCard, />Dostop stranke<\/dt>/u);
   assert.match(accessCard, />Aktivne povezave<\/dt>/u);

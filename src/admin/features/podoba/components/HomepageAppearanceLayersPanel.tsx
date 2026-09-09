@@ -19,22 +19,20 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Eye, EyeOff, GripVertical, Lock, Unlock } from 'lucide-react';
 import { useCallback, useMemo, type ReactNode } from 'react';
-import type { ProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
 import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import { adminControlFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
-export type ProductAppearanceLayerItem = {
-  id: string;
-  label: string;
-  group: string;
-  parentId: string | null;
-  domOrder: number;
-  settings: Pick<ProductCanvasElementDeviceSettings, 'visible' | 'locked' | 'zIndex'>;
-  protectedElement: boolean;
-};
+import {
+  moveSelectedProductAppearanceLayers,
+  sortProductAppearanceLayersTopFirst,
+  type ProductAppearanceLayerItem
+} from './ProductAppearanceLayersPanel';
 
-type ProductAppearanceLayersPanelProps = {
-  items: readonly ProductAppearanceLayerItem[];
+export type HomepageAppearanceLayerItem = ProductAppearanceLayerItem & {
+  container?: boolean;
+};
+type HomepageAppearanceLayersPanelProps = {
+  items: readonly HomepageAppearanceLayerItem[];
   selectedIds: readonly string[];
   className?: string;
   onSelect: (
@@ -49,59 +47,6 @@ type ProductAppearanceLayersPanelProps = {
 const classes = (...values: Array<string | false | null | undefined>) =>
   values.filter(Boolean).join(' ');
 
-export function sortProductAppearanceLayersTopFirst<Layer extends ProductAppearanceLayerItem>(
-  items: readonly Layer[]
-) {
-  return [...items].sort((first, second) => (
-    second.settings.zIndex - first.settings.zIndex
-    || second.domOrder - first.domOrder
-    || first.label.localeCompare(second.label, 'sl')
-  ));
-}
-
-export function moveSelectedProductAppearanceLayers(
-  topFirstIds: readonly string[],
-  activeId: string,
-  overId: string,
-  selectedIds: readonly string[] = []
-) {
-  const activeIndex = topFirstIds.indexOf(activeId);
-  const overIndex = topFirstIds.indexOf(overId);
-  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
-    return [...topFirstIds];
-  }
-
-  const selected = new Set(selectedIds);
-  const movingIds = selected.has(activeId)
-    ? topFirstIds.filter((id) => selected.has(id))
-    : [activeId];
-  if (movingIds.includes(overId)) return [...topFirstIds];
-
-  const moving = new Set(movingIds);
-  const remaining = topFirstIds.filter((id) => !moving.has(id));
-  const remainingOverIndex = remaining.indexOf(overId);
-  if (remainingOverIndex < 0) return [...topFirstIds];
-
-  const insertAt = activeIndex < overIndex
-    ? remainingOverIndex + 1
-    : remainingOverIndex;
-  return [
-    ...remaining.slice(0, insertAt),
-    ...movingIds,
-    ...remaining.slice(insertAt)
-  ];
-}
-
-export function rankProductAppearanceLayersTopFirst(
-  topFirstIds: readonly string[]
-) {
-  const uniqueIds = Array.from(new Set(topFirstIds));
-  return uniqueIds.map((id, index) => ({
-    id,
-    zIndex: uniqueIds.length - index
-  }));
-}
-
 function SortableLayerBranch({
   item,
   depth,
@@ -111,13 +56,13 @@ function SortableLayerBranch({
   onToggleVisibility,
   onToggleLock
 }: {
-  item: ProductAppearanceLayerItem;
+  item: HomepageAppearanceLayerItem;
   depth: number;
   selected: boolean;
   children: ReactNode;
-  onSelect: ProductAppearanceLayersPanelProps['onSelect'];
-  onToggleVisibility: ProductAppearanceLayersPanelProps['onToggleVisibility'];
-  onToggleLock: ProductAppearanceLayersPanelProps['onToggleLock'];
+  onSelect: HomepageAppearanceLayersPanelProps['onSelect'];
+  onToggleVisibility: HomepageAppearanceLayersPanelProps['onToggleVisibility'];
+  onToggleLock: HomepageAppearanceLayersPanelProps['onToggleLock'];
 }) {
   const {
     attributes,
@@ -131,9 +76,9 @@ function SortableLayerBranch({
 
   return (
     <div
-      data-product-appearance-layer={item.id}
-      data-product-appearance-layer-parent={item.parentId ?? 'root'}
-      data-product-appearance-layer-selected={selected || undefined}
+      data-homepage-appearance-layer={item.id}
+      data-homepage-appearance-layer-parent={item.parentId ?? 'root'}
+      data-homepage-appearance-layer-selected={selected || undefined}
     >
       <div
         ref={setNodeRef}
@@ -179,10 +124,10 @@ function SortableLayerBranch({
             <GripVertical className="h-3.5 w-3.5" />
           </span>
           <span className="block w-full min-w-0 overflow-hidden px-1 py-0.5">
-            <span className="block w-full min-w-0 truncate text-[9px] font-semibold leading-[11px]">
+            <span className="block w-full min-w-0 truncate text-[10px] font-semibold leading-[13px]">
               {item.label}
             </span>
-            <span className="block w-full min-w-0 truncate text-[7.5px] font-medium leading-[10px] text-slate-400">
+            <span className="block w-full min-w-0 truncate text-[8px] font-medium leading-[11px] text-slate-400">
               {item.group}
             </span>
           </span>
@@ -233,7 +178,7 @@ function SortableLayerBranch({
   );
 }
 
-export default function ProductAppearanceLayersPanel({
+export default function HomepageAppearanceLayersPanel({
   items,
   selectedIds,
   className,
@@ -241,7 +186,7 @@ export default function ProductAppearanceLayersPanel({
   onToggleVisibility,
   onToggleLock,
   onReorder
-}: ProductAppearanceLayersPanelProps) {
+}: HomepageAppearanceLayersPanelProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -267,7 +212,8 @@ export default function ProductAppearanceLayersPanel({
     return closestCenter({
       ...args,
       droppableContainers: args.droppableContainers.filter((container) => (
-        itemById.get(String(container.id))?.parentId === activeItem.parentId
+        !itemById.get(String(container.id))?.container
+        && itemById.get(String(container.id))?.parentId === activeItem.parentId
       ))
     });
   }, [itemById]);
@@ -277,11 +223,16 @@ export default function ProductAppearanceLayersPanel({
     if (siblings.length === 0) return null;
     return (
       <SortableContext
-        items={siblings.map((item) => item.id)}
+        items={siblings.filter((item) => !item.container).map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
         <div className="grid gap-0.5">
-          {siblings.map((item) => (
+          {siblings.map((item) => item.container ? (
+            <div key={item.id} className="mt-2 border-t border-slate-100 pt-2">
+              <p className="mb-1 px-2 text-[9px] font-semibold text-slate-500">{item.label}</p>
+              {renderScope(item.id, depth + 1)}
+            </div>
+          ) : (
             <SortableLayerBranch
               key={item.id}
               item={item}
@@ -306,6 +257,8 @@ export default function ProductAppearanceLayersPanel({
     if (
       !activeItem
       || !overItem
+      || activeItem.container
+      || overItem.container
       || activeItem.settings.locked
       || activeItem.parentId !== overItem.parentId
     ) {
@@ -313,11 +266,11 @@ export default function ProductAppearanceLayersPanel({
     }
 
     const siblings = orderedItems.filter(
-      (item) => item.parentId === activeItem.parentId
+      (item) => item.parentId === activeItem.parentId && !item.container
     );
     const selectedMovableIds = selectedIds.filter((id) => {
       const item = itemById.get(id);
-      return item?.parentId === activeItem.parentId && !item.settings.locked;
+      return item?.parentId === activeItem.parentId && !item.container && !item.settings.locked;
     });
     const nextOrder = moveSelectedProductAppearanceLayers(
       siblings.map((item) => item.id),
@@ -330,7 +283,8 @@ export default function ProductAppearanceLayersPanel({
 
   return (
     <aside
-      data-product-appearance-layers-panel
+      data-homepage-appearance-layers-panel
+      data-testid="homepage-layers-panel"
       className={classes(
         'min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm',
         className
@@ -339,7 +293,7 @@ export default function ProductAppearanceLayersPanel({
       <div className="border-b border-slate-200 px-3 py-2.5">
         <h3 className="text-xs font-semibold text-slate-900">Plasti</h3>
         <p className="mt-0.5 text-[9px] leading-3 text-slate-500">
-          Najvišja plast je na vrhu. Povlecite znotraj iste skupine.
+          Sekcije in kartice sledijo vrstnemu redu strani. Znotraj ostalih skupin je najvišja plast na vrhu.
         </p>
       </div>
       <div className="border-b border-slate-100 px-3 py-1.5 text-[9px] text-slate-400">

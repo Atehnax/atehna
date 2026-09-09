@@ -40,6 +40,7 @@ export function toPricingSimulatorOption(option: CatalogSimulatorOption): Pricin
     stockLabel: option.stockLabel,
     minOrderLabel: option.minOrderLabel,
     serialLabels: readStringArray(record, 'serialLabels'),
+    weightPricingBasis: record.weightPricingBasis === 'kg' ? 'kg' : 'package',
     weightFraction: readString(record, 'weightFraction'),
     weightColor: readString(record, 'weightColor'),
     weightPackageLabel: readString(record, 'weightPackageLabel'),

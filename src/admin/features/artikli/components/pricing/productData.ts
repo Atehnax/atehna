@@ -1,6 +1,6 @@
 import { createVariant, formatCurrency, type Variant } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
-import { formatPieceQuantity } from './unitFormatters';
+import { formatPieceQuantity, formatQuantityWithUnit } from './unitFormatters';
 import type {
   CatalogItemQuantityDiscountRule,
   PricingSimulatorOption,
@@ -31,8 +31,8 @@ const defaultQuantityDiscountRows: CatalogItemQuantityDiscountRule[] = [
 ];
 
 export const defaultSimpleProductData: SimpleProductData = {
-  basePrice: 18.9,
-  actionPrice: 15.9,
+  basePrice: 0,
+  actionPrice: 0,
   actionPriceEnabled: false,
   weightGrams: null,
   lengthMm: null,
@@ -40,9 +40,9 @@ export const defaultSimpleProductData: SimpleProductData = {
   thicknessMm: null,
   stock: 0,
   minStock: 0,
-  deliveryTime: '2-3 dni',
+  deliveryTime: '',
   moq: 1,
-  warehouseLocation: 'Skladišče Ljubljana',
+  warehouseLocation: '',
   saleStatus: 'active',
   visibleInStore: true,
   showAsNew: false,
@@ -52,6 +52,7 @@ export const defaultSimpleProductData: SimpleProductData = {
 };
 
 export const defaultWeightProductData: WeightProductData = {
+  pricingBasis: 'kg',
   minQuantity: 1,
   fraction: '0-2 mm',
   netMassKg: 25,
@@ -72,35 +73,31 @@ export const defaultWeightProductData: WeightProductData = {
 };
 
 export const defaultMachineProductData: UniqueMachineProductData = {
-  basePrice: 329,
+  basePrice: 0,
   discountPercent: 0,
-  stock: 1,
+  stock: 0,
   warrantyLabel: 'Garancija',
-  warrantyMonths: '24',
+  warrantyMonths: '',
   warrantyUnit: '',
   serviceIntervalLabel: 'Servisni interval',
-  serviceIntervalMonths: '12',
+  serviceIntervalMonths: '',
   serviceIntervalUnit: '',
-  deliveryTime: '1-2 delovna dneva',
-  packageWeightKg: 8.2,
+  deliveryTime: '',
+  packageWeightKg: 0,
   packageWeightUnit: '',
-  packageLengthMm: 620,
-  packageWidthMm: 380,
-  packageThicknessMm: 330,
-  packageDimensions: '620 x 380 x 330 mm',
-  warnings: 'Lomljivi deli pri neustrezni uporabi.\nUporabljajte zaščitna očala.',
+  packageLengthMm: null,
+  packageWidthMm: null,
+  packageThicknessMm: null,
+  packageDimensions: '',
+  warnings: '',
   basicInfoRows: [],
   serialNumbers: [],
-  specs: [
-    { id: 'spec-power', property: 'Moč', value: '205', unit: 'W' },
-    { id: 'spec-voltage', property: 'Napajanje', value: '230', unit: 'V / 50 Hz' },
-    { id: 'spec-weight', property: 'Masa', value: '7,0', unit: 'kg' }
-  ],
-  includedItems: ['1 x osnovna enota', '1 x navodila za uporabo']
+  specs: [],
+  includedItems: []
 };
 
 export const defaultDimensionProductData = {
-  defaultDeliveryTime: '1-2 delovna dneva',
+  defaultDeliveryTime: '',
   variantDeliveryTimes: {} as Record<string, string>,
   variantInventory: [] as Array<Record<string, unknown>>
 };
@@ -416,12 +413,12 @@ export function getWeightVariantFractionColorLabel(variant: Pick<WeightVariant, 
   return [color === '—' ? '' : color, fraction].filter(Boolean).join(' | ') || '—';
 }
 
-export function getWeightVariantSimulatorLabel(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg'>): string {
-  return getWeightVariantQualityLabel(variant);
+export function getWeightVariantSimulatorLabel(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg' | 'label'>): string {
+  return variant.label?.trim() || getWeightVariantQualityLabel(variant);
 }
 
-export function getWeightVariantDisplayLabel(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg'>): string {
-  return getWeightVariantQualityLabel(variant);
+export function getWeightVariantDisplayLabel(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg' | 'label'>): string {
+  return variant.label?.trim() || getWeightVariantQualityLabel(variant);
 }
 
 export function formatWeightKg(value: number): string {
@@ -519,7 +516,8 @@ function findMatchingCatalogVariant(
   const skuMatch = skuKey
     ? catalogVariants.find((variant) => normalizeWeightVariantSkuKey(variant.sku) === skuKey)
     : undefined;
-  return skuMatch ?? catalogVariants[index];
+  if (skuMatch) return skuMatch;
+  return recordId || skuKey ? undefined : catalogVariants[index];
 }
 
 function normalizeOptionalNonNegativeNumber(value: unknown, fallback: number | null): number | null {
@@ -527,6 +525,18 @@ function normalizeOptionalNonNegativeNumber(value: unknown, fallback: number | n
   if (value === null) return null;
   const parsed = asNumber(value, Number.NaN);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
+}
+
+function getWeightVariantRetainedFields(source: unknown): Pick<WeightVariant, 'optionValueIds' | 'optionSelections' | 'contentOverride' | 'imageOverride' | 'imageAssignments' | 'deliveryEstimate'> {
+  const record = asRecord(source);
+  return {
+    optionValueIds: Array.isArray(record.optionValueIds) ? record.optionValueIds.filter((value): value is number => typeof value === 'number') : [],
+    optionSelections: Object.fromEntries(Object.entries(asRecord(record.optionSelections)).filter((entry): entry is [string, string] => typeof entry[1] === 'string')),
+    contentOverride: record.contentOverride && typeof record.contentOverride === 'object' ? JSON.parse(JSON.stringify(record.contentOverride)) : null,
+    imageOverride: typeof record.imageOverride === 'string' ? record.imageOverride : null,
+    imageAssignments: Array.isArray(record.imageAssignments) ? record.imageAssignments.filter((value): value is number => typeof value === 'number') : [],
+    deliveryEstimate: typeof record.deliveryEstimate === 'string' ? record.deliveryEstimate : null
+  };
 }
 
 function normalizeWeightVariant(
@@ -550,6 +560,10 @@ function normalizeWeightVariant(
   const netMassKgRaw = record.netMassKg === null ? null : asNumber(record.netMassKg, fallback.netMassKg ?? data.netMassKg);
   const netMassKg = netMassKgRaw === null ? null : Math.max(0, netMassKgRaw);
   return {
+    ...getWeightVariantRetainedFields({ ...record, ...matchingCatalogVariant }),
+    label: matchingCatalogVariant?.label ?? asString(record.label),
+    physicalWeightKg: record.physicalWeightKg === undefined ? undefined : normalizeOptionalNonNegativeNumber(record.physicalWeightKg, null),
+    stockManagedPerVariant: asBoolean(record.stockManagedPerVariant, data.pricingBasis === 'kg'),
     id: matchingCatalogVariant?.id ?? asString(record.id, fallback.id),
     stockRevision: matchingCatalogVariant?.stockRevision ?? (typeof record.stockRevision === 'string' ? record.stockRevision : undefined),
     pricingRevision: matchingCatalogVariant?.pricingRevision ?? (typeof record.pricingRevision === 'string' ? record.pricingRevision : undefined),
@@ -725,16 +739,75 @@ export function normalizeSimpleProductData(value: unknown, context: ProductDataN
   };
 }
 
+/** Seed the weight tools from real sellable rows without generating sample products. */
+export function createWeightProductDataFromVariants(previousData: unknown, variants: readonly Variant[], baseSku: string): WeightProductData {
+  const previous = asRecord(previousData);
+  const previousVariants = Array.isArray(previous.variants) ? previous.variants.map(asRecord) : [];
+  const rows = variants.map((variant, index) => {
+    // Only reuse explicitly matching weight metadata, never a sample row at the same index.
+    const stored = previousVariants.find((row) => asString(row.id) === variant.id)
+      ?? previousVariants.find((row) => asString(row.sku).trim() === variant.sku.trim() && variant.sku.trim())
+      ?? {};
+    return {
+      ...getWeightVariantRetainedFields(variant),
+      id: variant.id,
+      label: variant.label,
+      sku: variant.sku,
+      stockRevision: variant.stockRevision,
+      pricingRevision: variant.pricingRevision,
+      stockManagedPerVariant: true,
+      physicalWeightKg: variant.weight ?? null,
+      fraction: asString(stored.fraction),
+      color: asString(stored.color, '—'),
+      netMassKg: stored.netMassKg === undefined ? null : normalizeOptionalNonNegativeNumber(stored.netMassKg, null),
+      lengthMm: variant.length,
+      widthMm: variant.width,
+      thicknessMm: variant.thickness,
+      minQuantity: variant.minOrder ?? 1,
+      unitPrice: variant.price,
+      costNet: variant.costNet ?? null,
+      discountPct: variant.discountPct,
+      stockKg: variant.stock,
+      tolerance: variant.errorTolerance ?? '',
+      deliveryTime: variant.contentOverride?.deliveryEstimate ?? variant.deliveryEstimate ?? asString(stored.deliveryTime),
+      active: variant.active,
+      noteTag: variant.badge ?? '',
+      position: variant.sort || index + 1
+    };
+  });
+  const fractions = [...new Set(rows.map((row) => row.fraction).filter(Boolean))];
+  const colors = [...new Set(rows.map((row) => row.color).filter((value) => value !== '—'))];
+  const masses = [...new Set(rows.map((row) => row.netMassKg).filter((value): value is number => value !== null))];
+  return normalizeWeightProductData({
+    ...previous,
+    pricingBasis: previous.pricingBasis === 'package' ? 'package' : 'kg',
+    minQuantity: rows[0]?.minQuantity ?? 1,
+    fraction: fractions[0] ?? '',
+    netMassKg: masses[0] ?? 0,
+    stockKg: rows[0]?.stockKg ?? 0,
+    deliveryTime: rows[0]?.deliveryTime ?? '',
+    packagingChips: masses.map((mass) => 'kg:' + formatDecimalForDisplay(mass)),
+    fractionChips: fractions,
+    colorChips: colors,
+    fractionInventory: [],
+    variants: rows
+  }, { baseSku, variants: [...variants] });
+}
+
 export function normalizeWeightProductData(value: unknown, context: ProductDataNormalizationContext = {}): WeightProductData {
   const record = asRecord(value);
+  if ((!Array.isArray(record.variants) || record.variants.length === 0) && context.variants?.length) {
+    return createWeightProductDataFromVariants(value, context.variants, context.baseSku ?? '');
+  }
   const baseData: WeightProductData = {
     ...defaultWeightProductData,
+    pricingBasis: record.pricingBasis === 'kg' ? 'kg' : record.pricingBasis === 'package' || Array.isArray(record.variants) ? 'package' : 'kg',
     minQuantity: Math.max(0, asNumber(record.minQuantity, context.variants?.[0]?.minOrder ?? defaultWeightProductData.minQuantity)),
     fraction: normalizeWeightFractionValue(asString(record.fraction, defaultWeightProductData.fraction)),
     netMassKg: Math.max(0, asNumber(record.netMassKg, context.variants?.[0]?.weight ?? defaultWeightProductData.netMassKg)),
     stockKg: Math.max(0, asNumber(record.stockKg, context.variants?.[0]?.stock ?? defaultWeightProductData.stockKg)),
     deliveryTime: asString(record.deliveryTime, defaultWeightProductData.deliveryTime),
-    packagingChips: normalizeWeightChipList(asStringArray(record.packagingChips, defaultWeightProductData.packagingChips)),
+    packagingChips: Array.isArray(record.packagingChips) && record.packagingChips.length === 0 ? [] : normalizeWeightChipList(asStringArray(record.packagingChips, defaultWeightProductData.packagingChips)),
     fractionChips: asStringArray(record.fractionChips, defaultWeightProductData.fractionChips).map(normalizeWeightFractionValue),
     colorChips: asStringArray(record.colorChips, defaultWeightProductData.colorChips).map(normalizeSingleWeightColorValue),
     fractionInventory: [],
@@ -750,7 +823,7 @@ export function normalizeWeightProductData(value: unknown, context: ProductDataN
   const legacySyncedVariants = syncWeightVariantsWithFractionInventory(variants, fractionInventory);
   // Registered SKU stock is canonical; explicit group edits already synchronize
   // their chosen values before normalization. Do not reapply stale group JSON.
-  const syncedVariants = variants.map((variant, index) => variant.stockRevision !== undefined ? variant : legacySyncedVariants[index]);
+  const syncedVariants = variants.map((variant, index) => variant.stockRevision !== undefined || variant.stockManagedPerVariant ? variant : legacySyncedVariants[index]);
   return {
     ...baseData,
     stockKg: fractionInventory[0]?.stockKg ?? baseData.stockKg,
@@ -794,15 +867,21 @@ export function normalizeUniqueMachineProductData(value: unknown, context: Produ
   const firstVariant = context.variants?.[0];
   const legacyPackageDimensions = parseExplicitPackageDimensionsMm(asString(record.packageDimensions));
   const packageLengthMm = normalizeOptionalNonNegativeNumber(
-    record.packageLengthMm !== undefined ? record.packageLengthMm : record.lengthMm,
+    record.packageLengthMm === null && legacyPackageDimensions
+      ? legacyPackageDimensions.shippingLengthMm
+      : record.packageLengthMm !== undefined ? record.packageLengthMm : record.lengthMm,
     legacyPackageDimensions?.shippingLengthMm ?? firstVariant?.length ?? defaultMachineProductData.packageLengthMm
   );
   const packageWidthMm = normalizeOptionalNonNegativeNumber(
-    record.packageWidthMm !== undefined ? record.packageWidthMm : record.widthMm,
+    record.packageWidthMm === null && legacyPackageDimensions
+      ? legacyPackageDimensions.shippingWidthMm
+      : record.packageWidthMm !== undefined ? record.packageWidthMm : record.widthMm,
     legacyPackageDimensions?.shippingWidthMm ?? firstVariant?.width ?? defaultMachineProductData.packageWidthMm
   );
   const packageThicknessMm = normalizeOptionalNonNegativeNumber(
-    record.packageThicknessMm !== undefined ? record.packageThicknessMm : record.thicknessMm,
+    record.packageThicknessMm === null && legacyPackageDimensions
+      ? legacyPackageDimensions.shippingHeightMm
+      : record.packageThicknessMm !== undefined ? record.packageThicknessMm : record.thicknessMm,
     legacyPackageDimensions?.shippingHeightMm ?? firstVariant?.thickness ?? defaultMachineProductData.packageThicknessMm
   );
   const packageDimensions = packageLengthMm !== null && packageWidthMm !== null && packageThicknessMm !== null
@@ -820,7 +899,7 @@ export function normalizeUniqueMachineProductData(value: unknown, context: Produ
     serviceIntervalMonths: asString(record.serviceIntervalMonths, defaultMachineProductData.serviceIntervalMonths),
     serviceIntervalUnit: asString(record.serviceIntervalUnit, defaultMachineProductData.serviceIntervalUnit),
     deliveryTime: asString(record.deliveryTime, defaultMachineProductData.deliveryTime),
-    packageWeightKg: Math.max(0, asNumber(record.packageWeightKg, defaultMachineProductData.packageWeightKg)),
+    packageWeightKg: Math.max(0, asNumber(record.packageWeightKg, firstVariant?.weight ?? defaultMachineProductData.packageWeightKg)),
     packageWeightUnit: asString(record.packageWeightUnit, defaultMachineProductData.packageWeightUnit),
     packageLengthMm,
     packageWidthMm,
@@ -866,17 +945,25 @@ export function cloneTypeSpecificData(data: UniversalProductSpecificData): Unive
   return createInitialTypeSpecificData(JSON.parse(JSON.stringify(data)));
 }
 
-export function buildSimpleCatalogVariants(dataInput: TypeSpecificProductData, fallback: Variant | undefined, baseSku: string, name: string): Variant[] {
+export function buildSimpleCatalogVariants(dataInput: TypeSpecificProductData, fallback: Variant | readonly Variant[] | undefined, baseSku: string, name: string): Variant[] {
+  // Variant rows are authoritative, including when there is only one row.
+  // The scalar form is retained for older callers of the legacy product module.
+  if (Array.isArray(fallback)) {
+    return fallback.length > 0
+      ? fallback.map((variant) => structuredClone(variant))
+      : buildSimpleCatalogVariants(dataInput, undefined, baseSku, name);
+  }
+  const legacyFallback = fallback as Variant | undefined;
   const data = normalizeSimpleProductData(dataInput);
   const discountPct = data.actionPriceEnabled && data.basePrice > 0
     ? Number(clampPercent(((data.basePrice - data.actionPrice) / data.basePrice) * 100).toFixed(2))
     : 0;
   return [
     createVariant({
-      ...(fallback ?? {}),
-      id: fallback?.id ?? createLocalId('simple-variant'),
+      ...(legacyFallback ?? {}),
+      id: legacyFallback?.id ?? createLocalId('simple-variant'),
       label: name || 'Osnovni artikel',
-      sku: fallback?.sku || baseSku,
+      sku: legacyFallback?.sku || baseSku,
       price: data.basePrice,
       weight: data.weightGrams === null ? null : data.weightGrams / 1000,
       length: data.lengthMm,
@@ -891,26 +978,36 @@ export function buildSimpleCatalogVariants(dataInput: TypeSpecificProductData, f
   ];
 }
 
-export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, baseSku: string): Variant[] {
-  const data = normalizeWeightProductData(dataInput, { baseSku });
+export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, baseSku: string, fallbackVariants: readonly Variant[] = []): Variant[] {
+  const data = normalizeWeightProductData(dataInput, { baseSku, variants: [...fallbackVariants] });
   return data.variants.map((variant, index) => {
     const unitPrice = getWeightVariantUnitPrice(variant);
+    const fallback = findMatchingCatalogVariant(asRecord(variant), index, fallbackVariants);
+    const retained = getWeightVariantRetainedFields(fallback ?? variant);
+    const contentOverride = { ...(retained.contentOverride ?? {}) };
+    if (variant.deliveryTime.trim()) contentOverride.deliveryEstimate = variant.deliveryTime.trim();
+    else delete contentOverride.deliveryEstimate;
     return createVariant({
+      ...(fallback ? structuredClone(fallback) : {}),
+      ...retained,
+      contentOverride: Object.keys(contentOverride).length > 0 ? contentOverride : null,
+      deliveryEstimate: variant.deliveryTime.trim() || null,
       id: variant.id,
       stockRevision: variant.stockRevision,
       pricingRevision: variant.pricingRevision,
       label: getWeightVariantDisplayLabel(variant),
-      weight: getWeightVariantTotalMass(variant) ?? variant.netMassKg,
+      unit: 'kg',
+      weight: variant.physicalWeightKg !== undefined ? variant.physicalWeightKg : getWeightVariantTotalMass(variant) ?? variant.netMassKg,
       length: variant.lengthMm,
       width: variant.widthMm,
       thickness: variant.thicknessMm,
-      minOrder: Math.max(1, Math.ceil(variant.minQuantity || 1)),
+      minOrder: Math.max(1, variant.minQuantity || 1),
       errorTolerance: variant.tolerance || null,
       sku: variant.sku || `${baseSku || 'SKU'}-${index + 1}`,
       price: unitPrice,
       costNet: variant.costNet,
       discountPct: variant.discountPct,
-      stock: Math.round(variant.stockKg),
+      stock: variant.stockKg,
       active: variant.active,
       sort: variant.position || index + 1,
       badge: variant.noteTag || null
@@ -918,14 +1015,20 @@ export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, b
   });
 }
 
-export function buildMachineCatalogVariants(dataInput: TypeSpecificProductData, fallback: Variant | undefined, baseSku: string, name: string): Variant[] {
+export function buildMachineCatalogVariants(dataInput: TypeSpecificProductData, fallback: Variant | readonly Variant[] | undefined, baseSku: string, name: string): Variant[] {
+  if (Array.isArray(fallback)) {
+    return fallback.length > 0
+      ? fallback.map((variant) => structuredClone(variant))
+      : buildMachineCatalogVariants(dataInput, undefined, baseSku, name);
+  }
+  const legacyFallback = fallback as Variant | undefined;
   const data = normalizeUniqueMachineProductData(dataInput);
   return [
     createVariant({
-      ...(fallback ?? {}),
-      id: fallback?.id ?? createLocalId('machine-variant'),
-      label: name || 'Stroj / unikaten artikel',
-      sku: fallback?.sku || baseSku,
+      ...(legacyFallback ?? {}),
+      id: legacyFallback?.id ?? createLocalId('machine-variant'),
+      label: name || 'Stroj / oprema',
+      sku: legacyFallback?.sku || baseSku,
       price: data.basePrice,
       weight: data.packageWeightKg > 0 ? data.packageWeightKg : null,
       length: data.packageLengthMm,
@@ -944,10 +1047,29 @@ export function formatPieceCount(value: number): string {
   return formatPieceQuantity(Math.max(0, Math.floor(value)));
 }
 
-export function getSimpleSimulatorOptions(dataInput: TypeSpecificProductData, label = 'Osnovni artikel', sku = ''): PricingSimulatorOption[] {
+function getCatalogVariantSimulatorOptions(variants: readonly Variant[], fallbackLabel: string, machine = false): PricingSimulatorOption[] {
+  return variants.map((variant) => {
+    const price = machine ? variant.price : getDiscountedPrice(variant.price, variant.discountPct);
+    const unit = variant.unit?.trim() || 'kos';
+    return {
+      id: variant.id,
+      label: variant.label.trim() || fallbackLabel,
+      basePrice: price,
+      ...(machine ? { discountPercent: variant.discountPct } : {}),
+      quantityUnit: unit,
+      targetKey: variant.sku.trim() || variant.id,
+      summaryLabel: formatCurrency(price),
+      stockLabel: formatQuantityWithUnit(variant.stock, unit),
+      minOrderLabel: formatQuantityWithUnit(Math.max(1, variant.minOrder ?? 1), unit)
+    };
+  });
+}
+
+export function getSimpleSimulatorOptions(dataInput: TypeSpecificProductData, label = 'Osnovni artikel', sku = '', variants?: readonly Variant[]): PricingSimulatorOption[] {
+  if (variants) return getCatalogVariantSimulatorOptions(variants, label);
   const data = normalizeSimpleProductData(dataInput);
   const price = data.actionPriceEnabled ? data.actionPrice : data.basePrice;
-  const targetKey = sku.trim() || 'Enostavni';
+  const targetKey = sku.trim() || 'Standardni';
   return [{
     id: 'simple',
     label,
@@ -958,6 +1080,37 @@ export function getSimpleSimulatorOptions(dataInput: TypeSpecificProductData, la
     stockLabel: formatPieceCount(data.stock),
     minOrderLabel: formatPieceCount(Math.max(1, Math.floor(Number(data.moq) || 1)))
   }];
+}
+
+export function getWeightBillableQuantity(quantityKg: number, netMassKg?: number | null, pricingBasis: 'kg' | 'package' = 'package'): number {
+  const quantity = Number.isFinite(quantityKg) ? Math.max(0, quantityKg) : 0;
+  if (pricingBasis === 'kg' || !netMassKg || !Number.isFinite(netMassKg) || netMassKg <= 0) return quantity;
+  return Number((quantity / netMassKg).toFixed(4));
+}
+
+/** The generator adds combinations; deleting rows remains an explicit action. */
+export function mergeGeneratedWeightVariants(existing: readonly WeightVariant[], generated: readonly WeightVariant[]): WeightVariant[] {
+  const identity = (row: WeightVariant) => [createWeightInventoryKey(row.fraction, row.color), row.netMassKg === null ? 'bulk' : Number(row.netMassKg.toFixed(4)).toString()].join('|');
+  const seenCombinations = new Set(existing.map(identity));
+  const result = existing.map((row) => structuredClone(row));
+  const usedIds = new Set(result.map((row) => row.id));
+  const usedSkus = new Set(result.map((row) => row.sku.toLocaleLowerCase('sl-SI')));
+  for (const row of generated) {
+    if (seenCombinations.has(identity(row))) continue;
+    seenCombinations.add(identity(row));
+    let id = row.id;
+    let sku = row.sku;
+    let suffix = 2;
+    while (usedIds.has(id) || usedSkus.has(sku.toLocaleLowerCase('sl-SI'))) {
+      id = row.id + '-' + suffix;
+      sku = row.sku + '-' + suffix;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    usedSkus.add(sku.toLocaleLowerCase('sl-SI'));
+    result.push({ ...structuredClone(row), id, sku });
+  }
+  return result.map((row, index) => ({ ...row, position: index + 1 }));
 }
 
 export function getWeightSimulatorOptions(dataInput: TypeSpecificProductData): PricingSimulatorOption[] {
@@ -974,12 +1127,13 @@ export function getWeightSimulatorOptions(dataInput: TypeSpecificProductData): P
       id: variant.id,
       label: selectionLabel,
       basePrice: packagePrice,
+      weightPricingBasis: data.pricingBasis,
       quantityUnit: 'kg',
       targetKey: variant.sku || variant.id,
-      summaryLabel: formatCurrency(packagePrice),
+      summaryLabel: `${formatCurrency(packagePrice)} / ${data.pricingBasis === 'kg' ? 'kg' : 'pak.'}`,
       discountUnitLabel: 'kg',
       stockLabel: formatWeightKg(variant.stockKg),
-      minOrderLabel: formatWeightKg(getWeightVariantMinimumOrderKg(variant, data.minQuantity)),
+      minOrderLabel: formatWeightKg(data.pricingBasis === 'kg' ? Math.max(1, variant.minQuantity || data.minQuantity || 1) : getWeightVariantMinimumOrderKg(variant, data.minQuantity)),
       weightFraction: variant.fraction || undefined,
       weightColor: getWeightVariantColorLabel(variant),
       weightPackageLabel: packageLabel,
@@ -994,8 +1148,15 @@ function getAvailableMachineSerialLabels(rows: readonly UniqueMachineProductData
   return rows.filter((row) => row.status === 'in_stock').map((row) => row.serialNumber).filter(Boolean);
 }
 
-export function getMachineSimulatorOptions(dataInput: TypeSpecificProductData, label = 'Stroj / unikaten artikel'): PricingSimulatorOption[] {
+export function getMachineSimulatorOptions(dataInput: TypeSpecificProductData, label = 'Stroj / oprema', variants?: readonly Variant[]): PricingSimulatorOption[] {
   const data = normalizeUniqueMachineProductData(dataInput);
+  if (variants) {
+    // Serials belong to physical inventory, not a shared pool on every model.
+    return getCatalogVariantSimulatorOptions(variants, label, true).map((option) => ({
+      ...option,
+      serialLabels: variants.length === 1 ? getAvailableMachineSerialLabels(data.serialNumbers) : undefined
+    }));
+  }
   return [{
     id: 'machine',
     label,

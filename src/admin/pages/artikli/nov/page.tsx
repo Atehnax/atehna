@@ -11,7 +11,7 @@ export default async function AdminNewArticlePage({
   return instrumentAdminRouteRender('/admin/artikli/nov', async () => {
     const params = (await searchParams) ?? {};
     const createType =
-      params.tip === 'variants' || params.tip === 'dimensions'
+      params.tip === 'dimensions'
         ? 'dimensions'
         : params.tip === 'weight'
           ? 'weight'

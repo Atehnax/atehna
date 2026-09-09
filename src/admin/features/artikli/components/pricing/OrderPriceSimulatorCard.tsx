@@ -10,7 +10,7 @@ import type { CommercialToolsPanelProps, OrderPriceSummaryRow, PricingSimulatorO
 import { QuantityDiscountsCard } from './QuantityDiscountsCard';
 import { OrderPriceSummaryCard } from './OrderPriceSummaryCard';
 import { MachineGearIcon } from './MachineGearIcon';
-import { normalizeWeightFractionValue } from './productData';
+import { getWeightBillableQuantity, normalizeWeightFractionValue } from './productData';
 import {
   clampDiscountPercent,
   defaultVatRate,
@@ -120,6 +120,7 @@ function getWeightSummarySelectionLabel(option: PricingSimulatorOption | null): 
 }
 
 function getWeightQuantityBreakdown(quantity: number, option: PricingSimulatorOption | null): string | undefined {
+  if (option?.weightPricingBasis === 'kg') return undefined;
   const mass = option?.weightNetMassKg ?? 0;
   if (!Number.isFinite(mass) || mass <= 0) return undefined;
   const packageCount = getWeightPackageCount(quantity, option);
@@ -127,9 +128,7 @@ function getWeightQuantityBreakdown(quantity: number, option: PricingSimulatorOp
 }
 
 function getWeightPackageCount(quantity: number, option: PricingSimulatorOption | null): number {
-  const mass = option?.weightNetMassKg ?? 0;
-  if (!Number.isFinite(mass) || mass <= 0) return Math.max(0, quantity);
-  return Number((Math.max(0, quantity) / mass).toFixed(4));
+  return getWeightBillableQuantity(quantity, option?.weightNetMassKg, option?.weightPricingBasis);
 }
 
 function getMinimumQuantity(

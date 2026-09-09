@@ -60,36 +60,19 @@ test('horizontal table scrolling stays inside the rounded embedded section', () 
   expect(tableMarkup).toContain('Ni aktivnih koli\u010dinskih popustov.');
 });
 
-test('dimension, weight, and simple article editors all use the shared embedded card', () => {
+test('standard and dimension variants share an embedded discount card while weight keeps its embedded host', () => {
   const embeddedCalls = editorSource.match(/<QuantityDiscountsCard\b[\s\S]*?\/>/gu) ?? [];
-
-  expect(embeddedCalls).toHaveLength(3);
+  expect(embeddedCalls).toHaveLength(2);
   for (const call of embeddedCalls) {
     expect(call).toMatch(/\n\s+embedded\n/u);
     expect(call).not.toContain('className=');
   }
-
-  const dimensionSalesBranch = sourceBetween(
-    editorSource,
-    "{isDimensionBasedMode ? (",
-    ") : productType === 'weight' ? ("
-  );
-  const weightSalesBranch = sourceBetween(
-    editorSource,
-    ") : productType === 'weight' ? (",
-    ") : productType === 'unique_machine' ? ("
-  );
-  const simpleSalesBranch = sourceBetween(
-    editorSource,
-    ') : (\n        <SimpleProductModule',
-    '\n      )}\n      </div>'
-  );
-
-  expect(dimensionSalesBranch).toContain('<QuantityDiscountsCard');
+  const sharedSalesBranch = sourceBetween(editorSource, "{productType !== 'weight' ? (", '<WeightProductModule');
+  expect(sharedSalesBranch).toContain('<QuantityDiscountsCard');
+  expect(sharedSalesBranch).toContain('<SimpleProductModule hideCommercialFields');
+  const weightSalesBranch = sourceBetween(editorSource, '<WeightProductModule', "{editorTab === 'simulator' ? (");
   expect(weightSalesBranch).toContain('quantityDiscountsPanel={(');
   expect(weightSalesBranch).toContain('<QuantityDiscountsCard');
-  expect(simpleSalesBranch).toContain('quantityDiscountsPanel={(');
-  expect(simpleSalesBranch).toContain('<QuantityDiscountsCard');
 });
 
 test('embedded corner clipping does not move to variant hosts or individual table cells', () => {

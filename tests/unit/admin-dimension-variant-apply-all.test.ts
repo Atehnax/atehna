@@ -224,7 +224,7 @@ test('the rows matrix exposes an accessible apply-to-all action only through its
     "Statusa »Neaktiven« ni mogoče uporabiti za vse"
   );
   expect(editorSource).toContain(
-    '? getDimensionVariantDeliveryTime(typeSpecificData.dimensions, sourceVariant)'
+    '? getVariantDeliveryTime(sourceVariant)'
   );
   expect(editorSource).toContain(
     '...stockTagVariantIds.filter((variantId) => variantId !== resolvedSourceVariant.id)'

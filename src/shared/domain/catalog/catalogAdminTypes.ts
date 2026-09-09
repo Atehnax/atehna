@@ -147,6 +147,7 @@ export type CatalogItemEditorPayload = CatalogShippingMeasurements & {
 };
 
 export type AdminCatalogVariantSummary = CatalogShippingMeasurements & {
+  unit?: string | null;
   deliveryEstimate?: string | null;
   stockRevision?: string;
   pricingRevision?: string;

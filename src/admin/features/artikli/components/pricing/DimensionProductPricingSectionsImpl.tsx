@@ -79,6 +79,7 @@ import {
   createWeightInventoryKey,
   createWeightVariantFromCombination,
   createWeightVariantsFromChips,
+  mergeGeneratedWeightVariants,
   getWeightAvailableStockKg,
   getWeightInventoryLabel,
   getWeightVariantDisplayLabel,
@@ -233,21 +234,21 @@ export function ProductTypeSelectorCardRow({
     title: string;
     description: string[];
   }> = [
-    { type: 'simple', title: 'Enostavni', description: ['En artikel brez različic.', 'Ena cena, en SKU in ena zaloga.'] },
+    { type: 'simple', title: 'Standardni', description: ['Prodaja po kosu ali pakiranju.', 'Ena ali več različic s poljubnimi lastnostmi.'] },
     {
       type: 'dimensions',
       title: 'Po dimenzijah',
-      description: ['Isti artikel v več merah.', 'Vsaka kombinacija dimenzij ima svojo ceno, SKU in zalogo.']
+      description: ['Izbira mer, razrez in izračun po dimenzijah.', 'Različice imajo lahko tudi druge lastnosti.']
     },
     {
       type: 'weight',
       title: 'Po masi',
-      description: ['Isti material v več različicah s skupno zalogo po frakciji.', 'Vsaka različica ima svojo ceno, SKU in neto maso.']
+      description: ['Naročanje in obračun po masi v kg.', 'Za pakiranja, prodana po kosu, izberite Standardni.']
     },
     {
       type: 'unique_machine',
-      title: 'Stroj / unikaten',
-      description: ['Posamezen stroj ali unikaten artikel.', 'En artikel z lastnimi tehničnimi podatki, servisom in garancijo.']
+      title: 'Stroj / oprema',
+      description: ['Ena ali več različic stroja ali opreme.', 'Garancija, servis in neobvezne serijske številke.']
     }
   ];
   const selectedMode = modes.find((mode) => mode.type === value) ?? modes[0];
@@ -357,8 +358,8 @@ export function ProductPricingLogicCardRow({
   const machine = normalizeUniqueMachineProductData(machineData);
   const config = {
     simple: {
-      title: 'Aktivni način: Enostavni',
-      text: 'Artikel uporablja eno osnovno ceno, en SKU in eno količino zaloge. Enostavno upravljanje cen, zaloge in razpoložljivosti.',
+      title: 'Aktivni način: Standardni',
+      text: 'Vsaka različica ima svoje lastnosti, ceno, SKU in zalogo. Artikel brez izbire ima eno vrstico.',
       cards: [
         { icon: 'price' as const, title: 'Prodajna cena brez DDV', text: formatCurrency(simple.actionPriceEnabled ? simple.actionPrice : simple.basePrice) },
         { icon: 'stock' as const, title: 'Zaloga', text: formatPieceCount(simple.stock) },
@@ -384,8 +385,8 @@ export function ProductPricingLogicCardRow({
       ]
     },
     unique_machine: {
-      title: 'Aktivni način: Stroj / unikaten',
-      text: 'Artikel predstavlja posamezen stroj ali unikaten kos z lastnimi tehničnimi podatki, servisom in garancijo.',
+      title: 'Aktivni način: Stroj / oprema',
+      text: 'Različice opreme imajo lastno ceno, SKU in zalogo. Garancija, servis in serijske številke dopolnjujejo podatke artikla.',
       cards: [
         { icon: 'price' as const, title: 'Prodajna cena brez DDV', text: formatCurrency(machine.basePrice) },
         { icon: 'stock' as const, title: 'Zaloga', text: formatPieceCount(machine.stock) },
@@ -447,6 +448,7 @@ export function SimpleProductModule({
   costNet,
   taxRate,
   quantityDiscountsPanel,
+  hideCommercialFields = false,
   onCostNetChange,
   onChange
 }: SimpleProductModuleProps) {
@@ -563,6 +565,7 @@ export function SimpleProductModule({
                 )
               }
             ]}
+            hiddenFixedRowKeys={hideCommercialFields ? ['costNet', 'basePrice', 'basePriceGross', 'stock', 'weightGrams', 'dimensions'] : []}
             customRows={simpleData.basicInfoRows}
             customRowUnits={false}
             onAddCustomRow={addBasicInfoRow}
@@ -1339,7 +1342,8 @@ type WeightVariantMatrixRowKey =
   | 'poolDelivery'
   | 'sku'
   | 'status'
-  | 'note';
+  | 'note'
+  | 'options';
 
 const WEIGHT_VARIANT_MATRIX_ROWS: ReadonlyArray<{
   key: WeightVariantMatrixRowKey;
@@ -1479,13 +1483,6 @@ function getWeightVariantCompactLabel(variant: WeightVariant) {
   ].filter(Boolean).join(' | ');
 }
 
-function getWeightVariantIdentity(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg'>) {
-  return [
-    createWeightInventoryKey(variant.fraction, variant.color),
-    variant.netMassKg === null ? 'bulk' : Number(variant.netMassKg.toFixed(4)).toString()
-  ].join('|');
-}
-
 function getWeightNoteDotClassName(noteTag: string) {
   const note = normalizeNoteTagValue(noteTag);
   if (note === 'akcija') return 'bg-rose-500';
@@ -1504,10 +1501,23 @@ export function WeightProductModule({
   defaultVariantId,
   onDefaultVariantChange,
   quantityDiscountsPanel,
+  variantOptionsToolbar,
+  renderVariantOptions,
   onChange
 }: WeightProductModuleProps) {
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
   const weightData = normalizeWeightProductData(data, { baseSku });
+  const priceUnit = weightData.pricingBasis === 'kg' ? '€/kg' : '€/pak.';
+  const baseWeightMatrixRows = WEIGHT_VARIANT_MATRIX_ROWS.map((row) => {
+    if (row.key === 'netMass' && weightData.pricingBasis === 'kg') return { ...row, label: 'Neto masa', help: 'Lastnost različice v kg. Cena se obračuna po naročeni masi.' };
+    if (row.key === 'minOrder' && weightData.pricingBasis === 'kg') return { ...row, help: 'Najmanjša naročena količina v kilogramih.' };
+    if (row.key === 'poolStock') return { ...row, label: 'Zaloga', help: 'Zaloga prodajne različice v kilogramih. Skupne spremembe zaloge se izvedejo le prek zgornjih skupinskih kontrol.' };
+    if (['costNet', 'priceNet', 'priceGross', 'salePriceNet', 'salePriceGross'].includes(row.key)) return { ...row, label: row.label + ' (' + priceUnit + ')', help: weightData.pricingBasis === 'kg' ? 'Cena za en kilogram.' : row.help };
+    return row;
+  });
+  const weightVariantMatrixRows = renderVariantOptions
+    ? [...baseWeightMatrixRows.slice(0, 1), { key: 'options' as const, label: 'Lastnosti', help: 'Dodatne lastnosti te prodajne različice.' }, ...baseWeightMatrixRows.slice(1)]
+    : baseWeightMatrixRows;
   const [expandedWeightVariantId, setExpandedWeightVariantId] = useState<string | null>(
     () => weightData.variants[0]?.id ?? null
   );
@@ -1693,17 +1703,16 @@ export function WeightProductModule({
     weightData.variants.find((variant) => selectedVariantIds.has(variant.id)) ?? null;
   const draggedWeightVariant =
     weightData.variants.find((variant) => variant.id === draggedWeightVariantId) ?? null;
-  const getVariantInventory = (variant: WeightVariant) =>
-    findWeightFractionInventoryRow(
-      fractionInventory,
-      createWeightInventoryOption(variant.fraction, variant.color)
-    );
+  const hasCanonicalVariantStock = (variant: WeightVariant) => variant.stockManagedPerVariant || variant.stockRevision !== undefined;
+  const getVariantInventory = (variant: WeightVariant) => hasCanonicalVariantStock(variant)
+    ? null
+    : findWeightFractionInventoryRow(
+        fractionInventory,
+        createWeightInventoryOption(variant.fraction, variant.color)
+      );
   const updateVariant = (variantId: string, updates: Partial<WeightVariant>) => {
     update({
-      variants: syncWeightVariantsWithFractionInventory(
-        updateWeightVariant(weightData.variants, variantId, updates),
-        fractionInventory
-      )
+      variants: updateWeightVariant(weightData.variants, variantId, updates)
     });
   };
   const weightVariantFieldDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
@@ -1772,39 +1781,7 @@ export function WeightProductModule({
       colorChips,
       packagingChips: massChips
     }, baseSku);
-    const currentByIdentity = new Map(
-      weightData.variants.map((variant) => [getWeightVariantIdentity(variant), variant])
-    );
-    const mergedCandidates = generatedVariants.map((generated, index) => {
-      const current = currentByIdentity.get(getWeightVariantIdentity(generated));
-      return current
-        ? { ...generated, ...current, position: index + 1 }
-        : { ...generated, position: index + 1 };
-    });
-    const retainedCandidateIndexes = mergedCandidates
-      .map((variant, index) => currentByIdentity.has(getWeightVariantIdentity(variant)) ? index : -1)
-      .filter((index) => index >= 0);
-    const newCandidateIndexes = mergedCandidates
-      .map((variant, index) => currentByIdentity.has(getWeightVariantIdentity(variant)) ? -1 : index)
-      .filter((index) => index >= 0);
-    const uniqueIdsByIndex = new Map<number, string>();
-    const usedVariantIds = new Set<string>();
-    [...retainedCandidateIndexes, ...newCandidateIndexes].forEach((index) => {
-      const candidate = mergedCandidates[index];
-      const baseId = candidate.id || `weight-variant-${index + 1}`;
-      let uniqueId = baseId;
-      let suffix = 2;
-      while (usedVariantIds.has(uniqueId)) {
-        uniqueId = `${baseId}-${suffix}`;
-        suffix += 1;
-      }
-      usedVariantIds.add(uniqueId);
-      uniqueIdsByIndex.set(index, uniqueId);
-    });
-    const mergedVariants = mergedCandidates.map((variant, index) => ({
-      ...variant,
-      id: uniqueIdsByIndex.get(index) ?? variant.id
-    }));
+    const mergedVariants = mergeGeneratedWeightVariants(weightData.variants, generatedVariants);
     const nextInventory = reconcileWeightFractionInventory(
       [
         ...createWeightInventoryOptions(fractionChips, colorChips),
@@ -1821,7 +1798,7 @@ export function WeightProductModule({
       stockKg: nextInventory[0]?.stockKg ?? weightData.stockKg,
       deliveryTime: nextInventory[0]?.deliveryTime ?? weightData.deliveryTime,
       fractionInventory: nextInventory,
-      variants: syncWeightVariantsWithFractionInventory(mergedVariants, nextInventory)
+      variants: mergedVariants
     });
     const nextDefault =
       mergedVariants.find((variant) => variant.id === resolvedDefaultWeightVariantId && variant.active)
@@ -1873,7 +1850,7 @@ export function WeightProductModule({
     setExpandedWeightVariantId(nextVariant.id);
   };
   const removeSelectedVariants = () => {
-    if (selectedVariantIds.size === 0) return;
+    if (selectedVariantIds.size === 0 || weightData.variants.every((variant) => selectedVariantIds.has(variant.id))) return;
     const nextVariants = weightData.variants
       .filter((variant) => !selectedVariantIds.has(variant.id))
       .map((variant, index) => ({ ...variant, position: index + 1 }));
@@ -1955,6 +1932,7 @@ export function WeightProductModule({
     variant: WeightVariant,
     rowKey: WeightVariantMatrixRowKey
   ): ReactNode => {
+    if (rowKey === 'options') return renderVariantOptions?.(variant.id) ?? null;
     const variantName = getWeightVariantDisplayLabel(variant);
     const inventory = getVariantInventory(variant);
     const poolLabel = inventory ? getWeightInventoryLabel(inventory) : getWeightInventoryLabel(variant);
@@ -2180,11 +2158,16 @@ export function WeightProductModule({
     if (rowKey === 'poolStock') {
       return (
         <CompactSegmentedField
-          editable={false}
+          editable={editable && hasCanonicalVariantStock(variant)}
           value={formatDecimalForDisplay(availableStock)}
           suffix="kg"
-          ariaLabel={`Skupna razpoložljiva zaloga skupine ${poolLabel}`}
-          title={`Skupna zaloga ${poolLabel}: ${formatDecimalForDisplay(inventory?.stockKg ?? variant.stockKg)} kg; rezervirano ${formatDecimalForDisplay(inventory?.reservedKg ?? 0)} kg. Urejanje je v razdelku zaloge zgoraj.`}
+          ariaLabel={`Zaloga za ${variantName}`}
+          title={hasCanonicalVariantStock(variant) ? 'Zaloga te prodajne različice.' : `Skupna zaloga ${poolLabel}. Urejanje je v razdelku zaloge zgoraj.`}
+          onChange={(value) => {
+            if (!hasCanonicalVariantStock(variant)) return;
+            const stockKg = parseDecimalInput(value);
+            if (stockKg !== null) updateVariant(variant.id, { stockKg: Math.max(0, Math.floor(stockKg)), stockManagedPerVariant: true });
+          }}
         />
       );
     }
@@ -2194,10 +2177,10 @@ export function WeightProductModule({
           editable={editable}
           inputMode="numeric"
           value={variant.minQuantity}
-          suffix={variant.netMassKg === null ? 'kg' : 'pak.'}
+          suffix={weightData.pricingBasis === 'kg' || variant.netMassKg === null ? 'kg' : 'pak.'}
           ariaLabel={`Minimalno naročilo za ${variantName}`}
           title={
-            variant.netMassKg === null
+            weightData.pricingBasis === 'kg' || variant.netMassKg === null
               ? 'Minimalna količina v kilogramih.'
               : `${variant.minQuantity} pak. = ${formatDecimalForDisplay(variant.minQuantity * variant.netMassKg)} kg`
           }
@@ -2263,6 +2246,7 @@ export function WeightProductModule({
     variant: WeightVariant,
     rowKey: WeightVariantMatrixRowKey
   ): ReactNode => {
+    if (rowKey === 'options') return <span className="truncate text-[10px] text-slate-600">{Object.values(variant.optionSelections ?? {}).filter(Boolean).join(' · ') || '—'}</span>;
     const variantName = getWeightVariantDisplayLabel(variant);
     const inventory = getVariantInventory(variant);
     const poolLabel = inventory ? getWeightInventoryLabel(inventory) : getWeightInventoryLabel(variant);
@@ -2328,7 +2312,7 @@ export function WeightProductModule({
     }
     if (rowKey === 'poolStock') {
       value = formatDecimalForDisplay(inventory ? getWeightAvailableStockKg(inventory) : variant.stockKg);
-      title = `Skupna razpoložljiva zaloga skupine ${poolLabel}: ${value} kg`;
+      title = hasCanonicalVariantStock(variant) ? `Zaloga ${variantName}: ${value} kg` : `Skupna razpoložljiva zaloga skupine ${poolLabel}: ${value} kg`;
     }
     if (rowKey === 'minOrder') value = String(variant.minQuantity);
     if (rowKey === 'poolDelivery') {
@@ -2450,6 +2434,7 @@ export function WeightProductModule({
               </button>
             </div>
           </div>
+          {variantOptionsToolbar}
           <div className="grid min-w-full grid-cols-[minmax(120px,1fr)_minmax(320px,560px)_minmax(340px,1fr)] items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
             <span className="text-[11px] font-semibold text-slate-500">Generator različic</span>
             <div className="w-[560px] max-w-full min-w-0 justify-self-center">
@@ -2488,7 +2473,7 @@ export function WeightProductModule({
                 title="Izbriši izbrane"
                 tone={hasSelectedVariants ? 'danger' : 'neutral'}
                 className={hasSelectedVariants ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
-                disabled={!editable || !hasSelectedVariants}
+                disabled={!editable || !hasSelectedVariants || allVariantsSelected}
                 onClick={removeSelectedVariants}
               >
                 <TrashCanIcon />
@@ -2792,7 +2777,7 @@ export function WeightProductModule({
                     ) : null}
                   </DragOverlay>
                 </DndContext>
-                {WEIGHT_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {
+                {weightVariantMatrixRows.map((row, rowIndex) => {
                   const alternatingClassName = rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/45';
                   return (
                     <div
@@ -2873,7 +2858,7 @@ export function WeightProductModule({
             </div>
           )}
           <p className="px-3 py-2 text-[11px] leading-4 text-slate-500">
-            Neto cene so uredljive. Cene z DDV se izračunajo iz nastavljene stopnje DDV. Zaloga in dobavni rok sta skupna isti frakciji in barvi ter se urejata zgoraj.
+            {weightData.pricingBasis === 'kg' ? 'Cene so za en kilogram. Naročena masa določa končno ceno.' : 'Cene so za posamezno pakiranje; ohranjen je obstoječi način obračuna.'} Cene z DDV se izračunajo iz nastavljene stopnje DDV. Skupne spremembe zaloge in dobavnega roka urejate zgoraj.
           </p>
           {quantityDiscountsPanel}
         </div>
@@ -3254,6 +3239,7 @@ function MachineInfoTable({
   editable,
   onRequestEdit,
   fixedRows,
+  hiddenFixedRowKeys = [],
   customRows,
   onAddCustomRow,
   onRemoveCustomRows,
@@ -3266,6 +3252,7 @@ function MachineInfoTable({
   title: string;
   editable: boolean;
   onRequestEdit?: () => void;
+  hiddenFixedRowKeys?: readonly string[];
   fixedRows: Array<{
     key: string;
     label: string;
@@ -3294,7 +3281,8 @@ function MachineInfoTable({
   const selectedRemovableCustomIds = customRows.filter((row) => selectedCustomRowIds.has(row.id)).map((row) => row.id);
   const allCustomRowsSelected = customRows.length > 0 && customRows.every((row) => selectedCustomRowIds.has(row.id));
   const canSelectCustomRows = Boolean(onRemoveCustomRows);
-  const isVisuallyEmpty = fixedRows.length === 0 && customRows.length === 0;
+  const visibleFixedRows = fixedRows.filter((row) => !hiddenFixedRowKeys.includes(row.key));
+  const isVisuallyEmpty = visibleFixedRows.length === 0 && customRows.length === 0;
 
   const toggleCustomRow = (id: string) => {
     if (!canSelectCustomRows) return;
@@ -3362,7 +3350,7 @@ function MachineInfoTable({
           </tr>
         </thead>
         <tbody>
-          {fixedRows.map((row) => (
+          {visibleFixedRows.map((row) => (
             <tr key={row.key} className={adminTableRowHeightClassName}>
               <td className={`${machineTableCellClassName} text-center`}>
                 {row.locked || row.hideCheckbox ? null : <AdminCheckbox checked={false} disabled onChange={() => undefined} />}
@@ -3548,6 +3536,7 @@ export function UniqueMachineProductModule({
   editable,
   data,
   orderMatches = [],
+  hideCommercialFields = false,
   onRequestEdit,
   onChange
 }: UniqueMachineProductModuleProps) {
@@ -3560,7 +3549,7 @@ export function UniqueMachineProductModule({
     : machineData.stock;
   const update = (updates: Partial<UniqueMachineProductData>) => {
     const nextSerialNumbers = updates.serialNumbers ?? machineData.serialNumbers;
-    const shouldDeriveStock = Object.prototype.hasOwnProperty.call(updates, 'serialNumbers') || nextSerialNumbers.length > 0 || expandedOrderMatches.length > 0;
+    const shouldDeriveStock = !hideCommercialFields && (Object.prototype.hasOwnProperty.call(updates, 'serialNumbers') || nextSerialNumbers.length > 0 || expandedOrderMatches.length > 0);
     onChange(toTypeSpecificData({
       ...machineData,
       ...updates,
@@ -3671,11 +3660,11 @@ export function UniqueMachineProductModule({
     update({ includedItems: machineData.includedItems.filter((_, entryIndex) => !removeIndexes.has(entryIndex)) });
     setSelectedIncludedItemIndexes(new Set());
   };
-  const basicInfoSectionHeight = getMachineTableSectionHeight(6 + machineData.basicInfoRows.length);
-  const technicalSpecsSectionHeight = getMachineTableSectionHeight(1 + machineData.specs.length);
+  const basicInfoSectionHeight = getMachineTableSectionHeight((hideCommercialFields ? 3 : 6) + machineData.basicInfoRows.length);
+  const technicalSpecsSectionHeight = getMachineTableSectionHeight((hideCommercialFields ? 0 : 2) + machineData.specs.length);
 
   return (
-    <SectionCard title="Prodajne informacije">
+    <SectionCard title={hideCommercialFields ? "Podatki opreme" : "Prodajne informacije"}>
       <div className="grid gap-5 px-5 py-5 xl:grid-cols-2 xl:items-start">
         <div className="space-y-5">
           <div className={machinePanelClassName}>
@@ -3709,6 +3698,7 @@ export function UniqueMachineProductModule({
                 onUnitChange: (serviceIntervalUnit) => update({ serviceIntervalUnit })
               }
             ]}
+            hiddenFixedRowKeys={hideCommercialFields ? ['basePrice', 'discountPercent', 'stock'] : []}
             customRows={machineData.basicInfoRows}
             onAddCustomRow={() => addSpecRow('basicInfoRows')}
             onRemoveCustomRows={(ids) => removeSpecRows('basicInfoRows', ids)}
@@ -3746,6 +3736,7 @@ export function UniqueMachineProductModule({
                 )
               }
             ]}
+            hiddenFixedRowKeys={hideCommercialFields ? ['packageWeightKg', 'packageDimensions'] : []}
             customRows={machineData.specs}
             onAddCustomRow={() => addSpecRow('specs')}
             onRemoveCustomRows={(ids) => removeSpecRows('specs', ids)}
@@ -3759,7 +3750,7 @@ export function UniqueMachineProductModule({
         <div className="space-y-5">
           <div className={classNames(machinePanelClassName, 'flex flex-col')} style={{ height: basicInfoSectionHeight }}>
           <MachineSectionHeader
-            title="Sledenje artiklom"
+            title="Serijske številke (neobvezno)"
             editable={editable}
             onAdd={addSerialRow}
             onRequestEdit={onRequestEdit}
@@ -3854,7 +3845,7 @@ export function UniqueMachineProductModule({
               }) : (
                 <tr className={adminTableRowHeightClassName}>
                   <td colSpan={5} className="border-b border-slate-100 px-3 py-5 text-center text-[12px] font-medium text-slate-500">
-                    Ni vnesenih serijskih številk.
+                    Serijske številke niso obvezne. Zalogo urejate pri različicah.
                   </td>
                 </tr>
               )}

@@ -1650,8 +1650,8 @@
     },
     {
       "itemName": "Barvni papir",
-      "itemType": "sheet",
-      "productType": "dimensions",
+      "itemType": "unit",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -2666,8 +2666,8 @@
     },
     {
       "itemName": "Fotokarton",
-      "itemType": "sheet",
-      "productType": "dimensions",
+      "itemType": "unit",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -4916,7 +4916,7 @@
     {
       "itemName": "Motorček",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -5113,7 +5113,7 @@
     {
       "itemName": "Geotrikotnik za tablo",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -5312,7 +5312,7 @@
     {
       "itemName": "Trikotniki za tablo",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -5531,7 +5531,7 @@
     {
       "itemName": "Ravnila za tablo",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -6022,7 +6022,7 @@
     {
       "itemName": "Šestilo za tablo",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -6171,7 +6171,7 @@
     {
       "itemName": "Krivilnik za plastične mase THERMOFORM 400",
       "itemType": "unit",
-      "productType": "simple",
+      "productType": "unique_machine",
       "typeSpecificData": {
         "simple": {
           "basePrice": 299.9,
@@ -6192,6 +6192,47 @@
           "requireInstructions": false,
           "basicInfoRows": [],
           "technicalSpecs": [
+            {
+              "id": "spec-0",
+              "property": "Model",
+              "value": "THERMOFORM 400",
+              "unit": ""
+            },
+            {
+              "id": "spec-1",
+              "property": "Napajanje",
+              "value": "230 V / 5 V, 160 VA",
+              "unit": ""
+            },
+            {
+              "id": "spec-2",
+              "property": "Dolžina grelne žice",
+              "value": "400 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-3",
+              "property": "Delovna površina",
+              "value": "440 × 165 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-4",
+              "property": "Največja debelina materiala",
+              "value": "5 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-5",
+              "property": "Masa",
+              "value": "3 kg",
+              "unit": ""
+            }
+          ]
+        },
+        "uniqueMachine": {
+          "basicInfoRows": [],
+          "specs": [
             {
               "id": "spec-0",
               "property": "Model",
@@ -6298,7 +6339,7 @@
     {
       "itemName": "Vibracijska žaga Proxxon DSH",
       "itemType": "unit",
-      "productType": "simple",
+      "productType": "unique_machine",
       "typeSpecificData": {
         "simple": {
           "basePrice": 212,
@@ -6319,6 +6360,71 @@
           "requireInstructions": false,
           "basicInfoRows": [],
           "technicalSpecs": [
+            {
+              "id": "spec-0",
+              "property": "Model",
+              "value": "Proxxon DSH",
+              "unit": ""
+            },
+            {
+              "id": "spec-1",
+              "property": "Napajanje",
+              "value": "220–240 V",
+              "unit": ""
+            },
+            {
+              "id": "spec-2",
+              "property": "Moč motorja",
+              "value": "205 W",
+              "unit": ""
+            },
+            {
+              "id": "spec-3",
+              "property": "Število hodov",
+              "value": "900 ali 1400 hodov/min",
+              "unit": ""
+            },
+            {
+              "id": "spec-4",
+              "property": "Hod",
+              "value": "19 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-5",
+              "property": "Razdalja do stebra",
+              "value": "400 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-6",
+              "property": "Največja globina reza",
+              "value": "50 mm; pri nagibu 45°: 25 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-7",
+              "property": "Masa",
+              "value": "Približno 20 kg",
+              "unit": ""
+            },
+            {
+              "id": "spec-8",
+              "property": "Delovna miza",
+              "value": "360 × 180 mm",
+              "unit": ""
+            },
+            {
+              "id": "spec-9",
+              "property": "Nagib mize",
+              "value": "Do 45°",
+              "unit": ""
+            }
+          ]
+        },
+        "uniqueMachine": {
+          "basicInfoRows": [],
+          "specs": [
             {
               "id": "spec-0",
               "property": "Model",
@@ -6456,7 +6562,7 @@
     {
       "itemName": "Kladivo",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -7030,7 +7136,7 @@
     {
       "itemName": "Šolska tehtnica",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -7216,7 +7322,7 @@
     {
       "itemName": "Spiralne žagice za les in mehke kovine",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -7399,7 +7505,7 @@
     {
       "itemName": "Žagice za rezanje kovin",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -8005,7 +8111,7 @@
     {
       "itemName": "Podlaga za rezanje",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",
@@ -8436,7 +8542,7 @@
     {
       "itemName": "Mekol",
       "itemType": "unit",
-      "productType": "dimensions",
+      "productType": "simple",
       "typeSpecificData": {
         "dimensions": {
           "defaultDeliveryTime": "",

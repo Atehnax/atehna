@@ -115,6 +115,7 @@ export const formatCurrency = formatEuro;
 type VariantNameSource = Pick<Variant, 'width' | 'length' | 'thickness'> & {
   label?: string | null;
   weight?: number | null;
+  optionSelections?: Record<string, string>;
 };
 
 const isFiniteMeasurement = (value: number | null | undefined): value is number =>
@@ -140,10 +141,37 @@ const buildVariantMeasurementName = (
   return label || fallbackLabel;
 };
 
+/** Option-backed labels carry distinctions such as colour, wood species or paper format. */
+export function getDescriptiveVariantLabel(variant: VariantNameSource): string | null {
+  const label = variant.label?.trim();
+  if (!label || !Object.values(variant.optionSelections ?? {}).some(value => value.trim())) return null;
+  if (/^(?:nova različica|osnovna različica|osnovni artikel|različica\s*\d*)$/iu.test(label)) return null;
+  const withoutMeasurements = label
+    .replace(/(?<!\p{L})(?:mm|cm|µm|um|kg|mg|g|m|kos)(?!\p{L})/giu, '')
+    .replace(/[x×*ø⌀]/giu, '');
+  return /\p{L}/u.test(withoutMeasurements) ? label : null;
+}
+
+export function buildDimensionVariantHeaderLabel(variant: VariantNameSource & { sku?: string }, index: number, includeUnits = false) {
+  const descriptiveLabel = getDescriptiveVariantLabel(variant);
+  if (descriptiveLabel) return descriptiveLabel;
+  const dimensions = [variant.thickness, variant.length, variant.width]
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .map(formatDecimalForDisplay);
+  if (dimensions.length > 0) {
+    return includeUnits
+      ? dimensions.map(dimension => `${dimension} mm`).join(' × ')
+      : dimensions.join(' × ');
+  }
+  return variant.label?.trim() || variant.sku?.trim() || `Različica ${index + 1}`;
+}
+
 export const buildPersistedVariantName = (
   variant: VariantNameSource,
   options: { baseName: string; variantCount: number; index?: number }
 ) => {
+  const descriptiveLabel = getDescriptiveVariantLabel(variant);
+  if (descriptiveLabel) return descriptiveLabel;
   const baseName = options.baseName.trim();
   if (options.variantCount === 1 && baseName) return baseName;
   return buildVariantMeasurementName(variant, `Različica ${(options.index ?? 0) + 1}`);

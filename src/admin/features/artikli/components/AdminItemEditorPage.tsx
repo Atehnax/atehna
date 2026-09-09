@@ -58,6 +58,7 @@ import {
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   buildPersistedVariantName,
+  buildDimensionVariantHeaderLabel,
   computeSalePrice,
   createFamily,
   createVariant,
@@ -745,18 +746,6 @@ function serializeQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
 function buildVariantSaveDiffLabel(variant: Variant, index: number) {
   const label = variant.label.trim();
   return label || `Različica ${index + 1}`;
-}
-
-function buildDimensionVariantHeaderLabel(variant: Variant, index: number, includeUnits = false) {
-  const dimensions = [variant.thickness, variant.length, variant.width]
-    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-    .map(formatDecimalForDisplay);
-  if (dimensions.length > 0) {
-    return includeUnits
-      ? dimensions.map((dimension) => `${dimension} mm`).join(' × ')
-      : dimensions.join(' × ');
-  }
-  return variant.label.trim() || variant.sku.trim() || `Različica ${index + 1}`;
 }
 
 function computeGrossPrice(netPrice: number, taxRate: number) {

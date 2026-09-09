@@ -3024,7 +3024,7 @@ async function assertPersistedCatalogOptionAssignmentsReady(
   );
 }
 
-export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, options: { request?: Request } = {}): Promise<{ id: number; slug: string; updatedAt: string }> {
+export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, options: { request?: Request; /** CLI imports have no Next request cache context. */ revalidate?: boolean } = {}): Promise<{ id: number; slug: string; updatedAt: string }> {
   const payload = normalizeCatalogEditorShippingPayload(inputPayload);
   const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
     payload.appearanceOverride
@@ -3701,7 +3701,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
+    if (options.revalidate !== false) revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return { id: itemRow.id, slug: itemRow.slug, updatedAt };
   } catch (error) {
     await client.query('rollback');

@@ -7,26 +7,11 @@ import { formatSlCount, formatSlOrderCount } from '@/shared/domain/formatting';
 import { adminAnalyticsControlClassName, adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GeographyFeature, GeographyReference, Position } from '@/shared/domain/analytics/geography';
-import type { BusinessRecord } from '@/shared/domain/analytics/businessAnalytics';
+import type { GeographyReference } from '@/shared/domain/analytics/geography';
+import { geographyBounds, geographyColors as colors, geographyPath as pathFor, type GeographyOverviewArea as Area, type GeographyResponse as GeoResponse } from './geographyPresentation';
 import { DataTable, downloadRows, type Drill } from './BusinessChart';
-type Area = { id: string; code: string; name: string; level: 'municipality' | 'region'; regionId: string | null; orderCount: number; activityValue: number | null; knownValueOrders: number; distinctCustomers: number; mappedShare: number | null; municipalityResolvedOrders: number; regionOnlyOrders: number };
-type GeoResponse = {
-  asOf: string; reference: { metadata: GeographyReference['metadata']; assetUrl: string; latestVersion: string | null; lastError: string | null };
-  areas: Area[]; reconciliation: { allEligibleOrders: number; mappedSlovenianOrders: number; unresolvedSlovenianOrders: number; foreignOrders: number; unknownCountryOrders: number; regionOnlyResolvedOrders: number };
-  coverage: { resolvedOrders: number; missingReferenceGeometry: number; staleAddressResolutions: number; otherVintageOrders: number; unlinkedCustomerOrders: number };
-  unresolved: { id: string; number: string; status: string; method: string; href: string }[];
-  addressSource: { imported_at: string | null; source_updated_at: string | null; total: number; linked: number } | null;
-  denominator: string; selected: { id: string; total: number; records: BusinessRecord[] } | null;
-};
-const colors = ['#e2e8f0', '#dcfce7', '#bbf7d0', '#86efac', '#4ade80', '#15803d'];
 const control = adminAnalyticsControlClassName;
 const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('sl');
-const project = ([longitude, latitude]: Position): Position => [longitude * Math.cos(46 * Math.PI / 180), -latitude];
-function pathFor(feature: GeographyFeature) {
-  const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
-  return polygons.map(polygon => polygon.map(ring => ring.map((point, index) => (index ? 'L' : 'M') + project(point).join(',')).join(' ') + ' Z').join(' ')).join(' ');
-}
 export default function BusinessGeography({ query, compact = false, onOpen, onDrill }: { query: string; compact?: boolean; onOpen?: () => void; onDrill: (drill: Drill) => void }) {
   const [level, setLevel] = useState<'municipality' | 'region'>('municipality');
   const [metric, setMetric] = useState<'orders' | 'value'>('orders');
@@ -42,6 +27,7 @@ export default function BusinessGeography({ query, compact = false, onOpen, onDr
   const dragged = useRef(false);
   const params = new URLSearchParams(query); params.set('level', level); if (selectedId) params.set('area', selectedId); else params.delete('area');
   const requestKey = params.toString();
+  const paidBasis = params.get('basis') === 'paid';
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError('');
     fetch('/api/admin/analytics/geography?' + requestKey, { signal: controller.signal, cache: 'no-store' }).then(async response => { const payload = await response.json(); if (!response.ok) throw new Error(payload.message ?? 'Zemljevida ni mogoče naložiti.'); return payload as GeoResponse; }).then(async payload => {
@@ -54,13 +40,7 @@ export default function BusinessGeography({ query, compact = false, onOpen, onDr
   }, [requestKey, revision]);
   const features = useMemo(() => geometry?.features.filter(feature => feature.properties.level === level) ?? [], [geometry, level]);
   const paths = useMemo(() => features.map(feature => ({ feature, path: pathFor(feature) })), [features]);
-  const bounds = useMemo(() => {
-    const coordinates = features.flatMap(feature => (feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates).flatMap(polygon => polygon.flatMap(ring => ring.map(project))));
-    if (!coordinates.length) return { x: 0, y: 0, width: 2, height: 1 };
-    let x = Infinity, y = Infinity, right = -Infinity, bottom = -Infinity;
-    coordinates.forEach(point => { x = Math.min(x, point[0]); y = Math.min(y, point[1]); right = Math.max(right, point[0]); bottom = Math.max(bottom, point[1]); });
-    const padding = (right - x) * .025; return { x: x - padding, y: y - padding, width: right - x + padding * 2, height: bottom - y + padding * 2 };
-  }, [features]);
+  const bounds = useMemo(() => geographyBounds(features), [features]);
   const byId = useMemo(() => new Map(data?.areas.map(area => [area.id, area]) ?? []), [data]);
   const metricValue = (area: Area) => metric === 'orders' ? area.orderCount : area.activityValue;
   const maximum = Math.max(0, ...(data?.areas.filter(area => area.level === level).map(area => metricValue(area) ?? 0) ?? []));
@@ -77,7 +57,7 @@ export default function BusinessGeography({ query, compact = false, onOpen, onDr
   const box = { x: bounds.x + bounds.width * (1 - 1 / zoom) / 2 + pan.x, y: bounds.y + bounds.height * (1 - 1 / zoom) / 2 + pan.y, width: bounds.width / zoom, height: bounds.height / zoom };
   const selectArea = (id: string) => { if (!dragged.current) setSelectedId(selectedId === id ? '' : id); };
   const matchingLink = '/admin/orders?analytics=1&' + requestKey + '&' + (level === 'municipality' ? 'municipalityId=' : 'regionId=') + encodeURIComponent(selectedId);
-  const tableRows = areas.map(area => ({ values: [area.name, area.code, area.orderCount, area.activityValue, area.distinctCustomers, percent(area.mappedShare)], drill: { kind: 'orders', [level === 'municipality' ? 'municipalityId' : 'regionId']: area.id } }));
+  const tableRows = areas.map(area => ({ values: [area.name, area.code, area.orderCount, area.activityValue, area.distinctCustomers, percent(area.mappedShare)], drill: { kind: 'orders', basis: paidBasis ? 'paid' : 'activity', area: area.id, [level === 'municipality' ? 'municipalityId' : 'regionId']: area.id } }));
   const loadAudit = async () => { try { const response = await fetch('/api/admin/analytics/geography/audit' + (correctionOrder ? '?orderId=' + encodeURIComponent(correctionOrder) : ''), { cache: 'no-store' }); if (!response.ok) throw new Error('Revizijske sledi ni mogoče naložiti.'); const payload = await response.json(); setAuditRows(payload.audit); } catch (error) { setOperation(error instanceof Error ? error.message : 'Napaka pri revizijski sledi.'); } };
   const mutate = async (remove: boolean, backfill = false) => {
     setPending(true); setOperation('');
@@ -88,7 +68,7 @@ export default function BusinessGeography({ query, compact = false, onOpen, onDr
     } catch (error) { setOperation(error instanceof Error ? error.message : 'Napaka pri shranjevanju.'); } finally { setPending(false); }
   };
   return <article className={adminAnalyticsPanelClassName}>
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-950">Naročila po Sloveniji</h2><p className="mt-1 text-[11px] text-slate-500">Uradne meje GURS · shranjeni naslov naročnika · ista oddana naročila kot v koledarju.</p></div>{compact && <button type="button" className="text-xs text-blue-700 underline" onClick={onOpen}>Celoten zemljevid →</button>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-950">{paidBasis ? 'Plačana naročila po Sloveniji' : 'Naročila po Sloveniji'}</h2><p className="mt-1 text-[11px] text-slate-500">{paidBasis ? 'Po datumu naročila · plačano blago brez DDV in poštnine, pred vračili.' : 'Uradne meje GURS · shranjeni naslov naročnika · ista oddana naročila kot v koledarju.'}</p></div>{compact && <button type="button" className="text-xs text-blue-700 underline" onClick={onOpen}>Celoten zemljevid →</button>}</div>
     <div className="mt-3 flex flex-wrap gap-2"><select aria-label="Geografska raven" className={control} value={level} onChange={event => { setLevel(event.target.value as typeof level); setSelectedId(''); setHoverId(''); setZoom(1); setPan({ x: 0, y: 0 }); }}><option value="municipality">Občine</option><option value="region">Statistične regije</option></select><select aria-label="Mera zemljevida" className={control} value={metric} onChange={event => setMetric(event.target.value as typeof metric)}><option value="orders">Naročila</option><option value="value">Vrednost naročil</option></select>{!compact && <select aria-label="Barvna lestvica" className={control} value={scale} onChange={event => setScale(event.target.value as typeof scale)}><option value="linear">Linearna lestvica</option><option value="sqrt">Kvadratni koren intenzivnosti</option></select>}</div>
     {error ? <p role="alert" className="my-6 text-sm text-red-700">{error}<button className="ml-2 underline" onClick={() => setRevision(revision + 1)}>Ponovi</button></p> : !data || !geometry ? <p role="status" className="py-20 text-center text-sm text-slate-500">Nalaganje uradnih meja in geografskih agregatov …</p> : <>
       <div className="relative mt-3 rounded-lg bg-slate-50/60" aria-busy={loading}>

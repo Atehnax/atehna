@@ -6,14 +6,14 @@ import { localDate } from '@/shared/domain/analytics/period';
 import { readAnalyticsJson } from '@/shared/client/readAnalyticsJson';
 import { adminAnalyticsControlClassName, adminAnalyticsPanelClassName, buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
-export default function BusinessQuoteSettings({ settings, onSaved }: { settings: BusinessAnalyticsSettings; onSaved(): void }) {
+export default function BusinessQuoteSettings({ settings, onSaved, compact = false }: { settings: BusinessAnalyticsSettings; onSaved(): void; compact?: boolean }) {
   const [date, setDate] = useState(settings.quoteGoLiveDate ?? '');
   const [revision, setRevision] = useState(settings.revision);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const dirty = (date || null) !== settings.quoteGoLiveDate;
-  return <details id="quote-analytics-settings" className={adminAnalyticsPanelClassName} open={!settings.quoteGoLiveDate || undefined}>
-    <summary className="cursor-pointer text-sm font-semibold">Začetek analitike povpraševanj in ponudb{settings.quoteGoLiveDate ? ` · ${settings.quoteGoLiveDate}` : ' · datum ni nastavljen'}</summary>
+  return <details id="quote-analytics-settings" className={adminAnalyticsPanelClassName + (compact ? ' !px-4 !py-3' : '')} open={(!compact && !settings.quoteGoLiveDate) || undefined}>
+    <summary className={compact ? 'cursor-pointer text-xs font-medium text-slate-600' : 'cursor-pointer text-sm font-semibold'}>Začetek analitike povpraševanj in ponudb{settings.quoteGoLiveDate ? ` · ${settings.quoteGoLiveDate}` : ' · datum ni nastavljen'}</summary>
     <p className="mt-3 text-xs leading-relaxed text-slate-600">Izberite dejanski datum začetka uporabe. Povpraševanja štejemo po prejemu, ponudbe po prvi izdaji od tega datuma. Pravi spletni in ročni vnosi se upoštevajo; testni in zgodovinski ne. Zgodovinskih ponudb ne ustvarjamo. Nastavitev ne omejuje zgodovine naročil.</p>
     <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={async event => {
       event.preventDefault(); setSaving(true); setError('');

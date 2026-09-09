@@ -14,13 +14,14 @@ function csvCell(value: unknown) {
 async function handleAdminGET(request: Request) {
   try {
     const params = new URL(request.url).searchParams;
+    if (params.has('basis') && !['activity', 'paid'].includes(params.get('basis')!)) return NextResponse.json({ message: 'Neveljavna osnova geografije.' }, { status: 400, headers });
     const result = await fetchGeography(params);
     const format = params.get('export');
     if (format) {
       if (!['orders', 'areas'].includes(format)) return NextResponse.json({ message: 'Neveljaven izvoz.' }, { status: 400, headers });
       if (format === 'orders' && !result.selected) return NextResponse.json({ message: 'Najprej izberite območje.' }, { status: 400, headers });
       const rows = format === 'orders'
-        ? [['Naročilo', 'Datum oddaje', 'Tip naročnika', 'Status', 'Vir', 'Vrednost brez DDV in poštnine EUR'], ...(result.selected?.records ?? []).map((order) => [order.number, order.date, order.customerType, order.status, order.source, order.value])]
+        ? [['Naročilo', 'Datum naročila', 'Tip naročnika', 'Status', 'Plačilo', 'Vir', 'Vrednost brez DDV in poštnine EUR'], ...(result.selected?.records ?? []).map((order) => [order.number, order.date, order.customerType, order.status, order.paymentStatus ?? '', order.source, order.value])]
         : [['Raven', 'Uradni EID', 'Šifra', 'Območje', 'Naročila', 'Vrednost EUR', 'Naročila z znano vrednostjo', 'Povezane stranke', 'Regijsko razrešena naročila'], ...result.areas.filter((area) => !params.get('level') || area.level === params.get('level')).map((area) => [area.level, area.id, area.code, area.name, area.orderCount, area.activityValue, area.knownValueOrders, area.distinctCustomers, area.regionOnlyOrders])];
       return new Response('\uFEFF' + rows.map((row) => row.map(csvCell).join(';')).join('\r\n'), { headers: { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="atehna-zemljevid.csv"' } });
     }

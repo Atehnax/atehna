@@ -151,7 +151,7 @@ test('activity calendar uses the canonical order population for its own visible 
   }
 });
 
-test('activity calendar fills available width with plain fixed colours and stays independent of report dates', async ({ page, request, historicalOrder }, testInfo) => {
+test('compact activity calendar keeps 52 weeks with plain fixed colours independent of viewport and report dates', async ({ page, request, historicalOrder }, testInfo) => {
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1920, height: 1080 });
   const activityRequests: string[] = [];
@@ -163,7 +163,9 @@ test('activity calendar fills available width with plain fixed colours and stays
   const grid = heatmap.getByTestId('activity-calendar-grid');
   const calendar = heatmap.getByRole('region', { name: 'Koledar aktivnosti naročil', exact: true });
   await expect(grid).toBeVisible();
-  await expect.poll(async () => Number(await grid.getAttribute('data-weeks'))).toBeGreaterThan(52);
+  await expect(grid).toHaveAttribute('data-weeks', '52');
+  await expect(heatmap.getByRole('heading', { name: 'Aktivnost oddanih naročil', exact: true })).toBeVisible();
+  await expect(heatmap.getByText(/^Zadnjih 52 tednov/u)).toBeVisible();
   await expect(heatmap.getByRole('link', { name: 'Izvoz CSV', exact: true })).toBeVisible();
   for (const band of ['1–2', '3–5', '6–10', '11–14', '15+']) {
     await expect(heatmap.getByText(band, { exact: true })).toBeVisible();
@@ -179,7 +181,9 @@ test('activity calendar fills available width with plain fixed colours and stays
   });
   const initial = await snapshot();
   await heatmap.screenshot({ path: testInfo.outputPath('activity-desktop.png') });
-  expect(initial.cells.length).toBeGreaterThan(365);
+  // 51 complete weeks plus the current Ljubljana week through today.
+  expect(initial.cells.length).toBeGreaterThanOrEqual(358);
+  expect(initial.cells.length).toBeLessThanOrEqual(364);
   expect(initial.cells.every(cell => cell.backgroundImage === 'none')).toBe(true);
   const calendarBox = await calendar.boundingBox();
   const gridBox = await grid.boundingBox();
@@ -246,13 +250,13 @@ test('activity calendar fills available width with plain fixed colours and stays
   await dialog.getByRole('button', { name: 'Zapri', exact: true }).click();
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await expect.poll(async () => Number(await grid.getAttribute('data-weeks'))).toBeLessThan(Number(initial.weeks));
-  const medium = await snapshot();
-  expect(medium.cells[0].date! > initial.cells[0].date!).toBe(true);
-  expect(await calendar.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await expect(grid).toHaveAttribute('data-weeks', '52');
+  expect(await snapshot()).toEqual(initial);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => Number(await grid.getAttribute('data-weeks'))).toBeLessThan(Number(medium.weeks));
-  expect(await calendar.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await expect(grid).toHaveAttribute('data-weeks', '52');
+  expect(await snapshot()).toEqual(initial);
+  expect(activityRequests).toHaveLength(initialRequests);
+  expect(await calendar.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await heatmap.screenshot({ path: testInfo.outputPath('activity-mobile.png') });
 });
@@ -292,7 +296,7 @@ test('activity calendar applies fixed count and euro boundaries with compact too
   const levels = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 0];
   const values = [0, 19.99, 20, 49.99, 50, 99.99, 100, 143.68, 249.99, 250, 500, 0];
   const valueLevels = [0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 0];
-  const colors = ['rgb(229, 231, 235)', 'rgb(134, 239, 172)', 'rgb(45, 212, 191)', 'rgb(56, 189, 248)', 'rgb(99, 102, 241)', 'rgb(109, 40, 217)'];
+  const colors = ['rgb(241, 245, 249)', 'rgb(226, 232, 240)', 'rgb(203, 213, 225)', 'rgb(148, 163, 184)', 'rgb(100, 116, 139)', 'rgb(51, 65, 85)'];
   let sampleDays: BusinessActivityResponse['days'] = [];
   await page.route('**/api/admin/analytics/business/activity?*', async route => {
     const response = await route.fetch();
@@ -415,14 +419,22 @@ test('paid headline cards, daily totals and private drilldowns exclude unpaid, r
     const csv = await request.get('/api/admin/analytics/business/records?' + frozen + '&format=csv');
     expect(csv.status()).toBe(200);
     expect((await csv.text()).split(/\r?\n/u)).toHaveLength(3);
-    await page.goto('/admin/analitika?' + query);
+    const paidGeography = await request.get('/api/admin/analytics/geography?' + frozen);
+    expect(paidGeography.status()).toBe(200);
+    expect((await paidGeography.json()).reconciliation.allEligibleOrders).toBe(2);
+    await page.goto('/admin/analitika?' + query + '&basis=activity');
+    const paidExport = page.getByRole('link', { name: 'Izvoz plačanih naročil CSV', exact: true });
+    await expect(paidExport).toBeVisible();
+    const exportParams = new URL((await paidExport.getAttribute('href'))!, page.url()).searchParams;
+    expect(exportParams.getAll('basis')).toEqual(['paid']);
     const paidCard = page.getByRole('button', { name: /^Število plačanih naročil:/u });
     await expect(paidCard).toContainText('2');
     await expect(page.getByRole('button', { name: /^Povprečno plačano naročilo:/u })).toBeVisible();
     await expect(page.getByText('Po datumu naročila · blago brez DDV in poštnine, pred vračili.', { exact: false })).toBeVisible();
-    const operations = page.getByRole('heading', { name: 'Aktivnost in operativa', exact: true });
-    await expect(operations).toBeVisible();
-    expect((await operations.boundingBox())!.y).toBeGreaterThan((await paidCard.boundingBox())!.y);
+    const activity = page.getByTestId('order-activity-heatmap');
+    await expect(activity.getByRole('heading', { name: 'Aktivnost oddanih naročil', exact: true })).toBeVisible();
+    await expect(activity.getByRole('region', { name: 'Koledar aktivnosti naročil', exact: true })).toBeVisible();
+    expect((await activity.boundingBox())!.y).toBeGreaterThan((await paidCard.boundingBox())!.y);
     await page.screenshot({ path: testInfo.outputPath('paid-analytics-desktop.png') });
     await paidCard.click();
     await expect(page.getByRole('dialog')).toBeVisible();

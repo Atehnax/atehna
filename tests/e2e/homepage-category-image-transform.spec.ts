@@ -176,7 +176,6 @@ async function expectTransformControls(transformBox: Locator, transformBounds: B
   const centerX = centerBounds.x + centerBounds.width / 2;
   const centerY = centerBounds.y + centerBounds.height / 2;
   const rotateCenterX = rotateBounds.x + rotateBounds.width / 2;
-  const rotateCenterY = rotateBounds.y + rotateBounds.height / 2;
 
   // The whole preview is scaled, so sub-pixel rounding can move the visual
   // center without changing the logical center. Keep this in step with the
@@ -191,8 +190,18 @@ async function expectTransformControls(transformBox: Locator, transformBounds: B
   expect(rotateCenterX).toBeLessThanOrEqual(
     transformBounds.x + transformBounds.width + horizontalRotationTolerance
   );
-  expect(rotateCenterY, 'rotation/control affordance should stay at the top of the perimeter')
-    .toBeLessThanOrEqual(transformBounds.y + Math.max(12, transformBounds.height * 0.16));
+  // The transform controls are portaled outside the scaled preview. Their
+  // 12px inset and 20px diameter stay in screen pixels as the image shrinks,
+  // so a percentage of the image height cannot locate the rotation control.
+  const rotationControlInset = 12;
+  expect(
+    Math.abs(rotateBounds.x - (transformBounds.x + rotationControlInset)),
+    'rotation control should keep its fixed left inset inside the perimeter'
+  ).toBeLessThanOrEqual(transformedLayoutRoundingTolerance);
+  expect(
+    Math.abs(rotateBounds.y - (transformBounds.y + rotationControlInset)),
+    'rotation control should keep its fixed top inset inside the perimeter'
+  ).toBeLessThanOrEqual(transformedLayoutRoundingTolerance);
 }
 
 test.describe('homepage category image transform perimeter', () => {

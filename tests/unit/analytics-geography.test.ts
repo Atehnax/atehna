@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { test } from 'node:test';
 import { candidateMatchesSnapshot, normalizedSnapshot, resolveAddressCandidates, validateReference, equalWidthThresholds, polygonParts, pointInGeometry, type GeographyAddressCandidate, type GeographyReference, type GeographyResolution } from '@/shared/domain/analytics/geography';
-import { addressFingerprint, aggregateGeography } from '@/shared/server/geographyAnalytics';
+import { addressFingerprint, aggregateGeography, selectGeographyOrders } from '@/shared/server/geographyAnalytics';
 import type { CanonicalOrder } from '@/shared/domain/analytics/businessAnalytics';
 
 const address = { addressLine1: '  Čopova ULICA 11 C ', city: 'Ljubljana', postalCode: '1000', countryCode: 'SI', gursHouseNumberId: 'house-1' };
@@ -63,6 +63,21 @@ test('municipality and common-subset region sums agree; region-only, unknown and
   assert.equal(region.distinctCustomers, 1);
   assert.equal(actual.coverage.unlinkedCustomerOrders, 1);
   assert.deepEqual(actual.membership.get('municipality-1'), ['1', '7']);
+  const paymentRecords: CanonicalOrder[] = records.map(record => ({ ...record, paymentStatus: ['1', '3', '7'].includes(record.id) ? 'paid' : 'unpaid', paidCents: record.id === '1' ? 3500 : record.activityCents }));
+  const selected = selectGeographyOrders([...paymentRecords, { ...order('cancelled'), paymentStatus: 'paid', status: 'cancelled' }, { ...order('refunded'), paymentStatus: 'refunded' }, { ...order('rejected'), paymentStatus: 'paid', contractStatus: 'rejected' }], 'paid');
+  assert.deepEqual(selected.map(record => record.id), ['1', '3', '7']);
+  assert.equal(selected[0].activityCents, 3500, 'map uses current paid amount instead of the submission snapshot');
+  assert.equal(paymentRecords[0].activityCents, 1000, 'paid projection cannot change operational data');
+  assert.equal(selectGeographyOrders(records, 'activity'), records, 'default geography keeps its existing cohort');
+  const paid = aggregateGeography(selected, [resolution('1'), resolution('3', { status: 'region_only', municipalityId: null }), resolution('7')], reference);
+  assert.equal(paid.reconciliation.allEligibleOrders, 3);
+  assert.equal(paid.reconciliation.mappedSlovenianOrders, 2);
+  assert.equal(paid.reconciliation.regionOnlyResolvedOrders, 1);
+  assert.deepEqual(paid.membership.get('municipality-1'), ['1', '7']);
+  assert.equal(paid.areas.find(area => area.level === 'region')!.orderCount, 3);
+  assert.equal(paid.areas.find(area => area.level === 'municipality')!.activityValue, null, 'unknown paid amounts remain unknown');
+  assert.equal(aggregateGeography(selected.slice(0, 1), [resolution('1')], reference).areas[0].activityValue, 35);
+
 });
 test('stale address fingerprints and reference vintages stay unresolved, including preserved manual overrides', () => {
   const actual = aggregateGeography([order('1'), order('2')], [resolution('1', { fingerprint: 'old-address', manual: true }), resolution('2', { sourceVersion: 'old-vintage' })], reference);

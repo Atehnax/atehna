@@ -1,3 +1,4 @@
+import { isPaidOrder, paidOrderCents } from '@/shared/domain/analytics/paidOrders';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -101,6 +102,9 @@ export async function resolveSavedOrder(orderId: string, snapshot: AddressSnapsh
     sourceVersion: reference.metadata.version, resolvedAt: new Date().toISOString(), manual: false, registrySourceVersion: resolved.candidate ? `rn-import:${resolved.candidate.importedAt ?? 'unknown'};record:${resolved.candidate.sourceUpdatedAt ?? 'unknown'}` : null
   };
 }
+export function selectGeographyOrders(records: CanonicalOrder[], basis: 'activity' | 'paid') {
+  return basis === 'paid' ? records.filter(isPaidOrder).map(order => ({ ...order, activityCents: paidOrderCents(order) })) : records;
+}
 export function aggregateGeography(records: CanonicalOrder[], resolutions: GeographyResolution[], reference: GeographyReference) {
   const resolutionById = new Map(resolutions.map((resolution) => [resolution.orderId, resolution]));
   const features = new Map(reference.features.map((feature) => [feature.properties.id, feature.properties]));
@@ -153,7 +157,9 @@ export async function fetchGeography(params: URLSearchParams) {
   const { parseBusinessAsOf, parseBusinessFilters, fetchBusinessActivityRecords } = await import('@/shared/server/businessAnalytics');
   const filters = parseBusinessFilters(params);
   const asOf = parseBusinessAsOf(params.get('asOf'));
-  const { period, records } = await fetchBusinessActivityRecords(filters, asOf);
+  const { period, records: activityRecords } = await fetchBusinessActivityRecords(filters, asOf);
+  const basis = params.get('basis') === 'paid' ? 'paid' : 'activity';
+  const records = selectGeographyOrders(activityRecords, basis);
   const database = await getPool();
   const [{ reference, state }, stored, addressSource] = await Promise.all([
     getReportingGeography(database),
@@ -169,10 +175,10 @@ export async function fetchGeography(params: URLSearchParams) {
   const selectedIds = new Set(selectedId ? membership.get(selectedId) ?? [] : []);
   const selectedRecords = selectedId ? records.filter((record) => selectedIds.has(record.id)) : [];
   return {
-    asOf: asOf.toISOString(), period, filters, reference: { metadata: reference.metadata, assetUrl: '/api/admin/analytics/geography/boundaries', latestVersion: state?.latest_version ?? null, lastError: state?.last_error ?? null },
+    basis, asOf: asOf.toISOString(), period, filters, reference: { metadata: reference.metadata, assetUrl: '/api/admin/analytics/geography/boundaries', latestVersion: state?.latest_version ?? null, lastError: state?.last_error ?? null },
     ...summary, addressSource: addressSource.rows[0] ?? null,
-    denominator: 'Delež naročil, razrešenih do občine, med vsemi slovenskimi naročili, razrešenimi do občine. Regijski dodatki so prikazani ločeno.',
-    selected: selectedId ? { id: selectedId, total: selectedRecords.length, records: selectedRecords.slice(0, params.get('export') === 'orders' ? undefined : 50).map((order) => ({ id: order.id, number: order.number, date: order.submittedAt, customerType: order.customerType, customerName: order.customerName, status: order.status, source: order.source, entrySource: order.entrySource, isHistorical: order.isHistorical, value: order.activityCents === null ? null : order.activityCents / 100, href: `/admin/orders/${order.id}` })) } : null
+    denominator: basis === 'paid' ? 'Delež plačanih naročil, razrešenih do občine, med slovenskimi plačanimi naročili, razrešenimi do občine. Regijski dodatki so prikazani ločeno.' : 'Delež naročil, razrešenih do občine, med vsemi slovenskimi naročili, razrešenimi do občine. Regijski dodatki so prikazani ločeno.',
+    selected: selectedId ? { id: selectedId, total: selectedRecords.length, records: selectedRecords.slice(0, params.get('export') === 'orders' ? undefined : 50).map((order) => ({ id: order.id, number: order.number, date: order.submittedAt, customerType: order.customerType, customerName: order.customerName, status: order.status, paymentStatus: order.paymentStatus, source: order.source, entrySource: order.entrySource, isHistorical: order.isHistorical, value: order.activityCents === null ? null : order.activityCents / 100, href: `/admin/orders/${order.id}` })) } : null
   };
 }
 async function savedSnapshot(orderId: string, database: Queryable): Promise<AddressSnapshot> {

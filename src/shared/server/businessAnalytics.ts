@@ -149,7 +149,7 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
     return { valueUnit, asOf: asOf.toISOString(), period, total: records.length, page, pageSize, records: exportAll ? records : records.slice((page - 1) * pageSize, page * pageSize) };
   };
   if (params.has('area')) {
-    if (basis !== 'activity' || kind !== 'orders') throw new BusinessAnalyticsInputError('Geografski izbor uporablja prikazani datum naročila.');
+    if (!['activity', 'paid'].includes(basis) || kind !== 'orders') throw new BusinessAnalyticsInputError('Geografski izbor uporablja prikazani datum naročila.');
     const geographyParams = new URLSearchParams(params);
     geographyParams.set('export', 'orders');
     geographyParams.set('asOf', asOf.toISOString());

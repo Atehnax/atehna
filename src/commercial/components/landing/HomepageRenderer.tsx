@@ -295,9 +295,9 @@ type HeroPositionUpdates = Partial<
 
 type HeroDragTarget = 'block' | 'title' | 'description' | 'primaryButton' | 'secondaryButton';
 type HeroElementDragTarget = Exclude<HeroDragTarget, 'block'>;
-type HeroEditableLayer = 'title' | 'description' | `textBlock:${string}`;
-type HeroCanvasLayer = HeroEditableLayer | 'primaryButton' | 'secondaryButton';
-type HeroTextContentUpdates = Partial<Pick<HomepageHeroSettings, 'title' | 'description'>>;
+type HeroEditableLayer = 'title' | 'description' | 'primaryButton' | 'secondaryButton' | `textBlock:${string}`;
+type HeroCanvasLayer = HeroEditableLayer;
+type HeroTextContentUpdates = Partial<Pick<HomepageHeroSettings, 'title' | 'description' | 'primaryButton' | 'secondaryButton'>>;
 type CategoryTextUpdates = Partial<Pick<HomepageCategoriesSettings, 'title' | 'subtitle' | 'showAllLabel'>>;
 type HeroTextBlockUpdates = Partial<
   Pick<HomepageHeroTextBlock, 'text' | 'visible' | 'href' | 'xPx' | 'yPx' | 'widthPx' | 'fontFamily' | 'fontSizePx' | 'bold' | 'italic' | 'underline' | 'responsive'>
@@ -330,6 +330,7 @@ type SectionFrameProps = {
   onMoveSection?: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  locked?: boolean;
   hidden?: boolean;
   onRestoreHidden?: () => void;
   preview?: boolean;
@@ -841,6 +842,7 @@ function SectionFrame({
   onMoveSection,
   canMoveUp = false,
   canMoveDown = false,
+  locked = false,
   hidden = false,
   onRestoreHidden,
   preview,
@@ -1058,9 +1060,9 @@ function SectionFrame({
             type="button"
             aria-label="Premakni sekcijo navzgor"
             title="Premakni sekcijo navzgor"
-            disabled={!canMoveUp}
+            disabled={locked || !canMoveUp}
             className="grid h-7 w-7 place-items-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-            onClick={() => onMoveSection(sectionId, -1)}
+            onClick={() => { if (!locked && canMoveUp) onMoveSection(sectionId, -1); }}
           >
             <ChevronUp className="h-4 w-4" />
           </button>
@@ -1068,9 +1070,9 @@ function SectionFrame({
             type="button"
             aria-label="Premakni sekcijo navzdol"
             title="Premakni sekcijo navzdol"
-            disabled={!canMoveDown}
+            disabled={locked || !canMoveDown}
             className="grid h-7 w-7 place-items-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
-            onClick={() => onMoveSection(sectionId, 1)}
+            onClick={() => { if (!locked && canMoveDown) onMoveSection(sectionId, 1); }}
           >
             <ChevronDown className="h-4 w-4" />
           </button>
@@ -1314,6 +1316,7 @@ function HomepageHero({
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedLayer, setSelectedLayer] = useState<HeroCanvasLayer | null>(null);
   const [editingLayer, setEditingLayer] = useState<HeroEditableLayer | null>(null);
+  const [buttonEditingText, setButtonEditingText] = useState('');
   const [activeManipulation, setActiveManipulation] = useState<'drag' | 'resize' | null>(null);
   const [snapGuides, setSnapGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
   const [measurement, setMeasurement] = useState<null | {
@@ -1329,11 +1332,16 @@ function HomepageHero({
   const canvasElementRefs = useRef<Record<string, HTMLElement | null>>({});
   const titleEditRef = useRef<HTMLHeadingElement | null>(null);
   const descriptionEditRef = useRef<HTMLParagraphElement | null>(null);
+  const buttonEditRefs = useRef<Partial<Record<'primaryButton' | 'secondaryButton', HTMLSpanElement | null>>>({});
   const textBlockEditRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const activeSlide = slides[activeIndex] ?? slides[0] ?? hero.slides[0];
   const hasMultipleSlides = slides.length > 1;
   const inlineEditorEnabled = Boolean(preview);
   const activeDevice = previewDevice ?? 'desktop';
+  const editingButtonLocked = (editingLayer === 'primaryButton' || editingLayer === 'secondaryButton')
+    && resolveHomepageCanvasElementDeviceSettings(canvas, `hero:${editingLayer}`, activeDevice).locked;
+  const primaryButtonEditing = inlineEditorEnabled && editingLayer === 'primaryButton' && !editingButtonLocked;
+  const secondaryButtonEditing = inlineEditorEnabled && editingLayer === 'secondaryButton' && !editingButtonLocked;
   const dragRef = useRef<null | {
     target: HeroDragTarget;
     pointerId: number;
@@ -1434,14 +1442,20 @@ function HomepageHero({
   }, [inlineEditorEnabled, selectedLayer]);
 
   useEffect(() => {
-    if (!editingLayer) return;
+    if (editingButtonLocked) setEditingLayer(null);
+  }, [editingButtonLocked]);
+
+  useEffect(() => {
+    if (!editingLayer || editingButtonLocked) return;
     const frame = window.requestAnimationFrame(() => {
       const target =
         editingLayer === 'title'
           ? titleEditRef.current
           : editingLayer === 'description'
             ? descriptionEditRef.current
-            : textBlockEditRefs.current[editingLayer.replace('textBlock:', '')];
+            : editingLayer === 'primaryButton' || editingLayer === 'secondaryButton'
+              ? buttonEditRefs.current[editingLayer]
+              : textBlockEditRefs.current[editingLayer.replace('textBlock:', '')];
       target?.focus();
       const selection = window.getSelection();
       const range = document.createRange();
@@ -1454,7 +1468,7 @@ function HomepageHero({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [editingLayer]);
+  }, [editingLayer, editingButtonLocked]);
 
   const getLayerElementId = (layer: HeroCanvasLayer) => `hero:${layer}`;
   const getLayerCanvasSettings = (layer: HeroCanvasLayer) =>
@@ -1991,6 +2005,10 @@ function HomepageHero({
   };
   const editLayer = (layer: HeroEditableLayer) => {
     if (!inlineEditorEnabled || getLayerCanvasSettings(layer).locked) return;
+    if ((layer === 'primaryButton' || layer === 'secondaryButton') && editingLayer !== layer) {
+      // Keep React from rewriting the active text/caret when config normalization trims it.
+      setButtonEditingText(hero[layer].label);
+    }
     onSelect?.();
     setSelectedLayer(layer);
     setEditingLayer(layer);
@@ -2003,6 +2021,11 @@ function HomepageHero({
     }
     if (layer === 'description') {
       onTextContentChange?.({ description: value });
+      return;
+    }
+    if (layer === 'primaryButton' || layer === 'secondaryButton') {
+      if (!preview || getLayerCanvasSettings(layer).locked) return;
+      onTextContentChange?.({ [layer]: { ...hero[layer], label: value } });
       return;
     }
     onTextBlockChange?.(layer.replace('textBlock:', ''), { text: value });
@@ -2167,11 +2190,11 @@ function HomepageHero({
     !layerIsDeleted(layer) && (preview || layerIsVisible(layer))
   );
   const hasVisibleHeroAction = Boolean(
-    hero.primaryButton.label
+    (hero.primaryButton.label || (preview && primaryButtonEditing))
       && hero.primaryButton.href
       && layerIsVisible('primaryButton')
   ) || Boolean(
-    hero.secondaryButton.label
+    (hero.secondaryButton.label || (preview && secondaryButtonEditing))
       && hero.secondaryButton.href
       && layerIsVisible('secondaryButton')
   );
@@ -2373,11 +2396,11 @@ function HomepageHero({
                   }
                 : undefined}
             >
-              {hero.primaryButton.label && hero.primaryButton.href && shouldRenderLayer('primaryButton') ? layerIsVisible('primaryButton') ? (
+              {(hero.primaryButton.label || (preview && primaryButtonEditing)) && hero.primaryButton.href && shouldRenderLayer('primaryButton') ? layerIsVisible('primaryButton') ? (
                 <div
                   ref={registerCanvasElement('primaryButton') as (node: HTMLDivElement | null) => void}
                   data-hero-element="primary-button"
-                  {...selectableLayerProps('primaryButton')}
+                  {...(preview ? editableLayerProps('primaryButton') : selectableLayerProps('primaryButton'))}
                   className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                   style={{ ...getElementOffsetStyle('primaryButton'), ...getLayerBoxStyle('primaryButton'), ...getPreviewLayerBoxStyle('primaryButton'), ...getButtonAlignmentStyle('primaryButton') }}
                   onPointerDown={startTextDrag('primaryButton')}
@@ -2391,19 +2414,44 @@ function HomepageHero({
                     href={hero.primaryButton.href}
                     prefetch={false}
                     draggable={false}
-                    className={classNames(buttonClassName(page.buttonStyle, 'primary'), preview && onTextPositionChange && 'pointer-events-none', getLayerCanvasSettings('primaryButton').widthPx > 0 && 'h-full w-full')}
+                    className={classNames(buttonClassName(page.buttonStyle, 'primary'), preview && onTextPositionChange && !primaryButtonEditing && 'pointer-events-none', getLayerCanvasSettings('primaryButton').widthPx > 0 && 'h-full w-full')}
                     style={getLayerTextStyle('primaryButton')}
+                    onClick={preview ? (event) => event.preventDefault() : undefined}
                   >
-                    <span>{hero.primaryButton.label}</span>
+                    {preview ? (
+                      <span
+                        key={primaryButtonEditing ? 'editing' : 'display'}
+                        ref={(node) => { buttonEditRefs.current.primaryButton = node; }}
+                        contentEditable={primaryButtonEditing}
+                        suppressContentEditableWarning
+                        role={primaryButtonEditing ? 'textbox' : undefined}
+                        aria-label={primaryButtonEditing ? 'Besedilo primarnega gumba' : undefined}
+                        className={classNames('min-w-[1ch] outline-none', primaryButtonEditing && 'cursor-text')}
+                        onInput={(event) => commitLayerText('primaryButton', event.currentTarget.textContent ?? '')}
+                        onBlur={(event) => {
+                          commitLayerText('primaryButton', event.currentTarget.textContent ?? '');
+                          setEditingLayer((current) => (current === 'primaryButton' ? null : current));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            event.currentTarget.blur();
+                          }
+                        }}
+                      >
+                        {primaryButtonEditing ? buttonEditingText : hero.primaryButton.label}
+                      </span>
+                    ) : <span>{hero.primaryButton.label}</span>}
                     <ChevronRight className="h-4 w-4" strokeWidth={2} />
                   </Link>
                 </div>
               ) : renderHiddenElementFlag('primaryButton', 'Primarni gumb') : null}
-              {hero.secondaryButton.label && hero.secondaryButton.href && shouldRenderLayer('secondaryButton') ? layerIsVisible('secondaryButton') ? (
+              {(hero.secondaryButton.label || (preview && secondaryButtonEditing)) && hero.secondaryButton.href && shouldRenderLayer('secondaryButton') ? layerIsVisible('secondaryButton') ? (
                 <div
                   ref={registerCanvasElement('secondaryButton') as (node: HTMLDivElement | null) => void}
                   data-hero-element="secondary-button"
-                  {...selectableLayerProps('secondaryButton')}
+                  {...(preview ? editableLayerProps('secondaryButton') : selectableLayerProps('secondaryButton'))}
                   className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                   style={{ ...getElementOffsetStyle('secondaryButton'), ...getLayerBoxStyle('secondaryButton'), ...getPreviewLayerBoxStyle('secondaryButton'), ...getButtonAlignmentStyle('secondaryButton') }}
                   onPointerDown={startTextDrag('secondaryButton')}
@@ -2417,10 +2465,35 @@ function HomepageHero({
                     href={hero.secondaryButton.href}
                     prefetch={false}
                     draggable={false}
-                    className={classNames(buttonClassName(page.buttonStyle, 'secondary'), preview && onTextPositionChange && 'pointer-events-none', getLayerCanvasSettings('secondaryButton').widthPx > 0 && 'h-full w-full')}
+                    className={classNames(buttonClassName(page.buttonStyle, 'secondary'), preview && onTextPositionChange && !secondaryButtonEditing && 'pointer-events-none', getLayerCanvasSettings('secondaryButton').widthPx > 0 && 'h-full w-full')}
                     style={getLayerTextStyle('secondaryButton')}
+                    onClick={preview ? (event) => event.preventDefault() : undefined}
                   >
-                    <span>{hero.secondaryButton.label}</span>
+                    {preview ? (
+                      <span
+                        key={secondaryButtonEditing ? 'editing' : 'display'}
+                        ref={(node) => { buttonEditRefs.current.secondaryButton = node; }}
+                        contentEditable={secondaryButtonEditing}
+                        suppressContentEditableWarning
+                        role={secondaryButtonEditing ? 'textbox' : undefined}
+                        aria-label={secondaryButtonEditing ? 'Besedilo sekundarnega gumba' : undefined}
+                        className={classNames('min-w-[1ch] outline-none', secondaryButtonEditing && 'cursor-text')}
+                        onInput={(event) => commitLayerText('secondaryButton', event.currentTarget.textContent ?? '')}
+                        onBlur={(event) => {
+                          commitLayerText('secondaryButton', event.currentTarget.textContent ?? '');
+                          setEditingLayer((current) => (current === 'secondaryButton' ? null : current));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            event.currentTarget.blur();
+                          }
+                        }}
+                      >
+                        {secondaryButtonEditing ? buttonEditingText : hero.secondaryButton.label}
+                      </span>
+                    ) : <span>{hero.secondaryButton.label}</span>}
                   </Link>
                 </div>
               ) : renderHiddenElementFlag('secondaryButton', 'Sekundarni gumb') : null}
@@ -3070,15 +3143,17 @@ function CategoryImageAdminActions({
         </button>
         <button
           type="button"
-          draggable
+          draggable={!cardSettings.locked}
+          disabled={cardSettings.locked}
           data-canvas-action
           aria-label={`Premakni kategorijo ${category.title}`}
           title="Premakni kategorijo"
-          className={`${homepageCategoryActionLightClassName} cursor-grab active:cursor-grabbing`}
+          className={classNames(homepageCategoryActionLightClassName, cardSettings.locked ? 'cursor-not-allowed opacity-40' : 'cursor-grab active:cursor-grabbing')}
           onPointerDown={(event) => { event.stopPropagation(); }}
           onClick={(event) => { event.preventDefault(); event.stopPropagation(); onSelectElement?.(cardElementId); }}
           onDragStart={(event) => {
             event.stopPropagation();
+            if (cardSettings.locked) { event.preventDefault(); return; }
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('application/x-atehna-homepage-category', category.slug);
             onSelectElement?.(cardElementId);
@@ -3175,9 +3250,10 @@ function HomepageCategories({
   );
   const handleCategoryDrop = (event: ReactDragEvent<HTMLElement>, targetSlug: string) => {
     const sourceSlug = event.dataTransfer.getData('application/x-atehna-homepage-category');
-    if (!sourceSlug || sourceSlug === targetSlug) return;
+    if (!preview || !sourceSlug || sourceSlug === targetSlug) return;
     event.preventDefault();
     event.stopPropagation();
+    if (resolveCategoryCanvasSettings(canvas, `categories:card:${sourceSlug}`, device).locked) return;
     onCategoryMove?.(sourceSlug, targetSlug);
   };
 
@@ -3547,6 +3623,7 @@ export default function HomepageRenderer({
           onMoveSection,
           canMoveUp: sectionIndex > 0,
           canMoveDown: sectionIndex < resolvedSettings.sectionOrder.length - 1,
+          locked: sectionCanvasSettings.locked,
           hidden: !sectionVisible,
           onRestoreHidden: () => onRestoreHiddenElement?.(`section:${sectionId}`),
           preview,

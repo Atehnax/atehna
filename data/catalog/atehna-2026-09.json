@@ -789,7 +789,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Umetne mase"
       ],
       "sku": "ATE-PENJENI-PVC-KOMATEKS",
       "slug": "penjeni-pvc-komateks",
@@ -979,7 +980,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Umetne mase"
       ],
       "sku": "ATE-PLEKSI-STEKLO",
       "slug": "pleksi-steklo",
@@ -1278,7 +1280,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Umetne mase"
       ],
       "sku": "ATE-STIROPOR",
       "slug": "stiropor",
@@ -1468,7 +1471,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-SELESHAMER",
       "slug": "seleshamer",
@@ -1656,7 +1660,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-BARVNI-PAPIR",
       "slug": "barvni-papir",
@@ -2548,7 +2553,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-GRAFOPAK",
       "slug": "grafopak",
@@ -2670,7 +2676,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-FOTOKARTON",
       "slug": "fotokarton",
@@ -3345,7 +3352,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-LEPENKA",
       "slug": "lepenka",
@@ -3598,7 +3606,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Papir in karton"
       ],
       "sku": "ATE-RISALNI-LIST",
       "slug": "risalni-list",
@@ -3780,7 +3789,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Materiali"
+        "Materiali",
+        "Les"
       ],
       "sku": "ATE-VEZANA-PLOSCA",
       "slug": "vezana-plosca",
@@ -8261,7 +8271,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Dodatki in nadomestni deli"
+        "Materiali",
+        "Lepila"
       ],
       "sku": "ATE-UHU-KRAFT",
       "slug": "uhu-kraft",
@@ -8362,7 +8373,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Dodatki in nadomestni deli"
+        "Materiali",
+        "Lepila"
       ],
       "sku": "ATE-UHU-SUPER-GLUE",
       "slug": "uhu-super-glue",
@@ -8433,7 +8445,8 @@
       },
       "status": "inactive",
       "categoryPath": [
-        "Dodatki in nadomestni deli"
+        "Materiali",
+        "Lepila"
       ],
       "sku": "ATE-MEKOL",
       "slug": "mekol",

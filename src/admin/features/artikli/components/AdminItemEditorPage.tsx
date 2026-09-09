@@ -83,7 +83,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBread
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminRichTextEditor from '@/admin/components/AdminRichTextEditor';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
-import ProductVariantOptionsCard from '@/admin/features/artikli/components/ProductVariantOptionsCard';
+import ProductVariantOptionsCard, { applyVariantOptionValue, VariantOptionValueField } from '@/admin/features/artikli/components/ProductVariantOptionsCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
   CommercialToolsPanel,
@@ -92,20 +92,17 @@ import {
   SimpleProductModule,
   UniqueMachineProductModule,
   WeightProductModule,
-  buildMachineCatalogVariants,
-  buildSimpleCatalogVariants,
   buildWeightCatalogVariants,
   cloneQuantityDiscountDraft,
   cloneTypeSpecificData,
   createInitialTypeSpecificData,
+  createWeightProductDataFromVariants,
   createInitialQuantityDiscountDrafts,
   createQuantityDiscountDraft,
   getDimensionSimulatorOptions,
   getMachineSimulatorOptions,
   getSimpleSimulatorOptions,
   getWeightSimulatorOptions,
-  normalizeSimpleProductData,
-  normalizeUniqueMachineProductData,
   normalizeWeightProductData,
   serializeQuantityDiscountTargets,
   adminProductInputChipClassName
@@ -144,6 +141,7 @@ import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/sh
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { readCatalogSpecificationLabels } from '@/shared/domain/catalog/catalogSpecification';
+import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
 import {
   classNames,
   CompactSegmentedField,
@@ -185,7 +183,11 @@ type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type DimensionVariantViewMode = 'columns' | 'rows';
 type DimensionVariantMatrixRowKey =
   | 'default'
+  | 'label'
+  | 'unit'
+  | `option:${string}`
   | 'dimensions'
+  | 'shippingDimensions'
   | 'weight'
   | 'tolerance'
   | 'cost'
@@ -316,7 +318,7 @@ type SideSettingsState = {
 };
 
 function normalizeCreateType(createType: CreateType): ProductEditorType {
-  return createType === 'variants' ? 'dimensions' : createType;
+  return createType === 'variants' ? 'simple' : createType;
 }
 
 function mapProductTypeToCatalogItemType(productType: ProductEditorType): CatalogItemEditorPayload['itemType'] {
@@ -879,13 +881,13 @@ function describeStagedVideo(video: StagedVideoState) {
 function formatProductTypeLabel(type: ProductEditorType) {
   if (type === 'dimensions') return 'Po dimenzijah';
   if (type === 'weight') return 'Po masi';
-  if (type === 'unique_machine') return 'Stroj / unikaten';
-  return 'Enostavni';
+  if (type === 'unique_machine') return 'Stroj / oprema';
+  return 'Standardni';
 }
 
 function formatProductSalesSectionLabel(type: ProductEditorType) {
   if (type === 'weight') return 'Prodaja po masi';
-  if (type === 'unique_machine') return 'Stroj / unikaten artikel';
+  if (type === 'unique_machine') return 'Stroj / oprema';
   return 'Prodajne informacije';
 }
 
@@ -984,12 +986,8 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     pushSaveDiff(variantItems, `${prefix} - debelina/fi`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - dolžina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - širina`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
-    const savedDisplayWeight = next.productType === 'dimensions'
-      ? catalogWeightKilogramsToDisplayGrams(savedVariant.weight)
-      : savedVariant.weight;
-    const nextDisplayWeight = next.productType === 'dimensions'
-      ? catalogWeightKilogramsToDisplayGrams(variant.weight)
-      : variant.weight;
+    const savedDisplayWeight = catalogWeightKilogramsToDisplayGrams(savedVariant.weight);
+    const nextDisplayWeight = catalogWeightKilogramsToDisplayGrams(variant.weight);
     pushSaveDiff(variantItems, `${prefix} - teža`, formatSaveDiffNumber(savedDisplayWeight, 'g'), formatSaveDiffNumber(nextDisplayWeight, 'g'));
     pushSaveDiff(variantItems, `${prefix} - toleranca`, formatSaveDiffText(savedVariant.errorTolerance), formatSaveDiffText(variant.errorTolerance));
     pushSaveDiff(variantItems, `${prefix} - cena`, formatSaveDiffCurrency(savedVariant.price), formatSaveDiffCurrency(variant.price));
@@ -997,6 +995,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     pushSaveDiff(variantItems, `${prefix} - zaloga`, formatSaveDiffInteger(savedVariant.stock), formatSaveDiffInteger(variant.stock));
     pushSaveDiff(variantItems, `${prefix} - min. naročilo`, formatSaveDiffInteger(savedVariant.minOrder), formatSaveDiffInteger(variant.minOrder));
     pushSaveDiff(variantItems, `${prefix} - SKU`, formatSaveDiffText(savedVariant.sku), formatSaveDiffText(variant.sku));
+    pushSaveDiff(variantItems, `${prefix} - prodajna enota`, formatSaveDiffText(savedVariant.unit), formatSaveDiffText(variant.unit));
     pushSaveDiff(variantItems, `${prefix} - status`, formatSaveDiffStatus(savedVariant.active), formatSaveDiffStatus(variant.active));
     pushSaveDiff(variantItems, `${prefix} - vrstni red`, formatSaveDiffInteger(savedVariant.sort), formatSaveDiffInteger(variant.sort));
     const savedSpecifications = savedVariant.contentOverride?.specifications ?? {};
@@ -1201,6 +1200,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
                 thickness: variant.thickness ?? null,
                 errorTolerance: variant.errorTolerance ?? null,
                 weight: variant.weight ?? null,
+                unit: variant.unit ?? null,
                 minOrder: variant.minOrder ?? 1,
                 badge: variant.badge ?? null,
                 sku: variant.variantSku ?? '',
@@ -1242,11 +1242,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
       ? 'weight'
       : initialData?.itemType === 'sheet'
         ? 'dimensions'
-        : createType === 'variants'
-          ? 'dimensions'
-          : family.variants.length > 1 || family.variants.some((variant) => variant.length !== null || variant.width !== null || variant.thickness !== null)
-            ? 'dimensions'
-            : normalizeCreateType(createType));
+        : normalizeCreateType(createType));
 
   const mediaImages = (initialData?.media
     .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
@@ -1362,7 +1358,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
   };
 }
 
-const defaultDimensionDeliveryTime = '1-2 delovna dneva';
+const defaultDimensionDeliveryTime = '';
 
 function getWorkingDayUnit(amount: string) {
   const numbers = amount.match(/\d+/g);
@@ -2357,6 +2353,19 @@ export default function AdminItemEditorPage({
   const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
+  const createLocalImageUrl = useCallback((file: Blob) => {
+    const url = URL.createObjectURL(file);
+    localBlobUrlsRef.current.add(url);
+    return url;
+  }, []);
+
+  const revokeLocalImageUrl = useCallback((url: string) => {
+    if (!url.startsWith('blob:')) return;
+    if (!localBlobUrlsRef.current.has(url)) return;
+    URL.revokeObjectURL(url);
+    localBlobUrlsRef.current.delete(url);
+  }, []);
+
   const suppressImageClickAfterDragRef = useRef(false);
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
@@ -2420,11 +2429,12 @@ export default function AdminItemEditorPage({
   const simulatorOptions = useMemo<SimulatorOption[]>(() => {
     if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants);
     if (productType === 'weight') return getWeightSimulatorOptions(weightProductData);
-    if (productType === 'unique_machine') return getMachineSimulatorOptions(machineProductData, draft.name || 'Stroj / unikaten artikel');
+    if (productType === 'unique_machine') return getMachineSimulatorOptions(machineProductData, draft.name || 'Stroj / oprema', draft.variants);
     return getSimpleSimulatorOptions(
       simpleProductData,
       draft.name || 'Osnovni artikel',
-      sideSettings.sku || draft.variants[0]?.sku || ''
+      sideSettings.sku || draft.variants[0]?.sku || '',
+      draft.variants
     );
   }, [draft.name, draft.variants, machineProductData, productType, sideSettings.sku, simpleProductData, weightProductData]);
 
@@ -2529,30 +2539,10 @@ export default function AdminItemEditorPage({
     const baseSku = state.sideSettings.sku || state.draft.variants[0]?.sku || toSlug(state.draft.name || 'artikel').toUpperCase();
     let variants = state.draft.variants.map(cloneVariant);
     let typeSpecificData = cloneTypeSpecificData(state.typeSpecificData);
-    if (state.productType === 'simple') {
-      variants = buildSimpleCatalogVariants(
-        normalizeSimpleProductData(typeSpecificData.simple, { variants, baseSku }),
-        variants[0],
-        baseSku,
-        state.draft.name
-      );
-    } else if (state.productType === 'weight') {
+    if (state.productType === 'weight') {
       const weightData = normalizeWeightProductData(typeSpecificData.weight, { variants, baseSku });
-      typeSpecificData = {
-        ...typeSpecificData,
-        weight: weightData
-      };
-      variants = buildWeightCatalogVariants(
-        weightData,
-        baseSku
-      );
-    } else if (state.productType === 'unique_machine') {
-      variants = buildMachineCatalogVariants(
-        normalizeUniqueMachineProductData(typeSpecificData.uniqueMachine, { variants, baseSku }),
-        variants[0],
-        baseSku,
-        state.draft.name
-      );
+      typeSpecificData = { ...typeSpecificData, weight: weightData };
+      variants = buildWeightCatalogVariants(weightData, baseSku, variants);
     }
     const originalVariantById = new Map(state.draft.variants.map((variant) => [variant.id, variant]));
     variants = variants.map((variant) => {
@@ -2783,17 +2773,49 @@ export default function AdminItemEditorPage({
   const isTableEditable = isEditable;
   const isMediaEditable = isEditable;
   const isDimensionBasedMode = productType === 'dimensions';
+  const buildSalesVariantHeaderLabel = (variant: Variant, index: number, includeUnits = false) => {
+    return isDimensionBasedMode ? buildDimensionVariantHeaderLabel(variant, index, includeUnits) : variant.label?.trim() || variant.sku?.trim() || `Različica ${index + 1}`;
+  };
   const configuredDefaultVariant = draft.variants.find((variant) => variant.id === draft.defaultVariantId);
   const resolvedDefaultVariantId = configuredDefaultVariant?.active
     ? configuredDefaultVariant.id
     : findFirstActiveVariant(draft.variants)?.id ?? null;
-  const applyProductTypeChange = useCallback((nextProductType: ProductEditorType) => {
+  const getVariantDeliveryTime = (variant: Variant) => {
+    const savedEstimate = resolveCatalogVariantDeliveryEstimate(productType, typeSpecificData, variant);
+    if (productType === 'weight' && !variant.contentOverride?.deliveryEstimate) {
+      return normalizedWeightProductData.variants.find((row) => row.id === variant.id)?.deliveryTime || savedEstimate || '';
+    }
+    return savedEstimate || '';
+  };
+  const applyProductTypeChange = (nextProductType: ProductEditorType) => {
+    const canonicalVariants = productType === 'weight'
+      ? buildWeightCatalogVariants(weightProductData, sideSettings.sku, draft.variants)
+      : draft.variants.map(cloneVariant);
+    const variants = canonicalVariants.map((variant) => {
+      const deliveryEstimate = getVariantDeliveryTime(variant);
+      return deliveryEstimate ? { ...variant, contentOverride: { ...variant.contentOverride, deliveryEstimate } } : variant;
+    });
+    setDraft((current) => ({ ...current, variants }));
+    setTypeSpecificData((current) => {
+      if (nextProductType === 'weight') return { ...current, weight: createWeightProductDataFromVariants(current.weight, variants, sideSettings.sku) };
+      if (!((productType === 'simple' && nextProductType === 'unique_machine') || (productType === 'unique_machine' && nextProductType === 'simple'))) return current;
+      const source = productType === 'simple' ? current.simple : current.uniqueMachine;
+      const targetKey = nextProductType === 'simple' ? 'simple' : 'uniqueMachine';
+      const target = { ...current[targetKey] };
+      const hasRows = (value: unknown) => Array.isArray(value) && value.some((row) => row && typeof row === 'object' && (String(row.property ?? '').trim() || String(row.value ?? '').trim()));
+      const copyRows = (fromKey: string, toKey: string) => {
+        if (!hasRows(target[toKey]) && hasRows(source[fromKey])) target[toKey] = JSON.parse(JSON.stringify(source[fromKey]));
+      };
+      copyRows('basicInfoRows', 'basicInfoRows');
+      copyRows(productType === 'simple' ? 'technicalSpecs' : 'specs', nextProductType === 'simple' ? 'technicalSpecs' : 'specs');
+      return { ...current, [targetKey]: target };
+    });
     setProductType(nextProductType);
     setSimulatorVariantId('');
     setPendingProductTypeChange(null);
     setIsProductTypeSelectionConfirmed(false);
     setIsProductTypeSelectorExpanded(true);
-  }, []);
+  };
   const changeProductType = (nextProductType: ProductEditorType) => {
     if (!isEditable || nextProductType === productType) return;
     if (mode !== 'create' && hasUnsavedChanges) {
@@ -2816,6 +2838,7 @@ export default function AdminItemEditorPage({
   };
   const updateWeightProductData = (nextData: typeof weightProductData) => {
     setTypeSpecificData((current) => ({ ...current, weight: nextData }));
+    setDraft((current) => ({ ...current, variants: buildWeightCatalogVariants(nextData, sideSettings.sku, current.variants) }));
   };
   const updateMachineProductData = (nextData: typeof machineProductData) => {
     setTypeSpecificData((current) => ({ ...current, uniqueMachine: nextData }));
@@ -2891,7 +2914,7 @@ export default function AdminItemEditorPage({
       weight: {
         emptyFallback: null,
         apply: (value) => ({
-          weight: productType === 'dimensions'
+          weight: productType !== 'weight'
             ? catalogWeightDisplayGramsToKilograms(value)
             : value
         })
@@ -3094,7 +3117,7 @@ export default function AdminItemEditorPage({
         categoryPath: preparedState.selectedCategoryPath,
         sku: preparedState.sideSettings.sku || nextDraft.variants[0]?.sku || null,
         slug: nextSlug,
-        unit: null,
+        unit: preparedState.productType === 'weight' ? 'kg' : initialData?.unit ?? 'kos',
         brand: preparedState.sideSettings.brand || null,
         material: preparedState.sideSettings.material || null,
         colour: preparedState.sideSettings.color || null,
@@ -3152,9 +3175,7 @@ export default function AdminItemEditorPage({
                   variantCount: nextDraft.variants.length,
                   index
                 })
-              : nextDraft.variants.length === 1
-                ? nextDraft.name.trim()
-                : variant.label.trim() || `Različica ${index + 1}`,
+              : variant.label.trim() || (nextDraft.variants.length === 1 ? nextDraft.name.trim() : `Različica ${index + 1}`),
             length: variant.length,
             width: variant.width,
             thickness: variant.thickness,
@@ -3169,7 +3190,7 @@ export default function AdminItemEditorPage({
             expectedPricingRevision: variant.pricingRevision,
             minOrder: Math.max(1, variant.minOrder ?? Number(preparedState.sideSettings.moq || 1)),
             variantSku: variant.sku || null,
-            unit: null,
+            unit: variant.unit ?? (preparedState.productType === 'weight' ? 'kg' : 'kos'),
             status: variant.active ? 'active' : 'inactive',
             badge: preparedState.variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
             position: index + 1,
@@ -3804,6 +3825,35 @@ export default function AdminItemEditorPage({
     });
   };
 
+  const updateOptionAxes = (optionAxes: ProductFamily['optionAxes']) => {
+    const valid = new Map(optionAxes.map((axis) => [axis.id, new Set(axis.values.map((value) => value.id))]));
+    setDraft((current) => ({ ...current, optionAxes, variants: current.variants.map((variant) => ({
+      ...variant,
+      optionSelections: Object.fromEntries(Object.entries(variant.optionSelections ?? {}).filter(([axisId, valueId]) => valid.get(axisId)?.has(valueId)))
+    })) }));
+  };
+  const renderVariantOptionField = (variant: Variant, axisId: string) => {
+    const axis = draft.optionAxes.find((entry) => entry.id === axisId);
+    if (!axis) return null;
+    return <VariantOptionValueField
+      key={axis.id + ':' + variant.id + ':' + (variant.optionSelections?.[axis.id] ?? '')}
+      editable={isEditable} axis={axis} variant={variant}
+      onCommit={(value) => setDraft((current) => {
+        const next = applyVariantOptionValue(current.optionAxes, current.variants, axis.id, variant.id, value);
+        return { ...current, optionAxes: next.axes, variants: next.variants };
+      })}
+    />;
+  };
+  const variantOptionsToolbar = <ProductVariantOptionsCard editable={isEditable} axes={draft.optionAxes} onAxesChange={updateOptionAxes} />;
+  const variantMatrixRows: typeof DIMENSION_VARIANT_MATRIX_ROWS = [
+    ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'default'),
+    { key: 'label', label: 'Naziv različice', help: 'Naziv prodajne različice.' },
+    ...(isDimensionBasedMode ? DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'dimensions' || row.key === 'tolerance') : [{ key: 'shippingDimensions' as const, label: 'Mere za dostavo', help: 'Dolžina, širina in višina ene pošiljke v milimetrih. Potrebno za aktivacijo artikla.' }]),
+    ...draft.optionAxes.map((axis) => ({ key: `option:${axis.id}` as const, label: axis.name, help: 'Vnesite vrednost ali izberite obstoječo.' })),
+    { key: 'unit', label: 'Prodajna enota', help: 'Enota cene in zaloge, na primer kos ali paket.' },
+    ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => !['default', 'dimensions', 'tolerance'].includes(row.key)).map((row) => row.key === 'weight' && !isDimensionBasedMode ? { ...row, label: 'Masa za dostavo', help: 'Masa ene prodajne enote za dostavo v gramih. Neto vsebino navedite kot lastnost različice.' } : row)
+  ];
+
   const updateDimensionVariantStock = (variant: Variant, stock: number) => {
     updateVariant(variant.id, { stock });
     setVariantTags((current) => {
@@ -3907,6 +3957,10 @@ export default function AdminItemEditorPage({
 
   const deleteSelectedVariants = () => {
     if (!isTableEditable || !hasSelectedVariants) return;
+    if (variantSelections.size >= draft.variants.length) {
+      toast.info('Artikel mora imeti vsaj eno različico.');
+      return;
+    }
     const removedCount = variantSelections.size;
     setDraft((current) => {
       const remainingVariants = current.variants.filter((variant) => !variantSelections.has(variant.id));
@@ -3997,7 +4051,7 @@ export default function AdminItemEditorPage({
 
     if (rowKey === 'delivery') {
       const deliveryEstimate = rawDraft === undefined
-        ? getDimensionVariantDeliveryTime(typeSpecificData.dimensions, sourceVariant)
+        ? getVariantDeliveryTime(sourceVariant)
         : formatDeliveryTimeFromAmount(rawDraft.trim())
           || normalizeDimensionSalesData(typeSpecificData.dimensions).defaultDeliveryTime;
       resolvedSourceVariant = {
@@ -4053,7 +4107,7 @@ export default function AdminItemEditorPage({
       variant.id === resolvedSourceVariant.id ? resolvedSourceVariant : variant
     );
     const rowLabel = DIMENSION_VARIANT_MATRIX_ROWS.find((row) => row.key === rowKey)?.label ?? rowKey;
-    const sourceName = buildDimensionVariantHeaderLabel(
+    const sourceName = buildSalesVariantHeaderLabel(
       resolvedSourceVariant,
       Math.max(0, draft.variants.findIndex((variant) => variant.id === resolvedSourceVariant.id))
     );
@@ -4199,7 +4253,7 @@ export default function AdminItemEditorPage({
       return;
     }
 
-    const sourceName = buildDimensionVariantHeaderLabel(
+    const sourceName = buildSalesVariantHeaderLabel(
       result.sourceVariant,
       Math.max(
         0,
@@ -4272,19 +4326,6 @@ export default function AdminItemEditorPage({
         .map((rule, index) => ({ ...rule, position: index }))
     );
   };
-
-  const createLocalImageUrl = useCallback((file: Blob) => {
-    const url = URL.createObjectURL(file);
-    localBlobUrlsRef.current.add(url);
-    return url;
-  }, []);
-
-  const revokeLocalImageUrl = useCallback((url: string) => {
-    if (!url.startsWith('blob:')) return;
-    if (!localBlobUrlsRef.current.has(url)) return;
-    URL.revokeObjectURL(url);
-    localBlobUrlsRef.current.delete(url);
-  }, []);
 
   useEffect(() => () => {
     localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -4937,7 +4978,13 @@ export default function AdminItemEditorPage({
   ) => {
     const decimal = (value: number | null | undefined) =>
       value === null || value === undefined ? '—' : formatDecimalForDisplay(value);
-    if (rowKey === 'dimensions') {
+    if (rowKey === 'label') return variant.label || '—';
+    if (rowKey === 'unit') return variant.unit || 'kos';
+    if (rowKey.startsWith('option:')) {
+      const axis = draft.optionAxes.find((entry) => entry.id === rowKey.slice(7));
+      return axis?.values.find((value) => value.id === variant.optionSelections?.[axis.id])?.value || '—';
+    }
+    if (rowKey === 'dimensions' || rowKey === 'shippingDimensions') {
       return `${[
         decimal(variant.thickness),
         decimal(variant.length),
@@ -4976,7 +5023,7 @@ export default function AdminItemEditorPage({
     if (rowKey === 'stock') return `${variant.stock}`;
     if (rowKey === 'minOrder') return `${variant.minOrder ?? 1}`;
     if (rowKey === 'delivery') {
-      return getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)) || '—';
+      return getDeliveryDayAmount(getVariantDeliveryTime(variant)) || '—';
     }
     if (rowKey === 'sku') return variant.sku || '—';
     return '—';
@@ -4986,7 +5033,7 @@ export default function AdminItemEditorPage({
     variant: Variant,
     rowKey: DimensionVariantMatrixRowKey
   ): ReactNode => {
-    const variantName = buildDimensionVariantHeaderLabel(
+    const variantName = buildSalesVariantHeaderLabel(
       variant,
       Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id)),
       true
@@ -5005,6 +5052,17 @@ export default function AdminItemEditorPage({
         />
       );
     }
+    if (rowKey.startsWith('option:')) return renderVariantOptionField(variant, rowKey.slice(7));
+    if (rowKey === 'label' || rowKey === 'unit') return <CompactSegmentedField editable={isTableEditable} value={rowKey === 'label' ? variant.label : variant.unit || 'kos'} inputMode="text" align="left" ariaLabel={`${rowKey === 'label' ? 'Naziv različice' : 'Prodajna enota'} za ${variantName}`} onChange={(value) => updateVariant(variant.id, rowKey === 'label' ? { label: value } : { unit: value })} />;
+    if (rowKey === 'shippingDimensions') return <div className="grid w-full grid-cols-3 gap-1">
+      {(['length', 'width', 'thickness'] as const).map((field, index) => <CompactSegmentedField
+        key={field} editable={isTableEditable} value={isTableEditable ? readDecimalInputValue(variant.id, field, variant[field]) : variant[field] === null ? null : formatDecimalForDisplay(variant[field])}
+        suffix="mm" ariaLabel={`${['Dolžina', 'Širina', 'Višina'][index]} za dostavo za ${variantName}`}
+        title={['Dolžina za dostavo', 'Širina za dostavo', 'Višina za dostavo'][index]}
+        onChange={(value) => updateDecimalInputDraft(variant.id, field, value)}
+        onBlur={() => commitDecimalInputDraft(variant.id, field, variant[field], (value) => updateVariant(variant.id, { [field]: value }), null)}
+      />)}
+    </div>;
     if (rowKey === 'dimensions') return renderDimensionVariantTriplet(variant, variantName);
     if (rowKey === 'weight') {
       const displayWeightGrams = catalogWeightKilogramsToDisplayGrams(variant.weight);
@@ -5169,12 +5227,12 @@ export default function AdminItemEditorPage({
           inputMode="numeric"
           value={
             decimalInputDrafts[decimalDraftKey(variant.id, 'deliveryTime')]
-            ?? getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant))
+            ?? getDeliveryDayAmount(getVariantDeliveryTime(variant))
           }
           suffix="dni"
           placeholder="1-2"
           ariaLabel={`Dobavni rok za ${variantName}`}
-          title={getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)}
+          title={getVariantDeliveryTime(variant)}
           onChange={(value) => updateDimensionVariantDeliveryDraft(variant.id, value)}
           onBlur={() => commitDimensionVariantDeliveryDraft(variant)}
         />
@@ -5230,7 +5288,7 @@ export default function AdminItemEditorPage({
     rowKey: DimensionVariantMatrixRowKey
   ): ReactNode => {
     const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
-    const variantName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+    const variantName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
     if (rowKey === 'default') {
       return (
         <input
@@ -6216,12 +6274,12 @@ export default function AdminItemEditorPage({
 
       {editorTab === 'sales' ? (
       <div id="product-measurements" className="scroll-mt-24">
-      {isDimensionBasedMode ? (
+      {productType !== 'weight' ? (
       <section className={`${adminWindowCardClassName} ${dimensionEditorInputHeightClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
         <div className="mb-3">
           <h2 className={editorSectionTitleClassName}>Prodajne informacije</h2>
         </div>
-        <div className="mb-3 space-y-1 px-1">
+        {isDimensionBasedMode ? <div className="mb-3 space-y-1 px-1">
           <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
             <p className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-[12px] font-medium leading-5 text-slate-600">
               <span>Vnesi debelino/fi, dolžino in po potrebi širino v en vnos, na primer:</span>
@@ -6244,30 +6302,7 @@ export default function AdminItemEditorPage({
               <span>.</span>
             </span>
           </p>
-        </div>
-        <ProductVariantOptionsCard
-          editable={isEditable}
-          axes={draft.optionAxes}
-          variants={draft.variants}
-          onAxesChange={(optionAxes) => {
-            const validValueIdsByAxis = new Map(
-              optionAxes.map((axis) => [axis.id, new Set(axis.values.map((value) => value.id))])
-            );
-            setDraft((current) => ({
-              ...current,
-              optionAxes,
-              variants: current.variants.map((variant) => ({
-                ...variant,
-                optionSelections: Object.fromEntries(
-                  Object.entries(variant.optionSelections ?? {}).filter(([axisId, valueId]) =>
-                    validValueIdsByAxis.get(axisId)?.has(valueId)
-                  )
-                )
-              }))
-            }));
-          }}
-          onVariantChange={updateVariant}
-        />
+        </div> : null}
         <div className="relative rounded-lg border border-slate-200">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -6282,6 +6317,7 @@ export default function AdminItemEditorPage({
               ) : null}
             </div>
             <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
+              {variantOptionsToolbar}
               <SegmentedControl
                 size="sm"
                 value={dimensionVariantViewMode}
@@ -6343,7 +6379,7 @@ export default function AdminItemEditorPage({
             </div>
           </div>
           <div className="grid min-w-0 gap-3 border-b border-slate-200 bg-white px-3 py-3 lg:grid-cols-[minmax(90px,0.7fr)_minmax(280px,520px)_minmax(300px,1fr)] lg:items-center">
-            <span className="text-[11px] font-semibold text-slate-500">Generator različic</span>
+            {isDimensionBasedMode ? <><span className="text-[11px] font-semibold text-slate-500">Generator različic</span>
             <div className="w-full min-w-0 justify-self-center">
               <div className="relative w-full min-w-0">
                 <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 !bg-white pl-[10px] pr-11 ${isGeneratorLocked ? 'text-slate-500' : ''}`}>
@@ -6401,6 +6437,7 @@ export default function AdminItemEditorPage({
               </div>
               {generatorError ? <div className="mt-1 text-xs text-rose-600">{generatorError}</div> : null}
             </div>
+            </> : <p className="text-xs text-slate-500 lg:col-span-2">Vsaka vrstica predstavlja eno prodajno različico. Če artikel nima izbir, uporabite eno vrstico. Mere in masa za dostavo so ločene od izbirnih lastnosti.</p>}
             <div className="flex items-center justify-end gap-2 justify-self-end">
               <IconButton
                 type="button"
@@ -6411,6 +6448,8 @@ export default function AdminItemEditorPage({
                 disabled={!isTableEditable}
                 onClick={() => setDraft((current) => {
                   const nextVariant = createVariant({
+                    unit: 'kos',
+                    label: current.variants.length === 0 ? current.name || 'Osnovna različica' : `Različica ${current.variants.length + 1}`,
                     sort: Math.max(0, ...current.variants.map((variant) => variant.sort || 0)) + 1
                   });
                   return {
@@ -6444,7 +6483,7 @@ export default function AdminItemEditorPage({
               >
                 <TrashCanIcon />
               </IconButton>
-              <Button
+              {isDimensionBasedMode ? <Button
                 type="button"
                 variant="primary"
                 size="toolbar"
@@ -6453,7 +6492,7 @@ export default function AdminItemEditorPage({
                 onClick={generateVariants}
               >
                 Generiraj različice
-              </Button>
+              </Button> : null}
             </div>
           </div>
           <div className="relative">
@@ -6462,294 +6501,15 @@ export default function AdminItemEditorPage({
             className="overflow-x-auto overflow-y-visible overscroll-x-contain"
           >
           {dimensionVariantViewMode === 'columns' ? (
-          <table className="w-full table-fixed text-[10px] leading-4">
-            <colgroup>
-              <col style={{ width: '28px' }} />
-              <col style={{ width: '34px' }} />
-              <col style={{ width: '272px' }} />
-              <col style={{ width: '48px' }} />
-              <col style={{ width: '58px' }} />
-              <col style={{ width: '58px' }} />
-              <col style={{ width: '58px' }} />
-              <col style={{ width: '66px' }} />
-              <col style={{ width: '52px' }} />
-              <col style={{ width: '62px' }} />
-              <col style={{ width: '66px' }} />
-              <col style={{ width: '48px' }} />
-              <col style={{ width: '50px' }} />
-              <col style={{ width: '65px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '76px' }} />
-              <col style={{ width: '88px' }} />
-            </colgroup>
-            <THead>
-              <tr>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>
-                  <AdminCheckbox
-                    aria-label="Izberi vse različice"
-                    checked={isTableEditable && allVariantsSelected}
-                    onChange={() =>
-                      setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))
-                    }
-                    disabled={!isTableEditable}
-                  />
-                </TH>
-                <TH
-                  className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`}
-                  title="Privzeta različica"
-                >
-                  Privz.
-                </TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`} title="Dolžina × širina × višina / debelina">Dimenzije</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Masa">Masa</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`} title="Toleranca">Tol.</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Nabavna cena brez DDV">Nabavna</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Prodajna cena brez DDV">Prod. brez</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Prodajna cena z DDV">Prod. z DDV</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`}>Popust</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Akcijska cena brez DDV">Akc. brez</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Akcijska cena z DDV">Akc. z DDV</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`}>Zaloga</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Minimalno naročilo">Min.</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`} title="Dobavni rok">Rok</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>SKU</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>Status</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`} title="Opomba">Opomba</TH>
-              </tr>
-            </THead>
-            <tbody>
-              {draft.variants.map((variant) => (
-                <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
-                  <td className="px-0.5 py-1.5 text-center">
-                    <AdminCheckbox
-                      aria-label={`Izberi ${buildDimensionVariantHeaderLabel(
-                        variant,
-                        Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id)),
-                        true
-                      )}`}
-                      checked={variantSelections.has(variant.id)}
-                      onChange={() => setVariantSelections((current) => {
-                        const next = new Set(current);
-                        if (next.has(variant.id)) next.delete(variant.id);
-                        else next.add(variant.id);
-                        return next;
-                      })}
-                      disabled={!isTableEditable}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5 text-center">
-                    <input
-                      type="radio"
-                      name="default-dimension-variant"
-                      aria-label={`Nastavi ${variant.label || variant.sku || 'različico'} kot privzeto`}
-                      title={variant.active ? 'Nastavi kot privzeto različico' : 'Neaktivna različica ne more biti privzeta'}
-                      className="h-4 w-4 accent-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-40"
-                      checked={resolvedDefaultVariantId === variant.id}
-                      disabled={!isTableEditable || !variant.active}
-                      onChange={() => selectDefaultDimensionVariant(variant)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    {renderDimensionVariantTriplet(
-                      variant,
-                      variant.label || variant.sku || 'različico'
-                    )}
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    {(() => {
-                      const displayWeightGrams = catalogWeightKilogramsToDisplayGrams(variant.weight);
-                      return (
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', displayWeightGrams) : displayWeightGrams === null ? null : formatDecimalForDisplay(displayWeightGrams)}
-                      suffix="g"
-                      ariaLabel={`Masa za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'weight', value)}
-                      onBlur={() => commitDecimalInputDraft(
-                        variant.id,
-                        'weight',
-                        displayWeightGrams,
-                        (value) => updateVariant(variant.id, {
-                          weight: catalogWeightDisplayGramsToKilograms(value)
-                        }),
-                        null
-                      )}
-                    />
-                      );
-                    })()}
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      disabled={isToleranceLocked}
-                      value={
-                        isTableEditable
-                          ? decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''
-                          : variant.errorTolerance
-                            ? variant.errorTolerance.replace('.', ',')
-                            : null
-                      }
-                      prefix="±"
-                      suffix="mm"
-                      ariaLabel={`Toleranca za ${variant.label || variant.sku}`}
-                      onChange={(value) => {
-                        if (!isToleranceLocked) updateDecimalInputDraft(variant.id, 'errorTolerance', value);
-                      }}
-                      onBlur={() => {
-                        const key = decimalDraftKey(variant.id, 'errorTolerance');
-                        const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
-                        const parsed = parseDecimalInput(raw);
-                        updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
-                        setDecimalInputDrafts((current) => {
-                          const next = { ...current };
-                          delete next[key];
-                          return next;
-                        });
-                      }}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'costNet', variant.costNet) : variant.costNet === null || variant.costNet === undefined ? null : formatEuroAmount(variant.costNet)}
-                      suffix="€"
-                      ariaLabel={`Nabavna cena brez DDV za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'costNet', value)}
-                      onBlur={() => commitDecimalInputDraft(
-                        variant.id,
-                        'costNet',
-                        variant.costNet,
-                        (value) => updateVariant(variant.id, { costNet: value === null ? null : Math.max(0, value) }),
-                        null
-                      )}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'price', variant.price) : formatEuroAmount(variant.price)}
-                      suffix="€"
-                      ariaLabel={`Prodajna cena brez DDV za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'price', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={false}
-                      value={formatEuroAmount(computeGrossPrice(variant.price, dimensionVariantTaxRate))}
-                      suffix="€"
-                      ariaLabel={`Prodajna cena z DDV za ${variant.label || variant.sku}`}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'discountPct', variant.discountPct) : formatDecimalForDisplay(variant.discountPct)}
-                      suffix="%"
-                      ariaLabel={`Popust za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'discountPct', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={false}
-                      value={variant.discountPct > 0 ? formatEuroAmount(computeSalePrice(variant.price, variant.discountPct)) : null}
-                      suffix="€"
-                      ariaLabel={`Akcijska cena brez DDV za ${variant.label || variant.sku}`}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={false}
-                      value={
-                        variant.discountPct > 0
-                          ? formatEuroAmount(
-                              computeGrossPrice(
-                                computeSalePrice(variant.price, variant.discountPct),
-                                dimensionVariantTaxRate
-                              )
-                            )
-                          : null
-                      }
-                      suffix="€"
-                      ariaLabel={`Akcijska cena z DDV za ${variant.label || variant.sku}`}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      inputMode="numeric"
-                      value={variant.stock}
-                      ariaLabel={`Zaloga za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDimensionVariantStock(variant, Math.max(0, Math.floor(Number(value.replace(/\D/g, '')) || 0)))}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      inputMode="numeric"
-                      value={variant.minOrder ?? 1}
-                      ariaLabel={`Minimalno naročilo za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateVariant(variant.id, { minOrder: Math.max(1, Math.floor(Number(value.replace(/\D/g, '')) || 1)) })}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      inputMode="numeric"
-                      value={
-                        decimalInputDrafts[decimalDraftKey(variant.id, 'deliveryTime')]
-                        ?? getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant))
-                      }
-                      suffix="dni"
-                      placeholder="1-2"
-                      ariaLabel={`Dobavni rok za ${variant.label || variant.sku}`}
-                      title={getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)}
-                      onChange={(value) => updateDimensionVariantDeliveryDraft(variant.id, value)}
-                      onBlur={() => commitDimensionVariantDeliveryDraft(variant)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={variant.sku}
-                      inputMode="text"
-                      align="left"
-                      ariaLabel={`SKU za ${variant.label || variant.sku}`}
-                      title={variant.sku || undefined}
-                      onChange={(value) => updateVariant(variant.id, { sku: value, skuAutoGenerated: false })}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5 text-center">
-                    <div className="inline-flex w-full justify-center">
-                      <ActiveStateChip
-                        active={variant.active}
-                        editable={isTableEditable}
-                        chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
-                        menuPlacement="bottom"
-                        onChange={(next) => applySelectionChange(() => updateDimensionVariantActiveState(variant.id, next))}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-0.5 py-1.5 text-center">
-                    <div className="inline-flex w-full justify-center">
-                      <NoteTagChip
-                        value={getVariantTag(variant)}
-                        editable={isTableEditable}
-                        chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
-                        menuPlacement="bottom"
-                        onChange={(next) => {
-                          if (!next) return;
-                          applySelectionChange(() => setVariantTag(variant.id, next));
-                        }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+          <table className="w-full text-[10px] leading-4" aria-label="Različice artikla s polji v stolpcih">
+            <THead><tr>
+              <TH className="px-2 py-2"><AdminCheckbox aria-label="Izberi vse različice" checked={isTableEditable && allVariantsSelected} onChange={() => setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))} disabled={!isTableEditable} /></TH>
+              {variantMatrixRows.map((row) => <TH key={row.key} className="min-w-[100px] px-2 py-2 text-center" title={row.help}>{row.label}</TH>)}
+            </tr></THead>
+            <tbody>{draft.variants.map((variant) => <tr key={variant.id} className="border-t border-slate-100">
+              <td className="px-2 py-2"><AdminCheckbox aria-label={`Izberi ${variant.label || variant.sku || 'različico'}`} checked={variantSelections.has(variant.id)} disabled={!isTableEditable} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} /></td>
+              {variantMatrixRows.map((row) => <td key={row.key} className={`px-2 py-2 ${row.key === 'dimensions' || row.key === 'shippingDimensions' ? 'min-w-[272px]' : row.key === 'label' || row.key === 'sku' || row.key.startsWith('option:') ? 'min-w-[160px]' : 'min-w-[100px]'}`}>{renderExpandedDimensionVariantCell(variant, row.key)}</td>)}
+            </tr>)}</tbody>
           </table>
           ) : draft.variants.length === 0 ? (
             <div className="border-b border-slate-200 px-4 py-10 text-center">
@@ -6812,8 +6572,8 @@ export default function AdminItemEditorPage({
                     </div>
                     {draft.variants.map((variant) => {
                       const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
-                      const variantDisplayName = buildDimensionVariantHeaderLabel(variant, variantIndex);
-                      const variantHoverName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+                      const variantDisplayName = buildSalesVariantHeaderLabel(variant, variantIndex);
+                      const variantHoverName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
                       const isExpanded = expandedDimensionVariant?.id === variant.id;
                       const isHovered = hoveredDimensionVariantId === variant.id;
                       const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
@@ -7029,7 +6789,7 @@ export default function AdminItemEditorPage({
                 <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
                   {draggedDimensionVariant ? (
                     <div className="rounded-md border border-[color:var(--blue-500)] bg-white px-3 py-2 text-[11px] font-semibold text-slate-800 shadow-lg">
-                      {buildDimensionVariantHeaderLabel(
+                      {buildSalesVariantHeaderLabel(
                         draggedDimensionVariant,
                         Math.max(0, draft.variants.findIndex((variant) => variant.id === draggedDimensionVariant.id))
                       )}
@@ -7037,13 +6797,13 @@ export default function AdminItemEditorPage({
                   ) : null}
                 </DragOverlay>
               </DndContext>
-              {DIMENSION_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {
+              {variantMatrixRows.map((row, rowIndex) => {
                 const alternatingClassName = rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/45';
                 const bulkApplyRowKey = isDimensionVariantBulkApplyRow(row.key)
                   ? row.key
                   : null;
                 const bulkApplySourceName = expandedDimensionVariant
-                  ? buildDimensionVariantHeaderLabel(
+                  ? buildSalesVariantHeaderLabel(
                       expandedDimensionVariant,
                       Math.max(
                         0,
@@ -7101,7 +6861,7 @@ export default function AdminItemEditorPage({
                           >
                             <ApplyToAllIcon className="!h-3.5 !w-3.5" />
                           </button>
-                          {bulkApplyRowKey === 'weight' ? (
+                          {bulkApplyRowKey === 'weight' && isDimensionBasedMode ? (
                             <button
                               type="button"
                               className={dimensionVariantRowActionButtonClassName}
@@ -7127,7 +6887,7 @@ export default function AdminItemEditorPage({
                     </div>
                     {draft.variants.map((variant) => {
                       const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
-                      const variantName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+                      const variantName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
                       const isExpanded = expandedDimensionVariant?.id === variant.id;
                       const isHovered = hoveredDimensionVariantId === variant.id;
                       const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
@@ -7188,7 +6948,7 @@ export default function AdminItemEditorPage({
           <p className="border-t border-slate-200 px-3 py-2 text-[11px] leading-4 text-slate-500">
             Neto cene so uredljive. Cene z DDV se izračunajo iz nastavljene stopnje DDV.
           </p>
-          <QuantityDiscountsCard
+          {productType !== 'unique_machine' ? <QuantityDiscountsCard
             editable={isEditable}
             quantityDiscounts={quantityDiscounts}
             onAddDiscount={addQuantityDiscount}
@@ -7197,51 +6957,25 @@ export default function AdminItemEditorPage({
             simulatorOptions={simulatorOptions}
             usesScopedCommercialTools
             embedded
-          />
+          /> : null}
         </div>
+      {productType === 'unique_machine' ? <UniqueMachineProductModule hideCommercialFields editable={isEditable} data={machineProductData} orderMatches={initialData?.machineSerialOrderMatches ?? []} onRequestEdit={handleEditModeToggle} onChange={updateMachineProductData} /> : productType === 'simple' ? <SimpleProductModule hideCommercialFields editable={isEditable} data={simpleProductData} costNet={draft.variants[0]?.costNet ?? null} onCostNetChange={(costNet) => { if (draft.variants[0]) updateVariant(draft.variants[0].id, { costNet }); }} taxRate={dimensionVariantTaxRate} onChange={updateSimpleProductData} /> : null}
       </section>
-      ) : productType === 'weight' ? (
+      ) : (
         <WeightProductModule
           editable={isEditable}
           data={weightProductData}
+          variantOptionsToolbar={variantOptionsToolbar}
+          renderVariantOptions={(variantId) => {
+            const variant = draft.variants.find((entry) => entry.id === variantId);
+            return variant ? <div className="space-y-2">{draft.optionAxes.map((axis) => <label key={axis.id} className="block"><span className="mb-1 block text-[10px] text-slate-500">{axis.name}</span>{renderVariantOptionField(variant, axis.id)}</label>)}</div> : null;
+          }}
           baseSku={sideSettings.sku || draft.variants[0]?.sku || 'SKU'}
           color={sideSettings.color}
           taxRate={dimensionVariantTaxRate}
           defaultVariantId={weightLocalDefaultVariantId}
           onDefaultVariantChange={selectDefaultWeightVariant}
           onChange={updateWeightProductData}
-          quantityDiscountsPanel={(
-            <QuantityDiscountsCard
-              editable={isEditable}
-              quantityDiscounts={quantityDiscounts}
-              onAddDiscount={addQuantityDiscount}
-              onRemoveDiscount={removeQuantityDiscount}
-              onUpdateDiscount={updateQuantityDiscount}
-              simulatorOptions={simulatorOptions}
-              usesScopedCommercialTools
-              embedded
-            />
-          )}
-        />
-      ) : productType === 'unique_machine' ? (
-        <UniqueMachineProductModule
-          editable={isEditable}
-          data={machineProductData}
-          orderMatches={initialData?.machineSerialOrderMatches ?? []}
-          onRequestEdit={handleEditModeToggle}
-          onChange={updateMachineProductData}
-        />
-      ) : (
-        <SimpleProductModule
-          editable={isEditable}
-          data={simpleProductData}
-          costNet={draft.variants[0]?.costNet ?? null}
-          taxRate={dimensionVariantTaxRate}
-          onCostNetChange={(costNet) => {
-            const simpleVariant = draft.variants[0];
-            if (simpleVariant) updateVariant(simpleVariant.id, { costNet });
-          }}
-          onChange={updateSimpleProductData}
           quantityDiscountsPanel={(
             <QuantityDiscountsCard
               editable={isEditable}
@@ -7321,14 +7055,14 @@ export default function AdminItemEditorPage({
       >
         <div className="mt-3 space-y-2 text-[13px] leading-5 text-slate-600">
           <p>
-            Artikel ima neshranjene spremembe. Ali ste popolnoma prepričani, da želite spremeniti tip artikla?
+            Artikel ima neshranjene spremembe. Ob spremembi tipa se ohranijo vse različice in njihovi podatki.
           </p>
           <p>
             Sprememba iz <span className="font-semibold text-slate-800">{formatProductTypeLabel(productType)}</span> v{' '}
             <span className="font-semibold text-slate-800">
               {pendingProductTypeChange ? formatProductTypeLabel(pendingProductTypeChange) : ''}
             </span>{' '}
-            lahko vpliva na prikazane module, simulator in podatke, ki bodo shranjeni za artikel.
+            prilagodi prodajna orodja. Spremembe bodo shranjene ob potrditvi artikla.
           </p>
         </div>
       </Dialog>

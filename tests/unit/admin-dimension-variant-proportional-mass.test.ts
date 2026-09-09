@@ -170,7 +170,7 @@ test('the Masa row exposes an adjacent accessible product action using the expan
   assert.ok(handlerStart >= 0 && handlerEnd > handlerStart);
   const handlerSource = editorSource.slice(handlerStart, handlerEnd);
 
-  assert.match(editorSource, /bulkApplyRowKey === 'weight' \? \(/u);
+  assert.match(editorSource, /bulkApplyRowKey === 'weight' && isDimensionBasedMode \? \(/u);
   assert.match(editorSource, /data-testid="dimension-variant-proportional-mass"/u);
   assert.match(
     editorSource,

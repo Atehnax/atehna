@@ -21,6 +21,7 @@ export {
   cloneTypeSpecificData,
   createInitialQuantityDiscountDrafts,
   createInitialTypeSpecificData,
+  createWeightProductDataFromVariants,
   createQuantityDiscountDraft,
   getMachineSimulatorOptions,
   getSimpleSimulatorOptions,

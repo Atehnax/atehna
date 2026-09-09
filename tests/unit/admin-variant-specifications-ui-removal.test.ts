@@ -107,7 +107,7 @@ test('dimension and weight variant matrices remain the canonical editing surface
   expect(editorSource).toContain("readDecimalInputValue(variant.id, 'length', variant.length)");
   expect(editorSource).toContain("readDecimalInputValue(variant.id, 'width', variant.width)");
   expect(editorSource).toContain("readDecimalInputValue(variant.id, 'thickness', variant.thickness)");
-  expect(editorSource).toContain('{DIMENSION_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {');
+  expect(editorSource).toContain('{variantMatrixRows.map((row, rowIndex) => {');
   expect(editorSource).toContain(
     'aria-label="Razli\u010dice artikla s polji v vrsticah"'
   );
@@ -143,7 +143,7 @@ test('dimension and weight variant matrices remain the canonical editing surface
     'function MachineEditableSpecRow({'
   );
   expect(sharedDimensionTriplet).toContain('grid-cols-3');
-  expect(weightEditorSource).toContain('{WEIGHT_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {');
+  expect(weightEditorSource).toContain('{weightVariantMatrixRows.map((row, rowIndex) => {');
   expect(weightEditorSource).toContain(
     'aria-label="Razli\u010dice artikla po masi s polji v vrsticah"'
   );

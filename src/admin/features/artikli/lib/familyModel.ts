@@ -21,6 +21,7 @@ type SeedItemTuple = [
 ];
 
 export type Variant = {
+  unit?: string | null;
   deliveryEstimate?: string | null;
   id: string;
   label: string;

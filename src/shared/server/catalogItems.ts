@@ -1868,6 +1868,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'id', civ.id,
               'variantName', civ.variant_name,
               'variantSku', civ.variant_sku,
+              'unit', civ.unit,
               'deliveryEstimateOverride', civ.content_override_json->>'deliveryEstimate',
               'length', civ.length,
               'width', civ.width,
@@ -1978,6 +1979,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
         id: asNumber(entry.id),
         variantName: String(entry.variantName ?? ''),
         variantSku: asStringOrNull(entry.variantSku),
+        unit: asStringOrNull(entry.unit) ?? asStringOrNull(row.unit),
         deliveryEstimate: resolveCatalogVariantDeliveryEstimate(productType, row.type_specific_data, {
           id: asNumber(entry.id),
           thickness: entry.thickness === null ? null : asNumber(entry.thickness),
@@ -3025,6 +3027,9 @@ async function assertPersistedCatalogOptionAssignmentsReady(
 }
 
 export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, options: { request?: Request; /** CLI imports have no Next request cache context. */ revalidate?: boolean } = {}): Promise<{ id: number; slug: string; updatedAt: string }> {
+  if (!Array.isArray(inputPayload.variants) || inputPayload.variants.length === 0) {
+    throw new CatalogItemValidationError('Artikel potrebuje najmanj eno različico.');
+  }
   const payload = normalizeCatalogEditorShippingPayload(inputPayload);
   const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
     payload.appearanceOverride

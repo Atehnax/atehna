@@ -44,7 +44,10 @@ export type SimpleProductData = {
   technicalSpecs: SpecRow[];
 };
 
-export type WeightVariant = {
+export type WeightVariant = Pick<Variant, 'optionValueIds' | 'optionSelections' | 'contentOverride' | 'imageOverride' | 'imageAssignments' | 'deliveryEstimate'> & {
+  label?: string;
+  physicalWeightKg?: number | null;
+  stockManagedPerVariant?: boolean;
   stockRevision?: string;
   pricingRevision?: string;
   id: string;
@@ -77,6 +80,7 @@ export type WeightFractionInventoryRow = {
 };
 
 export type WeightProductData = {
+  pricingBasis?: 'kg' | 'package';
   minQuantity: number;
   fraction: string;
   netMassKg: number;
@@ -144,6 +148,7 @@ export type PricingSimulatorOption = CatalogSimulatorOption & {
   weightFractionColorLabel?: string;
   weightSelectionLabel?: string;
   weightNetMassKg?: number;
+  weightPricingBasis?: 'kg' | 'package';
 };
 
 export type ProductTypeSelectorCardRowProps = {
@@ -203,12 +208,15 @@ export type ProductModuleProps = {
 };
 
 export type SimpleProductModuleProps = ProductModuleProps & {
+  hideCommercialFields?: boolean;
   costNet: number | null;
   taxRate: number;
   onCostNetChange: (nextCostNet: number | null) => void;
 };
 
 export type WeightProductModuleProps = ProductModuleProps & {
+  variantOptionsToolbar?: ReactNode;
+  renderVariantOptions?: (variantId: string) => ReactNode;
   baseSku: string;
   color?: string | null;
   taxRate: number;
@@ -217,6 +225,7 @@ export type WeightProductModuleProps = ProductModuleProps & {
 };
 
 export type UniqueMachineProductModuleProps = {
+  hideCommercialFields?: boolean;
   editable: boolean;
   data: TypeSpecificProductData;
   orderMatches?: OrderItemSkuAllocationRow[];

@@ -1,305 +1,122 @@
 'use client';
 
-import type {
-  ProductOptionAxisDraft,
-  ProductOptionValueDraft,
-  Variant
-} from '@/admin/features/artikli/lib/familyModel';
+import { useState } from 'react';
 import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
+import type { ProductOptionAxisDraft, Variant } from '@/admin/features/artikli/lib/familyModel';
 
-type Props = {
-  editable: boolean;
-  axes: ProductOptionAxisDraft[];
-  variants: Variant[];
-  onAxesChange: (axes: ProductOptionAxisDraft[]) => void;
-  onVariantChange: (variantId: string, updates: Partial<Variant>) => void;
-};
+export function optionSlug(value: string) {
+  return value.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
 
-function createLocalId(prefix: string) {
+function localId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+function uniqueSlug(label: string, used: string[]) {
+  const base = optionSlug(label) || 'vrednost';
+  let slug = base;
+  let index = 2;
+  while (used.includes(slug)) slug = `${base}-${index++}`;
+  return slug;
 }
 
-const inputClass =
-  'h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none transition focus:border-[color:var(--blue-500)] disabled:bg-slate-50 disabled:text-slate-500';
-const smallButtonClass =
-  'inline-flex h-8 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50';
-
-export default function ProductVariantOptionsCard({
-  editable,
-  axes,
-  variants,
-  onAxesChange,
-  onVariantChange
-}: Props) {
-  const updateAxis = (axisId: string, updates: Partial<ProductOptionAxisDraft>) => {
-    onAxesChange(axes.map((axis) => (axis.id === axisId ? { ...axis, ...updates } : axis)));
+/** Entering a row value reuses existing values and never changes other variants. */
+export function applyVariantOptionValue(
+  axes: ProductOptionAxisDraft[], variants: Variant[], axisId: string, variantId: string, input: string
+): { axes: ProductOptionAxisDraft[]; variants: Variant[] } {
+  const axis = axes.find((entry) => entry.id === axisId);
+  if (!axis || !variants.some((variant) => variant.id === variantId)) return { axes, variants };
+  const text = input.trim();
+  const existing = axis.values.find((entry) => entry.value.toLocaleLowerCase('sl') === text.toLocaleLowerCase('sl'));
+  const value = text ? existing ?? {
+    id: localId('value'), value: text,
+    slug: uniqueSlug(text, axis.values.map((entry) => entry.slug)),
+    swatch: null, position: axis.values.length
+  } : null;
+  return {
+    axes: value && !existing ? axes.map((entry) => entry.id === axisId ? { ...entry, values: [...entry.values, value] } : entry) : axes,
+    variants: variants.map((variant) => {
+      if (variant.id !== variantId) return variant;
+      const optionSelections = { ...variant.optionSelections };
+      if (value) optionSelections[axisId] = value.id;
+      else delete optionSelections[axisId];
+      return { ...variant, optionSelections };
+    })
   };
+}
 
-  const addAxis = () => {
-    const axisId = createLocalId('axis');
-    onAxesChange([
-      ...axes,
-      {
-        id: axisId,
-        name: '',
-        slug: '',
-        position: axes.length,
-        values: []
-      }
-    ]);
+const fieldClass = 'h-[30px] min-w-0 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-[color:var(--blue-500)] disabled:bg-slate-50 disabled:text-slate-500';
+const buttonClass = 'inline-flex h-[30px] shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+
+type ToolbarProps = {
+  editable: boolean;
+  axes: ProductOptionAxisDraft[];
+  onAxesChange: (axes: ProductOptionAxisDraft[]) => void;
+};
+
+/** Compact table toolbar; attribute values are edited in the variant rows. */
+export default function ProductVariantOptionsCard({ editable, axes, onAxesChange }: ToolbarProps) {
+  const [name, setName] = useState('');
+  const [editing, setEditing] = useState(false);
+  const add = () => {
+    const label = name.trim();
+    if (!label || axes.some((axis) => axis.name.toLocaleLowerCase('sl') === label.toLocaleLowerCase('sl'))) return;
+    onAxesChange([...axes, { id: localId('axis'), name: label, slug: uniqueSlug(label, axes.map((axis) => axis.slug)), position: axes.length, values: [] }]);
+    setName('');
   };
-
-  const removeAxis = (axisId: string) => {
-    onAxesChange(
-      axes
-        .filter((axis) => axis.id !== axisId)
-        .map((axis, index) => ({ ...axis, position: index }))
-    );
-  };
-
-  const addValue = (axis: ProductOptionAxisDraft) => {
-    const nextValue: ProductOptionValueDraft = {
-      id: createLocalId('value'),
-      value: '',
-      slug: '',
-      swatch: null,
-      position: axis.values.length
-    };
-    updateAxis(axis.id, { values: [...axis.values, nextValue] });
-  };
-
-  const updateValue = (
-    axis: ProductOptionAxisDraft,
-    valueId: string,
-    updates: Partial<ProductOptionValueDraft>
-  ) => {
-    updateAxis(axis.id, {
-      values: axis.values.map((value) => (value.id === valueId ? { ...value, ...updates } : value))
-    });
-  };
-
-  const removeValue = (axis: ProductOptionAxisDraft, valueId: string) => {
-    updateAxis(axis.id, {
-      values: axis.values
-        .filter((value) => value.id !== valueId)
-        .map((value, index) => ({ ...value, position: index }))
-    });
-  };
-
   return (
-    <section
-      className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/40"
-      aria-labelledby="variant-options-title"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
-        <div>
-          <h3 id="variant-options-title" className="text-xs font-semibold text-slate-900">
-            Izbirne lastnosti
-          </h3>
-          <p className="mt-1 text-[11px] leading-4 text-slate-500">
-            Neobvezne osi, kot sta barva ali napetost. Vrednosti različicam dodelite v razdelku pod definicijami.
-          </p>
-        </div>
-        <button type="button" className={smallButtonClass} disabled={!editable} onClick={addAxis}>
-          Dodaj lastnost
-        </button>
-      </div>
-
-      {axes.length > 0 ? (
-        <div className="space-y-3 border-t border-slate-200 p-4">
-          {axes.map((axis, axisIndex) => (
-            <div key={axis.id} className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <label>
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-600">Naziv lastnosti</span>
-                  <input
-                    className={inputClass}
-                    value={axis.name}
-                    disabled={!editable}
-                    placeholder="npr. Barva"
-                    onChange={(event) => {
-                      const name = event.target.value;
-                      const previousAutoSlug = slugify(axis.name);
-                      updateAxis(axis.id, {
-                        name,
-                        slug: !axis.slug || axis.slug === previousAutoSlug ? slugify(name) : axis.slug
-                      });
-                    }}
-                  />
-                </label>
-                <label>
-                  <span className="mb-1 block text-[11px] font-semibold text-slate-600">Ključ (slug)</span>
-                  <input
-                    className={inputClass}
-                    value={axis.slug}
-                    disabled={!editable}
-                    placeholder="barva"
-                    onChange={(event) => updateAxis(axis.id, { slug: slugify(event.target.value) })}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className={`${smallButtonClass} self-end border-rose-200 text-rose-700 hover:bg-rose-50`}
-                  disabled={!editable}
-                  onClick={() => removeAxis(axis.id)}
-                >
-                  Odstrani
-                </button>
-              </div>
-
-              <div className="mt-3 overflow-x-auto">
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-[11px] font-semibold text-slate-500">
-                      <th className="pb-1.5 pr-2">Vrednost</th>
-                      <th className="pb-1.5 pr-2">Ključ</th>
-                      <th className="pb-1.5 pr-2">Barvni vzorec (neobvezno)</th>
-                      <th className="w-20 pb-1.5 text-right">Dejanje</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {axis.values.map((value) => (
-                      <tr key={value.id}>
-                        <td className="py-1 pr-2">
-                          <input
-                            className={inputClass}
-                            value={value.value}
-                            disabled={!editable}
-                            placeholder="npr. Modra"
-                            onChange={(event) => {
-                              const nextValue = event.target.value;
-                              const previousAutoSlug = slugify(value.value);
-                              updateValue(axis, value.id, {
-                                value: nextValue,
-                                slug: !value.slug || value.slug === previousAutoSlug
-                                  ? slugify(nextValue)
-                                  : value.slug
-                              });
-                            }}
-                          />
-                        </td>
-                        <td className="py-1 pr-2">
-                          <input
-                            className={inputClass}
-                            value={value.slug}
-                            disabled={!editable}
-                            placeholder="modra"
-                            onChange={(event) => updateValue(axis, value.id, { slug: slugify(event.target.value) })}
-                          />
-                        </td>
-                        <td className="py-1 pr-2">
-                          <CompactHexColorField
-                            label={`Barvni vzorec za ${value.value || `vrednost ${axisIndex + 1}`}`}
-                            value={value.swatch ?? ''}
-                            marker={`product-option-${axis.id}-${value.id}`}
-                            tone="light"
-                            allowClear
-                            clearLabel="Brez"
-                            inheritedColor="#000000"
-                            disabled={!editable}
-                            onChange={(swatch) => updateValue(axis, value.id, { swatch: swatch || null })}
-                            inputAttributes={{
-                              'aria-label': `Barvni vzorec za ${value.value || `vrednost ${axisIndex + 1}`}`
-                            }}
-                            className="min-w-[15rem]"
-                          />
-                        </td>
-                        <td className="py-1 text-right">
-                          <button
-                            type="button"
-                            className="text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50"
-                            disabled={!editable}
-                            onClick={() => removeValue(axis, value.id)}
-                          >
-                            Izbriši
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <button
-                type="button"
-                className={`${smallButtonClass} mt-2`}
-                disabled={!editable}
-                onClick={() => addValue(axis)}
-              >
-                Dodaj vrednost
-              </button>
-            </div>
-          ))}
-          {variants.length > 0 ? (
-            <details className="rounded-lg border border-slate-200 bg-white">
-              <summary className="cursor-pointer select-none px-4 py-3 text-xs font-semibold text-slate-900">
-                Dodelitve različicam
-                <span className="ml-2 font-normal text-slate-500">
-                  ({variants.length} {variants.length === 1 ? 'različica' : 'različic'})
-                </span>
-              </summary>
-              <div className="space-y-2 border-t border-slate-200 p-3">
-                {variants.map((variant, variantIndex) => (
-                  <div
-                    key={variant.id}
-                    className="grid gap-2 rounded-md border border-slate-200 bg-slate-50/50 p-2 lg:grid-cols-[minmax(180px,0.7fr)_minmax(0,2fr)]"
-                  >
-                    <div className="min-w-0 self-center">
-                      <div
-                        className="truncate text-[11px] font-semibold text-slate-800"
-                        title={variant.label || variant.sku || `Različica ${variantIndex + 1}`}
-                      >
-                        {variant.label || variant.sku || `Različica ${variantIndex + 1}`}
-                      </div>
-                      {variant.sku && variant.sku !== variant.label ? (
-                        <div className="truncate text-[10px] text-slate-500" title={variant.sku}>
-                          {variant.sku}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {axes.map((axis) => (
-                        <label key={axis.id} className="min-w-0">
-                          <span className="mb-1 block truncate text-[10px] font-semibold text-slate-500" title={axis.name || 'Izbirna lastnost'}>
-                            {axis.name || 'Izbirna lastnost'}
-                          </span>
-                          <select
-                            className={inputClass}
-                            value={variant.optionSelections?.[axis.id] ?? ''}
-                            disabled={!editable}
-                            aria-label={`${axis.name || 'Izbirna lastnost'} za ${variant.label || variant.sku || `različico ${variantIndex + 1}`}`}
-                            onChange={(event) => {
-                              const optionSelections = { ...(variant.optionSelections ?? {}) };
-                              if (event.target.value) optionSelections[axis.id] = event.target.value;
-                              else delete optionSelections[axis.id];
-                              onVariantChange(variant.id, { optionSelections });
-                            }}
-                          >
-                            <option value="">Ni izbrano</option>
-                            {axis.values.map((value) => (
-                              <option key={value.id} value={value.id}>
-                                {value.value || value.slug || 'Neimenovana vrednost'}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          ) : null}
+    <div className="flex min-w-0 flex-wrap items-center gap-2" aria-label="Lastnosti različic">
+      {editable ? <>
+        <input className={`${fieldClass} !w-36`} aria-label="Nova lastnost različic" value={name} placeholder="npr. Barva, Izvedba" onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add(); } }} />
+        <button type="button" className={buttonClass} disabled={!name.trim()} onClick={add}>Dodaj lastnost</button>
+        {axes.length > 0 ? <button type="button" className={buttonClass} aria-expanded={editing} onClick={() => setEditing((current) => !current)}>Uredi lastnosti</button> : null}
+      </> : null}
+      {editing && editable ? (
+        <div className="flex w-full flex-wrap gap-2">
+          {axes.map((axis) => <div key={axis.id} className="space-y-2 rounded-md border border-slate-200 p-2"><div className="flex items-center gap-1">
+            <input className={`${fieldClass} !w-36`} aria-label={`Naziv lastnosti ${axis.name}`} value={axis.name} onChange={(event) => onAxesChange(axes.map((entry) => entry.id === axis.id ? { ...entry, name: event.target.value } : entry))} />
+            <button type="button" className={`${buttonClass} text-rose-700`} aria-label={`Odstrani lastnost ${axis.name}`} onClick={() => onAxesChange(axes.filter((entry) => entry.id !== axis.id).map((entry, position) => ({ ...entry, position })))}>×</button>
+          </div>
+          {axis.values.length > 0 ? <details>
+            <summary className="cursor-pointer text-[11px] text-slate-600">Barvni vzorci (neobvezno)</summary>
+            <div className="mt-2 space-y-2">{axis.values.map((value) => <CompactHexColorField
+              key={value.id} label={value.value} value={value.swatch ?? ''}
+              marker={`product-option-${axis.id}-${value.id}`} tone="light" allowClear clearLabel="Brez" inheritedColor="#000000"
+              disabled={!editable}
+              onChange={(swatch) => onAxesChange(axes.map((entry) => entry.id === axis.id ? { ...entry, values: entry.values.map((option) => option.id === value.id ? { ...option, swatch: swatch || null } : option) } : entry))}
+              inputAttributes={{ 'aria-label': `Barvni vzorec za ${value.value}` }}
+            />)}</div>
+          </details> : null}
+          </div>)}
         </div>
       ) : null}
-    </section>
+    </div>
   );
+}
+
+type ValueProps = {
+  editable: boolean;
+  axis: ProductOptionAxisDraft;
+  variant: Variant;
+  onCommit: (value: string) => void;
+};
+
+export function VariantOptionValueField({ editable, axis, variant, onCommit }: ValueProps) {
+  const selected = axis.values.find((value) => value.id === variant.optionSelections?.[axis.id]);
+  const [value, setValue] = useState(selected?.value ?? '');
+  const listId = `variant-options-${variant.id}-${axis.id}`;
+  return <>
+    <input
+      className={fieldClass}
+      aria-label={`${axis.name} za ${variant.label || variant.sku || 'različico'}`}
+      disabled={!editable}
+      value={value}
+      placeholder="Vnesite vrednost"
+      list={listId}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => onCommit(value)}
+      onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }}
+    />
+    <datalist id={listId}>{axis.values.map((entry) => <option key={entry.id} value={entry.value} />)}</datalist>
+  </>;
 }

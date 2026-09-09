@@ -313,10 +313,10 @@ const ITEM_NOTE_BULK_OPTIONS = NOTE_TAG_OPTIONS;
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 'Neaktiven inactive Skrit hidden');
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
-  simple: 'Enostavni',
+  simple: 'Standardni',
   dimensions: 'Po dimenzijah',
   weight: 'Po masi',
-  unique_machine: 'Stroj / unikaten'
+  unique_machine: 'Stroj / oprema'
 };
 const PRODUCT_TYPE_FILTER_OPTIONS: Array<{ value: ProductTypeFilter; label: string }> = [
   { value: 'all', label: 'Vsi tipi artikla' },
@@ -325,7 +325,7 @@ const PRODUCT_TYPE_FILTER_OPTIONS: Array<{ value: ProductTypeFilter; label: stri
   { value: 'weight', label: PRODUCT_TYPE_LABELS.weight },
   { value: 'unique_machine', label: PRODUCT_TYPE_LABELS.unique_machine }
 ];
-const formatProductTypeLabel = (value: ProductType) => PRODUCT_TYPE_LABELS[value] ?? 'Enostavni';
+const formatProductTypeLabel = (value: ProductType) => PRODUCT_TYPE_LABELS[value] ?? 'Standardni';
 const familySearchValue = (family: ListFamily) =>
   [
     family.name,
@@ -455,6 +455,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
         badge: variant.badge,
         position: variant.position,
         sku: variant.variantSku ?? '',
+        unit: variant.unit ?? item.unit ?? 'kos',
         price: variant.price,
         costNet: variant.costNet,
         stockRevision: variant.stockRevision,
@@ -824,7 +825,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const getListVisibleVariants = useCallback(
     (family: ListFamily) => {
       const variants = family.variants.filter((variant) => !deletedVariantIds.has(variant.id));
-      if (family.productType === 'simple' || family.productType === 'unique_machine') return variants.slice(0, 1);
       return variants;
     },
     [deletedVariantIds]
@@ -974,7 +974,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, page, pageSize]);
   const expandableFamilyIdsOnPage = useMemo(() => pagedFamilies
-    .filter(({ family, visibleVariants }) => (family.productType === 'dimensions' || family.productType === 'weight') && visibleVariants.length > 1)
+    .filter(({ visibleVariants }) => visibleVariants.length > 1)
     .map(({ family }) => family.id), [pagedFamilies]);
   const allPageVariantsExpanded = expandableFamilyIdsOnPage.length > 0
     && expandableFamilyIdsOnPage.every((familyId) => expandedFamilyIds.has(familyId));
@@ -2332,7 +2332,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               {pagedFamilies.map((row) => {
                 const { family, visibleVariants, minPrice, maxPrice } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const hasSubtable = (family.productType === 'dimensions' || family.productType === 'weight') && visibleVariants.length > 1;
+                const hasSubtable = visibleVariants.length > 1;
                 const isEditingFamily = activeEditScope?.familyId === family.id;
                 const isEditingGroup = isEditingFamily && activeEditScope?.kind === 'group';
                 const isSingleSelectedFamily = singleSelectedFamilyId === family.id;

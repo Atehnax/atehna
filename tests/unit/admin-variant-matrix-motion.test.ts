@@ -185,7 +185,7 @@ test('expanded and compact variant cells do not switch conditional width utility
     sourceBetween(
       weightEditorSource,
       'aria-label="Razli\u010dice artikla po masi s polji v vrsticah"',
-      'Neto cene so uredljive.'
+      '{quantityDiscountsPanel}'
     )
   ];
 

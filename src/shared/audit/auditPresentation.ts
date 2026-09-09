@@ -90,8 +90,8 @@ const CUSTOMER_TYPE_FORM_LABELS = new Map(
 const PRODUCT_TYPE_LABELS = new Map<string, string>([
   ['dimensions', 'Po dimenzijah'],
   ['weight', 'Po masi'],
-  ['simple', 'Osnovni artikel'],
-  ['unique_machine', 'Stroj / unikaten']
+  ['simple', 'Standardni'],
+  ['unique_machine', 'Stroj / oprema']
 ]);
 
 const STATUS_LABELS: Record<string, Record<AuditEntityType | 'default', string>> = {

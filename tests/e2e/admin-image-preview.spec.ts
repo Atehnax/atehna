@@ -15,27 +15,34 @@ async function readItem(request: APIRequestContext, slug: string) {
   return response.json() as Promise<CatalogItemEditorHydration>;
 }
 
-const test = base.extend<{ imageItem: CatalogItemEditorHydration; externalImageUrl: string | null }>({
+const DIMENSION_COLORS = ['belo', 'prozorno', 'rdeče', 'modro', 'črno', 'zeleno'];
+const dimensionWidth = (index: number) => index < 2 ? 200 : 200 + index * 10;
+type ImageVariantsMode = 'basic' | 'standard' | 'dimensions';
+const test = base.extend<{ imageItem: CatalogItemEditorHydration; externalImageUrl: string | null; imageVariantsMode: ImageVariantsMode }>({
   externalImageUrl: [null, { option: true }],
-  imageItem: async ({ request, externalImageUrl }, runFixture) => {
+  imageVariantsMode: ['basic', { option: true }],
+  imageItem: async ({ request, externalImageUrl, imageVariantsMode }, runFixture) => {
     await assertAuthenticatedAdmin(request);
     const seed = await readItem(request, 'aluminijasta-plosca');
     const suffix = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
     const slug = 'e2e-predogled-slik-' + suffix;
     const payload: CatalogItemEditorPayload = {
       itemName: 'Preizkus predogleda slik ' + suffix, slug, sku: 'E2E-IMG-' + suffix,
-      itemType: 'unit', productType: 'simple', status: 'inactive', categoryPath: seed.categoryPath,
-      unit: 'kos', taxRate: 0.22, optionAxes: [], quantityDiscounts: [],
+      itemType: imageVariantsMode === 'dimensions' ? 'sheet' : 'unit', productType: imageVariantsMode === 'dimensions' ? 'dimensions' : 'simple', status: 'inactive', categoryPath: seed.categoryPath,
+      unit: 'kos', taxRate: 0.22, optionAxes: imageVariantsMode === 'dimensions' ? [{ name: 'Barva', slug: 'barva', values: DIMENSION_COLORS.map((value, index) => ({ value, slug: 'barva-' + index })) }] : [], quantityDiscounts: [],
       media: IMAGE_PATHS.map((blobUrl, index) => ({
         mediaKind: 'image', role: 'gallery', sourceKind: 'upload',
         ...(index === 0 && externalImageUrl ? { externalUrl: externalImageUrl } : { blobUrl }),
         filename: blobUrl.split('/').at(-1), mimeType: 'image/png', altText: IMAGE_ALTS[index],
         imageDimensions: { width: 1024, height: 1024 }, imageType: 'product', hidden: false, position: index
       })),
-      variants: [{
-        variantName: 'Osnovna', variantSku: 'E2E-IMG-V-' + suffix, price: 3, inventory: 0,
-        status: 'inactive', unit: 'kos', imageAssignments: [0, 1]
-      }]
+      variants: Array.from({ length: imageVariantsMode === 'basic' ? 1 : 6 }, (_, index) => ({
+        variantName: imageVariantsMode === 'basic' ? 'Osnovna' : imageVariantsMode === 'dimensions' ? '0,5 × 300 × ' + dimensionWidth(index) + ' mm, ' + DIMENSION_COLORS[index] : 'Komplet za natančno rezanje z dolgim opisnim nazivom ' + (index + 1),
+        variantSku: 'E2E-IMG-V-' + suffix + '-' + index, price: 3, inventory: 0,
+        status: 'inactive', unit: 'kos', imageAssignments: [0, 1], position: index,
+        ...(imageVariantsMode !== 'basic' ? { thickness: 0.5, length: 300, width: imageVariantsMode === 'dimensions' ? dimensionWidth(index) : 200 + index * 10 } : {}),
+        ...(imageVariantsMode === 'dimensions' ? { optionSelections: { barva: 'barva-' + index } } : {})
+      }))
     };
     const response = await request.post('/api/admin/artikli', { headers: { origin: E2E_BASE_URL }, data: payload });
     expect(response.status(), await response.text()).toBe(200);
@@ -206,3 +213,60 @@ test.describe('external supplier images', () => {
     expect(await readItem(request, imageItem.slug)).toEqual(imageItem);
   });
 });
+
+for (const imageVariantsMode of ['standard', 'dimensions'] as const) {
+  test.describe(imageVariantsMode + ' image metadata layout', () => {
+    test.use({ imageVariantsMode });
+
+    test('image names stay concise, pixels stay on one line, and assignment tags remain inside their cell', async ({ page, request, imageItem }, testInfo) => {
+      await page.setViewportSize({ width: 1500, height: 1000 });
+      await page.goto('/admin/artikli/' + imageItem.slug);
+      const table = page.getByRole('table', { name: 'Podatki o slikah', exact: true });
+      const rows = table.locator('tbody > tr');
+      await expect(rows).toHaveCount(2);
+      const first = rows.first();
+      const assignmentCell = first.getByRole('cell').nth(3);
+      const labels = imageItem.variants.map((variant, index) => imageVariantsMode === 'dimensions'
+        ? '0,5 × 300 × ' + dimensionWidth(index) + ' mm' : variant.variantName);
+      await expect(first.getByRole('cell').nth(0)).toHaveText('Glavna slika');
+      await expect(rows.nth(1).getByRole('cell').nth(0)).toHaveText('Slika 2');
+      for (const label of new Set(labels)) await expect(assignmentCell.locator('span[title]').filter({ hasText: label })).toHaveCount(labels.filter(value => value === label).length);
+      for (const [index, variant] of imageItem.variants.entries()) await expect(assignmentCell.locator('span[title]').nth(index)).toHaveAttribute('title', variant.variantName);
+      for (const variant of imageItem.variants) await expect(assignmentCell).not.toContainText(variant.variantSku!);
+      if (imageVariantsMode === 'standard') await expect(assignmentCell).not.toContainText('300');
+      await expect(first.getByRole('cell').nth(2)).toHaveText('1024 × 1024 px');
+
+      for (const width of [1500, 1100]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await expect.poll(() => table.evaluate(element => {
+          const header = element.querySelectorAll('th');
+          const pixelCells = [...element.querySelectorAll('tbody tr')].map(row => row.children[2] as HTMLElement);
+          const tags = [...element.querySelectorAll('tbody td:nth-child(4) span[title]')];
+          const frame = element.parentElement!.getBoundingClientRect();
+          const tableBox = element.getBoundingClientRect();
+          const tableFitsFrame = tableBox.width <= frame.width + 1;
+          const tagsContained = tags.every(tag => {
+            const box = tag.getBoundingClientRect();
+            const cell = tag.closest('td')!.getBoundingClientRect();
+            return box.left >= cell.left && box.right <= cell.right && box.left >= frame.left && box.right <= frame.right;
+          });
+          const pixelsFit = pixelCells.every(cell => getComputedStyle(cell).whiteSpace === 'nowrap' && cell.scrollWidth <= cell.clientWidth);
+          return { tableFitsFrame, tagsContained, pixelsFit, dimensionsWider: header[2].getBoundingClientRect().width > header[0].getBoundingClientRect().width };
+        })).toEqual({ tableFitsFrame: true, tagsContained: true, pixelsFit: true, dimensionsWider: true });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      }
+      await page.screenshot({ path: testInfo.outputPath('image-metadata-' + imageVariantsMode + '.png'), fullPage: true });
+
+      await page.getByRole('button', { name: 'Uredi artikel', exact: true }).first().click();
+      const removedVariants = imageItem.variants.slice(0, imageVariantsMode === 'dimensions' ? 2 : 1);
+      for (const variant of removedVariants) await assignmentCell.getByRole('button', { name: 'Odstrani povezavo slike z različico ' + variant.variantName, exact: true }).click();
+      await expect(assignmentCell.locator('span[title]')).toHaveCount(labels.length - removedVariants.length);
+      const select = assignmentCell.getByRole('combobox', { name: 'Poveži glavna slika z različico', exact: true });
+      // Same-sized color variants keep dimension-only tags but distinct descriptions in selection controls.
+      for (const variant of removedVariants) await expect(select.getByRole('option', { name: variant.variantName, exact: true })).toHaveCount(1);
+      for (const variant of removedVariants) await select.selectOption({ label: variant.variantName });
+      await expect(assignmentCell.locator('span[title]')).toHaveCount(labels.length);
+      expect(await readItem(request, imageItem.slug)).toEqual(imageItem);
+    });
+  });
+}

@@ -81,7 +81,8 @@
             "dimenzije": "300-200"
           },
           "imageAssignments": [
-            3
+            0,
+            1
           ]
         },
         {
@@ -107,7 +108,8 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
-            2
+            0,
+            1
           ]
         },
         {
@@ -133,7 +135,8 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
-            2
+            0,
+            1
           ]
         },
         {
@@ -159,11 +162,44 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
-            2
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "aluminijasta-plosca-real-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Aluminijasta pločevina debeline 0,5 mm – pogled na plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "aluminijasta-plosca-real-v-roki.jpg",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-v-roki.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Detajl aluminijaste pločevine debeline 0,5 mm v roki",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 2000,
+            "height": 2000
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -177,8 +213,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -193,8 +229,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -209,8 +245,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -225,8 +261,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 5
         }
       ],
       "position": 0
@@ -338,6 +374,7 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -364,6 +401,7 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -390,11 +428,44 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
+            0,
             1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "bakrena-plosca-real-na-podlagi.jpg",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-na-podlagi.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Detajl bakrene pločevine debeline 0,5 mm na podlagi za rezanje",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 900,
+            "height": 837
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "bakrena-plosca-real-povrsina.png",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-povrsina.png",
+          "mimeType": "image/png",
+          "altText": "Detajl površine in roba bakrene pločevine debeline 0,5 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1920,
+            "height": 2400
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -408,8 +479,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -424,8 +495,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 1
@@ -510,6 +581,7 @@
             "dimenzije": "300-200"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -536,7 +608,8 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -562,7 +635,8 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -588,11 +662,44 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pocinkana-plocevina-real-rob.webp",
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-rob.webp",
+          "mimeType": "image/webp",
+          "altText": "Pocinkana pločevina debeline 0,5 mm – fotografija površine in roba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pocinkana-plocevina-real-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Pocinkana pločevina – primer materiala v plošči",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 768,
+            "height": 768
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -606,8 +713,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -622,8 +729,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 2
@@ -708,6 +815,7 @@
             "dimenzije": "300-200"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -734,7 +842,8 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -760,7 +869,8 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -786,11 +896,44 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "medeninasta-plosca-real-rob.webp",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-rob.webp",
+          "mimeType": "image/webp",
+          "altText": "Medeninasta pločevina – fotografija površine in roba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "medeninasta-plosca-real-povrsina.jpg",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-povrsina.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Medeninasta pločevina – detajl naravne površine",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1152,
+            "height": 784
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -804,8 +947,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -820,8 +963,8 @@
             "width": 1024,
             "height": 1024
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 3
@@ -903,7 +1046,8 @@
             "izvedba": "13001"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -931,7 +1075,8 @@
             "izvedba": "13002"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -959,7 +1104,8 @@
             "izvedba": "13003"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -987,11 +1133,44 @@
             "izvedba": "13004"
           },
           "imageAssignments": [
+            0,
             1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "penjeni-pvc-komateks-real-rob-materiala.jpg",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Penjeni PVC – fotografija belega materiala in roba plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 671,
+            "height": 574
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "penjeni-pvc-komateks.png",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
+          "mimeType": "image/png",
+          "altText": "Penjeni PVC – dobaviteljeva fotografija belih plošč",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 312,
+            "height": 312
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1005,8 +1184,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -1021,24 +1200,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "penjeni-pvc-komateks.png",
-          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
-          "mimeType": "image/png",
-          "altText": "Penjeni PVC (komateks)",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 312,
-            "height": 312
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 4,
@@ -1143,8 +1306,7 @@
             "izvedba": "13102"
           },
           "imageAssignments": [
-            1,
-            4
+            0
           ]
         },
         {
@@ -1173,8 +1335,7 @@
             "izvedba": "13104"
           },
           "imageAssignments": [
-            2,
-            4
+            2
           ]
         },
         {
@@ -1203,8 +1364,7 @@
             "izvedba": "13105"
           },
           "imageAssignments": [
-            0,
-            4
+            1
           ]
         },
         {
@@ -1233,8 +1393,7 @@
             "izvedba": "13101"
           },
           "imageAssignments": [
-            1,
-            4
+            0
           ]
         },
         {
@@ -1262,8 +1421,7 @@
             "izvedba": "13106"
           },
           "imageAssignments": [
-            3,
-            4
+            2
           ]
         },
         {
@@ -1292,8 +1450,7 @@
             "izvedba": "13107"
           },
           "imageAssignments": [
-            0,
-            4
+            1
           ]
         },
         {
@@ -1321,12 +1478,59 @@
             "izvedba": "13103"
           },
           "imageAssignments": [
-            3,
-            4
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-steklo-real-beli-akril.webp",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-beli-akril.webp",
+          "mimeType": "image/webp",
+          "altText": "Belo pleksi steklo – fotografija akrilnih plošč",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-steklo.jpg",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Prozorno pleksi steklo – fotografija prozorne akrilne plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 800,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-steklo-real-barvni-vzorci.jpg",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-barvni-vzorci.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Pleksi steklo – fotografija izbora barvnih akrilnih vzorcev",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1340,8 +1544,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -1356,8 +1560,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -1372,8 +1576,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -1388,24 +1592,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 3
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "pleksi-steklo.jpg",
-          "blobUrl": "/images/catalog/2026-09/pleksi-steklo.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Pleksi steklo – predstavitvena prozorna plošča",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 800,
-            "height": 600
-          },
-          "hidden": false,
-          "position": 4
+          "hidden": true,
+          "position": 6
         }
       ],
       "position": 5,
@@ -1497,7 +1685,8 @@
             "izvedba": "13400"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -1525,7 +1714,8 @@
             "izvedba": "13402"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -1553,7 +1743,8 @@
             "izvedba": "13401"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
@@ -1590,6 +1781,38 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "stiropor-real-eps-plosce.webp",
+          "blobUrl": "/images/catalog/2026-09/stiropor-real-eps-plosce.webp",
+          "mimeType": "image/webp",
+          "altText": "Stiropor – fotografija belih EPS plošč",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "stiropor.png",
+          "blobUrl": "/images/catalog/2026-09/stiropor.png",
+          "mimeType": "image/png",
+          "altText": "Stiropor – dobaviteljev posnetek strukture EPS",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 625,
+            "height": 625
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "stiropor-10mm-studio.png",
           "blobUrl": "/images/catalog/2026-09/stiropor-10mm-studio.png",
           "mimeType": "image/png",
@@ -1599,8 +1822,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -1615,24 +1838,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "stiropor.png",
-          "blobUrl": "/images/catalog/2026-09/stiropor.png",
-          "mimeType": "image/png",
-          "altText": "Stiropor",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 625,
-            "height": 625
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 6,
@@ -1720,8 +1927,7 @@
             "izvedba": "14051"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -1748,8 +1954,7 @@
             "izvedba": "14053"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -1776,8 +1981,7 @@
             "izvedba": "14052"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -1804,12 +2008,43 @@
             "izvedba": "14055"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "seleshamer-real-beli-formati.jpg",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Bel šeleshamer 200 g – fotografija različnih formatov",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1427,
+            "height": 925
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-ustvarjanje-v-razredu.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1823,8 +2058,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -1839,8 +2074,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -1856,7 +2091,7 @@
             "height": 1080
           },
           "hidden": true,
-          "position": 2
+          "position": 4
         }
       ],
       "position": 7,
@@ -2058,8 +2293,7 @@
             "barva": "14329"
           },
           "imageAssignments": [
-            0,
-            26
+            0
           ]
         },
         {
@@ -2085,8 +2319,7 @@
             "barva": "14326"
           },
           "imageAssignments": [
-            1,
-            26
+            1
           ]
         },
         {
@@ -2112,8 +2345,7 @@
             "barva": "14325"
           },
           "imageAssignments": [
-            2,
-            26
+            2
           ]
         },
         {
@@ -2139,8 +2371,7 @@
             "barva": "14324"
           },
           "imageAssignments": [
-            3,
-            26
+            3
           ]
         },
         {
@@ -2166,8 +2397,7 @@
             "barva": "14323"
           },
           "imageAssignments": [
-            4,
-            26
+            4
           ]
         },
         {
@@ -2193,8 +2423,7 @@
             "barva": "14322"
           },
           "imageAssignments": [
-            5,
-            26
+            5
           ]
         },
         {
@@ -2220,8 +2449,7 @@
             "barva": "14328"
           },
           "imageAssignments": [
-            6,
-            26
+            6
           ]
         },
         {
@@ -2247,8 +2475,7 @@
             "barva": "14327"
           },
           "imageAssignments": [
-            7,
-            26
+            7
           ]
         },
         {
@@ -2274,8 +2501,7 @@
             "barva": "14321"
           },
           "imageAssignments": [
-            8,
-            26
+            8
           ]
         },
         {
@@ -2301,8 +2527,7 @@
             "barva": "14320"
           },
           "imageAssignments": [
-            9,
-            26
+            9
           ]
         },
         {
@@ -2328,8 +2553,7 @@
             "barva": "14319"
           },
           "imageAssignments": [
-            10,
-            26
+            10
           ]
         },
         {
@@ -2355,8 +2579,7 @@
             "barva": "14318"
           },
           "imageAssignments": [
-            11,
-            26
+            11
           ]
         },
         {
@@ -2382,8 +2605,7 @@
             "barva": "14317"
           },
           "imageAssignments": [
-            12,
-            26
+            12
           ]
         },
         {
@@ -2409,8 +2631,7 @@
             "barva": "14316"
           },
           "imageAssignments": [
-            13,
-            26
+            13
           ]
         },
         {
@@ -2436,8 +2657,7 @@
             "barva": "14314"
           },
           "imageAssignments": [
-            14,
-            26
+            14
           ]
         },
         {
@@ -2463,8 +2683,7 @@
             "barva": "14313"
           },
           "imageAssignments": [
-            15,
-            26
+            15
           ]
         },
         {
@@ -2490,8 +2709,7 @@
             "barva": "14312"
           },
           "imageAssignments": [
-            16,
-            26
+            16
           ]
         },
         {
@@ -2517,8 +2735,7 @@
             "barva": "14311"
           },
           "imageAssignments": [
-            16,
-            26
+            17
           ]
         },
         {
@@ -2544,8 +2761,7 @@
             "barva": "14310"
           },
           "imageAssignments": [
-            17,
-            26
+            18
           ]
         },
         {
@@ -2571,8 +2787,7 @@
             "barva": "14308"
           },
           "imageAssignments": [
-            18,
-            26
+            19
           ]
         },
         {
@@ -2598,8 +2813,7 @@
             "barva": "14307"
           },
           "imageAssignments": [
-            19,
-            26
+            20
           ]
         },
         {
@@ -2625,8 +2839,7 @@
             "barva": "14306"
           },
           "imageAssignments": [
-            20,
-            26
+            21
           ]
         },
         {
@@ -2652,8 +2865,7 @@
             "barva": "14305"
           },
           "imageAssignments": [
-            21,
-            26
+            22
           ]
         },
         {
@@ -2679,8 +2891,7 @@
             "barva": "14304"
           },
           "imageAssignments": [
-            22,
-            26
+            23
           ]
         },
         {
@@ -2706,8 +2917,7 @@
             "barva": "14303"
           },
           "imageAssignments": [
-            23,
-            26
+            24
           ]
         },
         {
@@ -2733,8 +2943,7 @@
             "barva": "14302"
           },
           "imageAssignments": [
-            24,
-            26
+            25
           ]
         },
         {
@@ -2760,12 +2969,459 @@
             "barva": "14301"
           },
           "imageAssignments": [
-            25,
             26
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-strukturno-bela.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-strukturno-bela.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – strukturno bela (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 481,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-svetlo-rjava.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-rjava.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – svetlo rjava (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 485,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-temno-rjava.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rjava.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – temno rjava (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-rjava.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rjava.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – rjava (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-lila.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-lila.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – lila (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 473,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 4
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-vijolicasta.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vijolicasta.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – vijoličasta (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 5
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-crna.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-crna.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – črna (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 472,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 6
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-siva.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-siva.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – siva (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 480,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 7
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-roza.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-roza.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – roza (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 500,
+            "height": 484
+          },
+          "hidden": false,
+          "position": 8
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-temno-lila.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-lila.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – temno lila (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 9
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-travno-zelena.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-travno-zelena.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – travno zelena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 10
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-temno-zelena.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-zelena.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – temno zelena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 478,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 11
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-zelena.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-zelena.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – zelena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 12
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-svetlo-zelena.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-zelena.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – svetlo zelena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 469,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 13
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-oranzna.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-oranzna.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – oranžna (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 14
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-modra.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-modra.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – modra (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 484,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 15
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-nebesno-modra.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-nebesno-modra.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – nebesno modra (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 490,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 16
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-kalifornijsko-modra.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-kalifornijsko-modra.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – kalifornijsko modra (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 494,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 17
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-svetlo-modra.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-modra.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – svetlo modra (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 18
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-temno-rdeca.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rdeca.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – temno rdeča (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 491,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 19
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-vinsko-rdeca.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vinsko-rdeca.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – vinsko rdeča (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 20
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-karmin-rdeca.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-karmin-rdeca.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – karmin rdeča (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 465,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 21
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-rdeca.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rdeca.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – rdeča (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 22
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-koruzno-rumena.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-koruzno-rumena.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – koruzno rumena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 23
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-marelicna.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-marelicna.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – marelična (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 496,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 24
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-intenzivno-rumena.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-intenzivno-rumena.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Barvni papir – intenzivno rumena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 477,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 25
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-rumena.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rumena.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir – rumena (izvirni dobaviteljev posnetek barve)",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 26
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-ustvarjanje-v-razredu.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "hidden": false,
+          "position": 27
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -2779,8 +3435,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 28
         },
         {
           "mediaKind": "image",
@@ -2795,8 +3451,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 29
         },
         {
           "mediaKind": "image",
@@ -2811,8 +3467,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 30
         },
         {
           "mediaKind": "image",
@@ -2827,8 +3483,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 31
         },
         {
           "mediaKind": "image",
@@ -2843,8 +3499,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 4
+          "hidden": true,
+          "position": 32
         },
         {
           "mediaKind": "image",
@@ -2859,8 +3515,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 5
+          "hidden": true,
+          "position": 33
         },
         {
           "mediaKind": "image",
@@ -2875,8 +3531,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 6
+          "hidden": true,
+          "position": 34
         },
         {
           "mediaKind": "image",
@@ -2891,8 +3547,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 7
+          "hidden": true,
+          "position": 35
         },
         {
           "mediaKind": "image",
@@ -2907,8 +3563,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 8
+          "hidden": true,
+          "position": 36
         },
         {
           "mediaKind": "image",
@@ -2923,8 +3579,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 9
+          "hidden": true,
+          "position": 37
         },
         {
           "mediaKind": "image",
@@ -2939,8 +3595,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 10
+          "hidden": true,
+          "position": 38
         },
         {
           "mediaKind": "image",
@@ -2955,8 +3611,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 11
+          "hidden": true,
+          "position": 39
         },
         {
           "mediaKind": "image",
@@ -2971,8 +3627,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 12
+          "hidden": true,
+          "position": 40
         },
         {
           "mediaKind": "image",
@@ -2987,8 +3643,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 13
+          "hidden": true,
+          "position": 41
         },
         {
           "mediaKind": "image",
@@ -3003,8 +3659,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 14
+          "hidden": true,
+          "position": 42
         },
         {
           "mediaKind": "image",
@@ -3019,8 +3675,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 15
+          "hidden": true,
+          "position": 43
         },
         {
           "mediaKind": "image",
@@ -3035,8 +3691,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 16
+          "hidden": true,
+          "position": 44
         },
         {
           "mediaKind": "image",
@@ -3051,8 +3707,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 17
+          "hidden": true,
+          "position": 45
         },
         {
           "mediaKind": "image",
@@ -3067,8 +3723,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 18
+          "hidden": true,
+          "position": 46
         },
         {
           "mediaKind": "image",
@@ -3083,8 +3739,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 19
+          "hidden": true,
+          "position": 47
         },
         {
           "mediaKind": "image",
@@ -3099,8 +3755,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 20
+          "hidden": true,
+          "position": 48
         },
         {
           "mediaKind": "image",
@@ -3115,8 +3771,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 21
+          "hidden": true,
+          "position": 49
         },
         {
           "mediaKind": "image",
@@ -3131,8 +3787,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 22
+          "hidden": true,
+          "position": 50
         },
         {
           "mediaKind": "image",
@@ -3147,8 +3803,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 23
+          "hidden": true,
+          "position": 51
         },
         {
           "mediaKind": "image",
@@ -3163,8 +3819,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 24
+          "hidden": true,
+          "position": 52
         },
         {
           "mediaKind": "image",
@@ -3179,24 +3835,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 25
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "barvni-papir-ustvarjanje-v-razredu.jpg",
-          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Primer ustvarjanja z barvnim papirjem pri pouku",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 6720,
-            "height": 4480
-          },
-          "hidden": false,
-          "position": 26
+          "hidden": true,
+          "position": 53
         },
         {
           "mediaKind": "image",
@@ -3212,7 +3852,7 @@
             "height": 300
           },
           "hidden": true,
-          "position": 27
+          "position": 54
         }
       ],
       "position": 8,
@@ -3287,9 +3927,7 @@
             "izvedba": "14031"
           },
           "imageAssignments": [
-            0,
-            1,
-            2
+            0
           ]
         },
         {
@@ -3316,13 +3954,43 @@
             "izvedba": "14030"
           },
           "imageAssignments": [
-            0,
-            1,
-            2
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "grafopak.jpg",
+          "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Grafopak – fotografija belo-sivega kartona",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2048,
+            "height": 1365
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "grafopak-real-primer-uporabe.jpg",
+          "blobUrl": "/images/catalog/2026-09/grafopak-real-primer-uporabe.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Grafopak – primer uporabe kartona za zloženo embalažo",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 450,
+            "height": 390
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -3336,8 +4004,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -3352,24 +4020,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "grafopak.jpg",
-          "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Grafopak – predstavitvena fotografija belega in sivega polkartona",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 2048,
-            "height": 1365
-          },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 9,
@@ -3534,8 +4186,7 @@
             "barva": "14421"
           },
           "imageAssignments": [
-            0,
-            20
+            0
           ]
         },
         {
@@ -3561,8 +4212,7 @@
             "barva": "14420"
           },
           "imageAssignments": [
-            1,
-            20
+            1
           ]
         },
         {
@@ -3588,8 +4238,7 @@
             "barva": "14418"
           },
           "imageAssignments": [
-            2,
-            20
+            0
           ]
         },
         {
@@ -3615,8 +4264,7 @@
             "barva": "14417"
           },
           "imageAssignments": [
-            3,
-            20
+            1
           ]
         },
         {
@@ -3642,8 +4290,7 @@
             "barva": "14416"
           },
           "imageAssignments": [
-            4,
-            20
+            0
           ]
         },
         {
@@ -3669,8 +4316,7 @@
             "barva": "14415"
           },
           "imageAssignments": [
-            5,
-            20
+            0
           ]
         },
         {
@@ -3696,8 +4342,7 @@
             "barva": "14414"
           },
           "imageAssignments": [
-            6,
-            20
+            0
           ]
         },
         {
@@ -3723,8 +4368,7 @@
             "barva": "14413"
           },
           "imageAssignments": [
-            7,
-            20
+            0
           ]
         },
         {
@@ -3750,8 +4394,7 @@
             "barva": "14412"
           },
           "imageAssignments": [
-            8,
-            20
+            0
           ]
         },
         {
@@ -3777,8 +4420,7 @@
             "barva": "14411"
           },
           "imageAssignments": [
-            9,
-            20
+            0
           ]
         },
         {
@@ -3804,8 +4446,7 @@
             "barva": "14410"
           },
           "imageAssignments": [
-            10,
-            20
+            0
           ]
         },
         {
@@ -3831,8 +4472,7 @@
             "barva": "14409"
           },
           "imageAssignments": [
-            11,
-            20
+            0
           ]
         },
         {
@@ -3858,8 +4498,7 @@
             "barva": "14408"
           },
           "imageAssignments": [
-            12,
-            20
+            0
           ]
         },
         {
@@ -3885,8 +4524,7 @@
             "barva": "14407"
           },
           "imageAssignments": [
-            13,
-            20
+            0
           ]
         },
         {
@@ -3912,8 +4550,7 @@
             "barva": "14406"
           },
           "imageAssignments": [
-            14,
-            20
+            0
           ]
         },
         {
@@ -3939,8 +4576,7 @@
             "barva": "14405"
           },
           "imageAssignments": [
-            15,
-            20
+            0
           ]
         },
         {
@@ -3966,8 +4602,7 @@
             "barva": "14404"
           },
           "imageAssignments": [
-            16,
-            20
+            0
           ]
         },
         {
@@ -3993,8 +4628,7 @@
             "barva": "14403"
           },
           "imageAssignments": [
-            17,
-            20
+            0
           ]
         },
         {
@@ -4020,8 +4654,7 @@
             "barva": "14401"
           },
           "imageAssignments": [
-            18,
-            20
+            0
           ]
         },
         {
@@ -4047,12 +4680,59 @@
             "barva": "14400"
           },
           "imageAssignments": [
-            19,
-            20
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-real-izbor-barv.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-real-izbor-barv.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton 300 g – fotografija izbora barv, izbrana barva je navedena pri različici",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 705,
+            "height": 675
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-real-zlati-srebrni-karton.jpg",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-real-zlati-srebrni-karton.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Fotokarton – fotografija zlatih in srebrnih listov",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-ustvarjalni-projekt.jpg",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 6094,
+            "height": 4160
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -4066,8 +4746,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -4082,8 +4762,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -4098,8 +4778,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -4114,8 +4794,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -4130,8 +4810,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 4
+          "hidden": true,
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -4146,8 +4826,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 5
+          "hidden": true,
+          "position": 8
         },
         {
           "mediaKind": "image",
@@ -4162,8 +4842,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 6
+          "hidden": true,
+          "position": 9
         },
         {
           "mediaKind": "image",
@@ -4178,8 +4858,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 7
+          "hidden": true,
+          "position": 10
         },
         {
           "mediaKind": "image",
@@ -4194,8 +4874,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 8
+          "hidden": true,
+          "position": 11
         },
         {
           "mediaKind": "image",
@@ -4210,8 +4890,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 9
+          "hidden": true,
+          "position": 12
         },
         {
           "mediaKind": "image",
@@ -4226,8 +4906,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 10
+          "hidden": true,
+          "position": 13
         },
         {
           "mediaKind": "image",
@@ -4242,8 +4922,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 11
+          "hidden": true,
+          "position": 14
         },
         {
           "mediaKind": "image",
@@ -4258,8 +4938,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 12
+          "hidden": true,
+          "position": 15
         },
         {
           "mediaKind": "image",
@@ -4274,8 +4954,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 13
+          "hidden": true,
+          "position": 16
         },
         {
           "mediaKind": "image",
@@ -4290,8 +4970,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 14
+          "hidden": true,
+          "position": 17
         },
         {
           "mediaKind": "image",
@@ -4306,8 +4986,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 15
+          "hidden": true,
+          "position": 18
         },
         {
           "mediaKind": "image",
@@ -4322,8 +5002,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 16
+          "hidden": true,
+          "position": 19
         },
         {
           "mediaKind": "image",
@@ -4338,8 +5018,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 17
+          "hidden": true,
+          "position": 20
         },
         {
           "mediaKind": "image",
@@ -4354,8 +5034,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 18
+          "hidden": true,
+          "position": 21
         },
         {
           "mediaKind": "image",
@@ -4370,24 +5050,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 19
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "fotokarton-ustvarjalni-projekt.jpg",
-          "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Primer ustvarjalnega projekta s papirjem in kartonom",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 6094,
-            "height": 4160
-          },
-          "hidden": false,
-          "position": 20
+          "hidden": true,
+          "position": 22
         },
         {
           "mediaKind": "image",
@@ -4403,7 +5067,7 @@
             "height": 600
           },
           "hidden": true,
-          "position": 21
+          "position": 23
         }
       ],
       "position": 10,
@@ -4497,6 +5161,7 @@
             "izvedba": "14013"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -4524,9 +5189,7 @@
           "optionSelections": {
             "izvedba": "14062"
           },
-          "imageAssignments": [
-            0
-          ]
+          "imageAssignments": []
         },
         {
           "variantName": "Papir lepenka A4",
@@ -4551,9 +5214,7 @@
           "optionSelections": {
             "izvedba": "14060"
           },
-          "imageAssignments": [
-            2
-          ]
+          "imageAssignments": []
         },
         {
           "variantName": "Bela lepenka A4",
@@ -4579,6 +5240,7 @@
             "izvedba": "14012"
           },
           "imageAssignments": [
+            0,
             1
           ]
         },
@@ -4605,9 +5267,7 @@
           "optionSelections": {
             "izvedba": "14020"
           },
-          "imageAssignments": [
-            2
-          ]
+          "imageAssignments": []
         },
         {
           "variantName": "Papir lepenka A3",
@@ -4632,12 +5292,58 @@
           "optionSelections": {
             "izvedba": "14061"
           },
-          "imageAssignments": [
-            2
-          ]
+          "imageAssignments": []
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka-real-bela-povrsina.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
+          "mimeType": "image/png",
+          "altText": "Bela lepenka – fotografija površine materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 640,
+            "height": 640
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka-real-beli-rob.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+          "mimeType": "image/png",
+          "altText": "Bela lepenka – fotografija roba kartonske plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 640,
+            "height": 640
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka.png",
+          "mimeType": "image/png",
+          "altText": "Lepenka – splošni fotografski primer materiala; barva posamezne izvedbe ni prikazana",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 586,
+            "height": 586
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -4651,8 +5357,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -4667,8 +5373,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -4683,24 +5389,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "lepenka.png",
-          "blobUrl": "/images/catalog/2026-09/lepenka.png",
-          "mimeType": "image/png",
-          "altText": "Lepenka",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 586,
-            "height": 586
-          },
           "hidden": true,
-          "position": 3
+          "position": 5
         }
       ],
       "position": 11,
@@ -4788,8 +5478,7 @@
             "izvedba": "14043"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -4815,8 +5504,7 @@
             "izvedba": "14041"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -4842,8 +5530,7 @@
             "izvedba": "14040"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -4869,12 +5556,43 @@
             "izvedba": "14042"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "risalni-list.png",
+          "blobUrl": "/images/catalog/2026-09/risalni-list.png",
+          "mimeType": "image/png",
+          "altText": "Risalni list – izvirna dobaviteljeva fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 670,
+            "height": 670
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-ustvarjanje-v-razredu.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -4888,8 +5606,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -4904,24 +5622,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "risalni-list.png",
-          "blobUrl": "/images/catalog/2026-09/risalni-list.png",
-          "mimeType": "image/png",
-          "altText": "Risalni list",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 670,
-            "height": 670
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 12,
@@ -5144,8 +5846,7 @@
             "izvedba": "11112"
           },
           "imageAssignments": [
-            0,
-            5
+            0
           ]
         },
         {
@@ -5173,8 +5874,7 @@
             "izvedba": "11022"
           },
           "imageAssignments": [
-            1,
-            5
+            0
           ]
         },
         {
@@ -5202,8 +5902,7 @@
             "izvedba": "11017"
           },
           "imageAssignments": [
-            1,
-            5
+            0
           ]
         },
         {
@@ -5231,8 +5930,8 @@
             "izvedba": "11120"
           },
           "imageAssignments": [
-            2,
-            5
+            1,
+            2
           ]
         },
         {
@@ -5260,8 +5959,8 @@
             "izvedba": "11040"
           },
           "imageAssignments": [
-            2,
-            5
+            1,
+            2
           ]
         },
         {
@@ -5289,8 +5988,8 @@
             "izvedba": "11016"
           },
           "imageAssignments": [
-            2,
-            5
+            1,
+            2
           ]
         },
         {
@@ -5318,8 +6017,8 @@
             "izvedba": "11003"
           },
           "imageAssignments": [
-            2,
-            5
+            1,
+            2
           ]
         },
         {
@@ -5347,7 +6046,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5375,7 +6074,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5402,8 +6101,8 @@
             "izvedba": "11104"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5430,8 +6129,8 @@
             "izvedba": "11107"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5459,7 +6158,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5486,8 +6185,8 @@
             "izvedba": "11106"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5515,7 +6214,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5543,7 +6242,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5570,8 +6269,8 @@
             "izvedba": "11100"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5599,7 +6298,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5627,7 +6326,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5655,7 +6354,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5682,8 +6381,8 @@
             "izvedba": "11011"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5711,7 +6410,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5739,7 +6438,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5767,7 +6466,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5794,8 +6493,8 @@
             "izvedba": "11012"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5823,7 +6522,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5851,7 +6550,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5878,8 +6577,8 @@
             "izvedba": "11031"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5907,7 +6606,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5935,7 +6634,7 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         },
         {
@@ -5962,8 +6661,8 @@
             "izvedba": "11002"
           },
           "imageAssignments": [
-            4,
-            6
+            3,
+            9
           ]
         },
         {
@@ -5991,11 +6690,75 @@
           },
           "imageAssignments": [
             3,
-            6
+            9
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-plosca-real-bukev-povrsina.jpg",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-bukev-povrsina.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Bukova vezana plošča – fotografija površine lesa",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-plosca-real-topol-povrsina.jpg",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-povrsina.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Topolova vezana plošča – fotografija površine in plasti",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-plosca-real-topol-rob.jpg",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-rob.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Topolova vezana plošča – fotografija roba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-plosca.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca.png",
+          "mimeType": "image/png",
+          "altText": "Vezane plošče – dobaviteljeva fotografija izbora materialov",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "hidden": false,
+          "position": 3
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6009,8 +6772,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -6025,8 +6788,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -6041,8 +6804,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -6057,8 +6820,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -6073,24 +6836,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 4
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "vezana-plosca.png",
-          "blobUrl": "/images/catalog/2026-09/vezana-plosca.png",
-          "mimeType": "image/png",
-          "altText": "Vezana plošča",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 800,
-            "height": 800
-          },
-          "hidden": false,
-          "position": 5
+          "hidden": true,
+          "position": 8
         },
         {
           "mediaKind": "image",
@@ -6106,7 +6853,7 @@
             "height": 800
           },
           "hidden": false,
-          "position": 6
+          "position": 9
         },
         {
           "mediaKind": "image",
@@ -6122,7 +6869,7 @@
             "height": 708
           },
           "hidden": true,
-          "position": 7
+          "position": 10
         },
         {
           "mediaKind": "image",
@@ -6138,7 +6885,7 @@
             "height": 708
           },
           "hidden": true,
-          "position": 8
+          "position": 11
         }
       ],
       "position": 13,
@@ -6222,8 +6969,7 @@
             "izvedba": "22020"
           },
           "imageAssignments": [
-            0,
-            3
+            0
           ]
         },
         {
@@ -6285,8 +7031,7 @@
             "izvedba": "22010"
           },
           "imageAssignments": [
-            2,
-            4
+            2
           ]
         }
       ],
@@ -6295,14 +7040,14 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "motor-r23-ilustracija.png",
-          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
-          "mimeType": "image/png",
-          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
+          "filename": "motorcek-r23-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R23 / RE280R — izvirna fotografija",
           "imageType": "product",
           "imageDimensions": {
-            "width": 1254,
-            "height": 1254
+            "width": 2560,
+            "height": 1637
           },
           "hidden": false,
           "position": 0
@@ -6327,38 +7072,6 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "motor-r21-ilustracija.png",
-          "blobUrl": "/images/catalog/2026-09/motor-r21-ilustracija.png",
-          "mimeType": "image/png",
-          "altText": "Motorček R21 — reprezentativna ilustracija oblike motorčka",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1254,
-            "height": 1254
-          },
-          "hidden": false,
-          "position": 2
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "motorcek-r23-izvirnik.jpg",
-          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Motorček R23 / RE280R — izvirna fotografija",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 2560,
-            "height": 1637
-          },
-          "hidden": false,
-          "position": 3
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
           "filename": "motorcek-r21-izvirnik.jpg",
           "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
           "mimeType": "image/jpeg",
@@ -6369,6 +7082,38 @@
             "height": 1863
           },
           "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motor-r23-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": true,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motor-r21-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/motor-r21-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Motorček R21 — reprezentativna ilustracija oblike motorčka",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": true,
           "position": 4
         },
         {
@@ -6501,8 +7246,7 @@
             "izvedba": "017050"
           },
           "imageAssignments": [
-            0,
-            4
+            0
           ]
         },
         {
@@ -6528,7 +7272,7 @@
             "izvedba": "01705m"
           },
           "imageAssignments": [
-            4,
+            0,
             2
           ]
         },
@@ -6555,8 +7299,7 @@
             "izvedba": "017150"
           },
           "imageAssignments": [
-            1,
-            4
+            1
           ]
         },
         {
@@ -6582,12 +7325,59 @@
             "izvedba": "01715m"
           },
           "imageAssignments": [
-            3,
-            4
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geotrikotnik-60-real-wissner.png",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik-60-real-wissner.png",
+          "mimeType": "image/png",
+          "altText": "Geotrikotnik 60 cm — izvirna fotografija proizvajalca",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geotrikotnik-80-real-wissner.png",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik-80-real-wissner.png",
+          "mimeType": "image/png",
+          "altText": "Geotrikotnik 80 cm — izvirna fotografija proizvajalca",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geotrikotnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Magnetni geotrikotnik 60 cm — pogled od spredaj",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6601,8 +7391,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -6617,8 +7407,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -6633,8 +7423,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -6649,24 +7439,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 3
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "geotrikotnik.jpg",
-          "blobUrl": "/images/catalog/2026-09/geotrikotnik.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Geotrikotnik za tablo",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1200,
-            "height": 1200
-          },
-          "hidden": false,
-          "position": 4
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -6682,7 +7456,7 @@
             "height": 708
           },
           "hidden": true,
-          "position": 5
+          "position": 7
         }
       ],
       "position": 15,
@@ -6765,7 +7539,7 @@
             "izvedba": "010700"
           },
           "imageAssignments": [
-            3
+            0
           ]
         },
         {
@@ -6792,8 +7566,7 @@
             "izvedba": "010710"
           },
           "imageAssignments": [
-            1,
-            3
+            1
           ]
         },
         {
@@ -6820,8 +7593,7 @@
             "izvedba": "010800"
           },
           "imageAssignments": [
-            2,
-            3
+            2
           ]
         },
         {
@@ -6848,12 +7620,59 @@
             "izvedba": "010810"
           },
           "imageAssignments": [
-            0,
             3
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotniki-za-tablo.jpg",
+          "blobUrl": "/images/catalog/2026-09/trikotniki-za-tablo.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Trikotnik za tablo 45°, 50 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotnik-45-60-real-wissner.png",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-45-60-real-wissner.png",
+          "mimeType": "image/png",
+          "altText": "Trikotnik za tablo 45°, 60 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotnik-60-50-real-wissner.png",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-60-50-real-wissner.png",
+          "mimeType": "image/png",
+          "altText": "Trikotnik za tablo 60°, 50 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6868,7 +7687,7 @@
             "height": 1200
           },
           "hidden": false,
-          "position": 0
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -6883,8 +7702,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -6899,24 +7718,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 2
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "trikotniki-za-tablo.jpg",
-          "blobUrl": "/images/catalog/2026-09/trikotniki-za-tablo.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Trikotniki za tablo",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1200,
-            "height": 1200
-          },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -6932,7 +7735,7 @@
             "height": 708
           },
           "hidden": true,
-          "position": 4
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -6948,7 +7751,7 @@
             "height": 708
           },
           "hidden": true,
-          "position": 5
+          "position": 7
         }
       ],
       "position": 16,
@@ -7376,12 +8179,44 @@
             }
           },
           "imageAssignments": [
-            1,
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "magnetni-trinog-real-wissner.jpg",
+          "blobUrl": "/images/catalog/2026-09/magnetni-trinog-real-wissner.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Magnetni trinog za šestilo — samostojni pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1485,
+            "height": 915
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "magnetni-trinog.jpg",
+          "blobUrl": "/images/catalog/2026-09/magnetni-trinog.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Magnetni trinog nameščen na šestilu; šestilo ni vključeno",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 1667,
+            "height": 1667
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7395,24 +8230,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "magnetni-trinog.jpg",
-          "blobUrl": "/images/catalog/2026-09/magnetni-trinog.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Magnetni trinog",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1667,
-            "height": 1667
-          },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 19,
@@ -7485,12 +8304,44 @@
             }
           },
           "imageAssignments": [
-            1,
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "tracni-meter.jpg",
+          "blobUrl": "/images/catalog/2026-09/tracni-meter.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Tračni meter geo-FENNEL Rubber Tape — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "tracni-meter-real-rubber-tape-5m.jpg",
+          "blobUrl": "/images/catalog/2026-09/tracni-meter-real-rubber-tape-5m.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Tračni meter Rubber Tape 5 m – dobaviteljeva fotografija drugega pogleda",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7504,24 +8355,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "tracni-meter.jpg",
-          "blobUrl": "/images/catalog/2026-09/tracni-meter.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Tračni meter",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1200,
-            "height": 1200
-          },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 20,
@@ -7834,8 +8669,7 @@
             }
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
@@ -7860,6 +8694,22 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "krivilnik-real-primer-akrilnega-izdelka.jpg",
+          "blobUrl": "/images/catalog/2026-09/krivilnik-real-primer-akrilnega-izdelka.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer izdelka iz toplotno upognjenega pleksi stekla — stojalo za lističe in pisala, dodatki niso vključeni",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "thermoform-primer-izdelka.png",
           "blobUrl": "/images/catalog/2026-09/thermoform-primer-izdelka.png",
           "mimeType": "image/png",
@@ -7869,8 +8719,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -7886,7 +8736,7 @@
             "height": 169
           },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 22,
@@ -8224,7 +9074,9 @@
             "izvedba": "32211"
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            3
           ]
         },
         {
@@ -8250,7 +9102,9 @@
             "izvedba": "32210"
           },
           "imageAssignments": [
-            1
+            0,
+            1,
+            3
           ]
         },
         {
@@ -8276,7 +9130,8 @@
             "izvedba": "32113"
           },
           "imageAssignments": [
-            0
+            2,
+            3
           ]
         },
         {
@@ -8302,11 +9157,76 @@
             "izvedba": "32114"
           },
           "imageAssignments": [
-            1
+            2,
+            3
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-200-real-opitec-1.jpg",
+          "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-1.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Kladivo 200 g z lesenim ročajem — posamezen kos; stojalo ni prikazano",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1839
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-200-real-opitec-2.jpg",
+          "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-2.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Kladivo 200 g z lesenim ročajem — posamezen kos; stojalo ni prikazano",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1597
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-300-real-unior.jpg",
+          "blobUrl": "/images/catalog/2026-09/kladivo-300-real-unior.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Kladivo UNIOR 812, 300 g — prikaz posameznega kladiva; stojalo ni prikazano",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-real-uporaba-unior.jpg",
+          "blobUrl": "/images/catalog/2026-09/kladivo-real-uporaba-unior.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe ključavničarskega kladiva pri vzdrževalnem delu",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "hidden": false,
+          "position": 3
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8320,8 +9240,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -8336,8 +9256,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -8353,7 +9273,7 @@
             "height": 417
           },
           "hidden": true,
-          "position": 2
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -8369,7 +9289,7 @@
             "height": 500
           },
           "hidden": true,
-          "position": 3
+          "position": 7
         }
       ],
       "position": 24,
@@ -8450,8 +9370,7 @@
           },
           "imageAssignments": [
             0,
-            1,
-            2
+            1
           ]
         }
       ],
@@ -8476,22 +9395,6 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "klesce-snemanje-izolacije-uporaba.png",
-          "blobUrl": "/images/catalog/2026-09/klesce-snemanje-izolacije-uporaba.png",
-          "mimeType": "image/png",
-          "altText": "Primer priprave žice s kleščami za snemanje izolacije — ilustracija",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 1254,
-            "height": 1254
-          },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
           "filename": "klesce-za-izolacijo-10-drugi-pogled.jpg",
           "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
           "mimeType": "image/jpeg",
@@ -8502,6 +9405,22 @@
             "height": 500
           },
           "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "klesce-snemanje-izolacije-uporaba.png",
+          "blobUrl": "/images/catalog/2026-09/klesce-snemanje-izolacije-uporaba.png",
+          "mimeType": "image/png",
+          "altText": "Primer priprave žice s kleščami za snemanje izolacije — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": true,
           "position": 2
         },
         {
@@ -8592,12 +9511,43 @@
             }
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zlatarske-skarje-za-plocevino-real-lux-180.jpg",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-lux-180.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Zlatarske škarje za pločevino – fotografija posameznih škarij, stojalo ni prikazano",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 821
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zlatarske-skarje-za-plocevino-real-rezanje-plocevine.jpg",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-rezanje-plocevine.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe zlatarskih škarij pri rezanju pločevine v delavnici",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 821
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8611,8 +9561,8 @@
             "width": 1312,
             "height": 1199
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -8627,8 +9577,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -8644,7 +9594,7 @@
             "height": 415
           },
           "hidden": true,
-          "position": 2
+          "position": 4
         }
       ],
       "position": 26,
@@ -8853,6 +9803,38 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "zica-za-lotanje.jpg",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Žica za lotanje 100 g — izvirna fotografija koluta",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 350,
+            "height": 400
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zica-za-lotanje-real-kolut-detajl.jpg",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-real-kolut-detajl.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer koluta žice za lotanje 100 g; prikazana zlitina ni potrjena specifikacija artikla",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1981
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "zica-za-lotanje-ilustracija.png",
           "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-ilustracija.png",
           "mimeType": "image/png",
@@ -8862,8 +9844,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -8878,24 +9860,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "zica-za-lotanje.jpg",
-          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Žica za lotanje",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 350,
-            "height": 400
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 28,
@@ -9302,6 +10268,38 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "spiralne-zagice-za-les-in-mehke-kovine.jpg",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Spiralne žagice za les in mehke kovine — fotografija pakiranja",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "spiralne-zagice-real-detajl.jpg",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-real-detajl.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Spiralna žagica — fotografski detajl spiralnih zob",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "spiralne-tanke-studio-ilustracija.png",
           "blobUrl": "/images/catalog/2026-09/spiralne-tanke-studio-ilustracija.png",
           "mimeType": "image/png",
@@ -9311,8 +10309,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -9327,24 +10325,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "spiralne-zagice-za-les-in-mehke-kovine.jpg",
-          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Spiralne žagice za les in mehke kovine",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 600,
-            "height": 600
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -9360,7 +10342,7 @@
             "height": 600
           },
           "hidden": true,
-          "position": 3
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -9376,7 +10358,7 @@
             "height": 600
           },
           "hidden": true,
-          "position": 4
+          "position": 5
         }
       ],
       "position": 30,
@@ -9453,8 +10435,7 @@
             "izvedba": "32460"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -9480,8 +10461,7 @@
             "izvedba": "32461"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
@@ -9507,12 +10487,43 @@
             "izvedba": "32462"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zagice-za-rezanje-kovin.jpg",
+          "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Žagice za rezanje kovin — fotografija pakiranja",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zagice-za-kovine-real-detajl-zob.jpg",
+          "blobUrl": "/images/catalog/2026-09/zagice-za-kovine-real-detajl-zob.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Detajl žagice za kovino — reprezentativni prikaz, gostota zob se razlikuje po izvedbi",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -9526,8 +10537,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -9542,24 +10553,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "zagice-za-rezanje-kovin.jpg",
-          "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Žagice za rezanje kovin",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 600,
-            "height": 600
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -9575,7 +10570,7 @@
             "height": 600
           },
           "hidden": true,
-          "position": 3
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -9591,7 +10586,7 @@
             "height": 600
           },
           "hidden": true,
-          "position": 4
+          "position": 5
         }
       ],
       "position": 31,
@@ -9678,12 +10673,27 @@
             }
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "aluminijasto-ravnilo-z-rocajem.jpg",
+          "blobUrl": "/images/catalog/2026-09/aluminijasto-ravnilo-z-rocajem.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Aluminijasto ravnilo z ročajem, 40 cm — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 342,
+            "height": 342
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -9697,8 +10707,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 1
         },
         {
           "mediaKind": "image",
@@ -9712,22 +10722,6 @@
           "imageDimensions": {
             "width": 1254,
             "height": 1254
-          },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "aluminijasto-ravnilo-z-rocajem.jpg",
-          "blobUrl": "/images/catalog/2026-09/aluminijasto-ravnilo-z-rocajem.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Aluminijasto ravnilo z ročajem (40 cm)",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 342,
-            "height": 342
           },
           "hidden": true,
           "position": 2
@@ -9810,12 +10804,43 @@
             }
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroski-zascitni-predpasnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Otroški zaščitni predpasnik iz blaga — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroski-zascitni-predpasnik-real-primer-nosenja.jpg",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-real-primer-nosenja.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer nošenja podobnega temno modrega otroškega predpasnika iz blaga – prikaz velikosti na otroku",
+          "imageType": "context",
+          "imageDimensions": {
+            "width": 800,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -9829,8 +10854,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -9845,24 +10870,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
-          "filename": "otroski-zascitni-predpasnik.jpg",
-          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Otroški zaščitni predpasnik",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 500,
-            "height": 500
-          },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 33,
@@ -10578,6 +11587,22 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "uhu-kraft-real-drugi-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-real-drugi-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "UHU Kraft 42 g — drugi pogled na tubo in oznake",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 720,
+            "height": 356
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "uhu-kraft-primer-uporabe.png",
           "blobUrl": "/images/catalog/2026-09/uhu-kraft-primer-uporabe.png",
           "mimeType": "image/png",
@@ -10587,8 +11612,8 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -10604,7 +11629,7 @@
             "height": 300
           },
           "hidden": true,
-          "position": 2
+          "position": 3
         }
       ],
       "position": 37,
@@ -10686,8 +11711,7 @@
             }
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         }
       ],
@@ -10721,7 +11745,7 @@
             "width": 1254,
             "height": 1254
           },
-          "hidden": false,
+          "hidden": true,
           "position": 1
         },
         {

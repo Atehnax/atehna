@@ -19,16 +19,10 @@ function readArticleEditorSource(): string {
 }
 
 function readImageMediaTableSource(source: string): string {
-  const variantsHeader = source.indexOf(
-    '<th className="w-[33%] px-2 py-1.5 text-left">Različice</th>'
-  );
-  const tableStart = source.lastIndexOf('<table', variantsHeader);
-  const tableEnd = source.indexOf('</table>', variantsHeader);
-
-  assert.ok(variantsHeader >= 0, 'the image table should expose optional variant assignment');
-  assert.ok(tableStart >= 0, 'the image media table should have an opening tag');
+  const tableStart = source.indexOf('<table aria-label="Podatki o slikah"');
+  const tableEnd = source.indexOf('</table>', tableStart);
+  assert.ok(tableStart >= 0, 'the image media table should have an accessible name');
   assert.ok(tableEnd > tableStart, 'the image media table should be complete');
-
   return source.slice(tableStart, tableEnd);
 }
 
@@ -58,10 +52,10 @@ test('image media dimensions are normalized and explicitly formatted as pixels',
   assert.equal(formatImagePixelDimensions(null), '—');
 });
 
-test('variant assignment labels use existing data and remain useful when SKU is blank', () => {
+test('variant assignment labels show names without appending SKU', () => {
   assert.equal(
     formatImageVariantAssignmentLabel({ label: '0,5 × 100 × 100 mm', sku: 'MAT-100' }, 0),
-    '0,5 × 100 × 100 mm · MAT-100'
+    '0,5 × 100 × 100 mm'
   );
   assert.equal(
     formatImageVariantAssignmentLabel({ label: '0,5 × 100 × 100 mm', sku: '  ' }, 0),
@@ -71,6 +65,14 @@ test('variant assignment labels use existing data and remain useful when SKU is 
     formatImageVariantAssignmentLabel({ label: ' ', sku: '' }, 2),
     'Različica 3'
   );
+});
+
+test('dimensional image assignments use actual dimensions while standard assignments retain descriptive names', () => {
+  const variant = { label: 'Bela plošča', sku: 'MAT-100', thickness: 0.5, length: 300, width: 200 };
+  assert.equal(formatImageVariantAssignmentLabel(variant, 0, true), '0,5 × 300 × 200 mm');
+  assert.equal(formatImageVariantAssignmentLabel(variant, 0, false), 'Bela plošča');
+  assert.equal(formatImageVariantAssignmentLabel({ label: 'MAT-100', sku: 'MAT-100' }, 2), 'Različica 3');
+  assert.equal(formatImageVariantAssignmentLabel({ label: 'Bela', thickness: null, length: 0, width: Number.NaN }, 0, true), 'Bela');
 });
 
 test('moving an image remaps every affected assignment for forward and backward moves', () => {
@@ -111,8 +113,8 @@ test('variant assignment stays optional, uses existing variants, and does not as
   assert.match(tableSource, /Vse različice/u);
   assert.match(tableSource, /Dodaj različico …/u);
   assert.match(tableSource, /Vse različice \(splošna slika\)/u);
-  assert.match(tableSource, /availableVariants\.map\(\(\{ variant, label \}\)/u);
-  assert.match(tableSource, /formatImageVariantAssignmentLabel\(variant, variantIndex\)/u);
+  assert.match(tableSource, /availableVariants\.map\(\(\{ variant, selectionLabel \}\)/u);
+  assert.match(tableSource, /formatImageVariantAssignmentLabel\(variant, variantIndex, isDimensionBasedMode\)/u);
   assert.doesNotMatch(tableSource, />SKU<\/th>|<input|type=["']text["']/u);
   assert.match(assignmentSource, /const nextAssignments = \[\.\.\.assignments, slotIndex\]/u);
   assert.match(assignmentSource, /clearImageVariantAssignments/u);

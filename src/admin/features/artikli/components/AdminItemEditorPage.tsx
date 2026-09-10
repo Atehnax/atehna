@@ -5670,14 +5670,14 @@ export default function AdminItemEditorPage({
                     </div>
                   )}
                 </div>
-                <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <table className="min-w-full table-fixed text-xs">
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                  <table aria-label="Podatki o slikah" className="w-full min-w-[320px] table-fixed text-xs">
                     <thead className="bg-[color:var(--admin-table-header-bg)]">
                       <tr>
-                        <th className="w-[34%] px-2 py-1.5 text-left">Slika</th>
-                        <th className="w-[13%] px-2 py-1.5 text-center">Format</th>
-                        <th className="w-[20%] px-2 py-1.5 text-center">Dimenzije</th>
-                        <th className="w-[33%] px-2 py-1.5 text-left">Različice</th>
+                        <th className="w-[25%] px-1 py-1.5 text-left">Slika</th>
+                        <th className="w-[14%] px-1 py-1.5 text-center">Format</th>
+                        <th className="w-[30%] whitespace-nowrap px-1 py-1.5 text-center">Dimenzije</th>
+                        <th className="w-[31%] px-1 py-1.5 text-left">Različice</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -5692,25 +5692,26 @@ export default function AdminItemEditorPage({
                           if (!(variant.imageAssignments ?? []).includes(slotIndex)) return [];
                           return [{
                             variant,
-                            label: formatImageVariantAssignmentLabel(variant, variantIndex)
+                            label: formatImageVariantAssignmentLabel(variant, variantIndex, isDimensionBasedMode),
+                            selectionLabel: formatImageVariantAssignmentLabel(variant, variantIndex)
                           }];
                         });
                         const availableVariants = draft.variants.flatMap((variant, variantIndex) => {
                           if ((variant.imageAssignments ?? []).includes(slotIndex)) return [];
                           return [{
                             variant,
-                            label: formatImageVariantAssignmentLabel(variant, variantIndex)
+                            label: formatImageVariantAssignmentLabel(variant, variantIndex, isDimensionBasedMode),
+                            selectionLabel: formatImageVariantAssignmentLabel(variant, variantIndex)
                           }];
                         });
                         const imageLabel = slotIndex === 0 ? 'Glavna slika' : `Slika ${slotIndex + 1}`;
-                        const filename = slot.filename?.trim() || imageLabel;
                         return (
                           <tr
                             key={slot.localId ?? slot.persistedId ?? `${slot.previewUrl}-${slotIndex}`}
                             className="border-t border-slate-100"
                           >
-                            <td className="px-2 py-1.5">
-                              <div className="flex min-w-0 items-center gap-2">
+                            <td className="px-1 py-1.5">
+                              <div className="flex min-w-0 items-center gap-1">
                                 <button
                                   type="button"
                                   className="shrink-0 cursor-zoom-in rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
@@ -5722,49 +5723,46 @@ export default function AdminItemEditorPage({
                                   <Image
                                     src={slot.previewUrl}
                                     alt=""
-                                    width={32}
-                                    height={32}
+                                    width={24}
+                                    height={24}
                                     unoptimized
-                                    className="h-8 w-8 shrink-0 rounded-md border border-slate-200 object-cover"
+                                    className="h-6 w-6 shrink-0 rounded-md border border-slate-200 object-cover"
                                     onLoad={(event) => recordImageDimensions(slotIndex, slot.previewUrl, event.currentTarget)}
                                   />
                                 </button>
-                                <div className="min-w-0">
-                                  <div className="truncate font-medium text-slate-800">{imageLabel}</div>
-                                  <div className="truncate text-[10px] text-slate-500" title={filename}>{filename}</div>
-                                </div>
+                                <span className="min-w-0 whitespace-normal text-[10px] font-medium leading-tight text-slate-800">{imageLabel}</span>
                               </div>
                             </td>
-                            <td className="px-2 py-1.5 text-center">
+                            <td className="px-1 py-1.5 text-center">
                               {inferImageFormatLabel({
                                 mimeType: slot.mimeType,
                                 fileName: slot.filename,
                                 url: slot.previewUrl
                               })}
                             </td>
-                            <td className="px-2 py-1.5 text-center text-[11px] tabular-nums">
+                            <td className="whitespace-nowrap px-1 py-1.5 text-center text-[11px] tabular-nums">
                               {formatImagePixelDimensions(slot.imageDimensions)}
                             </td>
-                            <td className="px-2 py-1.5">
-                              <div className="flex min-w-0 flex-col gap-1">
-                                <div className="flex min-w-0 flex-wrap gap-1">
+                            <td className="overflow-hidden px-1 py-1.5">
+                              <div className="flex w-full min-w-0 max-w-full flex-col gap-1">
+                                <div className="flex w-full min-w-0 max-w-full flex-wrap gap-1">
                                   {assignedVariants.length === 0 ? (
                                     <span className="inline-flex h-5 items-center rounded-md border border-emerald-200 bg-emerald-50 px-1.5 text-[10px] font-medium text-emerald-700">
                                       Vse različice
                                     </span>
-                                  ) : assignedVariants.map(({ variant, label }) => (
+                                  ) : assignedVariants.map(({ variant, label, selectionLabel }) => (
                                     <span
                                       key={`${slotIndex}-${variant.id}`}
-                                      className="inline-flex h-5 max-w-full items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 text-[10px] text-slate-600"
-                                      title={label}
+                                      className="inline-flex h-5 min-w-0 max-w-full items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 text-[10px] text-slate-600"
+                                      title={selectionLabel}
                                     >
-                                      <span className="truncate">{label}</span>
+                                      <span className="min-w-0 truncate">{label}</span>
                                       {isMediaEditable ? (
                                         <button
                                           type="button"
                                           className="shrink-0 text-slate-400 hover:text-rose-600"
                                           onClick={() => removeImageVariantAssignment(slotIndex, variant.id)}
-                                          aria-label={`Odstrani povezavo slike z različico ${label}`}
+                                          aria-label={`Odstrani povezavo slike z različico ${selectionLabel}`}
                                         >
                                           ×
                                         </button>
@@ -5780,15 +5778,15 @@ export default function AdminItemEditorPage({
                                       if (nextVariantId === '__all__') clearImageVariantAssignments(slotIndex);
                                       else if (nextVariantId) addImageVariantAssignment(slotIndex, nextVariantId);
                                     }}
-                                    className={`${selectTokenClasses.trigger} !h-6 !min-w-0 !px-1.5 !text-[10px]`}
+                                    className={`${selectTokenClasses.trigger} !h-6 !min-w-0 !max-w-full !px-1.5 !text-[10px]`}
                                     aria-label={`Poveži ${imageLabel.toLowerCase()} z različico`}
                                   >
                                     <option value="">Dodaj različico …</option>
                                     {assignedVariants.length > 0 ? (
                                       <option value="__all__">Vse različice (splošna slika)</option>
                                     ) : null}
-                                    {availableVariants.map(({ variant, label }) => (
-                                      <option key={variant.id} value={variant.id}>{label}</option>
+                                    {availableVariants.map(({ variant, selectionLabel }) => (
+                                      <option key={variant.id} value={variant.id}>{selectionLabel}</option>
                                     ))}
                                   </select>
                                 ) : null}

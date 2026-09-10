@@ -62,7 +62,8 @@ async function protectedHashes(client:pg.PoolClient) {
 export async function runCatalogImageUpgrade(args=process.argv.slice(2)) {
   const options=parseCatalogTypeArgs(args);
   const target=resolveCatalogTypeTarget(options.target,process.env.DATABASE_URL);
-  const upgrades=JSON.parse(await readFile('data/catalog/image-upgrades-2026-09.json','utf8')) as {products:Upgrade[]};
+  const upgrades=JSON.parse(await readFile('data/catalog/image-upgrades-2026-09.json','utf8')) as {products:Upgrade[];supersededBy?:string[]};
+  ensure(!upgrades.supersededBy?.length,'This historical image upgrade is superseded. Run scripts/replace-atehna-generated-images.ts for the reviewed real-photo manifest.');
   const source=JSON.parse(await readFile('data/catalog/atehna-2026-09.json','utf8')) as {products:SourceProduct[]};
   ensure(upgrades.products.length===43 && new Set(upgrades.products.map(product=>product.slug)).size===43,'Expected43 distinct reviewed products.');
   const mimeByUrl = new Map<string,string>();

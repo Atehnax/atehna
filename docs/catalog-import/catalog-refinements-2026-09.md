@@ -2,7 +2,7 @@
 
 The admin catalog now keeps manual notes separate from inventory. The legacy `na-zalogi` value displays as **Brez opomb**, using a neutral badge. Administrators can create, rename, recolor and hide note choices in `admin/podoba/artikli`; existing custom values remain selectable and stock edits leave notes alone. Supplier notes accept line breaks and preserve blank lines.
 
-Bulk activation opens a choice between activating all variants and activating the first ordered variant of each selected item. Existing active variants remain active. The server validates the entire request and commits atomically; invalid shipping measurements or option assignments roll back every selected change. No activation happens until the choice is confirmed.
+Bulk activation opens a choice between activating all variants and activating the first ordered variant of each selected item. Existing active variants remain active. Eligible selections activate even if other variants have zero prices or incomplete publication data. Skipped items and reasons appear below the Zaloga summary and above the article table. Missing shipping mass or dimensions do not block activation or editor saves; checkout shipping calculations remain separate. Malformed requests and ownership/infrastructure failures remain atomic errors. No activation happens until the choice is confirmed.
 
 The optional article thumbnail first uses an image shared by every variant. If none exists, it uses the first variant's first visible assigned image, including inactive variants. Local catalog assets use appropriately sized Next image responses in the table.
 
@@ -14,7 +14,9 @@ Dimensional variants use thickness, length and width, separated by lowercase `x`
 
 `scripts/correct-atehna-catalog-skus.ts` corrects the 43 reviewed imported families. It defaults to a dry run, requires an explicit environment and validates the exact database destination. `--apply` saves and rereads a backup, uses a serializable transaction, checks uniqueness, updates exact internal SKU references and preserves immutable order snapshots. Machine SKU aliases retain matching with historical equipment orders. Unrelated articles, identities, prices, stock, classifications, media and commerce history are checked for preservation. A repeat run must produce zero changes.
 
-## Image policy and provenance
+## Historical image policy and provenance
+
+The image refresh below is superseded by the real-photo replacement described in `real-photography-2026-09.md`. Generated imagery is no longer preferred or visible; its original records and assets remain available for rollback.
 
 `data/catalog/image-upgrades-2026-09.json` records each reviewed native image, its source or generation prompt, checksum, resolution and variant assignment. The original import manifest carries the final visible media and image-slot mapping, so a future import does not restore blurry photos or older SKU formats.
 

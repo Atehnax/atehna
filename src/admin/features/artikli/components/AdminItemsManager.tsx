@@ -1954,6 +1954,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           onDiscard={handleGuardDialogDiscard}
         />
       ) : null}
+      {activationResult ? <CatalogActivationResultNotice result={activationResult} onDismiss={() => setActivationResult(null)} onOpenItem={identifier => requestCurrentEditResolution('odhodom na urejanje artikla', () => router.push('/admin/artikli/' + encodeURIComponent(identifier)))} /> : null}
       <AdminTableLayout
         className={adminTableCardClassName}
         style={adminTableCardStyle}
@@ -2830,7 +2831,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </tbody>
           </Table>
       </AdminTableLayout>
-      {activationResult ? <CatalogActivationResultNotice result={activationResult} onDismiss={() => setActivationResult(null)} onOpenItem={identifier => requestCurrentEditResolution('odhodom na urejanje artikla', () => router.push('/admin/artikli/' + encodeURIComponent(identifier)))} /> : null}
       {pendingActivation ? <CatalogActivationDialog open itemCount={pendingActivation.itemIdentifiers.length} selectedVariantCount={pendingActivation.variants?.length} busy={isSelectedPillUpdating} onCancel={() => setPendingActivation(null)} onConfirm={mode => { void submitActivation(pendingActivation, mode); }} /> : null}
       <HeaderFilterPortal open={Boolean(openFilter)}>
         {openFilter === 'category' ? (

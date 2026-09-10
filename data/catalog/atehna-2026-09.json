@@ -60,7 +60,7 @@
       "variants": [
         {
           "variantName": "300 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-ALU-300X200-05",
+          "variantSku": "MAT-KOV-ALU-0P5x300x200",
           "length": 300,
           "width": 200,
           "thickness": 0.5,
@@ -81,12 +81,12 @@
             "dimenzije": "300-200"
           },
           "imageAssignments": [
-            1
+            3
           ]
         },
         {
           "variantName": "300 × 300 × 0,5 mm",
-          "variantSku": "MAT-KOV-ALU-300X300-05",
+          "variantSku": "MAT-KOV-ALU-0P5x300x300",
           "length": 300,
           "width": 300,
           "thickness": 0.5,
@@ -107,12 +107,12 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
-            0
+            2
           ]
         },
         {
           "variantName": "200 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-ALU-200X200-05",
+          "variantSku": "MAT-KOV-ALU-0P5x200x200",
           "length": 200,
           "width": 200,
           "thickness": 0.5,
@@ -133,12 +133,12 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
-            0
+            2
           ]
         },
         {
           "variantName": "100 × 100 × 0,5 mm",
-          "variantSku": "MAT-KOV-ALU-100X100-05",
+          "variantSku": "MAT-KOV-ALU-0P5x100x100",
           "length": 100,
           "width": 100,
           "thickness": 0.5,
@@ -159,11 +159,43 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
-            0
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "aluminij-200-100-delavnica.png",
+          "blobUrl": "/images/catalog/2026-09/aluminij-200-100-delavnica.png",
+          "mimeType": "image/png",
+          "altText": "Ozka aluminijasta plošča v delavnici — reprezentativna ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "aluminij-300-100-delavnica.png",
+          "blobUrl": "/images/catalog/2026-09/aluminij-300-100-delavnica.png",
+          "mimeType": "image/png",
+          "altText": "Ozka aluminijasta plošča v delavnici — reprezentativna ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -178,7 +210,7 @@
             "height": 1024
           },
           "hidden": false,
-          "position": 0
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -194,7 +226,7 @@
             "height": 1024
           },
           "hidden": false,
-          "position": 1
+          "position": 3
         }
       ],
       "position": 0
@@ -258,7 +290,7 @@
       "variants": [
         {
           "variantName": "300 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-BAK-300X200-05",
+          "variantSku": "MAT-KOV-BAK-0P5x300x200",
           "length": 300,
           "width": 200,
           "thickness": 0.5,
@@ -279,12 +311,13 @@
             "dimenzije": "300-200"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "300 × 300 × 0,5 mm",
-          "variantSku": "MAT-KOV-BAK-300X300-05",
+          "variantSku": "MAT-KOV-BAK-0P5x300x300",
           "length": 300,
           "width": 300,
           "thickness": 0.5,
@@ -305,12 +338,12 @@
             "dimenzije": "300-300"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "200 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-BAK-200X200-05",
+          "variantSku": "MAT-KOV-BAK-0P5x200x200",
           "length": 200,
           "width": 200,
           "thickness": 0.5,
@@ -331,12 +364,12 @@
             "dimenzije": "200-200"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "100 × 100 × 0,5 mm",
-          "variantSku": "MAT-KOV-BAK-100X100-05",
+          "variantSku": "MAT-KOV-BAK-0P5x100x100",
           "length": 100,
           "width": 100,
           "thickness": 0.5,
@@ -357,11 +390,27 @@
             "dimenzije": "100-100"
           },
           "imageAssignments": [
-            0
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "bakrena-plosca-pravokotnik-studio.png",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-pravokotnik-studio.png",
+          "mimeType": "image/png",
+          "altText": "Bakrena plošča — reprezentativni pravokotni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -376,7 +425,7 @@
             "height": 1024
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         }
       ],
       "position": 1
@@ -440,7 +489,7 @@
       "variants": [
         {
           "variantName": "300 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-POC-300X200-05",
+          "variantSku": "MAT-KOV-POC-0P5x300x200",
           "length": 300,
           "width": 200,
           "thickness": 0.5,
@@ -466,7 +515,7 @@
         },
         {
           "variantName": "300 × 300 × 0,5 mm",
-          "variantSku": "MAT-KOV-POC-300X300-05",
+          "variantSku": "MAT-KOV-POC-0P5x300x300",
           "length": 300,
           "width": 300,
           "thickness": 0.5,
@@ -492,7 +541,7 @@
         },
         {
           "variantName": "200 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-POC-200X200-05",
+          "variantSku": "MAT-KOV-POC-0P5x200x200",
           "length": 200,
           "width": 200,
           "thickness": 0.5,
@@ -518,7 +567,7 @@
         },
         {
           "variantName": "100 × 100 × 0,5 mm",
-          "variantSku": "MAT-KOV-POC-100X100-05",
+          "variantSku": "MAT-KOV-POC-0P5x100x100",
           "length": 100,
           "width": 100,
           "thickness": 0.5,
@@ -638,7 +687,7 @@
       "variants": [
         {
           "variantName": "300 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-MED-300X200-05",
+          "variantSku": "MAT-KOV-MED-0P5x300x200",
           "length": 300,
           "width": 200,
           "thickness": 0.5,
@@ -664,7 +713,7 @@
         },
         {
           "variantName": "300 × 300 × 0,5 mm",
-          "variantSku": "MAT-KOV-MED-300X300-05",
+          "variantSku": "MAT-KOV-MED-0P5x300x300",
           "length": 300,
           "width": 300,
           "thickness": 0.5,
@@ -690,7 +739,7 @@
         },
         {
           "variantName": "200 × 200 × 0,5 mm",
-          "variantSku": "MAT-KOV-MED-200X200-05",
+          "variantSku": "MAT-KOV-MED-0P5x200x200",
           "length": 200,
           "width": 200,
           "thickness": 0.5,
@@ -716,7 +765,7 @@
         },
         {
           "variantName": "100 × 100 × 0,5 mm",
-          "variantSku": "MAT-KOV-MED-100X100-05",
+          "variantSku": "MAT-KOV-MED-0P5x100x100",
           "length": 100,
           "width": 100,
           "thickness": 0.5,
@@ -792,7 +841,7 @@
         "Materiali",
         "Umetne mase"
       ],
-      "sku": "ATE-PENJENI-PVC-KOMATEKS",
+      "sku": "MAT-UME-PEN",
       "slug": "penjeni-pvc-komateks",
       "unit": "kos",
       "description": "<p>Lahke in čvrste plošče iz penjenega PVC za izdelavo modelov in izdelkov pri tehničnem pouku. Izberite želeni format plošče.</p>",
@@ -831,7 +880,7 @@
       "variants": [
         {
           "variantName": "300 x 200 x 3 mm",
-          "variantSku": "ATE-13001",
+          "variantSku": "MAT-UME-PEN-3x200x300",
           "length": 200,
           "width": 300,
           "thickness": 3,
@@ -859,7 +908,7 @@
         },
         {
           "variantName": "150 x 200 x 3 mm",
-          "variantSku": "ATE-13002",
+          "variantSku": "MAT-UME-PEN-3x200x150",
           "length": 200,
           "width": 150,
           "thickness": 3,
@@ -887,7 +936,7 @@
         },
         {
           "variantName": "400 x 300 x 3 mm",
-          "variantSku": "ATE-13003",
+          "variantSku": "MAT-UME-PEN-3x300x400",
           "length": 300,
           "width": 400,
           "thickness": 3,
@@ -915,7 +964,7 @@
         },
         {
           "variantName": "500 x 500 x 3 mm",
-          "variantSku": "ATE-13004",
+          "variantSku": "MAT-UME-PEN-3x500x500",
           "length": 500,
           "width": 500,
           "thickness": 3,
@@ -938,11 +987,43 @@
             "izvedba": "13004"
           },
           "imageAssignments": [
-            0
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pvc-penjeni-pravokotnik-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pvc-penjeni-pravokotnik-studio.png",
+          "mimeType": "image/png",
+          "altText": "Penjeni PVC — reprezentativni pravokotni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pvc-penjeni-kvadrat-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pvc-penjeni-kvadrat-studio.png",
+          "mimeType": "image/png",
+          "altText": "Penjeni PVC — reprezentativni kvadratni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -956,8 +1037,8 @@
             "width": 312,
             "height": 312
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 4,
@@ -983,7 +1064,7 @@
         "Materiali",
         "Umetne mase"
       ],
-      "sku": "ATE-PLEKSI-STEKLO",
+      "sku": "MAT-UME-PLE",
       "slug": "pleksi-steklo",
       "unit": "kos",
       "description": "<p>Pleksi steklo debeline 3 mm za modele, makete in ustvarjalne izdelke. V ponudbi so prozorne, bele in barvne plošče v različnih formatih.</p>",
@@ -1038,7 +1119,7 @@
       "variants": [
         {
           "variantName": "150 x 200 x 3 mm, belo",
-          "variantSku": "ATE-13102",
+          "variantSku": "MAT-UME-PLE-3x200x150-BELO",
           "length": 200,
           "width": 150,
           "thickness": 3,
@@ -1062,12 +1143,13 @@
             "izvedba": "13102"
           },
           "imageAssignments": [
-            0
+            1,
+            4
           ]
         },
         {
           "variantName": "150 x 200 x 3 mm, barvno",
-          "variantSku": "ATE-13104",
+          "variantSku": "MAT-UME-PLE-3x200x150-BARVNO",
           "length": 200,
           "width": 150,
           "thickness": 3,
@@ -1091,12 +1173,13 @@
             "izvedba": "13104"
           },
           "imageAssignments": [
-            0
+            2,
+            4
           ]
         },
         {
           "variantName": "150 x 200 x 3 mm, prozorno",
-          "variantSku": "ATE-13105",
+          "variantSku": "MAT-UME-PLE-3x200x150-PROZORNO",
           "length": 200,
           "width": 150,
           "thickness": 3,
@@ -1120,12 +1203,13 @@
             "izvedba": "13105"
           },
           "imageAssignments": [
-            0
+            0,
+            4
           ]
         },
         {
           "variantName": "200 x 300 x 3 mm, belo",
-          "variantSku": "ATE-13101",
+          "variantSku": "MAT-UME-PLE-3x300x200-BELO",
           "length": 300,
           "width": 200,
           "thickness": 3,
@@ -1149,12 +1233,13 @@
             "izvedba": "13101"
           },
           "imageAssignments": [
-            0
+            1,
+            4
           ]
         },
         {
           "variantName": "200 x 300 x 3 mm",
-          "variantSku": "ATE-13106",
+          "variantSku": "MAT-UME-PLE-3x300x200",
           "length": 300,
           "width": 200,
           "thickness": 3,
@@ -1177,12 +1262,13 @@
             "izvedba": "13106"
           },
           "imageAssignments": [
-            0
+            3,
+            4
           ]
         },
         {
           "variantName": "400 x 300 x 3 mm, prozorno",
-          "variantSku": "ATE-13107",
+          "variantSku": "MAT-UME-PLE-3x300x400-PROZORNO",
           "length": 300,
           "width": 400,
           "thickness": 3,
@@ -1206,12 +1292,13 @@
             "izvedba": "13107"
           },
           "imageAssignments": [
-            0
+            0,
+            4
           ]
         },
         {
           "variantName": "300 x 400 x 3 mm",
-          "variantSku": "ATE-13103",
+          "variantSku": "MAT-UME-PLE-3x400x300",
           "length": 400,
           "width": 300,
           "thickness": 3,
@@ -1234,11 +1321,76 @@
             "izvedba": "13103"
           },
           "imageAssignments": [
-            0
+            3,
+            4
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-prozorno-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pleksi-prozorno-studio.png",
+          "mimeType": "image/png",
+          "altText": "Prozorno pleksi steklo — reprezentativni prikaz",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-belo-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pleksi-belo-studio.png",
+          "mimeType": "image/png",
+          "altText": "Belo pleksi steklo — reprezentativni prikaz",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-barvno-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pleksi-barvno-studio.png",
+          "mimeType": "image/png",
+          "altText": "Barvni pleksi — reprezentativni prikaz, barva ni določena",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "pleksi-izvedbe-studio.png",
+          "blobUrl": "/images/catalog/2026-09/pleksi-izvedbe-studio.png",
+          "mimeType": "image/png",
+          "altText": "Pleksi steklo — reprezentativni prikaz izvedb, barva ni določena",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 3
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1253,7 +1405,7 @@
             "height": 600
           },
           "hidden": false,
-          "position": 0
+          "position": 4
         }
       ],
       "position": 5,
@@ -1283,7 +1435,7 @@
         "Materiali",
         "Umetne mase"
       ],
-      "sku": "ATE-STIROPOR",
+      "sku": "MAT-UME-STI",
       "slug": "stiropor",
       "unit": "kos",
       "description": "<p>Stiroporne plošče za oblikovanje maket in izdelavo lahkih modelov. Na voljo so različni formati in debeline.</p>",
@@ -1322,7 +1474,7 @@
       "variants": [
         {
           "variantName": "200 x 300 x 10 mm",
-          "variantSku": "ATE-13400",
+          "variantSku": "MAT-UME-STI-10x300x200",
           "length": 300,
           "width": 200,
           "thickness": 10,
@@ -1350,7 +1502,7 @@
         },
         {
           "variantName": "A5",
-          "variantSku": "ATE-13402",
+          "variantSku": "MAT-UME-STI-210x148-A5",
           "length": 210,
           "width": 148,
           "thickness": null,
@@ -1378,7 +1530,7 @@
         },
         {
           "variantName": "300 x 400 x 10 mm",
-          "variantSku": "ATE-13401",
+          "variantSku": "MAT-UME-STI-10x400x300",
           "length": 400,
           "width": 300,
           "thickness": 10,
@@ -1406,7 +1558,7 @@
         },
         {
           "variantName": "16 x 33 x 2 cm",
-          "variantSku": "ATE-13411",
+          "variantSku": "MAT-UME-STI-20x330x160-CM",
           "length": 330,
           "width": 160,
           "thickness": 20,
@@ -1429,11 +1581,43 @@
             "izvedba": "13411"
           },
           "imageAssignments": [
-            0
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "stiropor-10mm-studio.png",
+          "blobUrl": "/images/catalog/2026-09/stiropor-10mm-studio.png",
+          "mimeType": "image/png",
+          "altText": "Stiropor — reprezentativni prikaz plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "stiropor-20mm-studio.png",
+          "blobUrl": "/images/catalog/2026-09/stiropor-20mm-studio.png",
+          "mimeType": "image/png",
+          "altText": "Stiropor — reprezentativni prikaz debelejše plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1447,8 +1631,8 @@
             "width": 625,
             "height": 625
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 6,
@@ -1474,7 +1658,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-SELESHAMER",
+      "sku": "MAT-PAP-SEL",
       "slug": "seleshamer",
       "unit": "kos",
       "description": "<p>Šeleshamer za risanje, likovno ustvarjanje in izdelavo papirnatih modelov. Izberite format A4, A3, A2 ali B1.</p>",
@@ -1514,7 +1698,7 @@
       "variants": [
         {
           "variantName": "Papir šeleshamer 200 g, A4",
-          "variantSku": "ATE-14051",
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
           "length": 297,
           "width": 210,
           "thickness": null,
@@ -1536,12 +1720,13 @@
             "izvedba": "14051"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "Papir šeleshamer 200 g, A2",
-          "variantSku": "ATE-14053",
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
           "length": 594,
           "width": 420,
           "thickness": null,
@@ -1563,12 +1748,13 @@
             "izvedba": "14053"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "Papir šeleshamer 200 g, A3",
-          "variantSku": "ATE-14052",
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
           "length": 420,
           "width": 297,
           "thickness": null,
@@ -1590,12 +1776,13 @@
             "izvedba": "14052"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "Papir šeleshamer 200 g, B1",
-          "variantSku": "ATE-14055",
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
           "length": 1000,
           "width": 707,
           "thickness": null,
@@ -1617,11 +1804,44 @@
             "izvedba": "14055"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "seleshamer-studio-2.png",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-studio-2.png",
+          "mimeType": "image/png",
+          "altText": "Šeleshamer — reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "seleshamer-kontekst.png",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-kontekst.png",
+          "mimeType": "image/png",
+          "altText": "Primer uporabe šeleshamerja pri izdelavi makete — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -1635,8 +1855,8 @@
             "width": 1080,
             "height": 1080
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 7,
@@ -1663,7 +1883,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-BARVNI-PAPIR",
+      "sku": "MAT-PAP-BAR",
       "slug": "barvni-papir",
       "unit": "kos",
       "description": "<p>Barvni papir formata B2 za likovni pouk in ustvarjanje. Papir je obarvan v masi, zato ob rezanju nima belih robov.</p>",
@@ -1817,7 +2037,7 @@
       "variants": [
         {
           "variantName": "strukturno bela",
-          "variantSku": "ATE-14329",
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1838,12 +2058,13 @@
             "barva": "14329"
           },
           "imageAssignments": [
-            0
+            0,
+            26
           ]
         },
         {
           "variantName": "svetlo rjava",
-          "variantSku": "ATE-14326",
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1864,12 +2085,13 @@
             "barva": "14326"
           },
           "imageAssignments": [
-            0
+            1,
+            26
           ]
         },
         {
           "variantName": "temno rjava",
-          "variantSku": "ATE-14325",
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1890,12 +2112,13 @@
             "barva": "14325"
           },
           "imageAssignments": [
-            0
+            2,
+            26
           ]
         },
         {
           "variantName": "rjava",
-          "variantSku": "ATE-14324",
+          "variantSku": "MAT-PAP-BAR-RJAVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1916,12 +2139,13 @@
             "barva": "14324"
           },
           "imageAssignments": [
-            0
+            3,
+            26
           ]
         },
         {
           "variantName": "lila",
-          "variantSku": "ATE-14323",
+          "variantSku": "MAT-PAP-BAR-LILA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1942,12 +2166,13 @@
             "barva": "14323"
           },
           "imageAssignments": [
-            0
+            4,
+            26
           ]
         },
         {
           "variantName": "vijoličasta",
-          "variantSku": "ATE-14322",
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1968,12 +2193,13 @@
             "barva": "14322"
           },
           "imageAssignments": [
-            0
+            5,
+            26
           ]
         },
         {
           "variantName": "črna",
-          "variantSku": "ATE-14328",
+          "variantSku": "MAT-PAP-BAR-CRNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -1994,12 +2220,13 @@
             "barva": "14328"
           },
           "imageAssignments": [
-            0
+            6,
+            26
           ]
         },
         {
           "variantName": "siva",
-          "variantSku": "ATE-14327",
+          "variantSku": "MAT-PAP-BAR-SIVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2020,12 +2247,13 @@
             "barva": "14327"
           },
           "imageAssignments": [
-            0
+            7,
+            26
           ]
         },
         {
           "variantName": "roza",
-          "variantSku": "ATE-14321",
+          "variantSku": "MAT-PAP-BAR-ROZA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2046,12 +2274,13 @@
             "barva": "14321"
           },
           "imageAssignments": [
-            0
+            8,
+            26
           ]
         },
         {
           "variantName": "temno lila",
-          "variantSku": "ATE-14320",
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2072,12 +2301,13 @@
             "barva": "14320"
           },
           "imageAssignments": [
-            0
+            9,
+            26
           ]
         },
         {
           "variantName": "travno zelena",
-          "variantSku": "ATE-14319",
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2098,12 +2328,13 @@
             "barva": "14319"
           },
           "imageAssignments": [
-            0
+            10,
+            26
           ]
         },
         {
           "variantName": "temno zelena",
-          "variantSku": "ATE-14318",
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2124,12 +2355,13 @@
             "barva": "14318"
           },
           "imageAssignments": [
-            0
+            11,
+            26
           ]
         },
         {
           "variantName": "zelena",
-          "variantSku": "ATE-14317",
+          "variantSku": "MAT-PAP-BAR-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2150,12 +2382,13 @@
             "barva": "14317"
           },
           "imageAssignments": [
-            0
+            12,
+            26
           ]
         },
         {
           "variantName": "svetlo zelena",
-          "variantSku": "ATE-14316",
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2176,12 +2409,13 @@
             "barva": "14316"
           },
           "imageAssignments": [
-            0
+            13,
+            26
           ]
         },
         {
           "variantName": "oranžna",
-          "variantSku": "ATE-14314",
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2202,12 +2436,13 @@
             "barva": "14314"
           },
           "imageAssignments": [
-            0
+            14,
+            26
           ]
         },
         {
           "variantName": "modra",
-          "variantSku": "ATE-14313",
+          "variantSku": "MAT-PAP-BAR-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2228,12 +2463,13 @@
             "barva": "14313"
           },
           "imageAssignments": [
-            0
+            15,
+            26
           ]
         },
         {
           "variantName": "nebesno modra",
-          "variantSku": "ATE-14312",
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2254,12 +2490,13 @@
             "barva": "14312"
           },
           "imageAssignments": [
-            0
+            16,
+            26
           ]
         },
         {
           "variantName": "kalifornijsko modra",
-          "variantSku": "ATE-14311",
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2280,12 +2517,13 @@
             "barva": "14311"
           },
           "imageAssignments": [
-            0
+            16,
+            26
           ]
         },
         {
           "variantName": "svetlo modra",
-          "variantSku": "ATE-14310",
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2306,12 +2544,13 @@
             "barva": "14310"
           },
           "imageAssignments": [
-            0
+            17,
+            26
           ]
         },
         {
           "variantName": "temno rdeča",
-          "variantSku": "ATE-14308",
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2332,12 +2571,13 @@
             "barva": "14308"
           },
           "imageAssignments": [
-            0
+            18,
+            26
           ]
         },
         {
           "variantName": "vinsko rdeča",
-          "variantSku": "ATE-14307",
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2358,12 +2598,13 @@
             "barva": "14307"
           },
           "imageAssignments": [
-            0
+            19,
+            26
           ]
         },
         {
           "variantName": "karmin rdeča",
-          "variantSku": "ATE-14306",
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2384,12 +2625,13 @@
             "barva": "14306"
           },
           "imageAssignments": [
-            0
+            20,
+            26
           ]
         },
         {
           "variantName": "rdeča",
-          "variantSku": "ATE-14305",
+          "variantSku": "MAT-PAP-BAR-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2410,12 +2652,13 @@
             "barva": "14305"
           },
           "imageAssignments": [
-            0
+            21,
+            26
           ]
         },
         {
           "variantName": "koruzno rumena",
-          "variantSku": "ATE-14304",
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2436,12 +2679,13 @@
             "barva": "14304"
           },
           "imageAssignments": [
-            0
+            22,
+            26
           ]
         },
         {
           "variantName": "marelična",
-          "variantSku": "ATE-14303",
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2462,12 +2706,13 @@
             "barva": "14303"
           },
           "imageAssignments": [
-            0
+            23,
+            26
           ]
         },
         {
           "variantName": "intenzivno rumena",
-          "variantSku": "ATE-14302",
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2488,12 +2733,13 @@
             "barva": "14302"
           },
           "imageAssignments": [
-            0
+            24,
+            26
           ]
         },
         {
           "variantName": "rumena",
-          "variantSku": "ATE-14301",
+          "variantSku": "MAT-PAP-BAR-RUMENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2514,11 +2760,444 @@
             "barva": "14301"
           },
           "imageAssignments": [
-            0
+            25,
+            26
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-strukturno-bela-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-strukturno-bela-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — strukturno bela, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-svetlo-rjava-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-rjava-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — svetlo rjava, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-temno-rjava-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-rjava-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — temno rjava, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-rjava-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-rjava-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — rjava, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-lila-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-lila-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — lila, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 4
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-vijolicasta-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-vijolicasta-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — vijoličasta, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 5
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-crna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — črna, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 6
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-siva-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-siva-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — siva, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 7
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-roza-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-roza-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — roza, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 8
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-temno-lila-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-lila-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — temno lila, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 9
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-travno-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-travno-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — travno zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 10
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-temno-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — temno zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 11
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 12
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-svetlo-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — svetlo zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 13
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-oranzna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-oranzna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — oranžna, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 14
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 15
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-nebesno-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-nebesno-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — kalifornijsko modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 16
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-svetlo-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — svetlo modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 17
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-temno-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — temno rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 18
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-vinsko-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-vinsko-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — vinsko rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 19
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-karmin-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-karmin-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — karmin rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 20
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 21
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-koruzno-rumena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-koruzno-rumena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — koruzno rumena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 22
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-marelicna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-marelicna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — marelična, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 23
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-intenzivno-rumena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-intenzivno-rumena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — intenzivno rumena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 24
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-rumena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-rumena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir — rumena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 25
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-ustvarjanje-v-razredu.jpg",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer ustvarjanja z barvnim papirjem pri pouku",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "hidden": false,
+          "position": 26
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -2532,8 +3211,8 @@
             "width": 300,
             "height": 300
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 27
         }
       ],
       "position": 8,
@@ -2556,7 +3235,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-GRAFOPAK",
+      "sku": "MAT-PAP-GRA",
       "slug": "grafopak",
       "unit": "kos",
       "description": "<p>Grafopak polkarton za izdelavo modelov, podlag in izdelkov iz kartona. Na voljo v formatih A4 in A3.</p>",
@@ -2586,7 +3265,7 @@
       "variants": [
         {
           "variantName": "polkarton A3",
-          "variantSku": "ATE-14031",
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
           "length": 420,
           "width": 297,
           "thickness": null,
@@ -2608,12 +3287,14 @@
             "izvedba": "14031"
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         },
         {
           "variantName": "polkarton A4",
-          "variantSku": "ATE-14030",
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
           "length": 297,
           "width": 210,
           "thickness": null,
@@ -2635,11 +3316,45 @@
             "izvedba": "14030"
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "grafopak-studio-1.png",
+          "blobUrl": "/images/catalog/2026-09/grafopak-studio-1.png",
+          "mimeType": "image/png",
+          "altText": "Grafopak — reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "grafopak-studio-2.png",
+          "blobUrl": "/images/catalog/2026-09/grafopak-studio-2.png",
+          "mimeType": "image/png",
+          "altText": "Grafopak — drug reprezentativni pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -2654,7 +3369,7 @@
             "height": 1365
           },
           "hidden": false,
-          "position": 0
+          "position": 2
         }
       ],
       "position": 9,
@@ -2679,7 +3394,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-FOTOKARTON",
+      "sku": "MAT-PAP-FOT",
       "slug": "fotokarton",
       "unit": "kos",
       "description": "<p>Barvni fotokarton za likovne izdelke, podlage in oblikovanje. Izberite želeno barvo kartona formata B2.</p>",
@@ -2798,7 +3513,7 @@
       "variants": [
         {
           "variantName": "črna",
-          "variantSku": "ATE-14421",
+          "variantSku": "MAT-PAP-FOT-CRNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2819,12 +3534,13 @@
             "barva": "14421"
           },
           "imageAssignments": [
-            0
+            0,
+            20
           ]
         },
         {
           "variantName": "srebrna",
-          "variantSku": "ATE-14420",
+          "variantSku": "MAT-PAP-FOT-SREBRNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2845,12 +3561,13 @@
             "barva": "14420"
           },
           "imageAssignments": [
-            0
+            1,
+            20
           ]
         },
         {
           "variantName": "siva",
-          "variantSku": "ATE-14418",
+          "variantSku": "MAT-PAP-FOT-SIVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2871,12 +3588,13 @@
             "barva": "14418"
           },
           "imageAssignments": [
-            0
+            2,
+            20
           ]
         },
         {
           "variantName": "zlata",
-          "variantSku": "ATE-14417",
+          "variantSku": "MAT-PAP-FOT-ZLATA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2897,12 +3615,13 @@
             "barva": "14417"
           },
           "imageAssignments": [
-            0
+            3,
+            20
           ]
         },
         {
           "variantName": "svetlo rjava",
-          "variantSku": "ATE-14416",
+          "variantSku": "MAT-PAP-FOT-SVETLO-RJAVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2923,12 +3642,13 @@
             "barva": "14416"
           },
           "imageAssignments": [
-            0
+            4,
+            20
           ]
         },
         {
           "variantName": "rjava",
-          "variantSku": "ATE-14415",
+          "variantSku": "MAT-PAP-FOT-RJAVA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2949,12 +3669,13 @@
             "barva": "14415"
           },
           "imageAssignments": [
-            0
+            5,
+            20
           ]
         },
         {
           "variantName": "vijoličasta",
-          "variantSku": "ATE-14414",
+          "variantSku": "MAT-PAP-FOT-VIJOLICASTA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -2975,12 +3696,13 @@
             "barva": "14414"
           },
           "imageAssignments": [
-            0
+            6,
+            20
           ]
         },
         {
           "variantName": "lila",
-          "variantSku": "ATE-14413",
+          "variantSku": "MAT-PAP-FOT-LILA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3001,12 +3723,13 @@
             "barva": "14413"
           },
           "imageAssignments": [
-            0
+            7,
+            20
           ]
         },
         {
           "variantName": "temno zelena",
-          "variantSku": "ATE-14412",
+          "variantSku": "MAT-PAP-FOT-TEMNO-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3027,12 +3750,13 @@
             "barva": "14412"
           },
           "imageAssignments": [
-            0
+            8,
+            20
           ]
         },
         {
           "variantName": "zelena",
-          "variantSku": "ATE-14411",
+          "variantSku": "MAT-PAP-FOT-ZELENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3053,12 +3777,13 @@
             "barva": "14411"
           },
           "imageAssignments": [
-            0
+            9,
+            20
           ]
         },
         {
           "variantName": "oranžna",
-          "variantSku": "ATE-14410",
+          "variantSku": "MAT-PAP-FOT-ORANZNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3079,12 +3804,13 @@
             "barva": "14410"
           },
           "imageAssignments": [
-            0
+            10,
+            20
           ]
         },
         {
           "variantName": "kraljevsko modra",
-          "variantSku": "ATE-14409",
+          "variantSku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3105,12 +3831,13 @@
             "barva": "14409"
           },
           "imageAssignments": [
-            0
+            11,
+            20
           ]
         },
         {
           "variantName": "modra",
-          "variantSku": "ATE-14408",
+          "variantSku": "MAT-PAP-FOT-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3131,12 +3858,13 @@
             "barva": "14408"
           },
           "imageAssignments": [
-            0
+            12,
+            20
           ]
         },
         {
           "variantName": "temno modra",
-          "variantSku": "ATE-14407",
+          "variantSku": "MAT-PAP-FOT-TEMNO-MODRA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3157,12 +3885,13 @@
             "barva": "14407"
           },
           "imageAssignments": [
-            0
+            13,
+            20
           ]
         },
         {
           "variantName": "temno rdeča",
-          "variantSku": "ATE-14406",
+          "variantSku": "MAT-PAP-FOT-TEMNO-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3183,12 +3912,13 @@
             "barva": "14406"
           },
           "imageAssignments": [
-            0
+            14,
+            20
           ]
         },
         {
           "variantName": "rdeča",
-          "variantSku": "ATE-14405",
+          "variantSku": "MAT-PAP-FOT-RDECA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3209,12 +3939,13 @@
             "barva": "14405"
           },
           "imageAssignments": [
-            0
+            15,
+            20
           ]
         },
         {
           "variantName": "koruzno rumena",
-          "variantSku": "ATE-14404",
+          "variantSku": "MAT-PAP-FOT-KORUZNO-RUMENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3235,12 +3966,13 @@
             "barva": "14404"
           },
           "imageAssignments": [
-            0
+            16,
+            20
           ]
         },
         {
           "variantName": "marelična",
-          "variantSku": "ATE-14403",
+          "variantSku": "MAT-PAP-FOT-MARELICNA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3261,12 +3993,13 @@
             "barva": "14403"
           },
           "imageAssignments": [
-            0
+            17,
+            20
           ]
         },
         {
           "variantName": "rumena",
-          "variantSku": "ATE-14401",
+          "variantSku": "MAT-PAP-FOT-RUMENA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3287,12 +4020,13 @@
             "barva": "14401"
           },
           "imageAssignments": [
-            0
+            18,
+            20
           ]
         },
         {
           "variantName": "bela",
-          "variantSku": "ATE-14400",
+          "variantSku": "MAT-PAP-FOT-BELA",
           "length": 707,
           "width": 500,
           "thickness": null,
@@ -3313,11 +4047,348 @@
             "barva": "14400"
           },
           "imageAssignments": [
-            0
+            19,
+            20
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-crna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — črna, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-srebrna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-srebrna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — srebrna, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-siva-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-siva-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — siva, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-zlata-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-zlata-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — zlata, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-svetlo-rjava-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-svetlo-rjava-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — svetlo rjava, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 4
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-rjava-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-rjava-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — rjava, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 5
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-vijolicasta-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-vijolicasta-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — vijoličasta, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 6
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-lila-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-lila-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — lila, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 7
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-temno-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-temno-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — temno zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 8
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-zelena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-zelena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — zelena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 9
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-oranzna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-oranzna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — oranžna, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 10
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-kraljevsko-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-kraljevsko-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — kraljevsko modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 11
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 12
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-temno-modra-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-temno-modra-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — temno modra, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 13
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-temno-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-temno-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — temno rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 14
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-rdeca-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-rdeca-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — rdeča, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 15
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-koruzno-rumena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-koruzno-rumena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — koruzno rumena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 16
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-marelicna-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-marelicna-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — marelična, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 17
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-rumena-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-rumena-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — rumena, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 18
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-bela-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-bela-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Fotokarton — bela, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 19
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "fotokarton-ustvarjalni-projekt.jpg",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer ustvarjalnega projekta s papirjem in kartonom",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 6094,
+            "height": 4160
+          },
+          "hidden": false,
+          "position": 20
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -3331,8 +4402,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 21
         }
       ],
       "position": 10,
@@ -3355,7 +4426,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-LEPENKA",
+      "sku": "MAT-PAP-LEP",
       "slug": "lepenka",
       "unit": "kos",
       "description": "<p>Lepenka za modele, makete in ustvarjalne izdelke. Izbirate lahko med belo in sivo lepenko ter različnimi formati in debelinami.</p>",
@@ -3404,7 +4475,7 @@
       "variants": [
         {
           "variantName": "Bela lepenka A3",
-          "variantSku": "ATE-14013",
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
           "length": 420,
           "width": 297,
           "thickness": null,
@@ -3426,12 +4497,12 @@
             "izvedba": "14013"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "Siva lepenka A2",
-          "variantSku": "ATE-14062",
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
           "length": 594,
           "width": 420,
           "thickness": 0.7,
@@ -3459,7 +4530,7 @@
         },
         {
           "variantName": "Papir lepenka A4",
-          "variantSku": "ATE-14060",
+          "variantSku": "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4",
           "length": 297,
           "width": 210,
           "thickness": 0.8,
@@ -3481,12 +4552,12 @@
             "izvedba": "14060"
           },
           "imageAssignments": [
-            0
+            2
           ]
         },
         {
           "variantName": "Bela lepenka A4",
-          "variantSku": "ATE-14012",
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
           "length": 297,
           "width": 210,
           "thickness": null,
@@ -3508,12 +4579,12 @@
             "izvedba": "14012"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "1,2 mm B1",
-          "variantSku": "ATE-14020",
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
           "length": 1000,
           "width": 707,
           "thickness": 1.2,
@@ -3535,12 +4606,12 @@
             "izvedba": "14020"
           },
           "imageAssignments": [
-            0
+            2
           ]
         },
         {
           "variantName": "Papir lepenka A3",
-          "variantSku": "ATE-14061",
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
           "length": 420,
           "width": 297,
           "thickness": 0.8,
@@ -3562,11 +4633,59 @@
             "izvedba": "14061"
           },
           "imageAssignments": [
-            0
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka-siva-studio.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-siva-studio.png",
+          "mimeType": "image/png",
+          "altText": "Siva lepenka — reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka-bela-ilustracija-v2.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-bela-ilustracija-v2.png",
+          "mimeType": "image/png",
+          "altText": "Lepenka — Bela lepenka A4, reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "lepenka-izvedbe-delavnica.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-izvedbe-delavnica.png",
+          "mimeType": "image/png",
+          "altText": "Reprezentativne izvedbe lepenke in primer makete — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -3580,8 +4699,8 @@
             "width": 586,
             "height": 586
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 11,
@@ -3609,7 +4728,7 @@
         "Materiali",
         "Papir in karton"
       ],
-      "sku": "ATE-RISALNI-LIST",
+      "sku": "MAT-PAP-RIS",
       "slug": "risalni-list",
       "unit": "kos",
       "description": "<p>Risalni listi za risanje in likovni pouk v formatih od A5 do A2. Izberite velikost glede na načrtovani izdelek.</p>",
@@ -3648,7 +4767,7 @@
       "variants": [
         {
           "variantName": "A2",
-          "variantSku": "ATE-14043",
+          "variantSku": "MAT-PAP-RIS-594x420-A2",
           "length": 594,
           "width": 420,
           "thickness": null,
@@ -3669,12 +4788,13 @@
             "izvedba": "14043"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "A4",
-          "variantSku": "ATE-14041",
+          "variantSku": "MAT-PAP-RIS-297x210-A4",
           "length": 297,
           "width": 210,
           "thickness": null,
@@ -3695,12 +4815,13 @@
             "izvedba": "14041"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "A5",
-          "variantSku": "ATE-14040",
+          "variantSku": "MAT-PAP-RIS-210x148-A5",
           "length": 210,
           "width": 148,
           "thickness": null,
@@ -3721,12 +4842,13 @@
             "izvedba": "14040"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         },
         {
           "variantName": "A3",
-          "variantSku": "ATE-14042",
+          "variantSku": "MAT-PAP-RIS-420x297-A3",
           "length": 420,
           "width": 297,
           "thickness": null,
@@ -3747,11 +4869,44 @@
             "izvedba": "14042"
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "risalni-list-studio-1.png",
+          "blobUrl": "/images/catalog/2026-09/risalni-list-studio-1.png",
+          "mimeType": "image/png",
+          "altText": "Risalni list — reprezentativni prikaz materiala",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "risalni-list-studio-2.png",
+          "blobUrl": "/images/catalog/2026-09/risalni-list-studio-2.png",
+          "mimeType": "image/png",
+          "altText": "Risalni list — drug reprezentativni pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -3765,8 +4920,8 @@
             "width": 670,
             "height": 670
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 12,
@@ -3792,7 +4947,7 @@
         "Materiali",
         "Les"
       ],
-      "sku": "ATE-VEZANA-PLOSCA",
+      "sku": "MAT-LES-VEZ",
       "slug": "vezana-plosca",
       "unit": "kos",
       "description": "<p>Vezane plošče za modelarstvo in izdelavo izdelkov pri tehničnem pouku. Ponudba vključuje bukove, topolove in druge plošče v različnih dimenzijah.</p>",
@@ -3966,7 +5121,7 @@
       "variants": [
         {
           "variantName": "Bukev / 6 x 300 x 400",
-          "variantSku": "ATE-11112",
+          "variantSku": "MAT-LES-VEZ-6x400x300-BUKEV",
           "length": 400,
           "width": 300,
           "thickness": 6,
@@ -3990,12 +5145,12 @@
           },
           "imageAssignments": [
             0,
-            2
+            5
           ]
         },
         {
           "variantName": "Bukev / 4 x 500 x 500",
-          "variantSku": "ATE-11022",
+          "variantSku": "MAT-LES-VEZ-4x500x500-BUKEV",
           "length": 500,
           "width": 500,
           "thickness": 4,
@@ -4018,13 +5173,13 @@
             "izvedba": "11022"
           },
           "imageAssignments": [
-            0,
-            2
+            1,
+            5
           ]
         },
         {
           "variantName": "Bukev / 4 x 250 x 250",
-          "variantSku": "ATE-11017",
+          "variantSku": "MAT-LES-VEZ-4x250x250-BUKEV",
           "length": 250,
           "width": 250,
           "thickness": 4,
@@ -4047,13 +5202,13 @@
             "izvedba": "11017"
           },
           "imageAssignments": [
-            0,
-            2
+            1,
+            5
           ]
         },
         {
           "variantName": "Topol / 6 x 2520 x 1720",
-          "variantSku": "ATE-11120",
+          "variantSku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
           "length": 1720,
           "width": 2520,
           "thickness": 6,
@@ -4076,13 +5231,13 @@
             "izvedba": "11120"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            5
           ]
         },
         {
           "variantName": "Topol / 4 x 2520 x 1720",
-          "variantSku": "ATE-11040",
+          "variantSku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
           "length": 1720,
           "width": 2520,
           "thickness": 4,
@@ -4105,13 +5260,13 @@
             "izvedba": "11040"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            5
           ]
         },
         {
           "variantName": "Topol / 4 x 250 x 500",
-          "variantSku": "ATE-11016",
+          "variantSku": "MAT-LES-VEZ-4x500x250-TOPOL",
           "length": 500,
           "width": 250,
           "thickness": 4,
@@ -4134,13 +5289,13 @@
             "izvedba": "11016"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            5
           ]
         },
         {
           "variantName": "Topol / 3 x 250 x 500",
-          "variantSku": "ATE-11003",
+          "variantSku": "MAT-LES-VEZ-3x500x250-TOPOL",
           "length": 500,
           "width": 250,
           "thickness": 3,
@@ -4163,13 +5318,13 @@
             "izvedba": "11003"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            5
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 10 x 210 x 300",
-          "variantSku": "ATE-11313",
+          "variantSku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 210,
           "thickness": 10,
@@ -4191,13 +5346,13 @@
             "izvedba": "11313"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 8 x 210 x 300",
-          "variantSku": "ATE-11213",
+          "variantSku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 210,
           "thickness": 8,
@@ -4219,13 +5374,13 @@
             "izvedba": "11213"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 500 x 500",
-          "variantSku": "ATE-11104",
+          "variantSku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
           "length": 500,
           "width": 500,
           "thickness": 6,
@@ -4247,13 +5402,13 @@
             "izvedba": "11104"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 400 x 400",
-          "variantSku": "ATE-11107",
+          "variantSku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
           "length": 400,
           "width": 400,
           "thickness": 6,
@@ -4275,13 +5430,13 @@
             "izvedba": "11107"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 300 x 600",
-          "variantSku": "ATE-11105",
+          "variantSku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
           "length": 600,
           "width": 300,
           "thickness": 6,
@@ -4303,13 +5458,13 @@
             "izvedba": "11105"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 300 x 300",
-          "variantSku": "ATE-11106",
+          "variantSku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 300,
           "thickness": 6,
@@ -4331,13 +5486,13 @@
             "izvedba": "11106"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 250 x 1000",
-          "variantSku": "ATE-11103",
+          "variantSku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 1000,
           "width": 250,
           "thickness": 6,
@@ -4359,13 +5514,13 @@
             "izvedba": "11103"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 250 x 500",
-          "variantSku": "ATE-11102",
+          "variantSku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 500,
           "width": 250,
           "thickness": 6,
@@ -4387,13 +5542,13 @@
             "izvedba": "11102"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 250 x 250",
-          "variantSku": "ATE-11100",
+          "variantSku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 250,
           "width": 250,
           "thickness": 6,
@@ -4415,13 +5570,13 @@
             "izvedba": "11100"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 200 x 300",
-          "variantSku": "ATE-11101",
+          "variantSku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 200,
           "thickness": 6,
@@ -4443,13 +5598,13 @@
             "izvedba": "11101"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 6 x 150 x 200",
-          "variantSku": "ATE-11111",
+          "variantSku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
           "length": 200,
           "width": 150,
           "thickness": 6,
@@ -4471,13 +5626,13 @@
             "izvedba": "11111"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 5 x 200 x 150",
-          "variantSku": "ATE-11080",
+          "variantSku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
           "length": 150,
           "width": 200,
           "thickness": 5,
@@ -4499,13 +5654,13 @@
             "izvedba": "11080"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 400 x 400",
-          "variantSku": "ATE-11011",
+          "variantSku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
           "length": 400,
           "width": 400,
           "thickness": 4,
@@ -4527,13 +5682,13 @@
             "izvedba": "11011"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 300 x 420",
-          "variantSku": "ATE-11019",
+          "variantSku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
           "length": 420,
           "width": 300,
           "thickness": 4,
@@ -4555,13 +5710,13 @@
             "izvedba": "11019"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 250 x 1000",
-          "variantSku": "ATE-11018",
+          "variantSku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 1000,
           "width": 250,
           "thickness": 4,
@@ -4583,13 +5738,13 @@
             "izvedba": "11018"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 250 x 500",
-          "variantSku": "ATE-11015",
+          "variantSku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 500,
           "width": 250,
           "thickness": 4,
@@ -4611,13 +5766,13 @@
             "izvedba": "11015"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 250 x 250",
-          "variantSku": "ATE-11012",
+          "variantSku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 250,
           "width": 250,
           "thickness": 4,
@@ -4639,13 +5794,13 @@
             "izvedba": "11012"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 200 x 300",
-          "variantSku": "ATE-11013",
+          "variantSku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 200,
           "thickness": 4,
@@ -4667,13 +5822,13 @@
             "izvedba": "11013"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 200 x 150",
-          "variantSku": "ATE-11000",
+          "variantSku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
           "length": 150,
           "width": 200,
           "thickness": 4,
@@ -4695,13 +5850,13 @@
             "izvedba": "11000"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 120 x 120",
-          "variantSku": "ATE-11031",
+          "variantSku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
           "length": 120,
           "width": 120,
           "thickness": 4,
@@ -4723,13 +5878,13 @@
             "izvedba": "11031"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 100 x 150",
-          "variantSku": "ATE-11014",
+          "variantSku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
           "length": 150,
           "width": 100,
           "thickness": 4,
@@ -4751,13 +5906,13 @@
             "izvedba": "11014"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 4 x 50 x 60",
-          "variantSku": "ATE-11021",
+          "variantSku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
           "length": 60,
           "width": 50,
           "thickness": 4,
@@ -4779,13 +5934,13 @@
             "izvedba": "11021"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 3 x 250 x 250",
-          "variantSku": "ATE-11002",
+          "variantSku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
           "length": 250,
           "width": 250,
           "thickness": 3,
@@ -4807,13 +5962,13 @@
             "izvedba": "11002"
           },
           "imageAssignments": [
-            1,
-            3
+            4,
+            6
           ]
         },
         {
           "variantName": "Lesna vrsta ni navedena / 3 x 210 x 300",
-          "variantSku": "ATE-11001",
+          "variantSku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
           "length": 300,
           "width": 210,
           "thickness": 3,
@@ -4835,12 +5990,92 @@
             "izvedba": "11001"
           },
           "imageAssignments": [
-            1,
-            3
+            3,
+            6
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-bukev-pravokotnik-studio.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-bukev-pravokotnik-studio.png",
+          "mimeType": "image/png",
+          "altText": "Vezana plošča iz bukve — reprezentativni pravokotni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-bukev-kvadrat-studio.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-bukev-kvadrat-studio.png",
+          "mimeType": "image/png",
+          "altText": "Vezana plošča iz bukve — reprezentativni kvadratni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-topol-pravokotnik-studio.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-topol-pravokotnik-studio.png",
+          "mimeType": "image/png",
+          "altText": "Vezana plošča iz topola — reprezentativni pravokotni format",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-pravokotnik-studio.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-pravokotnik-studio.png",
+          "mimeType": "image/png",
+          "altText": "Vezana plošča — reprezentativni pravokotni format, lesna vrsta ni navedena",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vezana-kvadrat-studio.png",
+          "blobUrl": "/images/catalog/2026-09/vezana-kvadrat-studio.png",
+          "mimeType": "image/png",
+          "altText": "Vezana plošča — reprezentativni kvadratni format, lesna vrsta ni navedena",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 4
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -4855,7 +6090,7 @@
             "height": 800
           },
           "hidden": false,
-          "position": 0
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -4871,7 +6106,7 @@
             "height": 800
           },
           "hidden": false,
-          "position": 1
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -4886,8 +6121,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -4902,8 +6137,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 8
         }
       ],
       "position": 13,
@@ -4927,7 +6162,7 @@
       "categoryPath": [
         "Električni in mehanični elementi"
       ],
-      "sku": "ATE-MOTORCEK",
+      "sku": "ELE-MOT",
       "slug": "motorcek",
       "unit": "kos",
       "description": "<p>Majhni elektromotorji za modele in učne projekte. Izberite izvedbo R20, R21 ali R23; podatki o napetosti in merah so navedeni ob posamezni različici.</p>",
@@ -4961,7 +6196,7 @@
       "variants": [
         {
           "variantName": "Motorček R23",
-          "variantSku": "ATE-22020",
+          "variantSku": "ELE-MOT-R23",
           "length": null,
           "width": null,
           "thickness": null,
@@ -4987,12 +6222,13 @@
             "izvedba": "22020"
           },
           "imageAssignments": [
-            0
+            0,
+            3
           ]
         },
         {
           "variantName": "Motorček R20",
-          "variantSku": "ATE-22000",
+          "variantSku": "ELE-MOT-R20",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5023,7 +6259,7 @@
         },
         {
           "variantName": "Motorček R21",
-          "variantSku": "ATE-22010",
+          "variantSku": "ELE-MOT-R21",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5049,11 +6285,92 @@
             "izvedba": "22010"
           },
           "imageAssignments": [
-            2
+            2,
+            4
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motor-r23-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motorcek-r20-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r20-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R20 / RE140 — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 2346
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motor-r21-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/motor-r21-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Motorček R21 — reprezentativna ilustracija oblike motorčka",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motorcek-r23-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R23 / RE280R — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1637
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motorcek-r21-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R21 / RE260 — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1863
+          },
+          "hidden": false,
+          "position": 4
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5067,8 +6384,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -5083,8 +6400,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -5099,8 +6416,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 7
         }
       ],
       "position": 14,
@@ -5124,7 +6441,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-GEOTRIKOTNIK",
+      "sku": "MER-GEO",
       "slug": "geotrikotnik",
       "unit": "kos",
       "description": "<p>Velik geotrikotnik za načrtovanje in prikaz geometrije na tabli. Na voljo sta velikosti 60 in 80 cm, tudi v magnetni izvedbi.</p>",
@@ -5163,7 +6480,7 @@
       "variants": [
         {
           "variantName": "60 cm",
-          "variantSku": "ATE-017050",
+          "variantSku": "MER-GEO-60-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5185,12 +6502,12 @@
           },
           "imageAssignments": [
             0,
-            1
+            4
           ]
         },
         {
           "variantName": "60 cm, magneten",
-          "variantSku": "ATE-01705M",
+          "variantSku": "MER-GEO-60-CM-MAGNETEN",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5211,13 +6528,13 @@
             "izvedba": "01705m"
           },
           "imageAssignments": [
-            0,
-            1
+            4,
+            2
           ]
         },
         {
           "variantName": "80 cm",
-          "variantSku": "ATE-017150",
+          "variantSku": "MER-GEO-80-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5238,13 +6555,13 @@
             "izvedba": "017150"
           },
           "imageAssignments": [
-            0,
-            1
+            1,
+            4
           ]
         },
         {
           "variantName": "80 cm, magneten",
-          "variantSku": "ATE-01715M",
+          "variantSku": "MER-GEO-80-CM-MAGNETEN",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5265,12 +6582,76 @@
             "izvedba": "01715m"
           },
           "imageAssignments": [
-            0,
-            1
+            3,
+            4
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geo60-navaden-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/geo60-navaden-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev geotrikotnika za tablo, 60 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geo80-navaden-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/geo80-navaden-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev geotrikotnika za tablo, 80 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geo60-magneten-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/geo60-magneten-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev magnetnega geotrikotnika, 60 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geo80-magneten-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/geo80-magneten-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev magnetnega geotrikotnika, 80 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 3
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5285,7 +6666,7 @@
             "height": 1200
           },
           "hidden": false,
-          "position": 0
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -5300,8 +6681,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 5
         }
       ],
       "position": 15,
@@ -5323,7 +6704,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-TRIKOTNIKI-ZA-TABLO",
+      "sku": "MER-TRI-ZA",
       "slug": "trikotniki-za-tablo",
       "unit": "kos",
       "description": "<p>Trikotniki za geometrijske konstrukcije na tabli. Izbirate lahko med kotoma 45° in 60° ter velikostma 50 in 60 cm.</p>",
@@ -5362,7 +6743,7 @@
       "variants": [
         {
           "variantName": "45° / 50 cm",
-          "variantSku": "ATE-010700",
+          "variantSku": "MER-TRI-ZA-45-50-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5384,13 +6765,12 @@
             "izvedba": "010700"
           },
           "imageAssignments": [
-            0,
-            1
+            3
           ]
         },
         {
           "variantName": "45° / 60 cm",
-          "variantSku": "ATE-010710",
+          "variantSku": "MER-TRI-ZA-45-60-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5412,13 +6792,13 @@
             "izvedba": "010710"
           },
           "imageAssignments": [
-            0,
-            1
+            1,
+            3
           ]
         },
         {
           "variantName": "60° / 50 cm",
-          "variantSku": "ATE-010800",
+          "variantSku": "MER-TRI-ZA-60-50-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5440,13 +6820,13 @@
             "izvedba": "010800"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            3
           ]
         },
         {
           "variantName": "60° / 60 cm",
-          "variantSku": "ATE-010810",
+          "variantSku": "MER-TRI-ZA-60-60-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5469,11 +6849,59 @@
           },
           "imageAssignments": [
             0,
-            2
+            3
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotnik-60-stopinj-60cm-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-60-stopinj-60cm-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "60 stopinjski trikotnik",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotnik45-60-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/trikotnik45-60-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev trikotnika za tablo, 45° / 60 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trikotnik60-50-popravljen-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/trikotnik60-50-popravljen-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev trikotnika za tablo, 60° / 50 cm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5488,7 +6916,7 @@
             "height": 1200
           },
           "hidden": false,
-          "position": 0
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -5503,8 +6931,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -5519,8 +6947,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 5
         }
       ],
       "position": 16,
@@ -5542,7 +6970,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-RAVNILA-ZA-TABLO",
+      "sku": "MER-RAV",
       "slug": "ravnila-za-tablo",
       "unit": "kos",
       "description": "<p>Ravnila dolžine 100 cm za delo na tabli. Na voljo so navadna in magnetna izvedba ter izvedbi z decimetrsko skalo.</p>",
@@ -5581,7 +7009,7 @@
       "variants": [
         {
           "variantName": "100 cm",
-          "variantSku": "ATE-010400",
+          "variantSku": "MER-RAV-100-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5602,13 +7030,12 @@
             "izvedba": "010400"
           },
           "imageAssignments": [
-            0,
             1
           ]
         },
         {
           "variantName": "100 cm, magnetno",
-          "variantSku": "ATE-01040M",
+          "variantSku": "MER-RAV-100-CM-MAGNETNO",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5629,13 +7056,12 @@
             "izvedba": "01040m"
           },
           "imageAssignments": [
-            0,
             1
           ]
         },
         {
           "variantName": "100 cm, decimetrska skala",
-          "variantSku": "ATE-010300",
+          "variantSku": "MER-RAV-100-CM-DECIMETRSKA-SKALA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5657,12 +7083,12 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         },
         {
           "variantName": "100 cm, decimetrska skala, magnetno",
-          "variantSku": "ATE-01030M",
+          "variantSku": "MER-RAV-100-CM-DECIMETRSKA-SKALA-MAGNETNO",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5684,11 +7110,27 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "ravnilo-za-tablo-decimetrsko-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/ravnilo-za-tablo-decimetrsko-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "meter za tablo 2",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5703,7 +7145,7 @@
             "height": 1200
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         },
         {
           "mediaKind": "image",
@@ -5718,8 +7160,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -5734,8 +7176,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 17,
@@ -5780,7 +7222,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-TRIGONIR",
+      "sku": "MER-TRI-216",
       "slug": "trigonir",
       "unit": "kos",
       "description": "<p>Učni pripomoček za ponazoritev kotnih funkcij. Pomaga pri obravnavi njihovih osnovnih lastnosti in vrednosti za izbrane kote pri matematiki in strokovnih predmetih.</p>",
@@ -5791,7 +7233,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-005001",
+          "variantSku": "MER-TRI-216-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5808,11 +7250,45 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trigonir-triso-prednja-stran.png",
+          "blobUrl": "/images/catalog/2026-09/trigonir-triso-prednja-stran.png",
+          "mimeType": "image/png",
+          "altText": "Trigonir TRISO – fizični pripomoček v embalaži",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1026,
+            "height": 1026
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "trigonir-triso-navodila.png",
+          "blobUrl": "/images/catalog/2026-09/trigonir-triso-navodila.png",
+          "mimeType": "image/png",
+          "altText": "Trigonir TRISO – zadnja stran s slovenskimi navodili",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1026,
+            "height": 1026
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5827,7 +7303,7 @@
             "height": 849
           },
           "hidden": false,
-          "position": 0
+          "position": 2
         }
       ],
       "position": 18,
@@ -5872,7 +7348,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-MAGNETNI-TRINOG",
+      "sku": "MER-MAG",
       "slug": "magnetni-trinog",
       "unit": "kos",
       "description": "<p>Magnetni nastavek s tremi nogami za šestilo za tablo.</p>",
@@ -5883,7 +7359,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-010012",
+          "variantSku": "MER-MAG-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5900,11 +7376,28 @@
             }
           },
           "imageAssignments": [
+            1,
             0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "geometrija-kroznica-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/geometrija-kroznica-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev risanja krožnice in polmerov na tabli",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -5919,7 +7412,7 @@
             "height": 1667
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         }
       ],
       "position": 19,
@@ -5964,7 +7457,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-TRACNI-METER",
+      "sku": "MER-TRA",
       "slug": "tracni-meter",
       "unit": "kos",
       "description": "<p>Tračni meter dolžine 5 m za merjenje pri tehničnem pouku in delu v delavnici.</p>",
@@ -5975,7 +7468,7 @@
       "variants": [
         {
           "variantName": "Meter - tračni",
-          "variantSku": "ATE-32800",
+          "variantSku": "MER-TRA-METER-TRACNI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -5992,11 +7485,28 @@
             }
           },
           "imageAssignments": [
+            1,
             0
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "tracni-meter-delavnica.png",
+          "blobUrl": "/images/catalog/2026-09/tracni-meter-delavnica.png",
+          "mimeType": "image/png",
+          "altText": "Primer uporabe tračnega metra v delavnici — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6011,7 +7521,7 @@
             "height": 1200
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         }
       ],
       "position": 20,
@@ -6033,7 +7543,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-SESTILO",
+      "sku": "MER-SES",
       "slug": "sestilo",
       "unit": "kos",
       "description": "<p>Šestilo za risanje krožnic na tabli. Na voljo je izvedba z magnetnimi nogami ali z vakuumskimi priseski.</p>",
@@ -6062,7 +7572,7 @@
       "variants": [
         {
           "variantName": "Šestilo z magnetnimi nogami",
-          "variantSku": "ATE-010912",
+          "variantSku": "MER-SES-SESTILO-Z-MAGNETNIMI-NOGAMI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6088,7 +7598,7 @@
         },
         {
           "variantName": "Šestilo z vakuumskimi priseski",
-          "variantSku": "ATE-010911",
+          "variantSku": "MER-SES-SESTILO-Z-VAKUUMSKIMI-PRISESKI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6108,12 +7618,27 @@
             "izvedba": "010911"
           },
           "imageAssignments": [
-            0,
-            2
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "sestilo-magnetno-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/sestilo-magnetno-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Šestilo z magnetnimi nogami – original",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1584,
+            "height": 1584
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6128,7 +7653,7 @@
             "height": 1584
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         },
         {
           "mediaKind": "image",
@@ -6143,8 +7668,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -6159,8 +7684,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 21,
@@ -6276,7 +7801,7 @@
       "categoryPath": [
         "Stroji in naprave"
       ],
-      "sku": "ATE-KRIVILNIK-ZA-PLASTICNE-MASE",
+      "sku": "STR-KRI",
       "slug": "krivilnik-za-plasticne-mase",
       "unit": "kos",
       "description": "<p>THERMOFORM 400 je naprava za krivljenje plastičnih plošč debeline do 5 mm. Ima 400 mm dolgo grelno žico in delovno površino 440 × 165 mm.</p>",
@@ -6287,7 +7812,7 @@
       "variants": [
         {
           "variantName": "Krivilnik za plastične mase - THERMOFORM 400",
-          "variantSku": "ATE-30080",
+          "variantSku": "STR-KRI-OSNOVNA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6309,11 +7834,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "thermoform-400-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/thermoform-400-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Krivilnik THERMOFORM 400 — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 489
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "thermoform-primer-izdelka.png",
+          "blobUrl": "/images/catalog/2026-09/thermoform-primer-izdelka.png",
+          "mimeType": "image/png",
+          "altText": "Primer izdelka iz toplotno krivljenega pleksi stekla — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6327,8 +7885,8 @@
             "width": 300,
             "height": 169
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 22,
@@ -6492,7 +8050,7 @@
       "categoryPath": [
         "Stroji in naprave"
       ],
-      "sku": "ATE-VIBRACIJSKA-ZAGA-PROXXON-DSH",
+      "sku": "STR-VIB",
       "slug": "vibracijska-zaga-proxxon-dsh",
       "unit": "kos",
       "brand": "Proxxon",
@@ -6504,7 +8062,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-30250",
+          "variantSku": "STR-VIB-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6530,11 +8088,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "proxxon-dsh-proizvajalec.png",
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-proizvajalec.png",
+          "mimeType": "image/png",
+          "altText": "Vibracijska žaga Proxxon DSH 28092 – pogled proizvajalca",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 600
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "proxxon-dsh-sprednji-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-sprednji-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Vibracijska žaga Proxxon DSH 28092 – sprednji pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6548,8 +8139,8 @@
             "width": 500,
             "height": 428
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 23,
@@ -6573,7 +8164,7 @@
       "categoryPath": [
         "Ročno orodje in delavniški pribor"
       ],
-      "sku": "ATE-KLADIVO",
+      "sku": "ROC-KLA",
       "slug": "kladivo",
       "unit": "kos",
       "description": "<p>Kladivo za delo v tehnični delavnici. Izberite maso 200 ali 300 g ter posamezen kos ali komplet desetih kladiv v stojalu.</p>",
@@ -6612,7 +8203,7 @@
       "variants": [
         {
           "variantName": "200 g, 1 kos",
-          "variantSku": "ATE-32211",
+          "variantSku": "ROC-KLA-200-G-1-KOS",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6638,7 +8229,7 @@
         },
         {
           "variantName": "200 g, 10 kosov v stojalu",
-          "variantSku": "ATE-32210",
+          "variantSku": "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6659,12 +8250,12 @@
             "izvedba": "32210"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "300 g, 1 kos",
-          "variantSku": "ATE-32113",
+          "variantSku": "ROC-KLA-300-G-1-KOS",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6685,13 +8276,12 @@
             "izvedba": "32113"
           },
           "imageAssignments": [
-            0,
-            1
+            0
           ]
         },
         {
           "variantName": "300 g, 10 kosov v stojalu",
-          "variantSku": "ATE-32114",
+          "variantSku": "ROC-KLA-300-G-10-KOSOV-V-STOJALU",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6712,12 +8302,43 @@
             "izvedba": "32114"
           },
           "imageAssignments": [
-            0,
             1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-posamezno-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/kladivo-posamezno-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev ključavničarskega kladiva z lesenim ročajem",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kladivo-komplet-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/kladivo-komplet-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev kompleta desetih kladiv v lesenem stojalu",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6731,8 +8352,8 @@
             "width": 322,
             "height": 417
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -6747,8 +8368,8 @@
             "width": 175,
             "height": 500
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 24,
@@ -6799,7 +8420,7 @@
       "categoryPath": [
         "Ročno orodje in delavniški pribor"
       ],
-      "sku": "ATE-ELEKTRICARSKE-KLESCE-ZA-SNEMANJE-IZOLACIJE",
+      "sku": "ROC-ELE",
       "slug": "elektricarske-klesce-za-snemanje-izolacije",
       "unit": "kos",
       "description": "<p>Komplet desetih električarskih klešč za snemanje izolacije z električnih vodnikov. Priloženo leseno stojalo omogoča urejeno shranjevanje v učni delavnici.</p>",
@@ -6810,7 +8431,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-32351",
+          "variantSku": "ROC-ELE-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6828,11 +8449,61 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "klesce-za-izolacijo-10-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 2476
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "klesce-snemanje-izolacije-uporaba.png",
+          "blobUrl": "/images/catalog/2026-09/klesce-snemanje-izolacije-uporaba.png",
+          "mimeType": "image/png",
+          "altText": "Primer priprave žice s kleščami za snemanje izolacije — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 496,
+            "height": 500
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6846,8 +8517,8 @@
             "width": 500,
             "height": 483
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 25,
@@ -6892,7 +8563,7 @@
       "categoryPath": [
         "Ročno orodje in delavniški pribor"
       ],
-      "sku": "ATE-ZLATARSKE-SKARJE-ZA-PLOCEVINO",
+      "sku": "ROC-ZLA",
       "slug": "zlatarske-skarje-za-plocevino",
       "unit": "kos",
       "description": "<p>Komplet zlatarskih škarij za rezanje pločevine. Deset kosov je shranjenih v skupnem stojalu za uporabo v delavnici.</p><p>Fotografija prikazuje posamezne škarje. Stojalo ni prikazano.</p>",
@@ -6904,7 +8575,7 @@
       "variants": [
         {
           "variantName": "Škarje za pločevino - zlatarske (10 kosov v stojalu)",
-          "variantSku": "ATE-32102",
+          "variantSku": "ROC-ZLA-SKARJE-ZA-PLOCEVINO-ZLATARSKE-10-KOSOV-V-STOJALU",
           "length": null,
           "width": null,
           "thickness": null,
@@ -6921,11 +8592,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zlatarske-komplet-studio-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-komplet-studio-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev kompleta desetih zlatarskih škarij v stojalu",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1312,
+            "height": 1199
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zlatarske-detajl-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-detajl-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev zlatarskih škarij ob bakreni pločevini",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -6939,8 +8643,8 @@
             "width": 415,
             "height": 415
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 26,
@@ -6986,7 +8690,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-DIGITALNO-POMICNO-MERILO",
+      "sku": "MER-DIG",
       "slug": "digitalno-pomicno-merilo",
       "unit": "kos",
       "description": "<p>Digitalno pomično merilo z merilnim območjem do 150 mm za merjenje pri praktičnem pouku in delu v delavnici.</p>",
@@ -6997,7 +8701,7 @@
       "variants": [
         {
           "variantName": "Digitalno pomično merilo, 150 mm",
-          "variantSku": "ATE-32812",
+          "variantSku": "MER-DIG-150-MM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7014,11 +8718,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "digitalno-pomicno-merilo-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Digitalno pomično merilo — Digitalno pomično merilo, 150 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 857
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "digitalno-pomicno-merilo-delavnica.jpg",
+          "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo-delavnica.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe: Digitalno pomično merilo — Digitalno pomično merilo, 150 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 2423
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7032,8 +8769,8 @@
             "width": 500,
             "height": 167
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 27,
@@ -7078,7 +8815,7 @@
       "categoryPath": [
         "Dodatki in nadomestni deli"
       ],
-      "sku": "ATE-ZICA-ZA-LOTANJE",
+      "sku": "DOD-ZIC",
       "slug": "zica-za-lotanje",
       "unit": "kos",
       "description": "<p>Žica za lotanje v 100-gramskem pakiranju za uporabo pri spajkanju.</p>",
@@ -7089,7 +8826,7 @@
       "variants": [
         {
           "variantName": "Žica za lotanje - 100 g",
-          "variantSku": "ATE-30151",
+          "variantSku": "DOD-ZIC-100-G",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7106,11 +8843,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zica-za-lotanje-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Kolut žice za lotanje – ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "zica-za-lotanje-delovna-miza.png",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-delovna-miza.png",
+          "mimeType": "image/png",
+          "altText": "Žica za lotanje na delovni mizi – ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7124,8 +8894,8 @@
             "width": 350,
             "height": 400
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 28,
@@ -7147,7 +8917,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-SOLSKA-TEHTNICA",
+      "sku": "MER-SOL",
       "slug": "solska-tehtnica",
       "unit": "kos",
       "brand": "Wissner",
@@ -7182,7 +8952,7 @@
       "variants": [
         {
           "variantName": "Tehtnica Wissner, kovinska - max 2 kg",
-          "variantSku": "ATE-070110",
+          "variantSku": "MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7205,12 +8975,12 @@
           },
           "imageAssignments": [
             0,
-            1
+            4
           ]
         },
         {
           "variantName": "Tehtnica Wissner, plastična - max 2 kg",
-          "variantSku": "ATE-070112",
+          "variantSku": "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-MAX-2-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7232,12 +9002,12 @@
             "izvedba": "070112"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
           "variantName": "Tehtnica Wissner, plastična, z utežmi – max 2 kg",
-          "variantSku": "ATE-65108",
+          "variantSku": "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-Z-UTEZMI-MAX-2-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7259,12 +9029,92 @@
             "izvedba": "65108"
           },
           "imageAssignments": [
-            0,
-            2
+            2,
+            3
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "solska-tehtnica-siva-wissner-070110.png",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-siva-wissner-070110.png",
+          "mimeType": "image/png",
+          "altText": "Šolska tehtnica Wissner 070110 – sivo ohišje in plitva pladnja",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "solska-tehtnica-rdeca-zaprta.jpg",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-zaprta.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Rdeča šolska tehtnica – zaprto stojalo za uteži",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1000,
+            "height": 1001
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "solska-tehtnica-rdeca-z-utezmi.jpg",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-z-utezmi.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Rdeča šolska tehtnica s priloženimi utežmi",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1800,
+            "height": 1800
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "solska-tehtnica-rdeca-detajl-utezi.jpg",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-detajl-utezi.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Rdeča šolska tehtnica – detajl predala za uteži",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "solska-tehtnica-wissner-v-ucilnici.jpg",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-v-ucilnici.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Otroka pri učenju tehtanja s šolsko tehtnico Wissner",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1000,
+            "height": 679
+          },
+          "hidden": false,
+          "position": 4
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7278,8 +9128,8 @@
             "width": 450,
             "height": 450
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -7294,8 +9144,8 @@
             "width": 570,
             "height": 708
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -7310,8 +9160,8 @@
             "width": 450,
             "height": 450
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 7
         }
       ],
       "position": 29,
@@ -7333,7 +9183,7 @@
       "categoryPath": [
         "Dodatki in nadomestni deli"
       ],
-      "sku": "ATE-SPIRALNE-ZAGICE-ZA-LES-IN-MEHKE-KOVINE",
+      "sku": "DOD-SPI",
       "slug": "spiralne-zagice-za-les-in-mehke-kovine",
       "unit": "kos",
       "description": "<p>Spiralne žagice za rezanje lesa in mehkih kovin. Izberite fino, srednjo ali grobo izvedbo robov.</p>",
@@ -7367,7 +9217,7 @@
       "variants": [
         {
           "variantName": "Fini robovi",
-          "variantSku": "ATE-32470",
+          "variantSku": "DOD-SPI-FINI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7394,7 +9244,7 @@
         },
         {
           "variantName": "Srednji robovi",
-          "variantSku": "ATE-32471",
+          "variantSku": "DOD-SPI-SREDNJI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7416,12 +9266,12 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         },
         {
           "variantName": "Grobi robovi",
-          "variantSku": "ATE-32473",
+          "variantSku": "DOD-SPI-GROBI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7443,11 +9293,43 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "spiralne-tanke-studio-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/spiralne-tanke-studio-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev tankih spiralnih žagic",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "spiralne-tanke-uporaba-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/spiralne-tanke-uporaba-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev spiralnih žagic ob izrezani vezani plošči",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7461,8 +9343,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -7477,8 +9359,8 @@
             "width": 570,
             "height": 600
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -7493,8 +9375,8 @@
             "width": 570,
             "height": 600
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 4
         }
       ],
       "position": 30,
@@ -7516,7 +9398,7 @@
       "categoryPath": [
         "Dodatki in nadomestni deli"
       ],
-      "sku": "ATE-ZAGICE-ZA-REZANJE-KOVIN",
+      "sku": "DOD-ZAG",
       "slug": "zagice-za-rezanje-kovin",
       "unit": "kos",
       "description": "<p>Žagice za rezanje kovin v fini, srednji in grobi izvedbi.</p>",
@@ -7550,7 +9432,7 @@
       "variants": [
         {
           "variantName": "Fini robovi",
-          "variantSku": "ATE-32460",
+          "variantSku": "DOD-ZAG-FINI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7577,7 +9459,7 @@
         },
         {
           "variantName": "Srednji robovi",
-          "variantSku": "ATE-32461",
+          "variantSku": "DOD-ZAG-SREDNJI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7599,12 +9481,12 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         },
         {
           "variantName": "Grobi robovi",
-          "variantSku": "ATE-32462",
+          "variantSku": "DOD-ZAG-GROBI-ROBOVI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7626,11 +9508,43 @@
           },
           "imageAssignments": [
             0,
-            2
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kovine-tanke-studio-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/kovine-tanke-studio-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev tankih žagic za rezanje kovin",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "kovine-tanke-uporaba-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/kovine-tanke-uporaba-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Ponazoritev žagic ob medeninasti plošči",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7644,8 +9558,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -7660,8 +9574,8 @@
             "width": 570,
             "height": 600
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -7676,8 +9590,8 @@
             "width": 570,
             "height": 600
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 4
         }
       ],
       "position": 31,
@@ -7734,7 +9648,7 @@
       "categoryPath": [
         "Merilno orodje in geometrija"
       ],
-      "sku": "ATE-ALUMINIJASTO-RAVNILO-Z-ROCAJEM",
+      "sku": "MER-ALU",
       "slug": "aluminijasto-ravnilo-z-rocajem",
       "unit": "kos",
       "description": "<p>Aluminijasto ravnilo z ročajem dolžine 40 cm. Izdelano je iz srebrno eloksiranega profila s faseto.</p>",
@@ -7745,7 +9659,7 @@
       "variants": [
         {
           "variantName": "Ravnilo alu, z ročajem, 40 cm",
-          "variantSku": "ATE-32821",
+          "variantSku": "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7764,11 +9678,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "ravnilo-40-cm-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/ravnilo-40-cm-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Aluminijasto ravnilo z ročajem — reprezentativna ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "ravnilo-z-rocajem-uporaba.png",
+          "blobUrl": "/images/catalog/2026-09/ravnilo-z-rocajem-uporaba.png",
+          "mimeType": "image/png",
+          "altText": "Primer uporabe ravnila z ročajem — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7782,8 +9729,8 @@
             "width": 342,
             "height": 342
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 32,
@@ -7834,7 +9781,7 @@
       "categoryPath": [
         "Zaščita pri delu"
       ],
-      "sku": "ATE-OTROSKI-ZASCITNI-PREDPASNIK",
+      "sku": "ZAS-OTR-ZAS",
       "slug": "otroski-zascitni-predpasnik",
       "unit": "kos",
       "description": "<p>Otroški zaščitni predpasnik v modri barvi za delo pri praktičnem pouku.</p>",
@@ -7845,7 +9792,7 @@
       "variants": [
         {
           "variantName": "Zaščitni predpasnik - otroški",
-          "variantSku": "ATE-OTROSKI-ZASCITNI-PREDPASNIK-1",
+          "variantSku": "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7863,11 +9810,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroski-zascitni-predpasnik-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Modri zaščitni predpasnik – ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroski-zascitni-predpasnik-ucilnica.png",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-ucilnica.png",
+          "mimeType": "image/png",
+          "altText": "Otroški modri predpasnik v učilnici – ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7881,8 +9861,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 33,
@@ -7939,7 +9919,7 @@
       "categoryPath": [
         "Zaščita pri delu"
       ],
-      "sku": "ATE-OTROSKA-OCALA-ZA-ZASCITO-OCI",
+      "sku": "ZAS-OTR-OCA",
       "slug": "otroska-ocala-za-zascito-oci",
       "unit": "kos",
       "brand": "TTS",
@@ -7952,7 +9932,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-45002",
+          "variantSku": "ZAS-OTR-OCA-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -7971,11 +9951,45 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroska-ocala-tts-celoten-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-celoten-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Otroška zaščitna očala TTS – celoten pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 900,
+            "height": 900
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "otroska-ocala-tts-detajl-rocice.jpg",
+          "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-detajl-rocice.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Otroška zaščitna očala TTS – detajl nastavljive ročice",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 900,
+            "height": 900
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -7990,7 +10004,7 @@
             "height": 900
           },
           "hidden": false,
-          "position": 0
+          "position": 2
         }
       ],
       "position": 34,
@@ -8048,7 +10062,7 @@
       "categoryPath": [
         "Zaščita pri delu"
       ],
-      "sku": "ATE-OCALA-ZA-ZASCITO-OCI",
+      "sku": "ZAS-OCA",
       "slug": "ocala-za-zascito-oci",
       "unit": "kos",
       "brand": "Koestier",
@@ -8061,7 +10075,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-45001",
+          "variantSku": "ZAS-OCA-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8080,11 +10094,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "ocala-koestier-pogled-1.webp",
+          "blobUrl": "/images/catalog/2026-09/ocala-koestier-pogled-1.webp",
+          "mimeType": "image/webp",
+          "altText": "Zaščitna očala Koestier – sprednji pogled",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 790,
+            "height": 509
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "ocala-koestier-pogled-2.webp",
+          "blobUrl": "/images/catalog/2026-09/ocala-koestier-pogled-2.webp",
+          "mimeType": "image/webp",
+          "altText": "Zaščitna očala Koestier – pogled od zgoraj",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 790,
+            "height": 490
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8098,8 +10145,8 @@
             "width": 535,
             "height": 431
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 35,
@@ -8122,7 +10169,7 @@
       "categoryPath": [
         "Ročno orodje in delavniški pribor"
       ],
-      "sku": "ATE-PODLAGA-ZA-REZANJE",
+      "sku": "ROC-POD",
       "slug": "podlaga-za-rezanje",
       "unit": "kos",
       "description": "<p>Podlaga za rezanje pri oblikovanju in izdelavi modelov. Izberite velikost, ki ustreza vaši delovni površini.</p>",
@@ -8161,7 +10208,7 @@
       "variants": [
         {
           "variantName": "220 x 300 mm",
-          "variantSku": "ATE-32500",
+          "variantSku": "ROC-POD-220-X-300-MM",
           "length": 300,
           "width": 220,
           "thickness": null,
@@ -8180,12 +10227,13 @@
             "izvedba": "32500"
           },
           "imageAssignments": [
-            0
+            0,
+            4
           ]
         },
         {
           "variantName": "300 x 450 mm",
-          "variantSku": "ATE-32501",
+          "variantSku": "ROC-POD-300-X-450-MM",
           "length": 450,
           "width": 300,
           "thickness": null,
@@ -8204,13 +10252,12 @@
             "izvedba": "32501"
           },
           "imageAssignments": [
-            0,
             1
           ]
         },
         {
           "variantName": "450 x 600 mm",
-          "variantSku": "ATE-32502",
+          "variantSku": "ROC-POD-450-X-600-MM",
           "length": 600,
           "width": 450,
           "thickness": null,
@@ -8229,13 +10276,12 @@
             "izvedba": "32502"
           },
           "imageAssignments": [
-            0,
             2
           ]
         },
         {
           "variantName": "600 x 900 mm",
-          "variantSku": "ATE-32503",
+          "variantSku": "ROC-POD-600-X-900-MM",
           "length": 900,
           "width": 600,
           "thickness": null,
@@ -8254,12 +10300,107 @@
             "izvedba": "32503"
           },
           "imageAssignments": [
-            0,
             3
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-220-300-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-220-300-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Podlaga za rezanje — 220 x 300 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1333
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-300-450-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-300-450-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Podlaga za rezanje — 300 x 450 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1774
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-450-600-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-450-600-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Podlaga za rezanje — 450 x 600 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1994
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-600-900-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-600-900-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Podlaga za rezanje — 600 x 900 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1774
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-delovna-miza.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-delovna-miza.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe: Podlaga za rezanje — 220 x 300 mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 4
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "podlaga-za-rezanje-ustvarjanje.jpg",
+          "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-ustvarjanje.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe: Podlaga za rezanje",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1943,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 5
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8273,8 +10414,8 @@
             "width": 500,
             "height": 260
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -8289,8 +10430,8 @@
             "width": 500,
             "height": 274
           },
-          "hidden": false,
-          "position": 1
+          "hidden": true,
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -8305,8 +10446,8 @@
             "width": 500,
             "height": 274
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 8
         },
         {
           "mediaKind": "image",
@@ -8321,8 +10462,8 @@
             "width": 500,
             "height": 274
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 9
         }
       ],
       "position": 36,
@@ -8380,7 +10521,7 @@
         "Materiali",
         "Lepila"
       ],
-      "sku": "ATE-UHU-KRAFT",
+      "sku": "MAT-LEP-UHU-KRA",
       "slug": "uhu-kraft",
       "unit": "kos",
       "brand": "UHU",
@@ -8392,7 +10533,7 @@
       "variants": [
         {
           "variantName": "UHU Kraft alleskleber - 42g",
-          "variantSku": "ATE-15022",
+          "variantSku": "MAT-LEP-UHU-KRA-ALLESKLEBER-42G",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8411,11 +10552,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "uhu-kraft-42g-izvirnik.png",
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png",
+          "mimeType": "image/png",
+          "altText": "UHU Kraft 42 g — fotografija proizvajalca",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 957,
+            "height": 1280
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "uhu-kraft-primer-uporabe.png",
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-primer-uporabe.png",
+          "mimeType": "image/png",
+          "altText": "Primer lepljenja pri izdelavi makete — ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8429,8 +10603,8 @@
             "width": 300,
             "height": 300
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 37,
@@ -8482,7 +10656,7 @@
         "Materiali",
         "Lepila"
       ],
-      "sku": "ATE-UHU-SUPER-GLUE",
+      "sku": "MAT-LEP-UHU-SUP",
       "slug": "uhu-super-glue",
       "unit": "kos",
       "brand": "UHU",
@@ -8494,7 +10668,7 @@
       "variants": [
         {
           "variantName": "UHU super glue 3 ml",
-          "variantSku": "ATE-15025",
+          "variantSku": "MAT-LEP-UHU-SUP-3-ML",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8512,11 +10686,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "uhu-super-glue-3ml-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/uhu-super-glue-3ml-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "UHU Super glue 3 ml — fotografija originalnega pakiranja",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 675
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "uhu-super-glue-delavnica.png",
+          "blobUrl": "/images/catalog/2026-09/uhu-super-glue-delavnica.png",
+          "mimeType": "image/png",
+          "altText": "UHU Super glue v ustvarjalni delavnici — reprezentativna ilustracija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8530,8 +10737,8 @@
             "width": 400,
             "height": 400
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 38,
@@ -8554,7 +10761,7 @@
         "Materiali",
         "Lepila"
       ],
-      "sku": "ATE-MEKOL",
+      "sku": "MAT-LEP-MEK",
       "slug": "mekol",
       "unit": "kos",
       "brand": "Mitol",
@@ -8599,7 +10806,7 @@
       "variants": [
         {
           "variantName": "Mekol Ekspres 0,5 kg",
-          "variantSku": "ATE-15002",
+          "variantSku": "MAT-LEP-MEK-EKSPRES-0P5-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8622,12 +10829,13 @@
             "izvedba": "15002"
           },
           "imageAssignments": [
-            0
+            0,
+            5
           ]
         },
         {
           "variantName": "Mekol 1001 - 1 kg",
-          "variantSku": "ATE-15001",
+          "variantSku": "MAT-LEP-MEK-1001-1-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8650,12 +10858,13 @@
             "izvedba": "15001"
           },
           "imageAssignments": [
-            1
+            1,
+            6
           ]
         },
         {
           "variantName": "Mekol lepilo za les 500 g",
-          "variantSku": "ATE-15053",
+          "variantSku": "MAT-LEP-MEK-LEPILO-ZA-LES-500-G",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8683,7 +10892,7 @@
         },
         {
           "variantName": "Mekol Special - 0,5 kg",
-          "variantSku": "ATE-15003",
+          "variantSku": "MAT-LEP-MEK-SPECIAL-0P5-KG",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8711,7 +10920,7 @@
         },
         {
           "variantName": "Lepilo Mekol - 130g",
-          "variantSku": "ATE-15011",
+          "variantSku": "MAT-LEP-MEK-LEPILO-MEKOL-130G",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8743,6 +10952,102 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "mekol-ekspres-500g.jpg",
+          "blobUrl": "/images/catalog/2026-09/mekol-ekspres-500g.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Mekol Ekspres – steklenica 500 g",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 975,
+            "height": 731
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "mekol-1001-1kg.jpg",
+          "blobUrl": "/images/catalog/2026-09/mekol-1001-1kg.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Mekol 1001 – lonček 1 kg",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "mekol-d3-500g.png",
+          "blobUrl": "/images/catalog/2026-09/mekol-d3-500g.png",
+          "mimeType": "image/png",
+          "altText": "Mekol D3 – steklenica 500 g",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2229,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "mekol-special-500g.png",
+          "blobUrl": "/images/catalog/2026-09/mekol-special-500g.png",
+          "mimeType": "image/png",
+          "altText": "Mekol Special – steklenica 500 g",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2048,
+            "height": 2048
+          },
+          "hidden": false,
+          "position": 3
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "mekol-130g.png",
+          "blobUrl": "/images/catalog/2026-09/mekol-130g.png",
+          "mimeType": "image/png",
+          "altText": "Mekol – steklenica 130 g",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2000,
+            "height": 2000
+          },
+          "hidden": false,
+          "position": 4
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "mekol-ekspres-uporaba-les.jpg",
+          "blobUrl": "/images/catalog/2026-09/mekol-ekspres-uporaba-les.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Mekol Ekspres — uporaba pri lepljenju lesenega spoja",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 975,
+            "height": 731
+          },
+          "hidden": false,
+          "position": 5
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "mekol.png",
           "blobUrl": "/images/catalog/2026-09/mekol.png",
           "mimeType": "image/png",
@@ -8752,8 +11057,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -8769,7 +11074,7 @@
             "height": 700
           },
           "hidden": false,
-          "position": 1
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -8784,8 +11089,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 2
+          "hidden": true,
+          "position": 8
         },
         {
           "mediaKind": "image",
@@ -8800,8 +11105,8 @@
             "width": 600,
             "height": 600
           },
-          "hidden": false,
-          "position": 3
+          "hidden": true,
+          "position": 9
         },
         {
           "mediaKind": "image",
@@ -8816,8 +11121,8 @@
             "width": 510,
             "height": 510
           },
-          "hidden": false,
-          "position": 4
+          "hidden": true,
+          "position": 10
         }
       ],
       "position": 39,
@@ -8872,7 +11177,7 @@
       "categoryPath": [
         "Električni in mehanični elementi"
       ],
-      "sku": "ATE-PLOSCATA-BATERIJA",
+      "sku": "ELE-PLO",
       "slug": "ploscata-baterija",
       "unit": "kos",
       "description": "<p>Ploščata baterija za napajanje preprostih električnih vezij in učnih modelov.</p>",
@@ -8883,7 +11188,7 @@
       "variants": [
         {
           "variantName": "Ploščata baterija 4.5 V",
-          "variantSku": "ATE-22109",
+          "variantSku": "ELE-PLO-OSNOVNA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -8901,11 +11206,61 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1,
+            2
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "baterija-ploscata-45v-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/baterija-ploscata-45v-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Ploščata baterija OPITEC 4,5 V 3R12",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2463,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "baterija-ploscata-ucilnica.jpg",
+          "blobUrl": "/images/catalog/2026-09/baterija-ploscata-ucilnica.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer uporabe ploščate baterije pri pouku elektrotehnike",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1748,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "baterija-ploscata-elektricni-krog.jpg",
+          "blobUrl": "/images/catalog/2026-09/baterija-ploscata-elektricni-krog.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Primer sklenjenega električnega kroga s ploščato baterijo",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2103,
+            "height": 2560
+          },
+          "hidden": false,
+          "position": 2
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -8919,8 +11274,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 3
         }
       ],
       "position": 40,
@@ -8971,7 +11326,7 @@
       "categoryPath": [
         "Električni in mehanični elementi"
       ],
-      "sku": "ATE-VGRADNO-STIKALO",
+      "sku": "ELE-VGR",
       "slug": "vgradno-stikalo",
       "unit": "kos",
       "description": "<p>Stikalo za vklop in izklop električnega vezja v učnih modelih.</p>",
@@ -8982,7 +11337,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-22118",
+          "variantSku": "ELE-VGR-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -9000,11 +11355,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vgradno-stikalo-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Vgradno stikalo z belim gumbom in narebreno matico",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "vgradno-stikalo-montazna-matica.jpg",
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-montazna-matica.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Vgradno stikalo s sneto montažno matico",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -9018,8 +11406,8 @@
             "width": 500,
             "height": 500
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 41,
@@ -9064,7 +11452,7 @@
       "categoryPath": [
         "Električni in mehanični elementi"
       ],
-      "sku": "ATE-OBJEMKA-ZA-MOTORCEK-RE260",
+      "sku": "ELE-OBJ",
       "slug": "objemka-za-motorcek-re260",
       "unit": "kos",
       "description": "<p>Objemka za pritrditev motorčka RE260 pri izdelavi modelov.</p>",
@@ -9075,7 +11463,7 @@
       "variants": [
         {
           "variantName": "Osnovna izvedba",
-          "variantSku": "ATE-22043",
+          "variantSku": "ELE-OBJ-OSNOVNA-IZVEDBA",
           "length": null,
           "width": null,
           "thickness": null,
@@ -9092,11 +11480,44 @@
             }
           },
           "imageAssignments": [
-            0
+            0,
+            1
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "objemka-motorcek-24mm-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/objemka-motorcek-24mm-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Objemka za motorček premera24mm",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 2080
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "objemka-motorcek-24mm-tehnicna-risba.jpg",
+          "blobUrl": "/images/catalog/2026-09/objemka-motorcek-24mm-tehnicna-risba.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Objemka za motorček premera24mm — izvirna tehnična risba proizvajalca",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 888
+          },
+          "hidden": false,
+          "position": 1
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -9110,8 +11531,8 @@
             "width": 298,
             "height": 298
           },
-          "hidden": false,
-          "position": 0
+          "hidden": true,
+          "position": 2
         }
       ],
       "position": 42,

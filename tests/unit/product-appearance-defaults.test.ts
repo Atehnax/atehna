@@ -28,7 +28,7 @@ test('reference product appearance defaults stay compact and inherit global widt
   expect(appearance.information.showSku).toBe(false);
   expect(appearance.information.showKeyAttributes).toBe(false);
   expect(appearance.variants.showSelectedSummary).toBe(false);
-  expect(appearance.schemaVersion).toBe(10);
+  expect(appearance.schemaVersion).toBe(11);
   expect(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS.contentScale).toBe(1);
   expect(appearance.listings).toMatchObject({
     tabletColumns: 3,

@@ -64,3 +64,8 @@ test('stale supplier edits never overwrite current data', async () => {
   assert.equal(queries.some(sql => sql.startsWith('update catalog_supplier_rows')), false);
   assert.equal(queries.at(-1), 'rollback');
 });
+
+test('supplier note validation preserves line breaks, blank lines and punctuation', () => {
+  const notes = 'Dobava ob torkih; pokličite pred prihodom.\n\nKontakt: Ana\nDruga vrstica';
+  assert.deepEqual(parseSupplierDirectoryMutation(update({ opombe: notes })), update({ opombe: notes }));
+});

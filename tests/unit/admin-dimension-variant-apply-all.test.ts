@@ -226,9 +226,6 @@ test('the rows matrix exposes an accessible apply-to-all action only through its
   expect(editorSource).toContain(
     '? getVariantDeliveryTime(sourceVariant)'
   );
-  expect(editorSource).toContain(
-    '...stockTagVariantIds.filter((variantId) => variantId !== resolvedSourceVariant.id)'
-  );
 });
 
 test('first and later variant headers share diagonal edge geometry in both states', () => {
@@ -368,4 +365,14 @@ test('both matrices share continuous one-pixel header strokes', () => {
   const edge = readFileSync(resolve(process.cwd(), 'src/admin/features/artikli/components/VariantMatrixHeaderEdge.tsx'), 'utf8');
   expect(edge).toContain('strokeWidth="1"');
   expect(edge).toContain('vectorEffect="non-scaling-stroke"');
+});
+
+test('bulk stock changes preserve no-note and arbitrary note values across zero stock', () => {
+  const variants = createFixtureVariants().map((variant, index) => ({ ...variant, badge: ['na-zalogi', 'Posebna Serija', 'ni-na-zalogi'][index] }));
+  const empty = applyVariantValueToAll(variants.map((variant) => variant.id === 'source' ? { ...variant, stock: 0 } : variant), 'source', 'stock');
+  expect(empty.variants.map((variant) => variant.stock)).toEqual([0, 0, 0]);
+  expect(empty.variants.map((variant) => variant.badge)).toEqual(variants.map((variant) => variant.badge));
+  const stocked = applyVariantValueToAll(empty.variants.map((variant) => variant.id === 'source' ? { ...variant, stock: 9 } : variant), 'source', 'stock');
+  expect(stocked.variants.map((variant) => variant.stock)).toEqual([9, 9, 9]);
+  expect(stocked.variants.map((variant) => variant.badge)).toEqual(variants.map((variant) => variant.badge));
 });

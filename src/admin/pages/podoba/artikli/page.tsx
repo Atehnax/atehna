@@ -7,7 +7,7 @@ import {
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
 import { getInventoryPolicySettings } from '@/shared/server/inventoryPolicy';
-import { getProductAppearanceConfig } from '@/shared/server/productAppearance';
+import { getAdminProductAppearanceConfig } from '@/shared/server/productAppearance';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,7 @@ export default async function AdminPodobaArtikliPage({
     productResult,
     resolvedSearchParams
   ] = await Promise.all([
-    getProductAppearanceConfig(),
+    getAdminProductAppearanceConfig(),
     getGlobalStyleConfig(),
     getSiteNavigationConfig(),
     getInventoryPolicySettings(),

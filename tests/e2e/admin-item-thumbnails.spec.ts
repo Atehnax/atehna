@@ -4,7 +4,7 @@ import { assertAuthenticatedAdmin, E2E_BASE_URL } from './support/auth';
 
 const createdSlugs: string[] = [];
 
-async function createArticle(request: APIRequestContext, prefix: string, suffix: string, imageUrl?: string) {
+async function createArticle(request: APIRequestContext, prefix: string, suffix: string, imageUrl?: string, overrides: Partial<CatalogItemEditorPayload> = {}) {
   const seedResponse = await request.get('/api/admin/artikli/aluminijasta-plosca');
   expect(seedResponse.status(), await seedResponse.text()).toBe(200);
   const seed = await seedResponse.json() as CatalogItemEditorHydration;
@@ -14,7 +14,8 @@ async function createArticle(request: APIRequestContext, prefix: string, suffix:
     itemType: 'unit', productType: 'simple', status: 'inactive', categoryPath: seed.categoryPath,
     unit: 'kos', taxRate: 0.22, quantityDiscounts: [], optionAxes: [],
     media: imageUrl ? [{ mediaKind: 'image', role: 'gallery', sourceKind: 'upload', externalUrl: imageUrl, filename: 'thumbnail.svg', mimeType: 'image/svg+xml', position: 0 }] : [],
-    variants: [{ variantName: 'Osnovna', variantSku: `THUMB-VAR-${slug}`, price: 3, inventory: 4, minOrder: 1, discountPct: 0, status: 'active', unit: 'kos' }]
+    variants: [{ variantName: 'Osnovna', variantSku: `THUMB-VAR-${slug}`, price: 3, inventory: 4, minOrder: 1, discountPct: 0, status: 'active', unit: 'kos' }],
+    ...overrides
   };
   const response = await request.post('/api/admin/artikli', { headers: { origin: E2E_BASE_URL }, data: payload });
   expect(response.status(), await response.text()).toBe(200);
@@ -72,4 +73,24 @@ test('article thumbnails default off, show existing images or fallback, and keep
   await toggle.click();
   await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(0);
   expect((await imageRow.boundingBox())!.height).toBeCloseTo(rowHeight, 1);
+});
+
+
+test('article thumbnail prefers a shared image, otherwise the first inactive variant in saved order', async ({ page, request }) => {
+  await assertAuthenticatedAdmin(request);
+  const prefix = 'e2e-thumb-order-' + Date.now();
+  const url = (name: string) => 'https://catalog-image.example.invalid/' + prefix + '-' + name + '.svg';
+  const media = ['later', 'hidden', 'first', 'common'].map((name, position) => ({ mediaKind: 'image' as const, role: 'gallery' as const, sourceKind: 'upload' as const, externalUrl:url(name), position, hidden:name==='hidden' }));
+  const variants = [
+    { variantName:'Prva',variantSku:prefix+'-first',price:1,status:'inactive' as const,position:0,imageAssignments:[1] },
+    { variantName:'Druga',variantSku:prefix+'-later',price:1,status:'active' as const,position:1,imageAssignments:[0] }
+  ];
+  const first = await createArticle(request,prefix,'prva',undefined,{media:media.slice(0,3),variants});
+  const common = await createArticle(request,prefix,'skupna',undefined,{media,variants:variants.map((variant,index)=>({...variant,variantSku:prefix+'-common-'+index,imageAssignments:[...variant.imageAssignments,2]}))});
+  await page.route('https://catalog-image.example.invalid/**', route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"/>'}));
+  await page.goto('/admin/artikli');
+  await page.getByPlaceholder(/Poišči artikel/).first().fill(prefix);
+  await page.getByTestId('admin-items-thumbnails-toggle').click();
+  await expect(page.locator('tr[data-edit-scope="family:'+first.id+'"] img')).toHaveAttribute('src',url('first'));
+  await expect(page.locator('tr[data-edit-scope="family:'+common.id+'"] img')).toHaveAttribute('src',url('common'));
 });

@@ -1,3 +1,4 @@
+import { DEFAULT_ARTICLE_NOTE_TAGS, normalizeArticleNoteTags, validateArticleNoteTags, type ArticleNoteTagDefinition } from '@/shared/domain/catalog/articleNotes';
 import {
   validateAndNormalizeCatalogSpecificationLabels,
   type CatalogSpecificationLabelOverrides
@@ -212,6 +213,7 @@ export type ProductSecondaryBlock = (typeof PRODUCT_SECONDARY_BLOCKS)[number];
 
 export type ProductAppearanceConfig = {
   schemaVersion: number;
+  articleNotes: { tags: ArticleNoteTagDefinition[] };
   listings: {
     availableModes: ProductListingMode;
     defaultMode: Exclude<ProductListingMode, 'both'>;
@@ -379,7 +381,8 @@ export type ProductAppearanceOverride = {
 };
 
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
-  schemaVersion: 10,
+  schemaVersion: 11,
+  articleNotes: { tags: DEFAULT_ARTICLE_NOTE_TAGS.map((tag) => ({ ...tag })) },
   listings: {
     availableModes: 'grid',
     defaultMode: 'grid',
@@ -820,6 +823,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     ? defaults.purchaseArea.copy.minimumOrderLabel : minimumOrderLabel;
   return {
     schemaVersion: defaults.schemaVersion,
+    articleNotes: { tags: normalizeArticleNoteTags(asRecord(record.articleNotes).tags) },
     listings: {
       availableModes,
       defaultMode: availableModes === 'both' || availableModes === defaultModeCandidate ? defaultModeCandidate : availableModes,
@@ -1339,6 +1343,8 @@ export function validateProductAppearanceConfigInput(value: unknown): string[] {
     + normalized.productPage.informationColumns
     + normalized.productPage.purchaseColumns;
   const errors: string[] = [];
+  const articleNotes = asRecord(value).articleNotes;
+  if (articleNotes !== undefined) errors.push(...validateArticleNoteTags(asRecord(articleNotes).tags));
   if (columnTotal < 10 || columnTotal > 16) {
     errors.push('Vsota stolpcev galerije, informacij in nakupa mora biti med 10 in 16.');
   }

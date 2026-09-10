@@ -1,67 +1,24 @@
 'use client';
 
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
-import type { BadgeVariant } from '@/shared/ui/badge';
 import { getAdminStatusInfoMenuOptionClassName } from '@/shared/ui/theme/tokens';
+import { getArticleNoteTagsSnapshot, useArticleNoteTags } from '@/shared/client/articleNoteTags';
+import {
+  DEFAULT_ARTICLE_NOTE_TAGS, getArticleNoteDefinition, getArticleNoteOptions, getArticleNoteStyle,
+  type ArticleNoteTagDefinition
+} from '@/shared/domain/catalog/articleNotes';
 
-export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-export type NoteTagValue = NoteTag | '';
+export { normalizeNoteTagValue, getArticleNoteOptions } from '@/shared/domain/catalog/articleNotes';
+export { useArticleNoteTags } from '@/shared/client/articleNoteTags';
+export type NoteTag = string;
+export type NoteTagValue = string;
+export const NOTE_TAG_OPTIONS = getArticleNoteOptions(DEFAULT_ARTICLE_NOTE_TAGS);
 
-export const NOTE_TAG_OPTIONS: ReadonlyArray<{ value: NoteTag; label: string }> = [
-  { value: 'na-zalogi', label: 'Na zalogi' },
-  { value: 'novo', label: 'Novo' },
-  { value: 'akcija', label: 'V akciji' },
-  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
-  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
-];
-
-const NOTE_TAG_LABELS: Record<NoteTag, string> = {
-  'na-zalogi': 'Na zalogi',
-  novo: 'Novo',
-  akcija: 'V akciji',
-  'zadnji-kosi': 'Zadnji kosi',
-  'ni-na-zalogi': 'Ni na zalogi'
-};
-
-const NOTE_TAG_VARIANTS: Record<NoteTag, BadgeVariant> = {
-  'na-zalogi': 'success',
-  novo: 'info',
-  akcija: 'danger',
-  'zadnji-kosi': 'purple',
-  'ni-na-zalogi': 'neutral'
-};
-
-const isNoteTag = (value: string): value is NoteTag =>
-  NOTE_TAG_OPTIONS.some((option) => option.value === value);
-
-export const normalizeNoteTagValue = (value: string | null | undefined): NoteTagValue => {
-  const normalized = (value ?? '').trim().toLowerCase();
-  if (!normalized) return '';
-  if (normalized === 'opomba') return 'na-zalogi';
-  return isNoteTag(normalized) ? normalized : '';
-};
-
-export const getNoteTagLabel = (value: NoteTagValue, emptyLabel = 'Brez opombe') =>
-  value === '' ? emptyLabel : NOTE_TAG_LABELS[value];
-
-const getNoteTagVariant = (value: NoteTagValue): BadgeVariant =>
-  value === '' ? 'neutral' : NOTE_TAG_VARIANTS[value];
-
-const getNoteTagEmphasisClassName = (value: NoteTagValue) =>
-  value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
-
-export const getNoteTagMenuItemClassName = (value: NoteTagValue) =>
-  getAdminStatusInfoMenuOptionClassName(
-    value === 'na-zalogi'
-      ? 'success'
-      : value === 'novo'
-        ? 'info'
-        : value === 'akcija'
-          ? 'rose'
-          : value === 'zadnji-kosi'
-            ? 'purple'
-            : 'neutral'
-  );
+export const getNoteTagLabel = (value: NoteTagValue, emptyLabel?: string, tags: readonly ArticleNoteTagDefinition[] = getArticleNoteTagsSnapshot()) =>
+  value === '' && emptyLabel ? emptyLabel : getArticleNoteDefinition(value, tags).label;
+export const getNoteTagColor = (value: NoteTagValue, tags: readonly ArticleNoteTagDefinition[] = getArticleNoteTagsSnapshot()) => getArticleNoteDefinition(value, tags).color;
+export const getNoteTagStyle = (value: NoteTagValue, tags: readonly ArticleNoteTagDefinition[] = getArticleNoteTagsSnapshot()) => getArticleNoteStyle(value, tags);
+export const getNoteTagMenuItemClassName = (_value: NoteTagValue) => getAdminStatusInfoMenuOptionClassName('neutral');
 
 export function NoteTagChip({
   value,
@@ -70,7 +27,7 @@ export function NoteTagChip({
   chipClassName,
   menuPlacement = 'bottom',
   allowEmpty = false,
-  placeholderLabel = 'Opombe',
+  placeholderLabel,
   editScope
 }: {
   value: NoteTagValue;
@@ -82,26 +39,25 @@ export function NoteTagChip({
   placeholderLabel?: string;
   editScope?: string;
 }) {
+  const tags = useArticleNoteTags();
   const options: Array<EditableChipMenuOption<NoteTagValue>> = [
-    ...(allowEmpty
-      ? [{ value: '' as NoteTagValue, label: placeholderLabel, className: getNoteTagMenuItemClassName('') }]
-      : []),
-    ...NOTE_TAG_OPTIONS.map((option): EditableChipMenuOption<NoteTagValue> => ({
+    ...(allowEmpty ? [{ value: '', label: placeholderLabel ?? getNoteTagLabel('', undefined, tags) }] : []),
+    ...getArticleNoteOptions(tags, value).filter((option) => !allowEmpty || option.value !== 'na-zalogi').map((option) => ({
       value: option.value,
-      label: option.label,
+      label: <span className="flex items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: getNoteTagColor(option.value, tags) }} />{option.label}</span>,
       className: getNoteTagMenuItemClassName(option.value)
     }))
   ];
 
   return (
     <EditableChipMenu
-      label={getNoteTagLabel(value, placeholderLabel)}
-      variant={getNoteTagVariant(value)}
+      label={getNoteTagLabel(value, placeholderLabel, tags)}
+      variant="neutral"
       editable={editable}
       options={options}
       onChange={onChange}
       chipClassName={chipClassName}
-      chipEmphasisClassName={getNoteTagEmphasisClassName(value)}
+      chipStyle={getNoteTagStyle(value, tags)}
       menuPlacement={menuPlacement}
       editScope={editScope}
     />

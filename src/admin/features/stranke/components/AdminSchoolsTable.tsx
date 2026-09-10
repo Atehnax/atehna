@@ -1254,6 +1254,29 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
                           containerClassName="min-w-0 w-full"
                           menuClassName="min-w-[260px] max-w-[min(36rem,90vw)]"
                         />
+                      ) : rowEdit && isSupplierDirectory && column.id === 'opombe' ? (
+                        <textarea
+                          rows={3}
+                          maxLength={4000}
+                          value={rowEdit.draftCells.opombe ?? ''}
+                          onChange={(event) => {
+                            const nextValue = event.target.value;
+                            setActiveRowEdit(current => current?.rowId === row.id
+                              ? { ...current, draftCells: { ...current.draftCells, opombe: nextValue } } : current);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                              event.preventDefault();
+                              void saveRowEdit();
+                            } else if (event.key === 'Escape') {
+                              event.preventDefault();
+                              cancelRowEdit();
+                            }
+                          }}
+                          disabled={rowEdit.isSaving}
+                          className={adminTableInlineEditInputClassName + ' !h-auto min-h-[76px] resize-y py-2 text-left'}
+                          aria-label="Opombe, urejanje vrstice"
+                        />
                       ) : rowEdit ? (
                         <input
                           autoFocus={columnIndex === 0}
@@ -1284,6 +1307,10 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
                           className={`${adminTableInlineEditInputClassName} ${centered ? 'text-center' : ''}`}
                           aria-label={`${columnTitle}, urejanje vrstice`}
                         />
+                      ) : isSupplierDirectory && column.id === 'opombe' ? (
+                        <button type="button" className="block min-h-8 w-full whitespace-pre-wrap break-words py-1 text-left text-[12px] text-slate-700" onClick={() => void copyCellValue(value)} title={displayValue} aria-label={'Opombe: ' + (hasDisplayValue ? value : 'prazno') + '. Kopiraj vrednost.'}>
+                          {displayValue}
+                        </button>
                       ) : column.id === 'spletna-stran' ? (
                         hasDisplayValue ? (
                           <div

@@ -1,5 +1,7 @@
 'use client';
 
+import CatalogActivationDialog from './CatalogActivationDialog';
+import type { CatalogActivationMode, CatalogBulkActivationRequest } from '@/shared/domain/catalog/catalogActivation';
 import { ArticleVariantRows } from './ArticleVariantRows';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useArticleNavigationGuard } from './ArticleNavigationGuard';
@@ -99,7 +101,9 @@ import {
 import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import {
-  NOTE_TAG_OPTIONS,
+  useArticleNoteTags,
+  getArticleNoteOptions,
+  getNoteTagColor,
   NoteTagChip,
   getNoteTagLabel,
   getNoteTagMenuItemClassName,
@@ -310,7 +314,7 @@ const ITEM_STATUS_BULK_OPTIONS = [
   { value: true, label: 'Aktiven' },
   { value: false, label: 'Neaktiven' }
 ] as const;
-const ITEM_NOTE_BULK_OPTIONS = NOTE_TAG_OPTIONS;
+
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 'Neaktiven inactive Skrit hidden');
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
@@ -327,7 +331,7 @@ const PRODUCT_TYPE_FILTER_OPTIONS: Array<{ value: ProductTypeFilter; label: stri
   { value: 'unique_machine', label: PRODUCT_TYPE_LABELS.unique_machine }
 ];
 const formatProductTypeLabel = (value: ProductType) => PRODUCT_TYPE_LABELS[value] ?? 'Standardni';
-const familySearchValue = (family: ListFamily) =>
+const familySearchValue = (family: ListFamily, tags: ReturnType<typeof useArticleNoteTags>) =>
   [
     family.name,
     getBaseSku(family),
@@ -337,13 +341,13 @@ const familySearchValue = (family: ListFamily) =>
     itemStatusSearchValue(family.active),
     family.notes,
     family.itemBadge,
-    noteValueLabel(family.itemBadge),
+    getNoteTagLabel(family.itemBadge, undefined, tags),
     ...family.variants.flatMap((variant) => [
       variant.label,
       variant.sku,
       itemStatusSearchValue(variant.active),
       variant.badge ?? '',
-      noteValueLabel(normalizeNoteValue(variant.badge) as NoteValue)
+      getNoteTagLabel(normalizeNoteValue(variant.badge), undefined, tags)
     ])
   ]
     .filter((value) => value && value.trim().length > 0)
@@ -614,7 +618,7 @@ function ArticleThumbnail({ src, name }: { src?: string; name: string }) {
       title={available ? name : 'Slika ni na voljo'}
     >
       {available && src ? (
-        <Image src={src} alt="" width={36} height={36} unoptimized loading="lazy" className="h-full w-full object-contain" onError={() => setFailedSource(src)} />
+        <Image src={src} alt="" width={36} height={36} sizes="36px" unoptimized={!src.startsWith('/images/')} loading="lazy" className="h-full w-full object-contain" onError={() => setFailedSource(src)} />
       ) : (
         <ImageIcon className="h-4 w-4 text-slate-300" aria-label="Slika ni na voljo" role="img" />
       )}
@@ -633,6 +637,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [isStatusBulkMenuOpen, setIsStatusBulkMenuOpen] = useState(false);
   const [isNoteBulkMenuOpen, setIsNoteBulkMenuOpen] = useState(false);
   const [isSelectedPillUpdating, setIsSelectedPillUpdating] = useState(false);
+  const [pendingActivation, setPendingActivation] = useState<Omit<CatalogBulkActivationRequest, 'mode'> | null>(null);
+  const noteTags = useArticleNoteTags();
+  const noteBulkOptions = getArticleNoteOptions(noteTags);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
@@ -853,7 +860,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
     return effectiveFamilies.filter((family) => {
-      const matchesSearch = q.length === 0 || familySearchValue(family).includes(q);
+      const matchesSearch = q.length === 0 || familySearchValue(family, noteTags).includes(q);
       const matchesCategory = categoryFilter === 'all' || family.category === categoryFilter;
       const matchesProductType = productTypeFilter === 'all' || family.productType === productTypeFilter;
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
@@ -861,7 +868,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const matchesNote = noteFilter === 'all' || familyNote === noteFilter;
       return matchesSearch && matchesCategory && matchesProductType && matchesStatus && matchesNote;
     });
-  }, [categoryFilter, effectiveFamilies, noteFilter, productTypeFilter, search, statusFilter]);
+  }, [categoryFilter, effectiveFamilies, noteFilter, noteTags, productTypeFilter, search, statusFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedRows = filteredFamilies
@@ -1285,7 +1292,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       clearNumericDraftKeys(consumedKeys);
     }
     return nextVariantDrafts;
-  }, [clearNumericDraftKeys, resolvePendingNumericDraftsForFamily, toast, variantDrafts]);
+  }, [clearNumericDraftKeys, resolvePendingNumericDraftsForFamily, setVariantDrafts, toast, variantDrafts]);
   const commitVariantNumericDraft = (variant: Variant, field: NumericDraftField) => {
     const key = numericDraftKey('variant', variant.id, field);
     const raw = numericDrafts[key];
@@ -1468,7 +1475,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         });
       }
     },
-    [clearNumericDraftKeys, getScopeNumericDraftKeys, getScopeVariants]
+    [clearNumericDraftKeys, getScopeNumericDraftKeys, getScopeVariants, setFamilyDrafts, setVariantDrafts]
   );
   const cancelCurrentEditScope = useCallback(() => {
     clearActiveEditScopeState(activeEditScope, activeScopeFamily);
@@ -1684,12 +1691,43 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       })();
     });
   };
-  const handleSelectedStatusUpdate = (nextActive: boolean, targets?: { familyIds?: string[]; variantIds?: string[] }) =>
-    updateSelectedPillTargets(
-      nextActive ? 'množičnim nastavljanjem statusa na aktiven' : 'množičnim nastavljanjem statusa na neaktiven',
-      { status: nextActive ? 'active' : 'inactive' },
-      targets
-    );
+  const submitActivation = async (selection: Omit<CatalogBulkActivationRequest, 'mode'>, mode: CatalogActivationMode) => {
+    setIsSelectedPillUpdating(true);
+    try {
+      const response = await fetch('/api/admin/artikli/activate', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...selection, mode })
+      });
+      const body = await response.json().catch(() => ({})) as { items?: AdminCatalogListItem[]; message?: string };
+      if (!response.ok || !body.items) throw new Error(body.message || 'Aktiviranje ni uspelo.');
+      body.items.forEach(applySavedFamilyRow);
+      setPendingActivation(null);
+      setIsStatusBulkMenuOpen(false);
+      toast.success('Shranjeno');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Aktiviranje ni uspelo.');
+    } finally { setIsSelectedPillUpdating(false); }
+  };
+  const handleSelectedStatusUpdate = (nextActive: boolean, targets?: { familyIds?: string[]; variantIds?: string[] }) => {
+    if (!nextActive) {
+      updateSelectedPillTargets('množičnim nastavljanjem statusa na neaktiven', { status: 'inactive' }, targets);
+      return;
+    }
+    requestCurrentEditResolution('aktiviranjem artiklov', () => {
+      const families = (targets?.familyIds ?? Array.from(selectedFamilyIds)).map(id => familyById.get(id));
+      const variants = (targets?.variantIds ?? Array.from(selectedVariantIds)).map(id => variantTargetById.get(id));
+      if (families.some(family => !family?.slug) || variants.some(target => !target?.family.slug)) {
+        toast.error('Artikel nima veljavnega identifikatorja (slug).'); return;
+      }
+      const selection = {
+        itemIdentifiers: families.map(family => family!.slug),
+        variants: variants.map(target => ({ itemIdentifier: target!.family.slug, variantId: Number(target!.variant.id) }))
+      };
+      if (selection.itemIdentifiers.length) { setIsStatusBulkMenuOpen(false); setPendingActivation(selection); }
+      else if (selection.variants.length) void submitActivation(selection, 'first');
+    });
+  };
   const handleSelectedNoteUpdate = (nextNote: NoteTag, targets?: { familyIds?: string[]; variantIds?: string[] }) =>
     updateSelectedPillTargets(
       `množičnim nastavljanjem opombe ${noteValueLabel(nextNote)}`,
@@ -2050,7 +2088,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             ) : null}
             {noteFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
-                Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
+                Opombe: {getNoteTagLabel(noteFilter, undefined, noteTags)}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra opomb', () => setNoteFilter('all'))} aria-label="Počisti filter opomb">
                   {filterPillClearGlyph}
                 </button>
@@ -2324,14 +2362,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         {isNoteBulkMenuOpen ? (
                           <div role="menu">
                             <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
-                              {ITEM_NOTE_BULK_OPTIONS.map((option) => (
+                              {noteBulkOptions.map((option) => (
                                 <MenuItem
                                   key={option.value}
                                   className={getNoteTagMenuItemClassName(option.value)}
                                   disabled={isSelectedPillUpdating}
                                   onClick={() => handleSelectedNoteUpdate(option.value)}
                                 >
-                                  {option.label}
+                                  <span className="flex items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: getNoteTagColor(option.value, noteTags) }} />{option.label}</span>
                                 </MenuItem>
                               ))}
                             </MenuPanel>
@@ -2789,6 +2827,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </tbody>
           </Table>
       </AdminTableLayout>
+      {pendingActivation ? <CatalogActivationDialog open itemCount={pendingActivation.itemIdentifiers.length} selectedVariantCount={pendingActivation.variants?.length} busy={isSelectedPillUpdating} onCancel={() => setPendingActivation(null)} onConfirm={mode => { void submitActivation(pendingActivation, mode); }} /> : null}
       <HeaderFilterPortal open={Boolean(openFilter)}>
         {openFilter === 'category' ? (
           <div style={getHeaderPopoverStyle(categoryFilterButtonRef.current, 294)}>
@@ -2882,11 +2921,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 184)}>
             <MenuPanel className="w-44 shadow-lg">
               <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('all'); setOpenFilter(null); })}>Vse opombe</MenuItem>
-              <MenuItem className={getNoteTagMenuItemClassName('na-zalogi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('na-zalogi'); setOpenFilter(null); })}>Na zalogi</MenuItem>
-              <MenuItem className={getNoteTagMenuItemClassName('novo')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('novo'); setOpenFilter(null); })}>Novo</MenuItem>
-              <MenuItem className={getNoteTagMenuItemClassName('akcija')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('akcija'); setOpenFilter(null); })}>V akciji</MenuItem>
-              <MenuItem className={getNoteTagMenuItemClassName('zadnji-kosi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); })}>Zadnji kosi</MenuItem>
-              <MenuItem className={getNoteTagMenuItemClassName('ni-na-zalogi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); })}>Ni na zalogi</MenuItem>
+              {noteTags.map(tag => (
+                <MenuItem key={tag.id} className={getNoteTagMenuItemClassName(tag.id)} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter(tag.id); setOpenFilter(null); })}><span className="flex items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: getNoteTagColor(tag.id, noteTags) }} />{tag.label}</span></MenuItem>
+              ))}
             </MenuPanel>
           </div>
         ) : null}

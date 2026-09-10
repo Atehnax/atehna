@@ -105,6 +105,8 @@ import ProductAppearanceLayersPanel, {
   type ProductAppearanceLayerItem
 } from './ProductAppearanceLayersPanel';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import ArticleNoteSettingsEditor from './ArticleNoteSettingsEditor';
+import { publishArticleNoteTags } from '@/shared/client/articleNoteTags';
 import { buildProductAppearancePreviewProduct } from '../lib/productAppearancePreviewProduct';
 
 type SectionKey = Exclude<
@@ -265,6 +267,7 @@ const sections: Array<{
   { key: 'secondaryContent', label: 'Dodatna vsebina', description: 'Specifikacije, opisi in dokumenti', group: 'Vsebina', preview: 'product' },
   { key: 'relatedProducts', label: 'Sorodni artikli', description: 'Priporočila in dodatki', group: 'Vsebina', preview: 'product' },
   { key: 'cartSidebar', label: 'Košarica ob strani', description: 'Mere, povzetek in mobilni prikaz', group: 'Košarica', preview: 'cart' },
+  { key: 'articleNotes', label: 'Opombe', description: 'Nazivi in barve oznak artiklov', group: 'Upravljanje', preview: 'product' },
   { key: 'overrides', label: 'Lokalne izjeme', description: 'Dovoljene izjeme po artiklu', group: 'Upravljanje', preview: 'product' }
 ];
 
@@ -2034,6 +2037,7 @@ export default function AdminProductAppearancePageClient({
         const persisted = normalizeProductAppearanceConfig(body.config ?? config);
         setConfig(persisted);
         setSavedConfig(persisted);
+        publishArticleNoteTags(persisted.articleNotes.tags);
         savedAppearanceNow = true;
       }
 
@@ -2104,6 +2108,7 @@ export default function AdminProductAppearancePageClient({
   }
 
   function renderSettings(section: SectionKey) {
+    if (section === 'articleNotes') return <ArticleNoteSettingsEditor tags={config.articleNotes.tags} onChange={(tags) => updateSection('articleNotes', { tags })} />;
     if (section === 'listings') return (
       <>
         <SettingsGroup title="Postavitev seznama">
@@ -2461,6 +2466,14 @@ export default function AdminProductAppearancePageClient({
           ) : null}
           <button
             type="button"
+            onClick={() => { setShowAdvancedSettings(true); setActiveSection('articleNotes'); }}
+            aria-pressed={showAdvancedSettings && activeSection === 'articleNotes'}
+            className={`h-9 rounded-lg border border-slate-200 px-3 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 ${adminControlFocusTokenClasses}`}
+          >
+            Opombe artiklov
+          </button>
+          <button
+            type="button"
             onClick={() => setShowAdvancedSettings((current) => !current)}
             aria-expanded={showAdvancedSettings}
             className={`h-9 rounded-lg border px-3 text-[10px] font-semibold ${adminControlFocusTokenClasses} ${
@@ -2514,15 +2527,15 @@ export default function AdminProductAppearancePageClient({
               <h2 className="mt-0.5 text-base font-semibold text-slate-900">{activeDefinition.label}</h2>
               <p className="mt-0.5 text-[10px] text-slate-500">{activeDefinition.description}</p>
             </div>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-medium text-slate-500">Deduje Globalne parametre</span>
+            {activeSection !== 'articleNotes' ? <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-medium text-slate-500">Deduje Globalne parametre</span> : null}
           </div>
 
-          <div className="grid min-w-0 items-start gap-4 bg-slate-50/50 p-4 min-[1220px]:grid-cols-[minmax(330px,0.82fr)_minmax(430px,1.18fr)]">
+          <div className={`grid min-w-0 items-start gap-4 bg-slate-50/50 p-4 ${activeSection === 'articleNotes' ? '' : 'min-[1220px]:grid-cols-[minmax(330px,0.82fr)_minmax(430px,1.18fr)]'}`}>
             <div className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-3" data-appearance-editor-settings-surface data-settings-scroll="none">
               {renderSettings(activeSection)}
             </div>
 
-            <aside className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white min-[1220px]:sticky min-[1220px]:top-5">
+            <aside className={`min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white min-[1220px]:sticky min-[1220px]:top-5 ${activeSection === 'articleNotes' ? 'hidden' : ''}`}>
               <div className="grid gap-2 border-b border-slate-200 px-3 py-2">
                 <div>
                   <p className="text-xs font-semibold text-slate-800">Predogled</p>

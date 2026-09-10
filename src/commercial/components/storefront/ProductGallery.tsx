@@ -4,8 +4,7 @@ import Image from 'next/image';
 import {
   ChevronLeft,
   ChevronRight,
-  Search,
-  X
+  Search
 } from 'lucide-react';
 import {
   useCallback,
@@ -16,7 +15,7 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent
 } from 'react';
-import { createPortal } from 'react-dom';
+import ImagePreviewDialog from '@/shared/ui/image-preview-dialog/ImagePreviewDialog';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import { resolveGalleryZoomOrigin } from '@/commercial/components/storefront/productGalleryZoom';
 import type { StorefrontProductMedia } from '@/commercial/features/products/storefrontProduct';
@@ -45,9 +44,6 @@ const mediaControlClassName =
 
 const mediaControlVisualClassName =
   'storefront-gallery-control-visual inline-grid place-items-center rounded-full';
-
-const lightboxCloseControlClassName =
-  'absolute right-3 top-3 z-20 inline-grid h-11 w-11 place-items-center rounded-full border border-white/70 bg-white/95 text-slate-800 shadow-[0_4px_14px_rgba(15,23,42,0.16)] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950/65';
 
 const toYoutubeEmbed = (url: string) => {
   try {
@@ -203,16 +199,10 @@ export default function ProductGallery({
   );
   const [selectedId, setSelectedId] = useState(galleryMedia[0]?.id ?? null);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
-  const [isZoomVisible, setIsZoomVisible] = useState(false);
   const [isHoverZoomActive, setIsHoverZoomActive] = useState(false);
   const [selectedImageAspectRatio, setSelectedImageAspectRatio] = useState(4 / 3);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const zoomButtonRef = useRef<HTMLButtonElement>(null);
   const mainImageSurfaceRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const zoomAnimationFrameRef = useRef<number | null>(null);
   const hoverZoomAnimationFrameRef = useRef<number | null>(null);
-  const zoomCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIndex = Math.max(
     0,
     galleryMedia.findIndex((entry) => entry.id === selectedId)
@@ -227,61 +217,16 @@ export default function ProductGallery({
 
   const openZoom = useCallback(() => {
     setIsHoverZoomActive(false);
-    if (zoomCloseTimerRef.current) clearTimeout(zoomCloseTimerRef.current);
-    if (zoomAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(zoomAnimationFrameRef.current);
-    }
     setIsZoomOpen(true);
-    setIsZoomVisible(false);
-    zoomAnimationFrameRef.current = requestAnimationFrame(() => {
-      setIsZoomVisible(true);
-      zoomAnimationFrameRef.current = null;
-    });
   }, []);
 
-  const closeZoom = useCallback(() => {
-    setIsZoomVisible(false);
-    if (zoomCloseTimerRef.current) clearTimeout(zoomCloseTimerRef.current);
-    zoomCloseTimerRef.current = setTimeout(() => {
-      setIsZoomOpen(false);
-      zoomCloseTimerRef.current = null;
-    }, 280);
-  }, []);
+  const closeZoom = useCallback(() => setIsZoomOpen(false), []);
 
   useEffect(() => () => {
-    if (zoomAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(zoomAnimationFrameRef.current);
-    }
     if (hoverZoomAnimationFrameRef.current !== null) {
       cancelAnimationFrame(hoverZoomAnimationFrameRef.current);
     }
-    if (zoomCloseTimerRef.current) clearTimeout(zoomCloseTimerRef.current);
   }, []);
-
-  useEffect(() => {
-    if (!isZoomOpen) return;
-    const activeElement = document.activeElement;
-    returnFocusRef.current =
-      zoomButtonRef.current ??
-      (activeElement instanceof HTMLElement ? activeElement : null);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const focusFrame = requestAnimationFrame(() => closeButtonRef.current?.focus());
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeZoom();
-      if (event.key === 'Tab') {
-        event.preventDefault();
-        closeButtonRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKeyDown);
-      returnFocusRef.current?.focus();
-    };
-  }, [closeZoom, isZoomOpen]);
 
   const selectRelative = (offset: number) => {
     if (galleryMedia.length < 2) return;
@@ -497,9 +442,11 @@ export default function ProductGallery({
             {canZoom ? (
               <>
                 <button
-                  ref={zoomButtonRef}
                   type="button"
-                  onClick={openZoom}
+                  onClick={(event) => {
+                    event.currentTarget.focus({ preventScroll: true });
+                    openZoom();
+                  }}
                   onPointerEnter={updateHoverZoom}
                   onPointerMove={updateHoverZoom}
                   onPointerLeave={resetHoverZoom}
@@ -571,70 +518,13 @@ export default function ProductGallery({
         )}
       </section>
 
-      {isZoomOpen &&
-      selected.kind === 'image' &&
-      typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              className={classNames(
-                'fixed inset-0 z-[1000] flex cursor-zoom-out items-center justify-center bg-slate-950/65 p-2 backdrop-blur-[2px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:p-3',
-                isZoomVisible ? 'opacity-100' : 'opacity-0'
-              )}
-              role="dialog"
-              aria-modal="true"
-              aria-label={`Povečana slika: ${selected.altText || productName}`}
-              data-storefront-gallery-lightbox
-              data-state={isZoomVisible ? 'open' : 'closing'}
-              onPointerDown={(event) => {
-                // Portals retain React event bubbling through their logical
-                // ancestors, so keep the admin canvas drag handlers out of
-                // lightbox pointer interactions.
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (event.target === event.currentTarget) closeZoom();
-              }}
-            >
-              <button
-                ref={closeButtonRef}
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  closeZoom();
-                }}
-                data-gallery-control="lightbox-close"
-                className={lightboxCloseControlClassName}
-                aria-label="Zapri povečano sliko"
-              >
-                <X aria-hidden="true" className="h-5 w-5" />
-              </button>
-              <div
-                className={classNames(
-                  'relative max-h-[72dvh] max-w-[72vw] overflow-hidden rounded-[var(--site-radius-sm)] bg-white shadow-2xl transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-                  isZoomVisible
-                    ? 'translate-y-0 scale-100 opacity-100'
-                    : 'translate-y-2 scale-[0.98] opacity-0'
-                )}
-                style={{
-                  aspectRatio: selectedImageAspectRatio,
-                  width: `min(72vw, calc(72dvh * ${selectedImageAspectRatio}))`
-                }}
-                data-storefront-gallery-lightbox-content
-              >
-                <Image
-                  src={selected.url}
-                  alt={selected.altText || productName}
-                  fill
-                  loading="eager"
-                  sizes="72vw"
-                  className="object-contain"
-                />
-              </div>
-            </div>,
-            document.body
-          )
-        : null}
+      <ImagePreviewDialog
+        open={isZoomOpen && selected.kind === 'image'}
+        src={selected.url}
+        alt={selected.altText || productName}
+        aspectRatio={selectedImageAspectRatio}
+        onClose={closeZoom}
+      />
     </>
   );
 }

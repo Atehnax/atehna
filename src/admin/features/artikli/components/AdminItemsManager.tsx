@@ -491,7 +491,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       defaultDiscountPct: item.defaultDiscountPct,
       active: item.status === 'active',
       sort: itemIndex + 1,
-      notes: item.badge ?? item.adminNotes ?? '',
+      notes: item.adminNotes ?? '',
       itemBadge: (normalizeNoteValue(item.badge) as NoteValue) || 'na-zalogi',
       slug: item.slug,
       defaultVariantId: item.defaultVariantId == null ? variants[0]?.id ?? null : String(item.defaultVariantId),

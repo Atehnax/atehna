@@ -362,6 +362,7 @@ async function exerciseGalleryControls(
     ).first().getAttribute('aria-label')
   )).toBe(initialSelection);
 
+  const previousOverflow = await page.evaluate(() => document.body.style.overflow);
   await zoom.click();
   const dialog = page.getByRole('dialog', { name: /^Povečana slika:/ });
   await expect(dialog).toBeVisible();
@@ -370,6 +371,13 @@ async function exerciseGalleryControls(
     exact: true,
   });
   await expect(close).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  await page.keyboard.press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(selectedThumbnail).toHaveAttribute('aria-label', initialSelection!);
   const [closeBox, closeBackground] = await Promise.all([
     close.boundingBox(),
     close.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -392,6 +400,12 @@ async function exerciseGalleryControls(
     '[data-storefront-gallery-lightbox-content]',
   );
   await expect(lightboxContent).toBeVisible();
+  await expect.poll(async () => lightboxContent.evaluate((element) => {
+    const image = element.querySelector('img');
+    if (!image?.naturalWidth || !image.naturalHeight) return Number.POSITIVE_INFINITY;
+    const bounds = element.getBoundingClientRect();
+    return Math.abs(bounds.width / bounds.height - image.naturalWidth / image.naturalHeight);
+  })).toBeLessThan(0.01);
   await lightboxContent.click();
   await expect(
     dialog,
@@ -406,6 +420,7 @@ async function exerciseGalleryControls(
     'clicking outside the enlarged image should dismiss the lightbox',
   ).toBeHidden({ timeout: 2_000 });
   await expect(zoom).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 
   await zoom.click();
   await expect(dialog).toBeVisible();
@@ -415,12 +430,14 @@ async function exerciseGalleryControls(
     'the explicit close control should dismiss the lightbox',
   ).toBeHidden({ timeout: 2_000 });
   await expect(zoom).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 
   await zoom.click();
   await expect(dialog).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden({ timeout: 2_000 });
   await expect(zoom).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 }
 
 test('gallery controls stay visually compact and functionally accessible in public and admin previews', async ({

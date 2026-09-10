@@ -80,6 +80,10 @@ describe('product gallery appearance contracts', () => {
       ),
       'utf8'
     );
+    const previewSource = readFileSync(
+      resolve(process.cwd(), 'src/shared/ui/image-preview-dialog/ImagePreviewDialog.tsx'),
+      'utf8'
+    );
     const detailSource = readFileSync(
       resolve(
         process.cwd(),
@@ -109,14 +113,15 @@ describe('product gallery appearance contracts', () => {
     expect(gallerySource).toContain('storefront-gallery-control-visual');
     expect(gallerySource).toContain('data-gallery-control="next"');
     expect(gallerySource).toContain('data-gallery-control="zoom-indicator"');
-    expect(gallerySource).toContain('data-gallery-control="lightbox-close"');
-    expect(gallerySource).toContain('lightboxCloseControlClassName');
+    expect(previewSource).toContain('data-gallery-control="lightbox-close"');
+    expect(previewSource).toContain('lightboxCloseControlClassName');
     expect(gallerySource).not.toContain('backdrop-blur-sm');
     expect(globalStyles).toContain('background: rgb(15 23 42 / 0.68);');
+    expect(gallerySource).toContain('<ImagePreviewDialog');
     expect(gallerySource).toContain('openZoom');
     expect(gallerySource).toContain('closeZoom');
-    expect(gallerySource).toContain('data-storefront-gallery-lightbox');
-    expect(gallerySource).toContain('cubic-bezier(0.22,1,0.36,1)');
+    expect(previewSource).toContain('data-storefront-gallery-lightbox');
+    expect(previewSource).toContain('cubic-bezier(0.22,1,0.36,1)');
 
     expect(detailSource).toContain('previewDevice={canvasEditor?.device}');
     expect(contextToolbarSource).toContain(
@@ -283,7 +288,7 @@ describe('product gallery appearance contracts', () => {
     const gallerySource = readFileSync(
       resolve(
         process.cwd(),
-        'src/commercial/components/storefront/ProductGallery.tsx'
+        'src/shared/ui/image-preview-dialog/ImagePreviewDialog.tsx'
       ),
       'utf8'
     );

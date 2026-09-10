@@ -86,6 +86,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBread
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminRichTextEditor from '@/admin/components/AdminRichTextEditor';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import ImagePreviewDialog from '@/shared/ui/image-preview-dialog/ImagePreviewDialog';
 import ProductVariantOptionsCard, { applyVariantOptionValue, VariantOptionValueField } from '@/admin/features/artikli/components/ProductVariantOptionsCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
@@ -1298,7 +1299,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     videoUrl: ''
   };
 
-  const itemLevelNote = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
+  const itemLevelNote = normalizeVariantTag(initialData?.badge);
 
   const documents = initialData?.media
     .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
@@ -2321,6 +2322,7 @@ export default function AdminItemEditorPage({
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => ({ ...initialPersistedState.variantTags }));
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string; aspectRatio?: number } | null>(null);
   const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
@@ -4628,11 +4630,33 @@ export default function AdminItemEditorPage({
     toast.success('Slika je pripravljena za shranjevanje.');
   }, [createLocalImageUrl, isMediaEditable, mediaImageSlots, toast, updateImageAtSlot]);
 
+  const openImagePreview = (slotIndex: number) => {
+    if (suppressImageClickAfterDragRef.current) {
+      suppressImageClickAfterDragRef.current = false;
+      return;
+    }
+    const slot = mediaImageSlots[slotIndex];
+    if (!slot?.previewUrl) return;
+    const dimensions = normalizeImagePixelDimensions(slot.imageDimensions);
+    setPreviewImage({
+      src: slot.previewUrl,
+      alt: slot.altText?.trim() || (slotIndex === 0 ? 'Glavna slika' : 'Slika ' + (slotIndex + 1)),
+      aspectRatio: dimensions ? dimensions.width / dimensions.height : undefined
+    });
+  };
+
   const renderImageActionButtons = (slotIndex: number) => {
     if (!isMediaEditable) return null;
     const compact = slotIndex !== 0;
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
     const actions = [
+      {
+        key: 'edit',
+        label: 'Uredi sliko',
+        tone: 'light' as const,
+        onClick: () => setEditingImageSlot(slotIndex),
+        icon: <PencilIcon className={compact ? 'h-3 w-3' : 'h-4 w-4'} />
+      },
       {
         key: 'remove',
         label: 'Odstrani',
@@ -4669,7 +4693,7 @@ export default function AdminItemEditorPage({
     ];
 
     return (
-      <div className={`absolute inset-y-0 right-2 z-20 flex flex-col items-end opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${verticalAlignClass} ${compact ? 'gap-1' : 'gap-1.5'}`}>
+      <div className={`absolute inset-y-0 right-2 z-20 flex flex-col items-end opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${verticalAlignClass} ${compact ? 'gap-0.5' : 'gap-1.5'}`}>
         {actions.map((action) => (
           <button
             key={`${slotIndex}-${action.key}`}
@@ -5561,13 +5585,12 @@ export default function AdminItemEditorPage({
                       <div
                         className={`group relative col-span-2 row-span-2 overflow-hidden rounded-[8px] border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                         draggable={Boolean(isMediaEditable)}
+                        onPointerDown={() => { suppressImageClickAfterDragRef.current = false; }}
                         onDragStart={() => {
                           suppressImageClickAfterDragRef.current = true;
                           setDraggedImageIndex(0);
                         }}
-                        onDragEnd={() => {
-                          suppressImageClickAfterDragRef.current = false;
-                        }}
+                        onDragEnd={() => { setDraggedImageIndex(null); }}
                         onDragOver={(event) => {
                           if (!isMediaEditable) return;
                           event.preventDefault();
@@ -5577,27 +5600,27 @@ export default function AdminItemEditorPage({
                           if (!isMediaEditable || draggedImageIndex === null) return;
                           moveImageSlot(draggedImageIndex, 0);
                           setDraggedImageIndex(null);
-                          suppressImageClickAfterDragRef.current = false;
-                        }}
-                        onClick={() => {
-                          if (!isMediaEditable) return;
-                          if (suppressImageClickAfterDragRef.current) {
-                            suppressImageClickAfterDragRef.current = false;
-                            return;
-                          }
-                          setEditingImageSlot(0);
                         }}
                       >
-                        <Image
-                          src={mediaImagesDraft[0]}
-                          alt="Glavna slika"
-                          width={1200}
-                          height={1200}
-                          unoptimized
-                          sizes="(max-width: 1280px) 36vw, 420px"
-                          className="h-full w-full object-cover"
-                          onLoad={(event) => recordImageDimensions(0, mediaImagesDraft[0], event.currentTarget)}
-                        />
+                        <button
+                          type="button"
+                          className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500"
+                          aria-label="Povečaj sliko: Glavna slika"
+                          onKeyDown={() => { suppressImageClickAfterDragRef.current = false; }}
+                          onClick={() => openImagePreview(0)}
+                        >
+                          <Image
+                            src={mediaImagesDraft[0]}
+                            alt="Glavna slika"
+                            width={1200}
+                            height={1200}
+                            unoptimized
+                            draggable={false}
+                            sizes="(max-width: 1280px) 36vw, 420px"
+                            className="h-full w-full object-cover"
+                            onLoad={(event) => recordImageDimensions(0, mediaImagesDraft[0], event.currentTarget)}
+                          />
+                        </button>
                         {renderImageActionButtons(0)}
                       </div>
                       {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
@@ -5612,13 +5635,12 @@ export default function AdminItemEditorPage({
                               key={`slot-${slotIndex}`}
                               className={`group relative overflow-hidden rounded-[8px] border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                               draggable={Boolean(isMediaEditable)}
+                              onPointerDown={() => { suppressImageClickAfterDragRef.current = false; }}
                               onDragStart={() => {
                                 suppressImageClickAfterDragRef.current = true;
                                 setDraggedImageIndex(slotIndex);
                               }}
-                              onDragEnd={() => {
-                                suppressImageClickAfterDragRef.current = false;
-                              }}
+                              onDragEnd={() => { setDraggedImageIndex(null); }}
                               onDragOver={(event) => {
                                 if (!isMediaEditable) return;
                                 event.preventDefault();
@@ -5628,27 +5650,27 @@ export default function AdminItemEditorPage({
                                 if (!isMediaEditable || draggedImageIndex === null) return;
                                 moveImageSlot(draggedImageIndex, slotIndex);
                                 setDraggedImageIndex(null);
-                                suppressImageClickAfterDragRef.current = false;
-                              }}
-                              onClick={() => {
-                                if (!isMediaEditable) return;
-                                if (suppressImageClickAfterDragRef.current) {
-                                  suppressImageClickAfterDragRef.current = false;
-                                  return;
-                                }
-                                setEditingImageSlot(slotIndex);
                               }}
                             >
-                              <Image
-                                src={slotImage}
-                                alt={`Slika ${slotIndex + 1}`}
-                                width={720}
-                                height={720}
-                                unoptimized
-                                sizes="(max-width: 1280px) 18vw, 180px"
-                                className="h-full w-full object-cover"
-                                onLoad={(event) => recordImageDimensions(slotIndex, slotImage, event.currentTarget)}
-                              />
+                              <button
+                                type="button"
+                                className="block h-full w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500"
+                                aria-label={'Povečaj sliko: Slika ' + (slotIndex + 1)}
+                                onKeyDown={() => { suppressImageClickAfterDragRef.current = false; }}
+                                onClick={() => openImagePreview(slotIndex)}
+                              >
+                                <Image
+                                  src={slotImage}
+                                  alt={`Slika ${slotIndex + 1}`}
+                                  width={720}
+                                  height={720}
+                                  unoptimized
+                                  draggable={false}
+                                  sizes="(max-width: 1280px) 18vw, 180px"
+                                  className="h-full w-full object-cover"
+                                  onLoad={(event) => recordImageDimensions(slotIndex, slotImage, event.currentTarget)}
+                                />
+                              </button>
                               {renderImageActionButtons(slotIndex)}
                             </div>
                           );
@@ -5737,15 +5759,24 @@ export default function AdminItemEditorPage({
                           >
                             <td className="px-2 py-1.5">
                               <div className="flex min-w-0 items-center gap-2">
-                                <Image
-                                  src={slot.previewUrl}
-                                  alt=""
-                                  width={32}
-                                  height={32}
-                                  unoptimized
-                                  className="h-8 w-8 shrink-0 rounded-md border border-slate-200 object-cover"
-                                  onLoad={(event) => recordImageDimensions(slotIndex, slot.previewUrl, event.currentTarget)}
-                                />
+                                <button
+                                  type="button"
+                                  className="shrink-0 cursor-zoom-in rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                  aria-label={'Povečaj sliko: ' + imageLabel + ' (tabela)'}
+                                  onPointerDown={() => { suppressImageClickAfterDragRef.current = false; }}
+                                  onKeyDown={() => { suppressImageClickAfterDragRef.current = false; }}
+                                  onClick={() => openImagePreview(slotIndex)}
+                                >
+                                  <Image
+                                    src={slot.previewUrl}
+                                    alt=""
+                                    width={32}
+                                    height={32}
+                                    unoptimized
+                                    className="h-8 w-8 shrink-0 rounded-md border border-slate-200 object-cover"
+                                    onLoad={(event) => recordImageDimensions(slotIndex, slot.previewUrl, event.currentTarget)}
+                                  />
+                                </button>
                                 <div className="min-w-0">
                                   <div className="truncate font-medium text-slate-800">{imageLabel}</div>
                                   <div className="truncate text-[10px] text-slate-500" title={filename}>{filename}</div>
@@ -6763,6 +6794,14 @@ export default function AdminItemEditorPage({
           ))}
         </div>
       </Dialog>
+      <ImagePreviewDialog
+        unoptimized
+        open={previewImage !== null}
+        src={previewImage?.src ?? ''}
+        alt={previewImage?.alt ?? ''}
+        aspectRatio={previewImage?.aspectRatio}
+        onClose={() => setPreviewImage(null)}
+      />
       {isMediaEditable && editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(
           <UploadedImageCropperModal

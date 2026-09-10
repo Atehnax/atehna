@@ -136,10 +136,10 @@ describe('related product appearance editor contracts', () => {
     expect(styles).toContain('flex-wrap: wrap;');
     expect(styles).toContain('align-items: center;');
     expect(styles).toContain(
-      'block-size: var(--product-related-image-height, 144px);'
+      'block-size: calc(var(--product-related-image-height, 144px) * 0.8);'
     );
     expect(styles).toMatch(
-      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1\.25em;/
+      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1em;/
     );
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-description\s*\{[\s\S]*?font-size:\s*1em;/

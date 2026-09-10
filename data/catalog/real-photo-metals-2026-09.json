@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-10T17:36:25.284Z",
+  "policy": "Real original supplier photos; all measurements come from the selected article variant. No generative edits.",
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "photos": [
+        {
+          "id": "aluminijasta-plosca-real-pogled",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-pogled.jpg",
+          "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/Aluminium-0.5mm-Thick-Sheet-Metal-Panels-Image-1.jpg",
+          "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "sha256": "323b008b0f0aa80ca5d3cfdfb7ecf7bbb2126a56bc5cd62695a50df14383cf5c",
+          "altText": "Aluminijasta pločevina debeline 0,5 mm – pogled na plošče",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Authentic supplier studio photograph, three fully visible plain aluminium sheets; clean edges and neutral silver surface. Source product explicitly 0.5 mm. Generic material view, not proof of one exact selected cut size or package count. No generated texture, no new edits. Also serves the existing local 300 × 200 × 1 mm test/legacy variant as a general aluminium material photograph only, without asserting pictured sheet thickness. This selector neither creates a format nor changes catalog measurements.",
+          "edits": "none",
+          "retainedVariantDimensions": [
+            {
+              "length": 200,
+              "width": 100,
+              "thickness": 0.5
+            },
+            {
+              "length": 300,
+              "width": 100,
+              "thickness": 0.5
+            },
+            {
+              "length": 300,
+              "width": 200,
+              "thickness": 1
+            }
+          ]
+        },
+        {
+          "id": "aluminijasta-plosca-real-v-roki",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-v-roki.jpg",
+          "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/0.5mm-aluminium-sheet-metal-hand-image.jpg",
+          "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2000,
+            "height": 2000
+          },
+          "sha256": "55edd064e26c33beccd43c1169c1692ab1960ae7ef08cf918fa474fc20124641",
+          "altText": "Detajl aluminijaste pločevine debeline 0,5 mm v roki",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "notes": "Distinct real hand-held photograph from same 0.5 mm product gallery. Natural rolled-metal scratches and thin edge visible. Strong material/handling context, not a dimensional representation. No edits.",
+          "edits": "none",
+          "retainedVariantDimensions": [
+            {
+              "length": 200,
+              "width": 100,
+              "thickness": 0.5
+            },
+            {
+              "length": 300,
+              "width": 100,
+              "thickness": 0.5
+            }
+          ]
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/aluminij-200-100-delavnica.png",
+        "/images/catalog/2026-09/aluminij-300-100-delavnica.png",
+        "/images/catalog/2026-09/aluminijasta-plosca-kvadrat.png",
+        "/images/catalog/2026-09/aluminijasta-plosca-pravokotnik.png"
+      ]
+    },
+    {
+      "slug": "bakrena-plosca",
+      "photos": [
+        {
+          "id": "bakrena-plosca-real-na-podlagi",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-na-podlagi.jpg",
+          "sourceUrl": "https://www.modellbau-profi.de/modellprofi/prodpic/Kupferblech-halbhart-0-5mm-x-200mm-x-400mm-031231005002000400_b_0.JPG",
+          "sourcePage": "https://www.modellbau-profi.de/Werkstoffe-Halbzeug-Profile/Metall/Kupfer/Kupferplatten/Kupferblech-halbhart-0-5mm-x-200mm-x-400mm.htm?ProdNr=031231005002000400&a=article&p=1174",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 900,
+            "height": 837
+          },
+          "sha256": "66ca41e3ae62de70b41baf86abd63a14d7ff8f2b6a5b7a2e57423d0e3d895bad",
+          "altText": "Detajl bakrene pločevine debeline 0,5 mm na podlagi za rezanje",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Sharp real photograph: copper sheets fanned on a used green cutting mat; natural scratches, fine edges and copper colour visible. Supplier page explicitly 0.5 mm, source cuts 200 × 400 mm. Framing is a source detail, not a complete plate; do not claim source cut dimensions equal the offered variant. Native 900 × 837 photograph has stronger true detail than the old 600px RCM source. No edits.",
+          "edits": "none"
+        },
+        {
+          "id": "bakrena-plosca-real-povrsina",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-povrsina.png",
+          "sourceUrl": "https://slojddetaljer.cdn-norce.tech/c9d7a5b8-7bd9-433f-aa54-6a9c28c023e0",
+          "sourcePage": "https://www.slojd-detaljer.com/fi/puu-metalli/metallilevyt-folio/kuparilevy-495x195-mm?p=2714-2004",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1920,
+            "height": 2400
+          },
+          "sha256": "70a570dd72da98fda43573763ff6fe15e480d3ec1aed48c897ba82899b773af3",
+          "altText": "Detajl površine in roba bakrene pločevine debeline 0,5 mm",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Native transparent PNG original of retailer product photograph. The same source render was visually inspected at 1360 × 1700; real copper surface has subtle scratches and tiny natural marks, intact lower corner. Source is a 495 × 195 mm sheet at 0.5 mm; use as material detail only, not exact full-size variant view. PNG original fetched without transformation parameters; no upscale or edits.",
+          "edits": "none"
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/bakrena-plosca-pravokotnik-studio.png",
+        "/images/catalog/2026-09/bakrena-plosca-kvadrat.png"
+      ]
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "photos": [
+        {
+          "id": "pocinkana-plocevina-real-rob",
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-rob.webp",
+          "sourceUrl": "https://www.schmiedekult.de/media/image/product/31876/lg/05mm-verzinktes-stahlblech-dx51-nach-mass~3.webp",
+          "sourcePage": "https://www.schmiedekult.de/05mm-verzinktes-Stahlblech-DX51-nach-Mass?btgsterne=5",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "sha256": "c802d093a4a735e5e1bc600fbc2e2041e292b89f2090faa61ff1ff70236affa4",
+          "altText": "Pocinkana pločevina debeline 0,5 mm – fotografija površine in roba",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Real supplier sheet close-up, visible irregular zinc texture. Source explicitly0.5mm. Material view across cut formats, no size claims. Original1024px WebP, no edits.",
+          "edits": "none"
+        },
+        {
+          "id": "pocinkana-plocevina-real-pogled",
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-pogled.jpg",
+          "sourceUrl": "https://cdn.modulor.de/products/eaib/1_768_768_r_stahl_feinblech_verzinkt.jpg",
+          "sourcePage": "https://www.modulor.de/stahl-feinblech-verzinkt-zuschnitt-moeglich.html",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 768,
+            "height": 768
+          },
+          "sha256": "f7b70f5a8d142b2733b5c30a2634545fee5feb514abf9a98b650db467601eb0a",
+          "altText": "Pocinkana pločevina – primer materiala v plošči",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "notes": "Authentic retailer photograph of galvanized steel sheet. Family material view, not exact selected dimensions; source offers0.5mm thickness but photograph is reused across formats.768px native delivery; no upscale or edits.",
+          "edits": "none"
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/pocinkana-plocevina-kvadrat.png",
+        "/images/catalog/2026-09/pocinkana-plocevina-pravokotnik.png"
+      ]
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "photos": [
+        {
+          "id": "medeninasta-plosca-real-rob",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-rob.webp",
+          "sourceUrl": "https://bestell-dein-lochblech.de/cdn/shop/products/Messingblech_5mm_7mm_1mm_dick.webp?v=1745335158&width=1946",
+          "sourcePage": "https://bestell-dein-lochblech.de/products/messingblech-t-0-5-mm",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "sha256": "f3d947f692b59980e38849b36b336cc94802945968f3d2269978004ee53aa4ed",
+          "altText": "Medeninasta pločevina – fotografija površine in roba",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Real supplier close-up on the 0.5 mm product page. Material view shared with cut sizes; does not depict a specified selected format. Native1024px; no edits.",
+          "edits": "none"
+        },
+        {
+          "id": "medeninasta-plosca-real-povrsina",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-povrsina.jpg",
+          "sourceUrl": "https://www.wilmsmetall.de/wp-content/uploads/2025/04/ms63_messing-17-rotated.jpg",
+          "sourcePage": "https://wilmsmetall.de/shop/messing/bleche-messing/glatte-bleche-bleche-messing/ms63-glatte-bleche-bleche-messing/21500050-m/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1152,
+            "height": 784
+          },
+          "sha256": "fba8da908ded30136f3337c97a3fdf1220855fc2378e04d07dded61f4ed7397f",
+          "altText": "Medeninasta pločevina – detajl naravne površine",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Real close-up of brass sheet surface from supplier offering0.5mm thickness. Natural marks retained; material detail without size claims. Original JPEG, no edits.",
+          "edits": "none"
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/medeninasta-plosca-kvadrat.png",
+        "/images/catalog/2026-09/medeninasta-plosca-pravokotnik.png"
+      ]
+    }
+  ]
+}

@@ -328,7 +328,7 @@ test('an activated article with missing shipping measurements can be edited and 
   expect(commercialAndShipping(after)).toEqual(commercialAndShipping(before));
 });
 
-test('bulk activation shows skipped item, variant, SKU and reason in a notice below the table', async ({ page, request }) => {
+test('bulk activation shows skipped item, variant, SKU and reason in a notice below stock settings and above the table', async ({ page, request }) => {
   const namePrefix = 'Preizkus opozorila aktivacije ' + Date.now();
   const valid = await create(request, { namePrefix, shipping: 'missing' });
   const invalid = await create(request, { namePrefix, prices: [0, 0, 0] });
@@ -342,6 +342,7 @@ test('bulk activation shows skipped item, variant, SKU and reason in a notice be
   await page.getByRole('menuitem', { name: 'Aktiven', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Aktivacija artiklov', exact: true });
   await expect(dialog.getByRole('radio', { name: /^Glavni artikli in vse različice/ })).toBeChecked();
+  await expect(dialog).toContainText('nad tabelo, pod razdelkom Zaloga');
   const saved = page.waitForResponse(response => new URL(response.url()).pathname === endpoint && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Aktiviraj', exact: true }).click();
   expect((await saved).status()).toBe(200);
@@ -357,10 +358,13 @@ test('bulk activation shows skipped item, variant, SKU and reason in a notice be
   await expect(notice).toContainText(/cena.*večja od 0/i);
   await expect(notice).not.toContainText(valid.itemName);
   const table = page.getByRole('table').first();
-  const [tableBox, noticeBox] = await Promise.all([table.boundingBox(), notice.boundingBox()]);
+  const stock = page.getByTestId('admin-inventory-policy-control');
+  const [tableBox, noticeBox, stockBox] = await Promise.all([table.boundingBox(), notice.boundingBox(), stock.boundingBox()]);
   expect(tableBox).not.toBeNull();
   expect(noticeBox).not.toBeNull();
-  expect(noticeBox!.y).toBeGreaterThanOrEqual(tableBox!.y + tableBox!.height - 1);
+  expect(stockBox).not.toBeNull();
+  expect(noticeBox!.y).toBeGreaterThanOrEqual(stockBox!.y + stockBox!.height - 1);
+  expect(noticeBox!.y + noticeBox!.height).toBeLessThanOrEqual(tableBox!.y + 1);
   expect((await read(request, valid.slug)).status).toBe('active');
   expect(await read(request, invalid.slug)).toEqual(invalid);
 });

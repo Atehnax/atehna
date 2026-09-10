@@ -2,14 +2,7 @@
   "version": 1,
   "auditedAt": "2026-09-10",
   "scope": "43 product families from data/catalog/atehna-2026-09.json; match variants by exact name and original index, never mutable SKU alone.",
-  "policy": {
-    "sourcePreference": "Best available verified source photos; generated unbranded material illustrations only where separately authorized.",
-    "target": "At least two genuinely distinct high-quality views per family and one accurate image per variant.",
-    "noImageTransforms": "Source photos copied natively; generated generic illustrations stored without pixel transforms.",
-    "qualityRule": "Native pixel size is recorded independently of visual review. Duplicate files, crops, watermarked images, or wrong packages do not satisfy distinct high-quality coverage.",
-    "application": "Prefer verified replacement images first. Retain original media records; hide obsolete blurry images only when all their variant uses have an accurate replacement. Never use variant order or SKU alone as identity.",
-    "background": "Latest user preference overrides white-only background skill: retain sharp isolated hero images and include authentic contextual or application photographs for scale and use. Do not force all photos onto white."
-  },
+  "policy": "Historical September 2026 image-upgrade provenance. Superseded by real-photo manifests: generated illustrations are hidden and unassigned. Do not rerun this historical upgrade.",
   "products": [
     {
       "slug": "aluminijasta-plosca",
@@ -7118,5 +7111,10 @@
         ]
       }
     }
+  ],
+  "supersededBy": [
+    "data/catalog/real-photo-materials-2026-09.json",
+    "data/catalog/real-photo-tools-2026-09.json",
+    "data/catalog/real-photo-metals-2026-09.json"
   ]
 }

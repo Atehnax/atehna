@@ -1,0 +1,1089 @@
+{
+  "version": 1,
+  "auditedAt": "2026-09-10T17:46:46.054Z",
+  "policy": "Real supplier/manufacturer/retailer photographs only. Original source bytes retained; no AI generation, recolouring, redrawing or upscaling. Existing genuine URLs are reused. Small authentic sources are identified honestly. A component view does not depict or verify a complete stand set.",
+  "products": [
+    {
+      "slug": "motorcek",
+      "photos": [
+        {
+          "id": "motor-r23",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+          "sourceUrl": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 1637
+          },
+          "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
+          "altText": "Motorček R23 / RE280R — izvirna fotografija",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
+        },
+        {
+          "id": "motor-r20",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r20-izvirnik.jpg",
+          "sourceUrl": "https://www.opitec.com/media/69/41/29/1764938911/224013-000-000-VO-02_v_9.jpg?ts=1764938911",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-140-2170/224013",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 2346
+          },
+          "sha256": "12e908daad43c4f06fe2a40b1a4a6c4682f44a6ea39a1642c06d131534a870c9",
+          "altText": "Motorček R20 / RE140 — izvirna fotografija",
+          "variantIndices": [
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
+        },
+        {
+          "id": "motor-r21",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
+          "sourceUrl": "https://www.opitec.com/media/e0/29/50/1764938962/224035-000-000-VO-02_v_9.jpg?ts=1764938962",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 1863
+          },
+          "sha256": "a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351",
+          "altText": "Motorček R21 / RE260 — izvirna fotografija",
+          "variantIndices": [
+            2
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/motor-r23-ilustracija.png",
+        "/images/catalog/2026-09/motor-r21-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 3,
+        "realProductImageVariantCount": 3,
+        "distinctPhotoCount": 3
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "photos": [
+        {
+          "id": "geotrikotnik-60-real-wissner",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik-60-real-wissner.png",
+          "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/3b/61/fe/1736336828/Wissner_017050.000.png?ts=1761749054",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Geometriewinkel-60-cm/017050.000",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "sha256": "f5eea51ab5d469e222de9cf51a47fd9565e3cc0343f9052512a65fffecbd704d",
+          "altText": "Geotrikotnik 60 cm — izvirna fotografija proizvajalca",
+          "variantIndices": [
+            0,
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact original black-handle 017050 series. Manufacturer uses the same front photograph on 017050.000 and 017050.M00; magnetic backing is not visible. Both pages checked. Do not infer unseen attachment details. Gray background is native supplier composition."
+        },
+        {
+          "id": "geotrikotnik-80-real-wissner",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik-80-real-wissner.png",
+          "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/f4/b3/67/1736341748/Wissner_017150.000.png?ts=1761749085",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Geometriewinkel-80-cm/017150.000",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "sha256": "cc10a3e78114cc7089b659a48612ae1f459f1a4935576445be10a113e47dc9dd",
+          "altText": "Geotrikotnik 80 cm — izvirna fotografija proizvajalca",
+          "variantIndices": [
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact original black-handle 017150 series. Manufacturer uses the same front photograph on 017150.000 and 017150.M00; magnetic backing is not visible. Both pages checked. Correct 80 cm scale."
+        },
+        {
+          "id": "geotrikotnik-60-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/geotrikotnik.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/10/Geo-trikotnik-60-cm-prozoren-magneten.jpg",
+          "sourcePage": "https://atehna.si/product/geotrikotnik/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "sha256": "d17b918cbb2b47a1376922a6a3751ba78dc44cc1574b70dc272c2b75e1c63f68",
+          "altText": "Magnetni geotrikotnik 60 cm — pogled od spredaj",
+          "variantIndices": [
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original exact supplier view, distinct pose from native manufacturer photo. Incorrect historical links to the other variants are explicitly removed; only the matching measured size remains linked.",
+          "removeExistingVariantIndices": [
+            0,
+            2,
+            3
+          ]
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/geo60-navaden-ilustracija.png",
+        "/images/catalog/2026-09/geo80-navaden-ilustracija.png",
+        "/images/catalog/2026-09/geo60-magneten-ilustracija.png",
+        "/images/catalog/2026-09/geo80-magneten-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 4,
+        "realProductImageVariantCount": 4,
+        "distinctPhotoCount": 3
+      }
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "photos": [
+        {
+          "id": "trikotnik-45-50-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/trikotniki-za-tablo.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/10/45-stopinjski-trikotnik.jpg",
+          "sourcePage": "https://atehna.si/product/trikotniki-za-tablo/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "sha256": "d15d8adf85a3f7ecd280c645c1722cad185e11d6943e49374f4f77c7a8aab035",
+          "altText": "Trikotnik za tablo 45°, 50 cm",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Scale ends at 50 cm; assigned only to matching variant. Incorrect historical links to the other variants are explicitly removed; only the matching measured size remains linked.",
+          "removeExistingVariantIndices": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "id": "trikotnik-45-60-real-wissner",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-45-60-real-wissner.png",
+          "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/85/83/f2/1736259978/Wissner_010710.000.png?ts=1761748085",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Rechter-Winkel-450-60-cm/010710.000",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "sha256": "3a6dabb11c4d4b9bbf14f3802b25249bac470d58ad1ea61403ddb27a8b4897ef",
+          "altText": "Trikotnik za tablo 45°, 60 cm",
+          "variantIndices": [
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original black-handle 010710.000 manufacturer series matches ATEHNA original option code 010710. Printed long-edge scale ends at 60 cm."
+        },
+        {
+          "id": "trikotnik-60-50-real-wissner",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-60-50-real-wissner.png",
+          "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/19/de/c1/1736316946/Wissner_010800.000.png?ts=1761748188",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Spitzer-Winkel-600-50-cm/010800.000",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 2400,
+            "height": 1600
+          },
+          "sha256": "525d99d9abfeb3ccc1dafd607324013f307064ac8be758cba8c5108c3734430b",
+          "altText": "Trikotnik za tablo 60°, 50 cm",
+          "variantIndices": [
+            2
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original black-handle 010800.000 manufacturer series matches ATEHNA original option code 010800. Printed long-edge scale ends at 50 cm."
+        },
+        {
+          "id": "trikotnik-60-stopinj-60cm-izvirnik",
+          "blobUrl": "/images/catalog/2026-09/trikotnik-60-stopinj-60cm-izvirnik.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/10/60-stopinjski-trikotnik.jpg",
+          "sourcePage": "https://atehna.si/wp-json/wp/v2/media?search=trikotnik&per_page=100",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "sha256": "3773c2ca4f5b34a76b354950b58ddeedd68ac752bf9dc7a4f5dfb36922be7a3f",
+          "altText": "60 stopinjski trikotnik",
+          "variantIndices": [
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Visually inspected: 60-degree triangle with long edge scale ending60cm. Exact for60/60 only."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/trikotnik45-60-ilustracija.png",
+        "/images/catalog/2026-09/trikotnik60-50-popravljen-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 4,
+        "realProductImageVariantCount": 4,
+        "distinctPhotoCount": 4
+      }
+    },
+    {
+      "slug": "magnetni-trinog",
+      "photos": [
+        {
+          "id": "magnetni-trinog-real-wissner",
+          "blobUrl": "/images/catalog/2026-09/magnetni-trinog-real-wissner.jpg",
+          "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/45/be/80/1736147488/Wissner_010012.000.jpg?ts=1761747330",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Ersatzdreifuss-magnetisch/010012.000",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 1485,
+            "height": 915
+          },
+          "sha256": "658e2c0a1ffcbacf6b42c2027d5435ad133d82232d7891cc5c967f824c01db53",
+          "altText": "Magnetni trinog za šestilo — samostojni pogled",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact original manufacturer accessory 010012.000. Real photo on natural fabric; no edits. Distinct from original installed-accessory view."
+        },
+        {
+          "id": "magnetni-trinog-real-namescen",
+          "blobUrl": "/images/catalog/2026-09/magnetni-trinog.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/03/magnetni-trinog.jpg",
+          "sourcePage": "https://atehna.si/product/magnetni-trinog/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1667,
+            "height": 1667
+          },
+          "sha256": "d146720c78a410320bfb1482b87ea08de3ee996330bb0dfdc783985c920a699d",
+          "altText": "Magnetni trinog nameščen na šestilu; šestilo ni vključeno",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original supplier installed-accessory detail; compass is context only."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/geometrija-kroznica-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "tracni-meter",
+      "photos": [
+        {
+          "id": "tracni-meter-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/tracni-meter.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/10/merski-trak.jpg",
+          "sourcePage": "https://atehna.si/product/meter-tracni/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "sha256": "4d0fc9408798bb8589eda23d3bdbd9c4a670fdb9347a6d5e9507c954646e2b5b",
+          "altText": "Tračni meter geo-FENNEL Rubber Tape — izvirna fotografija",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original real supplier photo. No length is visible on front. Other manufacturer images visibly show 8 m and were rejected for this 5 m variant. No second exact-model independent source verified."
+        },
+        {
+          "id": "tracni-meter-real-rubber-tape-5m",
+          "blobUrl": "/images/catalog/2026-09/tracni-meter-real-rubber-tape-5m.jpg",
+          "sourceUrl": "https://www.mesure-laser.com/4100-large_default/rubber-tape-5m-ruban-de-mesure-5mx25mm-.jpg",
+          "sourcePage": "https://www.mesure-laser.com/rubans-de-mesure/619-rubber-tape-5m-ruban-de-mesure-5mx25mm--4045921140486.html",
+          "kind": "retailer-photo",
+          "dimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "9a7b354e49242115aaf2616f94e20fe024c31f0d80ef57428eedba58021d8161",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "altText": "Tračni meter Rubber Tape 5 m – dobaviteljeva fotografija drugega pogleda",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "quality": "source-photo",
+          "notes": "Independent real photograph from the Mesure Laser RUBBER TAPE5m /25mm listing, EAN4045921140486. Black/yellow rubber case and locking slide match the Rubber Tape family; pictured face does not show a conflicting length. Original retailer photograph has a plain RUBBER Tape label; no logo was removed or edited by us. Retain existing ATEHNA photo first. Other manufacturer close-ups visibly marked8m were rejected."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/tracni-meter-delavnica.png"
+      ],
+      "notes": [
+        "Second matching retailer5m photograph found. No8m-marked imagery imported."
+      ],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "photos": [
+        {
+          "id": "thermoform-400-izvirnik",
+          "blobUrl": "/images/catalog/2026-09/thermoform-400-izvirnik.jpg",
+          "sourceUrl": "https://media.s-bol.com/x6jNzB1ENAVn/1200x489.jpg",
+          "sourcePage": "https://www.bol.com/be/nl/p/kunststof-buigmachine-thermoform-400/9300000007068784/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 489
+          },
+          "sha256": "d2e035b8764fb32c23eac8bf45a8ff8a313b6ceb473f09be6078c33ce98f7b54",
+          "altText": "Krivilnik THERMOFORM 400 — izvirna fotografija",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact native larger version of original Atehna view. Accessories visible in supplier photograph do not establish included equipment."
+        },
+        {
+          "id": "krivilnik-real-primer-akrilnega-izdelka",
+          "blobUrl": "/images/catalog/2026-09/krivilnik-real-primer-akrilnega-izdelka.jpg",
+          "dimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "sha256": "34e408ef3448ea017fa31f245680937f7772945ace28a0352cae74004cb6daea",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "sourceUrl": "https://www.winklerschulbedarf.com/images/items/51265_1_PLEXI_Zettelbox_l.jpg",
+          "sourcePage": "https://www.winklerschulbedarf.com/de/i/plexi-zettelbox-per-stk-101377",
+          "kind": "supplier-context-photo",
+          "altText": "Primer izdelka iz toplotno upognjenega pleksi stekla — stojalo za lističe in pisala, dodatki niso vključeni",
+          "variantIndices": [],
+          "contextOnly": true,
+          "quality": "source-photo",
+          "notes": "Real completed classroom project photograph. Winkler101377 description explicitly specifies drilling and heat-bending clear3mm acrylic using a thermo-bender. It illustrates a suitable application outcome, not proof that the pictured project was made on this exactTHERMOFORM400 machine. Exact original machine photo remains first. Native600×600; pens and paper are example context only."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/thermoform-primer-izdelka.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "kladivo",
+      "photos": [
+        {
+          "id": "kladivo-200-real-opitec-1",
+          "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-1.jpg",
+          "sourceUrl": "https://www.opitec.com/media/1b/21/9d/1776316559/343055-000-000-VO-03_v_5.jpg?ts=1776316559",
+          "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 1839
+          },
+          "sha256": "6a8948ecc822536800be6dc792ceead2e9be20c2baf9bd99af235692ba0d64cd",
+          "altText": "Kladivo 200 g z lesenim ročajem — posamezen kos; stojalo ni prikazano",
+          "variantIndices": [
+            0,
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred."
+        },
+        {
+          "id": "kladivo-200-real-opitec-2",
+          "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-2.jpg",
+          "sourceUrl": "https://www.opitec.com/media/d0/00/51/1776316560/343055-000-000-VO-04_v_5.jpg?ts=1776316560",
+          "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 1597
+          },
+          "sha256": "d1aaf8bda790de0d3e94f64186abe7e0b25f857a2b06601defa9122a61af7f2a",
+          "altText": "Kladivo 200 g z lesenim ročajem — posamezen kos; stojalo ni prikazano",
+          "variantIndices": [
+            0,
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred."
+        },
+        {
+          "id": "kladivo-300-real-unior",
+          "blobUrl": "/images/catalog/2026-09/kladivo-300-real-unior.jpg",
+          "sourceUrl": "https://uniorusa.com/cdn/shop/products/812.jpg?v=1642726035",
+          "sourcePage": "https://uniortools.com/eng/product/812-locksmiths-hammer",
+          "kind": "manufacturer-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "sha256": "2b963f0b717fa123cc72bc915cfbffb1aef7f527feacd1b405d5622fe37f644e",
+          "altText": "Kladivo UNIOR 812, 300 g — prikaz posameznega kladiva; stojalo ni prikazano",
+          "variantIndices": [
+            2,
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Official distributor photograph visibly stamped 812-300. Assigned only to 300 g variants. No stand or ten-piece packaging is depicted or inferred."
+        },
+        {
+          "id": "kladivo-real-uporaba-unior",
+          "blobUrl": "/images/catalog/2026-09/kladivo-real-uporaba-unior.jpg",
+          "sourceUrl": "https://uniortools.com/res/katimages/812%23usage@1_1024.jpg",
+          "sourcePage": "https://uniortools.com/eng/product/812-locksmiths-hammer",
+          "kind": "manufacturer-context-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "sha256": "3a25ef9622c9498c8429414d86b8faf3cc8736c5af4cbd4b3732e351e1239d3b",
+          "altText": "Primer uporabe ključavničarskega kladiva pri vzdrževalnem delu",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Real manufacturer 812-series usage photograph. Hammer weight is not identifiable, so this is application context only; it does not represent exact weight or package quantity."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/kladivo-posamezno-ilustracija.png",
+        "/images/catalog/2026-09/kladivo-komplet-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 4,
+        "realProductImageVariantCount": 4,
+        "distinctPhotoCount": 4
+      }
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "photos": [
+        {
+          "id": "klesce-za-izolacijo-10-izvirnik",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-izvirnik.jpg",
+          "sourceUrl": "https://www.opitec.com/media/9a/68/8a/1764937257/340599-000-000-VO-02d01_v_9.jpg?ts=1764937257",
+          "sourcePage": "https://www.opitec.com/de-de/opitec-sparset-10-abisolierzangen-werkzeugblock/340599",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 2476
+          },
+          "sha256": "9493e3932fb84f498bfc36970aaa5bb86bd2bf783be4270d6d4f70da327adb51",
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact native original Tooltech blue/black10-piece stand kit. Nine in stand plus one outside. Same shot as old500px source; quality replacement, not second distinct photo."
+        },
+        {
+          "id": "klesce-za-izolacijo-10-drugi-pogled",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/09/klešče-za-snemanje-izolacije1.jpg",
+          "sourcePage": "https://atehna.si/wp-json/wp/v2/media?per_page=100&search=kle%C5%A1%C4%8De",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 496,
+            "height": 500
+          },
+          "sha256": "8d5d40e2aa58fa387f1c43f0e24f4231887883bd4d30490781c467348e0142d3",
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Distinct original source view: all ten matching blue/black manual stripping pliers in wooden stand. Native 496x500; acceptable supplementary image, not high-resolution."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/klesce-snemanje-izolacije-uporaba.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "photos": [
+        {
+          "id": "zlatarske-skarje-za-plocevino-real-lux-180",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-lux-180.jpg",
+          "sourceUrl": "https://s3.praktiker.gr/myPraktiker.Images/Products/119420/gallery/26530/PP_374634.jpg",
+          "sourcePage": "https://www.praktiker.gr/p/psalidi-lamarinas-isio-lux-comfort-180mm-119420",
+          "kind": "retailer-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 821
+          },
+          "sha256": "2fb54ac4f401d381053b3def76ae2c65a6289878658855d4ed880e84839afb9a",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "altText": "Zlatarske škarje za pločevino – fotografija posameznih škarij, stojalo ni prikazano",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "quality": "high-quality-source",
+          "notes": "Native 1200×821 real retailer photograph of LUX Comfort 180mm, EAN4007875388307 matching the existing OBI representative individual tool. Higher-resolution replacement for the existing415px view; not counted as a separate capture from that old hero. Intended ten-piece stand is not pictured and its brand is not inferred."
+        },
+        {
+          "id": "zlatarske-skarje-za-plocevino-real-rezanje-plocevine",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-rezanje-plocevine.jpg",
+          "sourceUrl": "https://s3.praktiker.gr/myPraktiker.Images/Products/119420/gallery/26530/PS_374634_01_L.jpg",
+          "sourcePage": "https://www.praktiker.gr/p/psalidi-lamarinas-isio-lux-comfort-180mm-119420",
+          "kind": "context-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 821
+          },
+          "sha256": "1cdccd20439bbb5d1ab005fa72fb5785a22b0af0e91f5af1eede4148a7010652",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "altText": "Primer uporabe zlatarskih škarij pri rezanju pločevine v delavnici",
+          "variantIndices": [],
+          "contextOnly": true,
+          "quality": "high-quality-source",
+          "notes": "Independent real workshop application photograph supplied in the same Praktiker LUX Comfort180mm/EAN4007875388307 gallery. Blue-handled individual scissors cutting sheet metal; no ten-tool stand or included accessories implied. Source bytes, natural dark lighting, tool branding and background retained unchanged."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/zlatarske-komplet-studio-ilustracija.png",
+        "/images/catalog/2026-09/zlatarske-detajl-ilustracija.png"
+      ],
+      "notes": [
+        "Use sharp real hero first and actual workshop application second. Existing415px hero is redundant, not a third independent photograph."
+      ],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "photos": [
+        {
+          "id": "zica-za-lotanje-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/zicazalotanje.jpg",
+          "sourcePage": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 350,
+            "height": 400
+          },
+          "sha256": "25c9b73e03b2f17eb40d93b6e866197ebff2c43bff8227af13e9134e00c547b4",
+          "altText": "Žica za lotanje 100 g — izvirna fotografija koluta",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Best verified exact supplier source, native 350×400. No alloy, diameter or brand specification inferred from the image."
+        },
+        {
+          "id": "zica-za-lotanje-real-kolut-detajl",
+          "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-real-kolut-detajl.jpg",
+          "sourceUrl": "https://www.opitec.com/media/81/44/50/1764939613/328722-000-000-VO-01d01_v_9.jpg?ts=1764939613",
+          "sourcePage": "https://www.opitec.com/de-de/opitec-elektroniklot-sn95-5ag3-8cu0-7-1-mm-100g/328722",
+          "kind": "supplier-context-photo",
+          "dimensions": {
+            "width": 2560,
+            "height": 1981
+          },
+          "sha256": "fdfaa64329fe6c7797291a0043613ed452e56d87886434cfdff18a62c2cfedcc",
+          "altText": "Primer koluta žice za lotanje 100 g; prikazana zlitina ni potrjena specifikacija artikla",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Supplementary real representative view of a100g solder spool showing the wire winding. OPITEC alloy/diameter on label is NOT verified for the catalog item and must not become a product specification. Original actual supplier blue-spool photograph remains first and the sole exact product hero."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/zica-za-lotanje-ilustracija.png",
+        "/images/catalog/2026-09/zica-za-lotanje-delovna-miza.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "photos": [
+        {
+          "id": "spiralne-zagice-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/spiralne-3.jpg",
+          "sourcePage": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "sha256": "e93805ad1512ff9cc8393f286d1ae97a0a69a4b127db450a128fe315801417c8",
+          "altText": "Spiralne žagice za les in mehke kovine — fotografija pakiranja",
+          "variantIndices": [
+            0,
+            1,
+            2
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Real PEBARO supplier package photograph, native600×600. Grade field is blank and supplier shares this image across family; representative for fine/medium/coarse, no exact tooth grade is asserted. Cropped derivatives are not counted as independent views."
+        },
+        {
+          "id": "spiralne-zagice-real-detajl",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-real-detajl.jpg",
+          "sourceUrl": "https://www.winklerschulbedarf.com/images/items/302x_1_Spiral_Laubsaegeblaetter_Holz_Kunststoff_l.jpg",
+          "sourcePage": "https://www.winklerschulbedarf.com/at/i/spiral-laubsageblatter-fur-holz-und-kunststoff-pebaro-12-stk-pkg-v200095",
+          "kind": "supplier-context-photo",
+          "dimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "sha256": "80c0122b2d3b2df0d7c9dbe70eef7fb14d34a653723ade8a61aeebfaf9200cc7",
+          "altText": "Spiralna žagica — fotografski detajl spiralnih zob",
+          "variantIndices": [
+            0,
+            1,
+            2
+          ],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "quality": "good-source-detail",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Genuine macro photograph from PEBARO supplier showing the spiral tooth form. Shared supplier image for listed grades; illustrative product detail only, not proof of exact fine/medium/coarse tooth pitch. Native600px, sharp detail despite modest canvas size."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/spiralne-tanke-studio-ilustracija.png",
+        "/images/catalog/2026-09/spiralne-tanke-uporaba-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 3,
+        "realProductImageVariantCount": 3,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "photos": [
+        {
+          "id": "zagice-kovine-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/03/kovine-0.jpg",
+          "sourcePage": "https://atehna.si/product/zagice-za-rezanje-kovin-no-0/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "sha256": "1c1031eca2a54e99ff4b425c421a600d68f5d00b5e73fd7ddea95e66a7ff0b0d",
+          "altText": "Žagice za rezanje kovin — fotografija pakiranja",
+          "variantIndices": [
+            0,
+            1,
+            2
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Real PEBARO supplier package photograph, native600×600. Grade field is blank and supplier shares this image across family; representative for fine/medium/coarse, no exact tooth grade is asserted. Cropped derivatives are not counted as independent views."
+        },
+        {
+          "id": "zagice-za-kovine-real-detajl-zob",
+          "blobUrl": "/images/catalog/2026-09/zagice-za-kovine-real-detajl-zob.jpg",
+          "dimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "sha256": "3ecd518bca9e0216b166a5100e3e488641ebe89f806184a1957c9042972ca927",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "sourceUrl": "https://www.winklerschulbedarf.com/images/items/3034_1_Laubsaegeblaetter_Metall_l.jpg",
+          "sourcePage": "https://www.winklerschulbedarf.com/de/i/laubsageblatter-fur-metall-no-5-pebaro-12-stk-pkg-200101",
+          "kind": "supplier-detail-photo",
+          "altText": "Detajl žagice za kovino — reprezentativni prikaz, gostota zob se razlikuje po izvedbi",
+          "variantIndices": [],
+          "contextOnly": true,
+          "quality": "source-photo",
+          "notes": "Native600×600 close-up from the Pebaro metal-blade supplier page, showing real dark blade edge and natural shadow. The source is No5; exact numeric grade mapping to the catalog fine/medium/coarse labels is not verified, so this is a qualified family detail only. Existing grade-neutral genuine pack photo remains the shared variant hero. No tooth counts or package quantity are transferred."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/kovine-tanke-studio-ilustracija.png",
+        "/images/catalog/2026-09/kovine-tanke-uporaba-ilustracija.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 3,
+        "realProductImageVariantCount": 3,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "photos": [
+        {
+          "id": "aluminijasto-ravnilo-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/aluminijasto-ravnilo-z-rocajem.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/03/1RAG.jpg",
+          "sourcePage": "https://atehna.si/product/ravnilo-alu-z-rocajem-40-cm/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 342,
+            "height": 342
+          },
+          "sha256": "97ba5111e8db7497b19030f8a9a05187353cb1992bf46c46b1fd9d007fe9a5cb",
+          "altText": "Aluminijasto ravnilo z ročajem, 40 cm — izvirna fotografija",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Best original supplier source, native342×342. Other models from research have different handles/scales and are not substituted."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/ravnilo-40-cm-ilustracija.png",
+        "/images/catalog/2026-09/ravnilo-z-rocajem-uporaba.png"
+      ],
+      "notes": [
+        "Only one matching independent real photograph has been verified; keep this authentic source rather than generate or substitute another model.",
+        "No second accurate40cm independent real photo verified. Merkur600px original and INSTAL605×154 photos use the same generic handled-ruler pose and show a longer scale ending60; not imported. Manufacturer four-model lineup repeats the same family capture and is not an independent40cm view. Preserve existing best original supplier photo; exact40cm second view remains a gap."
+      ],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 1
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "photos": [
+        {
+          "id": "otroski-predpasnik-real-atehna",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/12/6-1038-zascitni-predpasnik-iz-blaga-500x500.jpg",
+          "sourcePage": "https://atehna.si/product/zascitni-predpasnik/",
+          "kind": "supplier-photo",
+          "dimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "sha256": "2443ea34cf49828b19916649bffe78d6ae2ec026ef63086ebc137c8b7bddaf73",
+          "altText": "Otroški zaščitni predpasnik iz blaga — izvirna fotografija",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "best-available-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Original navy fabric apron from supplier, native500×500. No brand, exact cut dimensions, certification or coating inferred."
+        },
+        {
+          "id": "otroski-zascitni-predpasnik-real-primer-nosenja",
+          "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-real-primer-nosenja.jpg",
+          "sourceUrl": "https://www.apronwarehouse.com/cdn/shop/files/RP149_qtr_navy_SCALE_1200x1200.jpg?v=1716754815",
+          "sourcePage": "https://www.apronwarehouse.com/products/navy-recycled-youth-bib-apron-no-pockets",
+          "kind": "context-photo",
+          "dimensions": {
+            "width": 800,
+            "height": 1200
+          },
+          "sha256": "6b6bf76c6259de7fc285c84d36118157edc074dc1312d87fbb8b48bcf5e6a136",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "altText": "Primer nošenja podobnega temno modrega otroškega predpasnika iz blaga – prikaz velikosti na otroku",
+          "variantIndices": [],
+          "contextOnly": true,
+          "quality": "high-quality-source",
+          "notes": "Real retailer model photograph showing a navy pocketless cloth child apron, used only as a representative fit/scale context. Source garment is Artisan Collection by Reprime RP149, not asserted to be the identical ATEHNA apron. No brand, recycled-fibre claim, fabric blend, exact dimensions or safety-release specification is transferred to the catalog. Existing exact supplier navy hero must remain first. Source photo unchanged."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/otroski-zascitni-predpasnik-ilustracija.png",
+        "/images/catalog/2026-09/otroski-zascitni-predpasnik-ucilnica.png"
+      ],
+      "notes": [
+        "Generic similar pocketless navy fabric apron context, visibly qualified in alt text. Keep existing exact supplier hero."
+      ],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "uhu-kraft",
+      "photos": [
+        {
+          "id": "uhu-kraft-42g-izvirnik",
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png",
+          "sourceUrl": "https://www.uhu.com/getmedia/189eedce-e726-4336-9f65-75e930923b11/4026700450408-UHU-AK-Kraft-FLEX-CL-42g-Tray-packshot-tube",
+          "sourcePage": "https://www.uhu.com/de-de/produkte/uhu-alleskleber-kraft-flex-tube-42-g-de",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 957,
+            "height": 1280
+          },
+          "sha256": "cdd4795a68419ec9de23b88d0fa2abad090f8898d35e04e81d0d056255b4c15a",
+          "altText": "UHU Kraft 42 g — fotografija proizvajalca",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Native transparentPNG, crisp readable label at catalog size. Replace lower-quality transformedWebP of same view; not a second distinct view."
+        },
+        {
+          "id": "uhu-kraft-real-drugi-pogled",
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-real-drugi-pogled.jpg",
+          "dimensions": {
+            "width": 720,
+            "height": 356
+          },
+          "sha256": "afd8d0763d52345a6704697eedf24900d162fef068b91c69688db99cb91a5293",
+          "visuallyVerified": true,
+          "edited": false,
+          "distinctView": true,
+          "sourceUrl": "https://static01.galaxus.com/productimages/2/5/4/4/6/7/8/9/7/1/3/3/7/1/4/7/6/7/8/94b6858e-07f4-4e30-be99-a5a197ee1f0d_cropped.jpg_720.jpeg",
+          "sourcePage": "https://www.galaxus.ch/de/s4/product/uhu-kraft-42-g-42-ml-klebstoff-5850613",
+          "kind": "retailer-photo",
+          "altText": "UHU Kraft 42 g — drugi pogled na tubo in oznake",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "quality": "source-photo",
+          "notes": "Independent real side/reverse tube view with visible 42g/ml and article45040 marking; source gallery is the same42g product. Native720×356, sufficient for a secondary view, not upscaled. Existing crisp manufacturer hero stays first. Manufacturer product art45040 and EAN4026700450408 match."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/uhu-kraft-primer-uporabe.png"
+      ],
+      "notes": [],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 2
+      }
+    },
+    {
+      "slug": "uhu-super-glue",
+      "photos": [
+        {
+          "id": "uhu-super-glue-3ml-izvirnik",
+          "blobUrl": "/images/catalog/2026-09/uhu-super-glue-3ml-izvirnik.jpg",
+          "sourceUrl": "https://wolt-menu-images-cdn.wolt.com/menu-images/66b0b8a784c4c6ec925c846f/49258ca2-5fc6-11ef-97c0-badc92fafc3b_406536.jpg",
+          "sourcePage": "https://www.officedepot.co.il/office-equipment/glue-tape-adhesive/glue-super-glue-3-ml-in-tube-uhu",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1200,
+            "height": 675
+          },
+          "sha256": "d8cff4388c8eeba39570769c2c891122f532a49210cceaccc2a542f864b7fce1",
+          "altText": "UHU Super glue 3 ml — fotografija originalnega pakiranja",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "quality": "high-quality-source",
+          "distinctView": true,
+          "edited": false,
+          "notes": "Exact original red tube and3ml package; native1200x675. Package details clear at normal catalog size; no transformation or artificial enlargement."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/uhu-super-glue-delavnica.png"
+      ],
+      "notes": [
+        "Only one matching independent real photograph has been verified; keep this authentic source rather than generate or substitute another model.",
+        "Further sources inspected: Merkur Jumbo3ml displays many newer packs but their printed capacity/model is not safely equivalent; current UHU3gControl photographs show another dispenser. These were not added merely to fill the second-photo slot. The exact original red3ml package remains the only verified independent view."
+      ],
+      "coverage": {
+        "variantCount": 1,
+        "realProductImageVariantCount": 1,
+        "distinctPhotoCount": 1
+      }
+    }
+  ],
+  "rejectedSources": [
+    {
+      "source": "https://www.wissner-aktiv-lernen.com/Geometriewinkel-PROFI-linie-60-cm/167050.000",
+      "reason": "Newer red-handle PROFI series differs from original black-handle 017050 series; exact original series found instead."
+    },
+    {
+      "source": "https://www.greenbasic.nl/product/thermoform-400/",
+      "reason": "Current gallery displays a visibly different newer Alton design (perforated long metal housing). Original catalog Thermoform has a separate left control housing; retain verified exact old photo."
+    },
+    {
+      "source": "https://www.geo-fennel.de/",
+      "reason": "Previously reviewed Rubber Tape alternate gallery visibly depicts 8 m, not the catalog 5 m variant."
+    },
+    {
+      "source": "https://www.iaseshop.com/en/products.php?product=UHU-%E5%BC%B7%E5%8A%9B%E8%86%A0-3g",
+      "reason": "Photos show new3g Control packaging, not exact old3ml red-tube model."
+    },
+    {
+      "source": "https://shop.pebaro.de/out/pictures/master/product/2/Saegeblatt_Metall.jpg",
+      "reason": "Solid silhouette is a technical blade graphic, not a real-photo improvement."
+    },
+    {
+      "source": "https://www.tm-kovine.si/Portals/0/EasyDNNnews/401/1rag.jpg",
+      "reason": "500x268 family comparison composite with four models and unspecified lengths; not a higher-quality exact40cm product photograph."
+    }
+  ]
+}

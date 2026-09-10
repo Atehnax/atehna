@@ -1,0 +1,1208 @@
+{
+  "version": 1,
+  "auditedAt": "2026-09-10T17:39:51.845Z",
+  "policy": "Real supplier photographs and original color references only. No generated images, recoloring, artificial upscaling, or watermark removal. Source dimensions and any representative/unknown variant limitations are documented.",
+  "products": [
+    {
+      "slug": "penjeni-pvc-komateks",
+      "photos": [
+        {
+          "id": "rob-materiala",
+          "sourceUrl": "https://displaypro.co.uk/cdn/shop/products/white-pvc-foam-sheet-cut-to-size-5mm-115954_1ff4eeca-5f99-4224-abae-046b80bc17a2.jpg?v=1743758648",
+          "sourcePage": "https://displaypro.co.uk/products/white-pvc-foam-sheet-cut-to-size-3mm",
+          "altText": "Penjeni PVC – fotografija belega materiala in roba plošče",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "notes": "Unchanged supplier material detail used on its 3 mm listing. Image filename says 5 mm; do not infer measured thickness from photo. Catalog dimensions remain authoritative.",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 671,
+            "height": 574
+          },
+          "sha256": "fba6a5efdc3ea98603a6157c2f8849374a9b5ffb23cf1421f3748765bf3dcbe6",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "izvirna-fotografija",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+          "sourcePage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+          "altText": "Penjeni PVC – dobaviteljeva fotografija belih plošč",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "notes": "Original supplier image shared by all four actual cut-size listings, retained at native 312px.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 312,
+            "height": 312
+          },
+          "sha256": "700347f73dcd460d8f1b7ee76439acc0662f6070b43417c94de575b59eeda7da",
+          "contextOnly": false,
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/pvc-penjeni-pravokotnik-studio.png",
+        "/images/catalog/2026-09/pvc-penjeni-kvadrat-studio.png"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "pleksi-steklo",
+      "photos": [
+        {
+          "id": "beli-akril",
+          "sourceUrl": "https://www.theacrylicwarehouse.co.uk/wp-content/uploads/2025/03/White-Gloss-Accrylic-Sheets-Cut-To-Size-at-The-Acrylic-Warehouse.webp",
+          "sourcePage": "https://www.theacrylicwarehouse.co.uk/product/white-gloss-acrylic-sheet-cut-to-size-3mm/",
+          "altText": "Belo pleksi steklo – fotografija akrilnih plošč",
+          "variantIndices": [
+            0,
+            3
+          ],
+          "notes": "Real white 3mm acrylic supplier photograph; generic material representation, no claim of matching delivered cut dimensions or brand.",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-beli-akril.webp",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "sha256": "10b221de64aa7b0d99233c6e41e897de88828519153abd3c0ab51bdbdd2bcfcf",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "prozorna-plosca",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo.jpg",
+          "sourceUrl": "https://www.pos-plastika.hr/Media/SlikeIT//prozoren%20pleksi%20(640%20x%20480)_r.jpg",
+          "sourcePage": "https://www.pos-plastika.hr/pleksi-steklo3",
+          "altText": "Prozorno pleksi steklo – fotografija prozorne akrilne plošče",
+          "variantIndices": [
+            2,
+            5
+          ],
+          "notes": "Existing real clear acrylic photograph retained unchanged; no exact cut-size claim. Correct outdated assignments of this existing photo: only the explicitly listed removeExistingVariantIndices are unlinked; matching new material/color photographs now cover those variants.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 800,
+            "height": 600
+          },
+          "sha256": "f75a0d472b1fa972059692c919c3cacfbb3cbc5b59d83b2bf4f0457eba9e4373",
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "removeExistingVariantIndices": [
+            0,
+            1,
+            3,
+            4,
+            6
+          ]
+        },
+        {
+          "id": "barvni-vzorci",
+          "sourceUrl": "https://en.acrylopmaat.nl/wp-content/uploads/2024/02/Gekleurd-Acryl-Acrylaat-3mm-1.jpg",
+          "sourcePage": "https://en.acrylopmaat.nl/acrylic/colored/",
+          "altText": "Pleksi steklo – fotografija izbora barvnih akrilnih vzorcev",
+          "variantIndices": [
+            1,
+            4,
+            6
+          ],
+          "notes": "Actual 3mm acrylic sample selection; not a supplied set. For variants 4 and 6 this is only a family material selection because exact color is unspecified (source4 allows clear/colored). Rounded sample corners do not describe delivered sheet shape.",
+          "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-barvni-vzorci.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "sha256": "e8c375511f129f7984af9af5b10e286125fa2d016d637792aa506e2bd4963c39",
+          "contextOnly": false,
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/pleksi-prozorno-studio.png",
+        "/images/catalog/2026-09/pleksi-belo-studio.png",
+        "/images/catalog/2026-09/pleksi-barvno-studio.png",
+        "/images/catalog/2026-09/pleksi-izvedbe-studio.png"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "stiropor",
+      "photos": [
+        {
+          "id": "eps-plosce",
+          "sourceUrl": "https://schottpackaging.co.uk/wp-content/uploads/2025/10/EPS-Sheets.webp",
+          "sourcePage": "https://schottpackaging.co.uk/product/eps-polystyrene-sheets-600x400x10mm/",
+          "altText": "Stiropor – fotografija belih EPS plošč",
+          "variantIndices": [
+            0,
+            1,
+            2
+          ],
+          "notes": "Actual supplier 10mm EPS sheet photo, representative material view; displayed sheet sizes differ from catalog cuts.",
+          "blobUrl": "/images/catalog/2026-09/stiropor-real-eps-plosce.webp",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "sha256": "084add128e4776d55f8942e30615d3b911b4f0e7bf6505b5cb9afc18fabc7b52",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "struktura-materiala",
+          "blobUrl": "/images/catalog/2026-09/stiropor.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/stiropor.png",
+          "sourcePage": "https://atehna.si/product/stiropor-16-x-33-x-2-cm/",
+          "altText": "Stiropor – dobaviteljev posnetek strukture EPS",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "notes": "Original supplier texture photograph used for all four thickness/size variants; retained at native625px. 20mm variant uses this rather than incorrectly showing a10mm edge.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 625,
+            "height": 625
+          },
+          "sha256": "ea7569946dbabfbfa3accc9f635335dc7cc276345e8b78a31dfaf23ef1777d9a",
+          "contextOnly": false,
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/stiropor-10mm-studio.png",
+        "/images/catalog/2026-09/stiropor-20mm-studio.png"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "seleshamer",
+      "photos": [
+        {
+          "id": "beli-formati",
+          "sourceUrl": "https://www.prilevcku.si/media/catalog/product/cache/1/image/1800x/c93f794985cb44e9220498b5739a3588/4/0/4060_seleshamer_vse_velikosti_bel.jpg",
+          "sourcePage": "https://www.prilevcku.si/seleshamer-bel-format-a4-a3-b2-format-b1.html",
+          "altText": "Bel šeleshamer 200 g – fotografija različnih formatov",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "notes": "Unchanged actual supplier photo of the same generic 200g white paper formats. Small supplier watermark retained.",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1427,
+            "height": 925
+          },
+          "sha256": "514ef509f23aef5056f268da47e35f3ff5d8163e049b4f57582d89a4f50028c6",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "ustvarjanje-na-mizi",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+          "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+          "kind": "context-photo",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "variantIndices": [],
+          "contextOnly": true,
+          "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+          "dimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/seleshamer-studio-2.png",
+        "/images/catalog/2026-09/seleshamer-kontekst.png",
+        "/images/catalog/2026-09/seleshamer.jpg"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "barvni-papir",
+      "photos": [
+        {
+          "id": "barvni-papir-real-0",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-strukturno-bela.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/bela.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 481,
+            "height": 500
+          },
+          "sha256": "4b80487cddbc183fda56e55066b597f794ad5535d3ab2417c2e75db5d370c7a8",
+          "altText": "Barvni papir – strukturno bela (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            0
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-1",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-rjava.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/svetlo-rjava.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 485,
+            "height": 500
+          },
+          "sha256": "9035e0fe71319b5d89af8545cde30a3c4afe57e41a369aeb15e1ef891c84a585",
+          "altText": "Barvni papir – svetlo rjava (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            1
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-2",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rjava.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-rjava.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "sha256": "9efa473d7f50c3875c1a8ce275149c28d93cba4b2842151044492f0846d89801",
+          "altText": "Barvni papir – temno rjava (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            2
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-3",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rjava.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/rjava.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "sha256": "acedd7c1f07959baf01bfb2f80a871460903d43ffbb84ab74f4dbd5f207d65ac",
+          "altText": "Barvni papir – rjava (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            3
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-4",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-lila.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/lila.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 473,
+            "height": 500
+          },
+          "sha256": "c023d6c66b28aa3ecf5f0d7d8bbbebd0f719ed3adcdf5c34fb231fa4bbdd2510",
+          "altText": "Barvni papir – lila (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            4
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-5",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vijolicasta.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2vijolicast.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "8b3957ebe6dc20dfcb765fea224f999398dd1f996e5b54f6df55bb0f32266398",
+          "altText": "Barvni papir – vijoličasta (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            5
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-6",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-crna.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/črna.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 472,
+            "height": 500
+          },
+          "sha256": "2f575fd016621c4d2f2f5ed95e18b4f1aac96c8dda54e9ad50b406d89b4f4508",
+          "altText": "Barvni papir – črna (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            6
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-7",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-siva.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/siva.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 480,
+            "height": 500
+          },
+          "sha256": "5c49fb06b318bfbd4ba6f030f6c37641ac3afd68a91550192bc0f6cf3957b8ae",
+          "altText": "Barvni papir – siva (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            7
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-8",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-roza.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/roza.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 500,
+            "height": 484
+          },
+          "sha256": "48e467590eaaef5608c1584b36bbdaf29268fb62632dcf4371128ef0de035ffb",
+          "altText": "Barvni papir – roza (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            8
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-9",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-lila.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/temna-lila.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "7f5a4c6f45a440960c3e54ba3bff251e6abafc935e673c06dbc1f05f3cf7e362",
+          "altText": "Barvni papir – temno lila (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            9
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-10",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-travno-zelena.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2travnozelen.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "43414d59711d1e0578ac19fdf35ca50276bd5e0302b8df0a0eea3104be4c4e26",
+          "altText": "Barvni papir – travno zelena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            10
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-11",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-zelena.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-zelena.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 478,
+            "height": 500
+          },
+          "sha256": "7cd04295fcc4ebdc8438b8805a7ff9e2af73e4f0e3b0c80df15ba6cc31bac131",
+          "altText": "Barvni papir – temno zelena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            11
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-12",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-zelena.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2zelena.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "2ce519b59fb9441f04d53a8693f58051bd66fac5fefe8a573720fa26b13e45e5",
+          "altText": "Barvni papir – zelena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            12
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-13",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-zelena.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/svetlo-zelena.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 469,
+            "height": 500
+          },
+          "sha256": "20d01c82d114917fd35b9b5bd353959340cc74e925a1386fa38dd9280ea7ad3d",
+          "altText": "Barvni papir – svetlo zelena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            13
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-14",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-oranzna.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2oranzna.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "b559dbcaaabe2c12a538ac8da37278c1575b3488e3de8ddefca9dce0886f7871",
+          "altText": "Barvni papir – oranžna (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            14
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-15",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-modra.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/modra.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 484,
+            "height": 500
+          },
+          "sha256": "fe1c5230e316539687b38d98ad53f438041d15492f1196f7c2a038e6e14f08f2",
+          "altText": "Barvni papir – modra (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            15
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-16",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-nebesno-modra.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/nebesno-modra.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 490,
+            "height": 500
+          },
+          "sha256": "2be247c4474516f6f9ef4e7df2225fae201e91a15e9323961630eb612ce8a42e",
+          "altText": "Barvni papir – nebesno modra (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            16
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-17",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-kalifornijsko-modra.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/kalifornijsko-modre-barve.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 494,
+            "height": 500
+          },
+          "sha256": "956fbb35d78fac655596f0529a7fa5dd4a8bdefd200c5a1740a931ee5dde966f",
+          "altText": "Barvni papir – kalifornijsko modra (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            17
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-18",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-modra.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2svetlomoder.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "c0f9b8bf308a9005c24eba5c9e36c66e1f5a93e68ee305cfd2100f43c06b871b",
+          "altText": "Barvni papir – svetlo modra (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            18
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-19",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rdeca.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-rdeča.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 491,
+            "height": 500
+          },
+          "sha256": "97e27a9d5b787d7ed691a3f3bf70cb14ccc453088c9eea940ba6776b72327b35",
+          "altText": "Barvni papir – temno rdeča (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            19
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-20",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vinsko-rdeca.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2vinskordec.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "000ce4884e7d8a48341932e45f55338bdac2d014e3c85b92f6cf68922b88e70e",
+          "altText": "Barvni papir – vinsko rdeča (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            20
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-21",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-karmin-rdeca.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/karminasto-rdeče.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 465,
+            "height": 500
+          },
+          "sha256": "67c31bc3dddaaa397d32b7722b2aa3a958035741921ff074ece3c2a947a7e1a3",
+          "altText": "Barvni papir – karmin rdeča (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            21
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-22",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rdeca.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/rdeča.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "sha256": "b7afe4186efc9dc0774177d69a7dcb4968228f0c81c9442dff7334b9319a810e",
+          "altText": "Barvni papir – rdeča (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            22
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-23",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-koruzno-rumena.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/koruzno-rumena.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "sha256": "425019afbfa238768f537ece0313d9584d0b831bed1e52f7499af8ccd2f06fdd",
+          "altText": "Barvni papir – koruzno rumena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            23
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-24",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-marelicna.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/marelična.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 496,
+            "height": 500
+          },
+          "sha256": "897b76a647bbd737e05830d5d83ba129d4169553ccfc878ea750cb4372ffe66f",
+          "altText": "Barvni papir – marelična (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            24
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-25",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-intenzivno-rumena.jpg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/intenzivno-rumena.jpg",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 477,
+            "height": 500
+          },
+          "sha256": "8068c2d2820fdfc44237b45763d8b138904025709712203707dd7be17656a02c",
+          "altText": "Barvni papir – intenzivno rumena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            25
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "barvni-papir-real-26",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rumena.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/b2rumen.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "sha256": "c7dafd782efcfc2d65c75d0708997665658921973f185439d08231b0abc8751a",
+          "altText": "Barvni papir – rumena (izvirni dobaviteljev posnetek barve)",
+          "variantIndices": [
+            26
+          ],
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "notes": "Unchanged exact supplier photograph of fanned sheets in this color, native ~500px; no recoloring or upscaling. Retains source color sample appearance."
+        },
+        {
+          "id": "ustvarjanje-na-mizi",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+          "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+          "kind": "context-photo",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "variantIndices": [],
+          "contextOnly": true,
+          "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+          "dimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/barvni-papir-strukturno-bela-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-svetlo-rjava-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-temno-rjava-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-rjava-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-lila-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-vijolicasta-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-siva-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-roza-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-temno-lila-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-travno-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-temno-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-svetlo-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-oranzna-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-nebesno-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-svetlo-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-temno-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-vinsko-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-karmin-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-koruzno-rumena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-marelicna-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-intenzivno-rumena-ilustracija-v2.png",
+        "/images/catalog/2026-09/barvni-papir-rumena-ilustracija-v2.png"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "grafopak",
+      "photos": [
+        {
+          "id": "belo-siva-povrsina",
+          "sourceUrl": "https://velpapir.hr/wp-content/uploads/2023/03/VELPAPIR1390-2048x1365.jpg",
+          "sourcePage": "https://velpapir.hr/ambalazni-kartoni/",
+          "altText": "Grafopak – fotografija belo-sivega kartona",
+          "variantIndices": [
+            0,
+            1
+          ],
+          "notes": "Real material photograph under supplier Triplex/GD board section that explicitly lists Grafopak. Representative surface/edge view; exact A3/A4 cut sizes and350g stock remain catalog data.",
+          "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 2048,
+            "height": 1365
+          },
+          "sha256": "5ec3f3de84c1e830b0d47d01873ccd0a7940c61104fc3ba2b986eabbf7c79240",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "primer-uporabe",
+          "blobUrl": "/images/catalog/2026-09/grafopak-real-primer-uporabe.jpg",
+          "sourceUrl": "https://bumaga--karton.ru/userfiles/editor/before_price/417_mm_grafopak.jpg",
+          "sourcePage": "https://bumaga--karton.ru/karton-grafopak/",
+          "kind": "context-photo",
+          "dimensions": {
+            "width": 450,
+            "height": 390
+          },
+          "sha256": "a6507d86015b82eda9e14f59c60ad53d9b25758e63af545877e9d4d3a26896fa",
+          "altText": "Grafopak – primer uporabe kartona za zloženo embalažo",
+          "variantIndices": [],
+          "contextOnly": true,
+          "visuallyVerified": true,
+          "notes": "Unchanged real supplier photograph from the Grafopak product page, showing a folded gray board tray with strawberries on a wooden surface. Application example only: not the sold A3/A4 format, not an included tray or food, and not evidence of food-contact certification. Native 450×390 resolution retained without upscaling; independent view from the existing material photograph."
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/grafopak-studio-1.png",
+        "/images/catalog/2026-09/grafopak-studio-2.png"
+      ],
+      "gaps": [
+        "The independent application photograph is native 450×390; no artificial upscaling. The existing material photograph remains the primary view for both variants."
+      ]
+    },
+    {
+      "slug": "fotokarton",
+      "photos": [
+        {
+          "id": "izbor-barv",
+          "sourceUrl": "https://www.antus.si/assets/shop_product/fotokarton_300_g_b2_50_x_70_cm.png",
+          "sourcePage": "https://www.antus.si/sl/shop/papirji-kartoni/fotokarton--300-g/fotokarton-300g-b2-1-pola.html",
+          "altText": "Fotokarton 300 g – fotografija izbora barv, izbrana barva je navedena pri različici",
+          "variantIndices": [
+            0,
+            2,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ],
+          "notes": "Real Antus photograph of300g B2 cardstock color assortment. Used honestly as family selection, not a calibrated proof of individual shade or a delivered assortment. Native705×675px. Exact tiny ATEHNA color chips are research references only, not gallery heroes.",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-real-izbor-barv.png",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 705,
+            "height": 675
+          },
+          "sha256": "eb19b360f87dc3f9313c733e0ba6dfd8cd73a76ce81a01d5799b0c3086b459f5",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "zlati-srebrni-karton",
+          "sourceUrl": "https://www.wl-versand.de/shop/media/images/org/98475M-Metallic-Fotokarton-Gold-Silber.jpg",
+          "sourcePage": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/metallic-fotokarton2",
+          "altText": "Fotokarton – fotografija zlatih in srebrnih listov",
+          "variantIndices": [
+            1,
+            3
+          ],
+          "notes": "Real supplier metallic300g cardstock photo with both gold and silver. Represents both selected finishes, not a delivered set or exact cut format.",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-real-zlati-srebrni-karton.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "sha256": "ee31ed4252cb8282b8794a569af206546c285d9f8fcf5bd370bc2471ef9e63c7",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "ustvarjanje-na-mizi",
+          "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+          "sourceUrl": "https://images.pexels.com/photos/7869797/pexels-photo-7869797.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869797.jpg&fm=jpg",
+          "sourcePage": "https://www.pexels.com/photo/children-doing-crafting-7869797/",
+          "kind": "context-photo",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "variantIndices": [],
+          "contextOnly": true,
+          "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+          "dimensions": {
+            "width": 6094,
+            "height": 4160
+          },
+          "sha256": "5c646c91b2257a2de3407338881ad4ec78ed8a36ccf74ad1877e80dc281823e9",
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-srebrna-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-siva-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-zlata-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-svetlo-rjava-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-rjava-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-vijolicasta-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-lila-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-temno-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-zelena-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-oranzna-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-kraljevsko-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-temno-modra-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-temno-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-rdeca-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-koruzno-rumena-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-marelicna-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-rumena-ilustracija-v2.png",
+        "/images/catalog/2026-09/fotokarton-bela-ilustracija-v2.png"
+      ],
+      "gaps": [
+        "Individual supplier chips are50×20px and are intentionally not imported as photos. Real color-assortment photos cover variants honestly, but individual high-resolution shade proofs remain unavailable."
+      ]
+    },
+    {
+      "slug": "lepenka",
+      "photos": [
+        {
+          "id": "bela-povrsina",
+          "sourceUrl": "https://s3-eu-west-1.amazonaws.com/cdn.papermilldirect.co.uk/paper-card-images/981W-1DR-single-sided-white-mount-board_2025-04-16-123552_dfbi.png",
+          "sourcePage": "https://www.papermilldirect.co.uk/paper-card/white-mount-board-1250-micron-2",
+          "altText": "Bela lepenka – fotografija površine materiala",
+          "variantIndices": [
+            0,
+            3
+          ],
+          "notes": "Real unbranded white board material photograph; only explicitly white variants assigned. Supplier board thickness1.25mm is not applied to catalog, whose white thickness is unknown.",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 640,
+            "height": 640
+          },
+          "sha256": "86855307681dfd495a07a50706a5cc19a4f73a3864dfe673508c46b393d6a978",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "beli-rob",
+          "sourceUrl": "https://s3-eu-west-1.amazonaws.com/cdn.papermilldirect.co.uk/paper-card-images/981W-1DR-single-sided-white-mount-board-inside.png",
+          "sourcePage": "https://www.papermilldirect.co.uk/paper-card/white-mount-board-1250-micron-2",
+          "altText": "Bela lepenka – fotografija roba kartonske plošče",
+          "variantIndices": [
+            0,
+            3
+          ],
+          "notes": "Second actual white board detail; representative material photo, not proof of exact thickness or format.",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 640,
+            "height": 640
+          },
+          "sha256": "710fbbb6206acf5262b01fd5320fb184b2da6f43f56933fe7ae2e1496f068061",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "siva-izvirna",
+          "blobUrl": "/images/catalog/2026-09/lepenka.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/sivalepenka.png",
+          "sourcePage": "https://atehna.si/product/siva-lepenka-a2/",
+          "altText": "Lepenka – splošni fotografski primer materiala; barva posamezne izvedbe ni prikazana",
+          "variantIndices": [],
+          "notes": "Original real supplier photograph retained as a general family material view. It shows a gray example, but is not assigned as a color-specific variant image and makes no color claim for variants 2, 4, or 5 whose color is unspecified. White photographs remain restricted to explicitly white variants.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 586,
+            "height": 586
+          },
+          "sha256": "d466ef9e823688fb974515215de35fb1cdd8bee1df900fde575fa3cfe655c4fc",
+          "contextOnly": false,
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/lepenka-siva-studio.png",
+        "/images/catalog/2026-09/lepenka-bela-ilustracija-v2.png",
+        "/images/catalog/2026-09/lepenka-izvedbe-delavnica.png"
+      ],
+      "gaps": [
+        "Variants 2 (Papir lepenka A4), 4 (1,2 mm B1), and 5 (Papir lepenka A3) have no confirmed color-specific supplier photograph. They use the clearly labelled general material view, without adding any color specification."
+      ]
+    },
+    {
+      "slug": "risalni-list",
+      "photos": [
+        {
+          "id": "izvirni-list",
+          "blobUrl": "/images/catalog/2026-09/risalni-list.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/risalnilist.png",
+          "sourcePage": "https://atehna.si/product/risalni-list-a2/",
+          "altText": "Risalni list – izvirna dobaviteljeva fotografija",
+          "variantIndices": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "notes": "Actual supplier sheet image shared by all A2/A4/A5/A3 listings; native670px.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 670,
+            "height": 670
+          },
+          "sha256": "265441b6a248c66d0b4ef9561ef2e5fcf2bd2bd603d0e508710990373bc1210d",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "ustvarjanje-na-mizi",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+          "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+          "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+          "kind": "context-photo",
+          "altText": "Ustvarjanje z listi papirja pri likovnem pouku – primer uporabe",
+          "variantIndices": [],
+          "contextOnly": true,
+          "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+          "dimensions": {
+            "width": 6720,
+            "height": 4480
+          },
+          "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+          "visuallyVerified": true
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/risalni-list-studio-1.png",
+        "/images/catalog/2026-09/risalni-list-studio-2.png"
+      ],
+      "gaps": []
+    },
+    {
+      "slug": "vezana-plosca",
+      "photos": [
+        {
+          "id": "bukev-povrsina",
+          "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/86806_4-mm-buk.jpg?ff=1&x=1024&y=768&q=85&ts=663197ac&sg=161563f2",
+          "sourcePage": "https://www.atmowood.si/bukova-vezana-plosca-4-x-400-x-300-mm/",
+          "altText": "Bukova vezana plošča – fotografija površine lesa",
+          "variantIndices": [
+            0,
+            1,
+            2
+          ],
+          "notes": "Actual beech plywood supplier photo. Species matched; image is a material reference, not a claim of displayed cut dimensions.",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-bukev-povrsina.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "sha256": "dd3fd23a81d795cd5c436d198dca1dad27781c21f7f5a9b058f3d5d6d909990c",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "topol-povrsina",
+          "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-1_preklizka-topol-struktura--1.jpg?ff=1&x=1024&y=768&q=85&ts=65ca2b35&sg=161563f2",
+          "sourcePage": "https://www.atmowood.si/vezana-plosca-a3-topol-3-mm--bb-bb-/",
+          "altText": "Topolova vezana plošča – fotografija površine in plasti",
+          "variantIndices": [
+            3,
+            4,
+            5,
+            6
+          ],
+          "notes": "Actual poplar plywood closeup on textile, preserved unchanged. Species matched; representative material rather than exact thickness/format.",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-povrsina.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "sha256": "746c3f54308f6aef69af311166e4c1386054faa7d6c65759fc7b77dd60455267",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "topol-rob",
+          "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-2_preklizka-topol-hrany--1.jpg?ff=1&x=1024&y=768&q=85&ts=65ca2b35&sg=161563f2",
+          "sourcePage": "https://www.atmowood.si/vezana-plosca-a3-topol-3-mm--bb-bb-/",
+          "altText": "Topolova vezana plošča – fotografija roba",
+          "variantIndices": [
+            3,
+            4,
+            5,
+            6
+          ],
+          "notes": "Distinct actual closeup from same poplar supplier, no edits.",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-rob.jpg",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 1024,
+            "height": 768
+          },
+          "sha256": "9c6ad461cdb7e2c8a88f989cee16df45a3b965e99de38772d821cc9d4731ae87",
+          "contextOnly": false,
+          "visuallyVerified": true
+        },
+        {
+          "id": "izvirni-izbor",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca1.png",
+          "sourcePage": "https://atehna.si/product/vezana-plosca-razlicne-dimenzije/",
+          "altText": "Vezane plošče – dobaviteljeva fotografija izbora materialov",
+          "variantIndices": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30
+          ],
+          "notes": "Original supplier generic plywood selection photograph. Used for rows with unspecified wood species, without inventing species or implying all pictured boards are included. Source family used a cropped duplicate of the same photograph. Correct outdated assignments of this existing photo: only the explicitly listed removeExistingVariantIndices are unlinked; matching new material/color photographs now cover those variants.",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "7eb60a9c1b1aea774c511ad49645410080e150566474419d2c1eea3e503ed0e9",
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "removeExistingVariantIndices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        }
+      ],
+      "removeBlobUrls": [
+        "/images/catalog/2026-09/vezana-bukev-pravokotnik-studio.png",
+        "/images/catalog/2026-09/vezana-bukev-kvadrat-studio.png",
+        "/images/catalog/2026-09/vezana-topol-pravokotnik-studio.png",
+        "/images/catalog/2026-09/vezana-pravokotnik-studio.png",
+        "/images/catalog/2026-09/vezana-kvadrat-studio.png"
+      ],
+      "gaps": []
+    }
+  ]
+}

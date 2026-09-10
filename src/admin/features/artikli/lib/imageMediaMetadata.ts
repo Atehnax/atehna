@@ -1,3 +1,5 @@
+import { formatDecimalForDisplay } from './decimalFormat';
+
 const mimeTypeToImageFormat: Readonly<Record<string, string>> = {
   'image/jpeg': 'JPG',
   'image/jpg': 'JPG',
@@ -67,13 +69,24 @@ export function normalizeImagePixelDimensions(
 }
 
 export function formatImageVariantAssignmentLabel(
-  variant: { label?: string | null; sku?: string | null },
-  variantIndex: number
+  variant: {
+    label?: string | null;
+    sku?: string | null;
+    thickness?: number | null;
+    length?: number | null;
+    width?: number | null;
+  },
+  variantIndex: number,
+  showDimensions = false
 ): string {
+  if (showDimensions) {
+    const dimensions = [variant.thickness, variant.length, variant.width]
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0)
+      .map(formatDecimalForDisplay);
+    if (dimensions.length) return dimensions.join(' × ') + ' mm';
+  }
   const label = variant.label?.trim();
-  const sku = variant.sku?.trim();
-  if (label && sku && label !== sku) return `${label} · ${sku}`;
-  return sku || label || `Različica ${variantIndex + 1}`;
+  return label && label !== variant.sku?.trim() ? label : 'Različica ' + (variantIndex + 1);
 }
 
 export function remapMovedImageSlotIndex(

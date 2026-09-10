@@ -30,7 +30,7 @@ export default function CatalogActivationDialog({ open, itemCount, selectedVaria
           <span><span className="block font-semibold">Glavni artikli in prve različice</span><span className="mt-1 block text-slate-600">Pri vsakem artiklu se preveri prva različica v trenutnem vrstnem redu. Že aktivne različice ostanejo aktivne.</span></span>
         </label>
       </fieldset>
-      <p className="mt-3 text-[12px] text-slate-600">Masa in mere za poštnino niso pogoj za aktivacijo. Preskočeni artikli in različice bodo z razlogi prikazani pod tabelo.</p>
+      <p className="mt-3 text-[12px] text-slate-600">Masa in mere za poštnino niso pogoj za aktivacijo. Preskočeni artikli in različice bodo z razlogi prikazani nad tabelo, pod razdelkom Zaloga.</p>
       {selectedVariantCount > 0 ? <p className="mt-3 text-[12px] text-slate-600">Posebej izbrane različice se aktivirajo pri obeh možnostih ({selectedVariantCount}).</p> : null}
     </ConfirmDialog>
   );

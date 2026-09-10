@@ -162,11 +162,6 @@ import {
   catalogWeightDisplayGramsToKilograms,
   catalogWeightKilogramsToDisplayGrams
 } from '@/admin/features/artikli/lib/catalogMeasurementUnits';
-import {
-  CATALOG_SHIPPING_FIELD_LABELS,
-  deriveCatalogVariantShippingMeasurements,
-  getCatalogShippingReadiness,
-} from '@/shared/domain/catalog/catalogShipping';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const dimensionEditorInputHeightClassName =
@@ -378,31 +373,6 @@ type EditorPersistedState = {
   videoAssignedVariantId: string | null;
 };
 
-function validateEditorPhysicalMeasurements(state: EditorPersistedState):
-  | { ok: true }
-  | { ok: false; message: string } {
-  if (!state.draft.active) return { ok: true };
-
-  for (const variant of state.draft.variants.filter((entry) => entry.active)) {
-    const readiness = getCatalogShippingReadiness(
-      {},
-      deriveCatalogVariantShippingMeasurements(variant)
-    );
-    if (readiness.isReady) continue;
-
-    const issueFields = Array.from(new Set([
-      ...readiness.missingFields,
-      ...readiness.invalidFields
-    ]));
-    const variantLabel = variant.sku || variant.label || 'brez naziva';
-    return {
-      ok: false,
-      message: `Aktivna različica »${variantLabel}« potrebuje popolne pozitivne mere v zavihku Prodaja: ${issueFields.map((field) => CATALOG_SHIPPING_FIELD_LABELS[field]).join(', ')}.`
-    };
-  }
-
-  return { ok: true };
-}
 type SaveChangeGroup = {
   title: string;
   items: string[];
@@ -2939,15 +2909,6 @@ export default function AdminItemEditorPage({
 
   const performSave = async (preparedState: EditorPersistedState) => {
     const nextDraft = preparedState.draft;
-    const physicalMeasurementsValidation = validateEditorPhysicalMeasurements(preparedState);
-    if (!physicalMeasurementsValidation.ok) {
-      setEditorTab('sales');
-      toast.error(physicalMeasurementsValidation.message);
-      window.requestAnimationFrame(() => {
-        document.getElementById('product-measurements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-      return;
-    }
 
     if (!nextDraft.name.trim()) {
       toast.error('Naziv je obvezen.');
@@ -3296,15 +3257,6 @@ export default function AdminItemEditorPage({
 
     const savedSaveReadySnapshot = cloneEditorPersistedState(buildSaveReadyPersistedState(savedSnapshot));
     const nextPersistedState = cloneEditorPersistedState(buildSaveReadyPersistedState(buildPersistedState(decimalCommit.nextDraft)));
-    const physicalMeasurementsValidation = validateEditorPhysicalMeasurements(nextPersistedState);
-    if (!physicalMeasurementsValidation.ok) {
-      setEditorTab('sales');
-      toast.error(physicalMeasurementsValidation.message);
-      window.requestAnimationFrame(() => {
-        document.getElementById('product-measurements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-      return;
-    }
     const computedChangeGroups = buildProposedSaveChanges(savedSaveReadySnapshot, nextPersistedState);
     const computedChangeCount = computedChangeGroups.reduce((count, group) => count + group.items.length, 0);
     const changeGroups =
@@ -3794,7 +3746,7 @@ export default function AdminItemEditorPage({
   const variantMatrixRows: typeof DIMENSION_VARIANT_MATRIX_ROWS = [
     ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'default'),
     { key: 'label', label: 'Naziv različice', help: 'Naziv prodajne različice.' },
-    ...(isDimensionBasedMode ? DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'dimensions' || row.key === 'tolerance') : [{ key: 'shippingDimensions' as const, label: 'Mere za dostavo', help: 'Dolžina, širina in višina ene pošiljke v milimetrih. Potrebno za aktivacijo artikla.' }]),
+    ...(isDimensionBasedMode ? DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'dimensions' || row.key === 'tolerance') : [{ key: 'shippingDimensions' as const, label: 'Mere za dostavo', help: 'Dolžina, širina in višina ene pošiljke v milimetrih. Potrebno za izračun poštnine.' }]),
     ...draft.optionAxes.map((axis) => ({ key: `option:${axis.id}` as const, label: axis.name, help: 'Vnesite vrednost ali izberite obstoječo.' })),
     { key: 'unit', label: 'Prodajna enota', help: 'Enota cene in zaloge, na primer kos ali paket.' },
     ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => !['default', 'dimensions', 'tolerance'].includes(row.key)).map((row) => row.key === 'weight' && !isDimensionBasedMode ? { ...row, label: 'Masa za dostavo', help: 'Masa ene prodajne enote za dostavo v gramih. Neto vsebino navedite kot lastnost različice.' } : row)

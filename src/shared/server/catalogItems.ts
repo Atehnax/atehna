@@ -3,7 +3,7 @@ import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEdito
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
 import { getAuditActor, getAuditRequestContext, insertAuditEventForRequest } from '@/shared/server/audit';
 import type { AuditDiff } from '@/shared/audit/auditTypes';
-import { getCatalogActivationVariantIds, parseCatalogBulkActivationRequest, type CatalogBulkActivationRequest } from '@/shared/domain/catalog/catalogActivation';
+import { getCatalogVariantPublicationReasons, parseCatalogBulkActivationRequest, planCatalogItemActivation, type CatalogActivationSkippedTarget, type CatalogBulkActivationRequest, type CatalogBulkActivationResult } from '@/shared/domain/catalog/catalogActivation';
 import { setPricingStockAuditContext } from '@/shared/server/pricingStockTransaction';
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
@@ -131,52 +131,30 @@ function asIsoTimestamp(value: unknown): string | null {
 
 function assertCatalogItemPublicationReady(
   categoryId: string | null,
-  itemShippingDefaults: CatalogShippingMeasurements,
   variants: Array<{
     variantName?: unknown;
     variantSku?: unknown;
     price?: unknown;
     status?: unknown;
-  } & CatalogShippingMeasurements>
+  }>
 ) {
   if (!categoryId) {
-    throw new CatalogItemValidationError(
-      'Za objavo izberite eno veljavno kategorijo ali podkategorijo.'
-    );
+    throw new CatalogItemValidationError('Za objavo izberite eno veljavno kategorijo ali podkategorijo.');
   }
   const activeVariants = variants.filter((variant) => (variant.status ?? 'active') === 'active');
   if (activeVariants.length === 0) {
     throw new CatalogItemValidationError('Za objavo potrebujete najmanj eno aktivno različico.');
   }
-  const invalidActiveVariant = activeVariants.find((variant) =>
-    !asStringOrNull(variant.variantSku)
-    || typeof variant.price !== 'number'
-    || !Number.isFinite(variant.price)
-    || variant.price < 0
-  );
-  if (invalidActiveVariant) {
-    throw new CatalogItemValidationError(
-      `Aktivna različica »${asStringOrNull(invalidActiveVariant.variantName) ?? 'brez naziva'}« potrebuje veljaven SKU in nenegativno prodajno ceno brez DDV.`
-    );
+  for (const variant of activeVariants) {
+    const reasons = getCatalogVariantPublicationReasons({ sku: variant.variantSku, price: variant.price });
+    if (reasons.length) {
+      throw new CatalogItemValidationError(
+        `Aktivna različica »${asStringOrNull(variant.variantName) ?? 'brez naziva'}«: ${reasons.join(' ')}`
+      );
+    }
   }
-  const shippingIssue = activeVariants
-    .map((variant) => ({
-      variant,
-      readiness: getCatalogShippingReadiness(itemShippingDefaults, variant)
-    }))
-    .find((entry) => !entry.readiness.isReady);
-  if (shippingIssue) {
-    const issueFields = Array.from(new Set([
-      ...shippingIssue.readiness.missingFields,
-      ...shippingIssue.readiness.invalidFields
-    ]));
-    const sku = asStringOrNull(shippingIssue.variant.variantSku);
-    throw new CatalogItemValidationError(
-      `Aktivna različica »${asStringOrNull(shippingIssue.variant.variantName) ?? 'brez naziva'}«${sku ? ` (SKU ${sku})` : ''} potrebuje popolne pozitivne podatke za poštnino: ${issueFields.map((field) => CATALOG_SHIPPING_FIELD_LABELS[field]).join(', ')}.`
-    );
-  }
+  // Shipping readiness is checked when calculating delivery, independently of publication.
 }
-
 async function ensureCatalogDefaultVariantIsUsable(client: PoolClient, itemId: number) {
   await client.query(
     `
@@ -291,12 +269,23 @@ function normalizeCanonicalShippingMeasurements(
   ) as Required<CatalogShippingMeasurements>;
 }
 
+function assertCatalogPhysicalInputValid(variant: { length?: unknown; width?: unknown; thickness?: unknown; weight?: unknown }, contextLabel: string) {
+  for (const field of ['length', 'width', 'thickness', 'weight'] as const) {
+    const value = variant[field];
+    if (value === null || value === undefined) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new CatalogItemValidationError(contextLabel + ': mere in masa morajo biti nenegativna števila.');
+    }
+  }
+}
+
 function normalizeCatalogEditorShippingPayload(
   input: CatalogItemEditorPayload
 ): CatalogItemEditorPayload {
   requireCatalogEditorProductType(input.productType);
   const itemShipping = normalizeCanonicalShippingMeasurements({}, 'Artikel');
   const variants = input.variants.map((variant, index) => {
+    assertCatalogPhysicalInputValid(variant, `Različica »${variant.variantName || `#${index + 1}`}«`);
     const derivedShipping = deriveCatalogVariantShippingMeasurements(variant);
     return {
       ...variant,
@@ -1110,7 +1099,6 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
       const categoryId = asStringOrNull(source.category_id);
       assertCatalogItemPublicationReady(
         categoryId,
-        normalizeCanonicalShippingMeasurements({}, 'Artikel'),
         variants.map((variant) => ({
           variantName: variant.variant_name,
           variantSku: variant.variant_sku,
@@ -2465,7 +2453,6 @@ export async function quickPatchCatalogItemByIdentifier(
       );
       assertCatalogItemPublicationReady(
         nextCategoryId,
-        nextItemShipping,
         variantsResult.rows.map((variant) => ({
           variantName: variant.variant_name,
           variantSku: variant.variant_sku,
@@ -2529,15 +2516,18 @@ export async function quickPatchCatalogItemByIdentifier(
   }
 }
 
-/** Activate selected parents and variant rows together; only publication status is changed. */
+/** Activate eligible selections together; data issues are reported without discarding other eligible rows. */
 export async function activateCatalogItems(
   input: CatalogBulkActivationRequest,
   options: { request?: Request } = {}
-): Promise<AdminCatalogListItem[]> {
+): Promise<CatalogBulkActivationResult> {
   const selection = parseCatalogBulkActivationRequest(input);
   const pool = await getPool();
   const client = await pool.connect();
   let itemIds: number[] = [];
+  const skipped: CatalogActivationSkippedTarget[] = [];
+  let activatedItemCount = 0;
+  let activatedVariantCount = 0;
   try {
     await client.query('begin');
     const identifiers = [...new Set([...selection.itemIdentifiers, ...selection.variants.map(target => target.itemIdentifier)])];
@@ -2548,21 +2538,21 @@ export async function activateCatalogItems(
       idsByIdentifier.set(identifier, id);
     }
     itemIds = [...new Set(idsByIdentifier.values())].sort((left, right) => left - right);
-    // Use the same parent-first lock order as canonical editor saves and quick saves.
+    // Parent-first locks serialize this plan with editor saves and quick saves.
     const itemsResult = await client.query(
-      `select id, slug, item_name, status, category_id from catalog_items
+      `select id, slug, item_name, sku, status, category_id from catalog_items
        where id = any($1::bigint[]) order by id for update`, [itemIds]
     );
     if (itemsResult.rows.length !== itemIds.length || itemsResult.rows.some(item => item.status === 'deleted')) {
       throw new CatalogItemValidationError('Izbrani artikel je bil odstranjen. Osvežite seznam.');
     }
     const variantsResult = await client.query(
-      `select id, item_id, position, variant_name, variant_sku, price, status,
-              shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+      `select id, item_id, position, variant_name, variant_sku, price, status
        from catalog_item_variants where item_id = any($1::bigint[]) order by item_id, position, id for update`, [itemIds]
     );
     const parentIds = new Set(selection.itemIdentifiers.map(identifier => idsByIdentifier.get(identifier)!));
     const explicitIdsByItem = new Map<number, Set<number>>();
+    // Request integrity is verified for the whole selection before any state change.
     for (const target of selection.variants) {
       const itemId = idsByIdentifier.get(target.itemIdentifier)!;
       if (!variantsResult.rows.some(variant => asNumber(variant.id) === target.variantId && asNumber(variant.item_id) === itemId)) {
@@ -2572,45 +2562,65 @@ export async function activateCatalogItems(
       ids.add(target.variantId);
       explicitIdsByItem.set(itemId, ids);
     }
-    const plans = itemsResult.rows.map(item => {
+    const axesResult = await client.query(
+      'select item_id, count(*)::int as axis_count from catalog_option_axes where item_id = any($1::bigint[]) group by item_id', [itemIds]
+    );
+    const assignmentsResult = await client.query(
+      `select variant_id, count(distinct axis_id)::int as assigned_option_count,
+              string_agg(option_value_id::text, ',' order by axis_id) as signature
+       from catalog_variant_option_values where item_id = any($1::bigint[]) group by variant_id`, [itemIds]
+    );
+    const axesByItem = new Map(axesResult.rows.map(row => [asNumber(row.item_id), asNumber(row.axis_count)]));
+    const assignmentsByVariant = new Map(assignmentsResult.rows.map(row => [asNumber(row.variant_id), row]));
+    const plans = [];
+    for (const item of itemsResult.rows) {
       const itemId = asNumber(item.id);
       const variants = variantsResult.rows.filter(variant => asNumber(variant.item_id) === itemId);
-      const activateIds = new Set(explicitIdsByItem.get(itemId));
-      if (parentIds.has(itemId)) {
-        getCatalogActivationVariantIds(selection.mode, variants.map(variant => ({ id: asNumber(variant.id), position: asNumber(variant.position) })))
-          .forEach(id => activateIds.add(id));
+      const parentSelected = parentIds.has(itemId);
+      const parentReasons: string[] = [];
+      if (parentSelected || item.status === 'active') {
+        try {
+          await assertCatalogCategoryPathActive(client, asStringOrNull(item.category_id));
+        } catch (error) {
+          if (!(error instanceof CatalogItemValidationError)) throw error;
+          parentReasons.push(error.message);
+        }
       }
-      return { item, itemId, variants, activateIds, nextStatus: parentIds.has(itemId) ? 'active' : item.status };
-    });
-    for (const plan of plans) {
-      if (plan.nextStatus !== 'active') continue;
-      await assertCatalogCategoryPathActive(client, asStringOrNull(plan.item.category_id));
-      assertCatalogItemPublicationReady(asStringOrNull(plan.item.category_id), normalizeCanonicalShippingMeasurements({}, 'Artikel'),
-        plan.variants.map(variant => ({
-          variantName: variant.variant_name, variantSku: variant.variant_sku,
-          price: asNumber(variant.price, Number.NaN),
-          status: plan.activateIds.has(asNumber(variant.id)) ? 'active' : variant.status,
-          shippingWeightGrams: asNullableNumber(variant.shipping_weight_grams),
-          shippingLengthMm: asNullableNumber(variant.shipping_length_mm),
-          shippingWidthMm: asNullableNumber(variant.shipping_width_mm),
-          shippingHeightMm: asNullableNumber(variant.shipping_height_mm)
-        }))
-      );
+      const plan = planCatalogItemActivation({
+        item: {
+          itemId, itemIdentifier: String(item.slug), itemName: String(item.item_name),
+          itemSku: asStringOrNull(item.sku), status: String(item.status)
+        },
+        parentSelected, parentReasons, mode: selection.mode,
+        explicitVariantIds: [...(explicitIdsByItem.get(itemId) ?? [])],
+        variants: variants.map(variant => {
+          const assignments = assignmentsByVariant.get(asNumber(variant.id));
+          return {
+            id: asNumber(variant.id), position: asNumber(variant.position), name: String(variant.variant_name),
+            sku: asStringOrNull(variant.variant_sku), price: asNumber(variant.price, Number.NaN), status: String(variant.status),
+            optionAxisCount: axesByItem.get(itemId) ?? 0,
+            assignedOptionCount: asNumber(assignments?.assigned_option_count),
+            optionSignature: asStringOrNull(assignments?.signature)
+          };
+        })
+      });
+      skipped.push(...plan.skipped);
+      plans.push({ item, itemId, variants, ...plan });
     }
     for (const plan of plans) {
-      const changedVariants = plan.variants.filter(variant => plan.activateIds.has(asNumber(variant.id)) && variant.status !== 'active');
+      if (!plan.activateItem && plan.activateVariantIds.length === 0) continue;
+      const changedIds = new Set(plan.activateVariantIds);
+      const changedVariants = plan.variants.filter(variant => changedIds.has(asNumber(variant.id)));
       if (changedVariants.length) {
         await client.query("update catalog_item_variants set status = 'active' where item_id = $1 and id = any($2::bigint[])",
-          [plan.itemId, changedVariants.map(variant => asNumber(variant.id))]);
+          [plan.itemId, plan.activateVariantIds]);
       }
-      if (changedVariants.length || plan.item.status !== plan.nextStatus) {
-        await client.query('update catalog_items set status = $2, updated_at = now() where id = $1', [plan.itemId, plan.nextStatus]);
-      }
+      const nextStatus = plan.activateItem ? 'active' : plan.item.status;
+      await client.query('update catalog_items set status = $2, updated_at = now() where id = $1', [plan.itemId, nextStatus]);
       await ensureCatalogDefaultVariantIsUsable(client, plan.itemId);
-      if (plan.nextStatus === 'active') await assertPersistedCatalogOptionAssignmentsReady(client, plan.itemId);
-      if (options.request && (changedVariants.length || plan.item.status !== plan.nextStatus)) {
+      if (options.request) {
         const diff: AuditDiff = {};
-        if (plan.item.status !== plan.nextStatus) diff.status = { label: 'Status', before: String(plan.item.status), after: String(plan.nextStatus) };
+        if (plan.activateItem) diff.status = { label: 'Status', before: String(plan.item.status), after: 'active' };
         if (changedVariants.length) diff.variants = {
           label: 'Različice', updated: changedVariants.map(variant => ({
             id: String(variant.id), label: String(variant.variant_name),
@@ -2620,9 +2630,11 @@ export async function activateCatalogItems(
         await insertAuditEventForRequest(options.request, {
           entityType: 'item', entityId: String(plan.item.slug), entityLabel: String(plan.item.item_name),
           action: 'status_changed', summary: 'Aktivacija artikla in različic', diff,
-          metadata: { activation_mode: selection.mode, activated_variant_ids: changedVariants.map(variant => asNumber(variant.id)) }
+          metadata: { activation_mode: selection.mode, activated_variant_ids: plan.activateVariantIds }
         }, client);
       }
+      activatedItemCount += Number(plan.activateItem);
+      activatedVariantCount += changedVariants.length;
     }
     await client.query('commit');
   } catch (error) {
@@ -2631,12 +2643,11 @@ export async function activateCatalogItems(
   } finally {
     client.release();
   }
-  revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
+  if (activatedItemCount || activatedVariantCount) revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
   const items = await fetchAdminCatalogListItems();
   const requestedIds = new Set(itemIds);
-  return items.filter(item => requestedIds.has(item.id));
+  return { items: items.filter(item => requestedIds.has(item.id)), skipped, activatedItemCount, activatedVariantCount };
 }
-
 export async function quickPatchCatalogVariantByIdentifier(
   itemIdentifier: string,
   variantId: number,
@@ -2708,11 +2719,15 @@ export async function quickPatchCatalogVariantByIdentifier(
     const nextVariantSku = patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku);
     const nextVariantStatus = patch.status !== undefined ? patch.status : normalizeActiveState(existing.status);
     const nextVariantPrice = patch.price !== undefined ? patch.price : asNumber(existing.price, Number.NaN);
+    if (nextVariantStatus === 'active' && normalizeActiveState(existing.status) !== 'active') {
+      const reasons = getCatalogVariantPublicationReasons({ sku: nextVariantSku, price: nextVariantPrice });
+      if (reasons.length) throw new CatalogItemValidationError(reasons.join(' '));
+    }
+    assertCatalogPhysicalInputValid(patch, 'Različica');
     const nextLength = patch.length !== undefined ? patch.length : asNullableNumber(existing.length);
     const nextWidth = patch.width !== undefined ? patch.width : asNullableNumber(existing.width);
     const nextThickness = patch.thickness !== undefined ? patch.thickness : asNullableNumber(existing.thickness);
     const nextWeight = patch.weight !== undefined ? patch.weight : asNullableNumber(existing.weight);
-    const itemShipping = normalizeCanonicalShippingMeasurements({}, 'Artikel');
     const nextVariantShipping = normalizeCanonicalShippingMeasurements(
       deriveCatalogVariantShippingMeasurements({
         weight: nextWeight,
@@ -2736,7 +2751,6 @@ export async function quickPatchCatalogVariantByIdentifier(
       );
       assertCatalogItemPublicationReady(
         asStringOrNull(existing.category_id),
-        itemShipping,
         variantsResult.rows.map((variant) => (
           asNumber(variant.id) === variantId
             ? {
@@ -3166,7 +3180,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath, client);
     if (payload.status === 'active') {
-      assertCatalogItemPublicationReady(categoryId, payload, payload.variants);
+      assertCatalogItemPublicationReady(categoryId, payload.variants);
       await assertCatalogCategoryPathActive(client, categoryId);
     }
     let effectiveId = payload.id ?? null;
@@ -3962,12 +3976,6 @@ export async function restoreCatalogItemBySlug(slug: string): Promise<boolean> {
         const categoryId = asStringOrNull(item.category_id);
         assertCatalogItemPublicationReady(
           categoryId,
-          {
-            shippingWeightGrams: asNullableNumber(item.shipping_weight_grams),
-            shippingLengthMm: asNullableNumber(item.shipping_length_mm),
-            shippingWidthMm: asNullableNumber(item.shipping_width_mm),
-            shippingHeightMm: asNullableNumber(item.shipping_height_mm)
-          },
           variantsResult.rows.map((variant) => ({
             variantName: variant.variant_name,
             variantSku: variant.variant_sku,

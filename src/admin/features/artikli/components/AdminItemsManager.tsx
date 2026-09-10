@@ -1,7 +1,8 @@
 'use client';
 
 import CatalogActivationDialog from './CatalogActivationDialog';
-import type { CatalogActivationMode, CatalogBulkActivationRequest } from '@/shared/domain/catalog/catalogActivation';
+import CatalogActivationResultNotice from './CatalogActivationResultNotice';
+import type { CatalogActivationMode, CatalogBulkActivationRequest, CatalogBulkActivationResult } from '@/shared/domain/catalog/catalogActivation';
 import { ArticleVariantRows } from './ArticleVariantRows';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useArticleNavigationGuard } from './ArticleNavigationGuard';
@@ -638,6 +639,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [isNoteBulkMenuOpen, setIsNoteBulkMenuOpen] = useState(false);
   const [isSelectedPillUpdating, setIsSelectedPillUpdating] = useState(false);
   const [pendingActivation, setPendingActivation] = useState<Omit<CatalogBulkActivationRequest, 'mode'> | null>(null);
+  const [activationResult, setActivationResult] = useState<CatalogBulkActivationResult | null>(null);
   const noteTags = useArticleNoteTags();
   const noteBulkOptions = getArticleNoteOptions(noteTags);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
@@ -1698,12 +1700,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...selection, mode })
       });
-      const body = await response.json().catch(() => ({})) as { items?: AdminCatalogListItem[]; message?: string };
-      if (!response.ok || !body.items) throw new Error(body.message || 'Aktiviranje ni uspelo.');
+      const body = await response.json().catch(() => ({})) as Partial<CatalogBulkActivationResult> & { message?: string };
+      if (!response.ok || !body.items || !body.skipped || typeof body.activatedItemCount !== 'number' || typeof body.activatedVariantCount !== 'number') throw new Error(body.message || 'Aktiviranje ni uspelo.');
       body.items.forEach(applySavedFamilyRow);
+      setActivationResult(body.skipped.length ? body as CatalogBulkActivationResult : null);
       setPendingActivation(null);
       setIsStatusBulkMenuOpen(false);
-      toast.success('Shranjeno');
+      if (!body.skipped.length) toast.success(body.activatedItemCount || body.activatedVariantCount ? 'Aktivirani artikli: ' + body.activatedItemCount + '. Aktivirane različice: ' + body.activatedVariantCount + '.' : 'Izbrani artikli in različice so že aktivni.');
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Aktiviranje ni uspelo.');
@@ -2827,6 +2830,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </tbody>
           </Table>
       </AdminTableLayout>
+      {activationResult ? <CatalogActivationResultNotice result={activationResult} onDismiss={() => setActivationResult(null)} onOpenItem={identifier => requestCurrentEditResolution('odhodom na urejanje artikla', () => router.push('/admin/artikli/' + encodeURIComponent(identifier)))} /> : null}
       {pendingActivation ? <CatalogActivationDialog open itemCount={pendingActivation.itemIdentifiers.length} selectedVariantCount={pendingActivation.variants?.length} busy={isSelectedPillUpdating} onCancel={() => setPendingActivation(null)} onConfirm={mode => { void submitActivation(pendingActivation, mode); }} /> : null}
       <HeaderFilterPortal open={Boolean(openFilter)}>
         {openFilter === 'category' ? (

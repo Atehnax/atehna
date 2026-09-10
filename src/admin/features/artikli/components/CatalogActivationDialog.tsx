@@ -23,13 +23,14 @@ export default function CatalogActivationDialog({ open, itemCount, selectedVaria
         <legend className="sr-only">Način aktivacije različic</legend>
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 text-[13px]">
           <input type="radio" name="catalog-activation-mode" value="all" checked={mode === 'all'} onChange={() => setMode('all')} className="mt-0.5 accent-[color:var(--blue-500)]" />
-          <span><span className="block font-semibold">Glavni artikli in vse različice</span><span className="mt-1 block text-slate-600">Aktivirajo se vse različice izbranih artiklov.</span></span>
+          <span><span className="block font-semibold">Glavni artikli in vse različice</span><span className="mt-1 block text-slate-600">Aktivirajo se vse različice izbranih artiklov, ki imajo popolne podatke in ceno večjo od 0.</span></span>
         </label>
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 text-[13px]">
           <input type="radio" name="catalog-activation-mode" value="first" checked={mode === 'first'} onChange={() => setMode('first')} className="mt-0.5 accent-[color:var(--blue-500)]" />
-          <span><span className="block font-semibold">Glavni artikli in prve različice</span><span className="mt-1 block text-slate-600">Pri vsakem artiklu se aktivira prva različica v trenutnem vrstnem redu. Že aktivne različice ostanejo aktivne.</span></span>
+          <span><span className="block font-semibold">Glavni artikli in prve različice</span><span className="mt-1 block text-slate-600">Pri vsakem artiklu se preveri prva različica v trenutnem vrstnem redu. Že aktivne različice ostanejo aktivne.</span></span>
         </label>
       </fieldset>
+      <p className="mt-3 text-[12px] text-slate-600">Masa in mere za poštnino niso pogoj za aktivacijo. Preskočeni artikli in različice bodo z razlogi prikazani pod tabelo.</p>
       {selectedVariantCount > 0 ? <p className="mt-3 text-[12px] text-slate-600">Posebej izbrane različice se aktivirajo pri obeh možnostih ({selectedVariantCount}).</p> : null}
     </ConfirmDialog>
   );

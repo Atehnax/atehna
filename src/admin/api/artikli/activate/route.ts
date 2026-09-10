@@ -8,8 +8,8 @@ export async function POST(request: Request) {
     const body = await readRequiredJsonRecord(request);
     if (!body.ok) return body.response;
     const selection = parseCatalogBulkActivationRequest(body.body);
-    const items = await activateCatalogItems(selection, { request });
-    return NextResponse.json({ items });
+    const result = await activateCatalogItems(selection, { request });
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof CatalogActivationValidationError || error instanceof CatalogItemValidationError || error instanceof CatalogItemConcurrencyConflictError) {
       return NextResponse.json({ message: error.message }, { status: error.statusCode });

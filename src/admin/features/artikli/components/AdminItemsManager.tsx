@@ -4,7 +4,8 @@ import { ArticleVariantRows } from './ArticleVariantRows';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useArticleNavigationGuard } from './ArticleNavigationGuard';
 import { useRouter } from 'next/navigation';
-import { Code2 } from 'lucide-react';
+import Image from 'next/image';
+import { Code2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
@@ -87,7 +88,7 @@ import {
   type ProductFamily,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
-import { formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
+import { formatSlCount, formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
 import {
   ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY,
@@ -481,7 +482,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       categoryPath: normalizeCategoryPath(item.categoryLabel || ''),
       categoryId: null,
       subcategoryId: null,
-      images: [],
+      images: item.imageUrl?.trim() ? [item.imageUrl.trim()] : [],
       promoBadge: '',
       defaultDiscountPct: item.defaultDiscountPct,
       active: item.status === 'active',
@@ -603,6 +604,24 @@ const buildVariantPatch = (variant: Variant, draft: VariantDraft) => {
   return { patch, changeCount };
 };
 
+function ArticleThumbnail({ src, name }: { src?: string; name: string }) {
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const available = Boolean(src) && failedSource !== src;
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white"
+      data-testid="admin-item-thumbnail"
+      title={available ? name : 'Slika ni na voljo'}
+    >
+      {available && src ? (
+        <Image src={src} alt="" width={36} height={36} unoptimized loading="lazy" className="h-full w-full object-contain" onError={() => setFailedSource(src)} />
+      ) : (
+        <ImageIcon className="h-4 w-4 text-slate-300" aria-label="Slika ni na voljo" role="img" />
+      )}
+    </span>
+  );
+}
+
 export default function AdminItemsManager({ items }: { items: AdminCatalogListItem[] }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -641,6 +660,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const [isReviewModeEnabled, setIsReviewModeEnabled] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(false);
   const [reviewedFamilyIds, setReviewedFamilyIds] = useState<Set<string>>(new Set());
   const reviewedFamilyIdsRef = useRef<Set<string>>(new Set());
   const isReviewMarkerStorageAvailableRef = useRef(true);
@@ -962,6 +982,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   }, [filteredRows, hasExportSelection, selectedFamilyIds, selectedVariantIds]);
 
   const paginationTotal = filteredRows.length;
+  const filteredArticleCountLabel = formatSlCount(paginationTotal, { one: 'artikel', two: 'artikla', few: 'artikli', other: 'artiklov' });
+  const selectedArticleCountLabel = formatSlCount(selectedArchiveCount, { one: 'izbran', two: 'izbrana', few: 'izbrani', other: 'izbranih' });
   const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: paginationTotal,
     storageKey: 'adminArtikli.families.pageSize',
@@ -1912,6 +1934,22 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         }
         headerRight={
           <div className={adminTableToolbarActionsClassName}>
+            <span className="hidden whitespace-nowrap text-xs text-slate-500 xl:inline" data-testid="admin-items-count" aria-live="polite">
+              {hasSelectedArchiveFamilies ? `${selectedArticleCountLabel} / ${filteredArticleCountLabel}` : filteredArticleCountLabel}
+            </span>
+            <IconButton
+              type="button"
+              onClick={() => setShowThumbnails((current) => !current)}
+              tone="neutral"
+              size="sm"
+              className={`${adminTableNeutralIconButtonClassName} ${showThumbnails ? '!bg-slate-50 !text-[color:var(--blue-500)]' : ''}`}
+              aria-label={showThumbnails ? 'Skrij slike artiklov' : 'Prikaži slike artiklov'}
+              title={showThumbnails ? 'Skrij slike artiklov' : 'Prikaži slike artiklov'}
+              aria-pressed={showThumbnails}
+              data-testid="admin-items-thumbnails-toggle"
+            >
+              <ImageIcon className="!h-[18px] !w-[18px]" />
+            </IconButton>
             <IconButton
               type="button"
               onClick={() => setIsReviewModeEnabled((current) => !current)}
@@ -2402,6 +2440,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           >
                             <span className="inline-flex h-4 w-4 items-center justify-center">{hasSubtable ? (isExpanded ? '▾' : '▸') : ''}</span>
                           </button>
+                          {showThumbnails ? <ArticleThumbnail src={family.images[0]} name={family.name} /> : null}
                           <div className="min-w-0 flex-1">
                             {isEditingFamily ? <div className={fieldStyles.identity}>
                               <input data-admin-table-value-input className={`${fieldStyles.identityName} ${familyNameIssue ? '!border-rose-400' : ''}`} aria-label={`Naziv artikla · ${family.name}`} value={familyDraft.name} list={familyNameSuggestionsId} title={familyNameIssue?.message} aria-invalid={Boolean(familyNameIssue)} onChange={event => setFamilyDrafts(current => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))}/>

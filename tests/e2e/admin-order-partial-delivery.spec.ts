@@ -39,7 +39,7 @@ const CATALOG_LINES = [
 const PARTIAL_PLAN_REQUIRED_MESSAGE =
   'Za status »Delno poslano« mora biti vsaj ena postavka v tej pošiljki in vsaj ena postavka označena za poznejšo dobavo.';
 const PARTIAL_OPTION_EXPLANATION =
-  'Najprej premaknite vsaj eno postavko v razdelek »Pošljemo pozneje«.';
+  'Najprej premaknite vsaj eno postavko v razdelek »Pošljemo kasneje«.';
 const FOREIGN_ITEM_MESSAGE =
   'Ena ali več izbranih postavk ne pripada temu naročilu. Osvežite stran in poskusite znova.';
 const STALE_DELIVERY_PLAN_MESSAGE =

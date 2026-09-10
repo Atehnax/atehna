@@ -356,7 +356,7 @@ test('histogram retains its long tail without plotting variance as currency, and
     expect(range[1]).toBeGreaterThanOrEqual(maximum);
     expect(range[1]).toBeLessThan(Math.max(maximum * 2, 10));
   }
-  await page.getByRole('tab', { name: 'Laboratorij', exact: true }).click();
+  await page.getByRole('tab', { name: 'Eksperimentalno', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Obremenitev pri pripravi naročil', exact: true })).toBeVisible({ timeout: 60000 });
   await page.getByLabel(/^Porazdelitev/u).selectOption('lognormal');
   await expect(page.getByRole('heading', { name: 'Normalni Q–Q na logaritemskih vrednostih', exact: true })).toBeVisible();

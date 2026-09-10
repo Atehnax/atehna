@@ -27,9 +27,9 @@ import { CalendarDays, Download } from 'lucide-react';
 import BusinessQuoteSettings from './BusinessQuoteSettings';
 
 const Geography = dynamic(() => import('./BusinessGeography'), { loading: () => <p className="p-6 text-sm text-slate-500">Nalaganje zemljevida …</p>, ssr: false });
-const Laboratory = dynamic(() => import('./BusinessLaboratory'), { loading: () => <p className="p-6 text-sm text-slate-500">Nalaganje laboratorija …</p>, ssr: false });
+const Laboratory = dynamic(() => import('./BusinessLaboratory'), { loading: () => <p className="p-6 text-sm text-slate-500">Nalaganje eksperimentalnih analiz …</p>, ssr: false });
 const Measurements = dynamic(() => import('./BusinessMeasurements'), { ssr: false });
-const labels: Record<BusinessView, string> = { pregled: 'Pregled', narocila: 'Naročila', ponudbe: 'Ponudbe', stranke: 'Stranke', artikli: 'Artikli', postnina: 'Poštnina', zemljevid: 'Zemljevid', laboratorij: 'Laboratorij' };
+const labels: Record<BusinessView, string> = { pregled: 'Pregled', narocila: 'Naročila', ponudbe: 'Ponudbe', stranke: 'Stranke', artikli: 'Artikli', postnina: 'Poštnina', zemljevid: 'Zemljevid', laboratorij: 'Eksperimentalno' };
 const control = adminAnalyticsControlClassName;
 const serializeDrill = (drill: Drill) => JSON.stringify(drill);
 

@@ -231,42 +231,13 @@ test('the rows matrix exposes an accessible apply-to-all action only through its
   );
 });
 
-test('the first expanded variant uses a full-height vertical left edge', () => {
-  const editorSource = readFileSync(
-    resolve(
-      process.cwd(),
-      'src/admin/features/artikli/components/AdminItemEditorPage.tsx'
-    ),
-    'utf8'
-  );
-  const weightEditorSource = readFileSync(
-    resolve(
-      process.cwd(),
-      'src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx'
-    ),
-    'utf8'
-  );
-
-  for (const source of [editorSource, weightEditorSource]) {
-    expect(source).toContain(
-      'const expandedVariantHasLeftSlant = variantIndex > 0;'
-    );
-    expect(source).toContain(
-      '{expandedVariantHasLeftSlant ? ('
-    );
-    expect(source).toContain(
-      "width: expandedVariantHasLeftSlant"
-    );
-    expect(source).toContain(
-      ": '100%',"
-    );
+test('first and later variant headers share diagonal edge geometry in both states', () => {
+  for (const path of ['src/admin/features/artikli/components/AdminItemEditorPage.tsx', 'src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx']) {
+    const source = readFileSync(resolve(process.cwd(), path), 'utf8');
+    expect(source).toContain('<VariantMatrixHeaderEdge side="left" highlighted');
+    expect(source).toContain('{variantIndex === 0 ? <VariantMatrixHeaderEdge side="left"');
+    expect(source).not.toContain('expandedVariantHasLeftSlant');
   }
-  expect(editorSource).toContain(
-    '? dimensionVariantNormalBandHeight'
-  );
-  expect(weightEditorSource).toContain(
-    '? weightVariantNormalBandHeight'
-  );
 });
 
 test('collapsed rows-matrix body cells expand dimension and weight variants without hijacking controls', () => {
@@ -350,10 +321,10 @@ test('dimension and weight matrices use interpolation-compatible synchronized mo
     'const weightVariantLayoutCompactCount = Math.max(0, weightData.variants.length - 1);'
   );
   expect(editorSource).toContain(
-    'return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;'
+    'getVariantMatrixLayout('
   );
   expect(weightEditorSource).toContain(
-    'return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;'
+    'getVariantMatrixLayout('
   );
   expect(
     editorSource.match(/admin-variant-matrix-track-transition/g)
@@ -368,14 +339,14 @@ test('dimension and weight matrices use interpolation-compatible synchronized mo
     weightEditorSource.match(/admin-variant-matrix-row/g)
   ).toHaveLength(2);
   expect(editorSource).toContain(
-    'gridTemplateColumns: dimensionMatrixGridTemplateColumns'
+    'gridTemplateColumns: dimensionMatrixLayout.gridTemplateColumns'
   );
   expect(weightEditorSource).toContain(
-    'gridTemplateColumns: weightMatrixGridTemplateColumns'
+    'gridTemplateColumns: weightMatrixLayout.gridTemplateColumns'
   );
   expect(globalStyles).toContain('grid-template-columns: subgrid;');
   expect(globalStyles).toContain(
-    'transition-property: grid-template-columns, min-width;'
+    'transition-property: grid-template-columns;'
   );
   expect(globalStyles).toContain('transition-duration: 260ms;');
   expect(globalStyles).toContain('transition-timing-function: ease-in-out;');
@@ -389,35 +360,12 @@ test('dimension and weight matrices use interpolation-compatible synchronized mo
   );
 });
 
-test('slanted matrix borders retain the same apparent one-pixel weight as straight borders', () => {
-  const editorSource = readFileSync(
-    resolve(
-      process.cwd(),
-      'src/admin/features/artikli/components/AdminItemEditorPage.tsx'
-    ),
-    'utf8'
-  );
-  const weightEditorSource = readFileSync(
-    resolve(
-      process.cwd(),
-      'src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx'
-    ),
-    'utf8'
-  );
-  const globalStyles = readFileSync(
-    resolve(process.cwd(), 'src/shared/styles/globals.css'),
-    'utf8'
-  ).replace(/\r\n?/g, '\n');
-
-  expect(
-    editorSource.match(/admin-variant-matrix-diagonal-border/g)
-  ).toHaveLength(4);
-  expect(
-    weightEditorSource.match(/admin-variant-matrix-diagonal-border/g)
-  ).toHaveLength(4);
-  expect(editorSource).not.toContain('w-px origin-bottom');
-  expect(weightEditorSource).not.toContain('w-px origin-bottom');
-  expect(globalStyles).toContain(
-    '.admin-variant-matrix-diagonal-border {\n  width: 1.4142135624px;'
-  );
+test('both matrices share continuous one-pixel header strokes', () => {
+  for (const path of ['src/admin/features/artikli/components/AdminItemEditorPage.tsx', 'src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx']) {
+    const editor = readFileSync(resolve(process.cwd(), path), 'utf8');
+    expect(editor.match(/<VariantMatrixHeaderEdge/g)).toHaveLength(4);
+  }
+  const edge = readFileSync(resolve(process.cwd(), 'src/admin/features/artikli/components/VariantMatrixHeaderEdge.tsx'), 'utf8');
+  expect(edge).toContain('strokeWidth="1"');
+  expect(edge).toContain('vectorEffect="non-scaling-stroke"');
 });

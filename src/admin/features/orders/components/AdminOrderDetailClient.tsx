@@ -831,7 +831,7 @@ export default function AdminOrderDetailClient({
   const canSelectPartiallySent =
     deliveryPlanSnapshot.currentItemCount > 0 && deliveryPlanSnapshot.laterItemCount > 0;
   const partiallySentUnavailableReason = deliveryPlanSnapshot.laterItemCount === 0
-    ? 'Najprej premaknite vsaj eno postavko v razdelek »Pošljemo pozneje«.'
+    ? 'Najprej premaknite vsaj eno postavko v razdelek »Pošljemo kasneje«.'
     : deliveryPlanSnapshot.currentItemCount === 0
       ? 'V razdelku »V tej pošiljki« mora ostati vsaj ena postavka.'
       : undefined;
@@ -852,7 +852,7 @@ export default function AdminOrderDetailClient({
         return {
           ...option,
           disabled: true,
-          description: 'Najprej premaknite vse postavke iz razdelka »Pošljemo pozneje« v trenutno pošiljko.'
+          description: 'Najprej premaknite vse postavke iz razdelka »Pošljemo kasneje« v trenutno pošiljko.'
         };
       }
       return option;

@@ -7,7 +7,7 @@ import type {
   CustomerDirectoryMutation,
   CustomerDirectoryRow
 } from '@/shared/domain/customerDirectory';
-import { formatEuro } from '@/shared/domain/formatting';
+import { formatEuro, formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import { formatSlDate } from '@/shared/domain/order/dateTime';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import {
@@ -551,6 +551,7 @@ export default function AdminCustomersTable({ initialDirectory }: { initialDirec
       return (canonicalOrder.get(left.id) ?? 0) - (canonicalOrder.get(right.id) ?? 0);
     });
   }, [canonicalOrder, filteredRows, sortState]);
+  const filteredCountLabel = formatSlCount(filteredRows.length, { one: 'stranka', two: 'stranki', few: 'stranke', other: 'strank' });
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
     storageKey: 'admin-customers-page-size-v1',
@@ -1084,8 +1085,8 @@ export default function AdminCustomersTable({ initialDirectory }: { initialDirec
               {pendingMutations > 0
                 ? 'Shranjevanje ...'
                 : hasSelectedRows
-                  ? `${selectedRows.length} ${selectedRows.length === 1 ? 'izbrana' : 'izbranih'} / ${filteredRows.length} strank`
-                  : `${filteredRows.length} strank`}
+                  ? `Izbrano: ${formatSlInteger(selectedRows.length)} / ${filteredCountLabel}`
+                  : filteredCountLabel}
             </span>
             <div ref={exportMenuRootRef} className="relative">
               <IconButton

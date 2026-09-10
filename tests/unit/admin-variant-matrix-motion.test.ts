@@ -1,200 +1,58 @@
 import { expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { test } from 'node:test';
+import { getVariantMatrixLayout } from '../../src/admin/features/artikli/components/variantMatrixLayout';
 
-const readSource = (relativePath: string) =>
-  readFileSync(resolve(process.cwd(), relativePath), 'utf8').replace(/\r\n?/g, '\n');
-
-const dimensionEditorSource = readSource(
-  'src/admin/features/artikli/components/AdminItemEditorPage.tsx'
-);
-const weightEditorSource = readSource(
-  'src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx'
-);
-const globalStyles = readSource('src/shared/styles/globals.css');
-
-function sourceBetween(source: string, start: string, end: string): string {
-  const startIndex = source.indexOf(start);
-  const endIndex = source.indexOf(end, startIndex + start.length);
-  expect(startIndex, `Missing source marker: ${start}`).toBeGreaterThanOrEqual(0);
-  expect(endIndex, `Missing source marker: ${end}`).toBeGreaterThan(startIndex);
-  return source.slice(startIndex, endIndex);
+for (const count of [1, 4, 12, 13, 20, 60, 200]) {
+  test(`${count} variants keep compatible pixel tracks and stable scroll width while expanding`, () => {
+    const indices = [-1, 0, Math.floor(count / 2), count - 1];
+    const layouts = indices.map(index => getVariantMatrixLayout(count, index));
+    expect(new Set(layouts.map(layout => layout.minWidth)).size).toBe(1);
+    layouts.forEach((layout, index) => {
+      const tracks = layout.gridTemplateColumns.match(/minmax\([^)]+\)|[^ ]+/g)!;
+      expect(tracks).toHaveLength(count + 2);
+      expect(tracks[0]).toBe('205px');
+      expect(tracks.at(-1)).toBe('minmax(0px, 1fr)');
+      tracks.slice(1, -1).forEach((track, variantIndex) => {
+        expect(track).toBe(`${variantIndex === indices[index] ? 336 : layout.compactWidth}px`);
+      });
+      expect(layout.minWidth).toBeGreaterThanOrEqual(205 + (count - 1) * layout.compactWidth + 336);
+    });
+  });
 }
 
-test('selected variant tracks stay fitted to their 320px input content', () => {
-  const implementations = [
-    {
-      source: dimensionEditorSource,
-      getTrack: 'const getDimensionVariantTrack = (variant: Variant, variantIndex: number) => {',
-      gridColumns: 'const dimensionMatrixGridTemplateColumns = [',
-      gridEnd: 'const dimensionMatrixMinWidth =',
-      variantCollection: 'draft.variants',
-      denseLayoutName: 'usesDenseDimensionVariantLayout',
-      expandedVariantName: 'expandedDimensionVariant',
-      expandedTrackWidthName: 'expandedDimensionVariantTrackWidth',
-      baseTrackWidthsName: 'dimensionVariantBaseTrackWidths',
-      baseWidthName: 'dimensionMatrixBaseWidth',
-      occupiedWidthName: 'dimensionMatrixOccupiedWidth',
-      remainderTrackName: 'dimensionMatrixRemainderTrack'
-    },
-    {
-      source: weightEditorSource,
-      getTrack: 'const getWeightVariantTrack = (variant: WeightVariant, variantIndex: number) => {',
-      gridColumns: 'const weightMatrixGridTemplateColumns = [',
-      gridEnd: 'const weightMatrixMinWidth =',
-      variantCollection: 'weightData.variants',
-      denseLayoutName: 'usesDenseWeightVariantLayout',
-      expandedVariantName: 'expandedWeightVariant',
-      expandedTrackWidthName: 'expandedWeightVariantTrackWidth',
-      baseTrackWidthsName: 'weightVariantBaseTrackWidths',
-      baseWidthName: 'weightMatrixBaseWidth',
-      occupiedWidthName: 'weightMatrixOccupiedWidth',
-      remainderTrackName: 'weightMatrixRemainderTrack'
-    }
-  ] as const;
+const source = (file: string) => readFileSync(file, 'utf8').replace(/\r\n?/g, '\n');
+const editors = [source('src/admin/features/artikli/components/AdminItemEditorPage.tsx'), source('src/admin/features/artikli/components/pricing/DimensionProductPricingSectionsImpl.tsx')];
+const styles = source('src/shared/styles/globals.css');
 
-  for (const implementation of implementations) {
-    const layoutSource = sourceBetween(
-      implementation.source,
-      `const ${implementation.baseTrackWidthsName} =`,
-      implementation.gridColumns
-    );
-    const trackSource = sourceBetween(
-      implementation.source,
-      implementation.getTrack,
-      implementation.gridColumns
-    );
-    const nonDenseTrackSource = sourceBetween(
-      trackSource,
-      `if (!${implementation.denseLayoutName}) return`,
-      '    const isCompressedInactive ='
-    );
-    const gridSource = sourceBetween(
-      implementation.source,
-      implementation.gridColumns,
-      implementation.gridEnd
-    );
-
-    expect(layoutSource).toContain(
-      `const ${implementation.baseTrackWidthsName} = ${implementation.variantCollection}.map((variant) =>`
-    );
-    expect(layoutSource).toContain(
-      `205 + ${implementation.baseTrackWidthsName}.reduce((total, width) => total + width, 0);`
-    );
-    expect(trackSource).toContain(
-      `const baseTrackWidth = ${implementation.baseTrackWidthsName}[variantIndex]`
-    );
-    expect(implementation.source).toContain(
-      `const ${implementation.expandedTrackWidthName} = 336;`
-    );
-    expect(trackSource).toContain(
-      `if (isExpanded) return \`\${${implementation.expandedTrackWidthName}}px\`;`
-    );
-    expect(nonDenseTrackSource).toContain('return `${baseTrackWidth}px`;');
-    expect(nonDenseTrackSource).not.toContain('minmax(');
-    expect(nonDenseTrackSource).not.toMatch(/\dfr|flexibleWidth/u);
-
-    expect(layoutSource).toContain(`const ${implementation.remainderTrackName} =`);
-    expect(layoutSource).toContain(`const ${implementation.occupiedWidthName} =`);
-    expect(layoutSource).toContain(
-      `? ${implementation.expandedTrackWidthName} - compact`
-    );
-    expect(layoutSource).toMatch(
-      new RegExp(
-        `${implementation.denseLayoutName}\\s*\\?\\s*'0px'`,
-        'u'
-      )
-    );
-    expect(layoutSource).toContain(
-      '`calc(100% - ${' + implementation.occupiedWidthName + '}px)`'
-    );
-    expect(implementation.source).toContain(
-      `return total + ${implementation.expandedTrackWidthName};`
-    );
-    // 336px = the 320px standardized field shell plus px-2 on both sides.
-    expect(implementation.source).toContain('bg-sky-50/45 px-2 py-1');
-    expect(implementation.source).toContain(
-      'admin-dimension-variant-content-enter w-full max-w-[320px]'
-    );
-
-    // The trailing remainder is unconditional and remains after one mapped
-    // track per variant, so selection never changes the grid-track topology.
-    const variantTracksIndex = gridSource.indexOf(
-      `...${implementation.variantCollection}.map(get`
-    );
-    const remainderTrackIndex = gridSource.indexOf(implementation.remainderTrackName);
-    expect(variantTracksIndex).toBeGreaterThanOrEqual(0);
-    expect(remainderTrackIndex).toBeGreaterThan(variantTracksIndex);
-    expect(gridSource).not.toContain('.filter(');
-    expect(gridSource).not.toMatch(/\?\s*\[/u);
+test('both editors share the pixel layout and delegated visual hover', () => {
+  for (const editor of editors) {
+    expect(editor).toContain('getVariantMatrixLayout(');
+    expect(editor).toContain('useVariantMatrixHover()');
+    expect(editor).not.toContain('Skrči neaktivne');
+    expect(editor).not.toContain('Razširi izbrano');
+    expect(editor).not.toContain('Polja v stolpcih');
+    expect(editor).not.toMatch(/const \[hovered(?:Dimension|Weight)VariantId/);
   }
 });
 
-test('dimension and weight matrices share symmetric track, cell, and content timing', () => {
-  for (const source of [dimensionEditorSource, weightEditorSource]) {
-    expect(source).toContain(
-      'className="admin-variant-matrix-track-transition grid min-w-full bg-transparent"'
-    );
-    expect(source).toContain('gridTemplateColumns:');
-  }
-
-  const trackTransitionRule = sourceBetween(
-    globalStyles,
-    '.admin-variant-matrix-track-transition {',
-    '.admin-variant-matrix-row {'
-  );
-  expect(trackTransitionRule).toContain(
-    'transition-property: grid-template-columns, min-width;'
-  );
-  expect(trackTransitionRule).toContain('transition-duration: 260ms;');
-  expect(trackTransitionRule).toContain('transition-timing-function: ease-in-out;');
-
-  const cellTransitionRule = sourceBetween(
-    globalStyles,
-    '.admin-variant-matrix-cell-transition {',
-    '.admin-variant-matrix-diagonal-border {'
-  );
-  expect(cellTransitionRule).toContain(
-    'transition-property: background-color, border-color, opacity;'
-  );
-  expect(cellTransitionRule).toContain('transition-duration: 260ms;');
-  expect(cellTransitionRule).toContain('transition-timing-function: ease-in-out;');
-
-  const contentTransitionRule = sourceBetween(
-    globalStyles,
-    '.admin-dimension-variant-content-enter {',
-    '@media (prefers-reduced-motion: reduce) {'
-  );
-  expect(contentTransitionRule).toContain(
-    'animation: admin-dimension-variant-content-enter 260ms ease-in-out both;'
-  );
-
-  expect(globalStyles).toContain(
-    '.admin-variant-matrix-track-transition,\n  .admin-variant-matrix-cell-transition {\n    transition: none;'
-  );
+test('grid-only animation respects reduced motion', () => {
+  const trackRule = styles.slice(styles.indexOf('.admin-variant-matrix-track-transition {'), styles.indexOf('.admin-variant-matrix-row {'));
+  expect(trackRule).toContain('transition-property: grid-template-columns;');
+  expect(trackRule).not.toContain('min-width');
+  expect(trackRule).toContain('transition-duration: 260ms;');
+  expect(styles).toContain('.admin-variant-matrix-track-transition,\n  .admin-variant-matrix-cell-transition {\n    transition: none;');
 });
 
-test('expanded and compact variant cells do not switch conditional width utility classes', () => {
-  const matrixSections = [
-    sourceBetween(
-      dimensionEditorSource,
-      'aria-label="Razli\u010dice artikla s polji v vrsticah"',
-      'Neto cene so uredljive.'
-    ),
-    sourceBetween(
-      weightEditorSource,
-      'aria-label="Razli\u010dice artikla po masi s polji v vrsticah"',
-      '{quantityDiscountsPanel}'
-    )
-  ];
-
-  for (const matrixSource of matrixSections) {
-    expect(matrixSource).not.toMatch(
-      /\?\s*['"`]\s*(?:w|min-w|max-w)-\[[^'"`]+['"`]/u
-    );
-    expect(matrixSource).not.toMatch(
-      /:\s*['"`]\s*(?:w|min-w|max-w)-\[[^'"`]+['"`]/u
-    );
+test('header and body boundaries use a single continuous pixel edge', () => {
+  const edge = source('src/admin/features/artikli/components/VariantMatrixHeaderEdge.tsx');
+  expect(edge).toContain('strokeWidth="1"');
+  expect(edge).toContain('vectorEffect="non-scaling-stroke"');
+  for (const editor of editors) {
+    expect(editor).toContain('<VariantMatrixHeaderEdge');
+    const matrix = editor.slice(editor.indexOf('aria-label="Različice artikla'));
+    expect(matrix).not.toContain('overflow-hidden border-x');
+    expect(matrix).not.toContain('grid min-h-[38px] border-b');
   }
+  expect(styles).toContain('box-shadow: inset 0 -1px');
 });

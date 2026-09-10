@@ -44,6 +44,7 @@ import {
 } from '@/shared/domain/quote/quoteRequestStatus';
 import { AdminChipDropdown } from '@/shared/ui/admin-controls/AdminChipDropdown';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import AdminPublicCode from '@/shared/ui/admin-table/AdminPublicCode';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
@@ -439,6 +440,7 @@ export default function AdminQuotesTable({
   const statusFilterButtonRef = useRef<HTMLButtonElement>(null);
   const totalFilterButtonRef = useRef<HTMLButtonElement>(null);
   const pageCount = Math.max(1, Math.ceil(result.totalCount / pageSize));
+  const filteredCountLabel = formatSlCount(result.totalCount, { one: 'povpraševanje', two: 'povpraševanji', few: 'povpraševanja', other: 'povpraševanj' });
   const activeCustomerTypeLabel =
     CUSTOMER_TYPE_FILTERS.find((filter) => filter.value === customerType)
       ?.label ?? getCustomerTypeLabel(customerType);
@@ -941,6 +943,9 @@ export default function AdminQuotesTable({
             className={adminTableToolbarActionsClassName}
             data-testid="quote-table-toolbar-actions"
           >
+            <span className="hidden whitespace-nowrap text-xs text-slate-500 xl:inline">
+              {selected.length > 0 ? `Izbrano: ${formatSlInteger(selected.length)} / ${filteredCountLabel}` : filteredCountLabel}
+            </span>
             <IconButton
               type="button"
               onClick={() => void handleDownloadDocuments()}

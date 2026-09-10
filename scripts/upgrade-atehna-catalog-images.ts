@@ -43,6 +43,13 @@ export function matchRetainedImageVariant(assignment:RetainedAssignment, variant
   return matches[0];
 }
 
+/** Keep the reviewed gallery order ahead of original media, including on a repeated apply. */
+export function planReviewedImagePositions<T extends {blobUrl:string}>(additions:T[], currentMedia:Row[]) {
+  const original=currentMedia.filter(row=>!additions.some(image=>image.blobUrl===row.blob_url));
+  const firstPosition=Math.min(0,...original.map(row=>Number(row.position)))-additions.length;
+  return additions.map((addition,index)=>({addition,position:firstPosition+index,existing:currentMedia.find(row=>row.blob_url===addition.blobUrl&&row.media_kind==='image'&&row.role==='gallery')}));
+}
+
 async function protectedHashes(client:pg.PoolClient) {
   const hashes:Record<string,string>={};
   for (const table of ['catalog_item_variants','catalog_item_editor_details','catalog_categories','catalog_option_axes','catalog_option_values','catalog_variant_option_values','catalog_item_quantity_discounts','catalog_supplier_rows','pricing_stock_history','pricing_stock_model']) {
@@ -110,20 +117,21 @@ export async function runCatalogImageUpgrade(args=process.argv.slice(2)) {
     const snapshot=Buffer.from(JSON.stringify({items,media,assignments,hashes,summary},null,2));const backup=path.join(directory,'before.json');
     await writeFile(backup,snapshot,{flag:'wx'});ensure(snapshot.equals(await readFile(backup)),'Backup verification failed.');
     const removedAssignmentKeys=new Set<string>();
-    const changedItemIds=new Set<string>();const addedIds=new Set<string>();const modifiedMediaIds=new Set<string>();const changedVariantIds=new Set<string>();
+    const changedItemIds=new Set<string>();const addedIds=new Set<string>();const modifiedMediaIds=new Set<string>();const movedMediaIds=new Set<string>();const expectedMediaPositions=new Map<string,number>();const changedVariantIds=new Set<string>();
     for(const plan of plans) {
       const idsByImage=new Map<string,string>(media.filter(row=>String(row.item_id)===String(plan.item.id)&&row.media_kind==='image'&&row.role==='gallery'&&!row.hidden).map(row=>[String(row.blob_url),String(row.id)]));
       const currentMedia=media.filter(row=>String(row.item_id)===String(plan.item.id));
-      const original= currentMedia.filter(row=>!plan.product.additions.some(image=>image.blobUrl===row.blob_url));
-      const firstPosition=Math.min(0,...original.map(row=>Number(row.position)))-plan.product.additions.length;
-      for(const [index,addition] of plan.product.additions.entries()) {
-        const existing=currentMedia.find(row=>row.blob_url===addition.blobUrl&&row.media_kind==='image'&&row.role==='gallery');
+      for(const {addition,position,existing} of planReviewedImagePositions(plan.product.additions,currentMedia)) {
         ensure(!existing?.hidden, `Reviewed replacement was hidden by an editor; review before applying: ${addition.blobUrl}`);
         let id=existing?.id;
         if(!existing) {
-          id=(await client.query(`insert into catalog_media(item_id,media_kind,role,source_kind,filename,blob_url,mime_type,alt_text,image_dimensions,hidden,position) values($1,'image','gallery','upload',$2,$3,$4,$5,$6::jsonb,false,$7) returning id`,[plan.item.id,path.basename(addition.blobUrl),addition.blobUrl,mimeByUrl.get(addition.blobUrl),addition.altText??plan.item.item_name,JSON.stringify(addition.dimensions),firstPosition+index])).rows[0].id;
+          id=(await client.query(`insert into catalog_media(item_id,media_kind,role,source_kind,filename,blob_url,mime_type,alt_text,image_dimensions,hidden,position) values($1,'image','gallery','upload',$2,$3,$4,$5,$6::jsonb,false,$7) returning id`,[plan.item.id,path.basename(addition.blobUrl),addition.blobUrl,mimeByUrl.get(addition.blobUrl),addition.altText??plan.item.item_name,JSON.stringify(addition.dimensions),position])).rows[0].id;
           addedIds.add(String(id));changedItemIds.add(String(plan.item.id));
+        } else if(Number(existing.position)!==position) {
+          await client.query('update catalog_media set position=$1,updated_at=now() where id=$2',[position,id]);
+          movedMediaIds.add(String(id));changedItemIds.add(String(plan.item.id));
         }
+        expectedMediaPositions.set(String(id),position);
         idsByImage.set(addition.blobUrl,String(id));
       }
       for(const target of plan.targets.filter(target=>target.images.length)) {
@@ -160,10 +168,13 @@ export async function runCatalogImageUpgrade(args=process.argv.slice(2)) {
     ensure(catalogTypeHash(items.map(row=>omit(row,['updated_at'])))===catalogTypeHash(afterItems.map(row=>omit(row,['updated_at']))),'Article content changed.');
     for(const before of media) {
       const after=afterMedia.find(row=>String(row.id)===String(before.id));ensure(after,'Existing media was removed.');
-      const allowed=modifiedMediaIds.has(String(before.id))?['hidden','updated_at']:[];
+      const hiddenChanged=modifiedMediaIds.has(String(before.id));
+      const positionChanged=movedMediaIds.has(String(before.id));
+      const allowed=[...(hiddenChanged?['hidden']:[]),...(positionChanged?['position']:[]),...(hiddenChanged||positionChanged?['updated_at']:[])];
       ensure(catalogTypeHash(omit(before,allowed))===catalogTypeHash(omit(after,allowed)),'Existing media metadata changed unexpectedly.');
     }
     ensure(afterMedia.length===media.length+addedIds.size,'Unexpected media row count.');
+    for(const [id,position] of expectedMediaPositions) ensure(Number(afterMedia.find(row=>String(row.id)===id)?.position)===position,`Reviewed gallery image position failed: ${id}`);
     for(const before of assignments) {
       const after=afterAssignments.find(row=>String(row.variant_id)===String(before.variant_id)&&String(row.media_id)===String(before.media_id));
       if(removedAssignmentKeys.has(String(before.variant_id)+':'+String(before.media_id))){ensure(!after,'Rejected image assignment remains.');continue;}
@@ -176,7 +187,7 @@ export async function runCatalogImageUpgrade(args=process.argv.slice(2)) {
     }
     ensure(catalogTypeHash(hashes)===catalogTypeHash(await protectedHashes(client)),'Protected catalog or commerce data changed.');
     await client.query('commit');committed=true;
-    const verification={...summary,addedImages:addedIds.size,removedIncorrectAssignments:removedAssignmentKeys.size,hiddenLowResolutionImages:modifiedMediaIds.size,changedVariants:changedVariantIds.size,changedItems:changedItemIds.size,protectedDataUnchanged:true,backup};
+    const verification={...summary,addedImages:addedIds.size,removedIncorrectAssignments:removedAssignmentKeys.size,hiddenLowResolutionImages:modifiedMediaIds.size,reorderedImages:movedMediaIds.size,changedVariants:changedVariantIds.size,changedItems:changedItemIds.size,protectedDataUnchanged:true,backup};
     await writeFile(path.join(directory,'verification.json'),JSON.stringify(verification,null,2));console.log(JSON.stringify(verification));return verification;
   } catch(error){if(!committed)await client.query('rollback');throw error;}finally{client.release();await pool.end();}
 }

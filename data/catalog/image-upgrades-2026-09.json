@@ -3808,23 +3808,24 @@
       ],
       "additions": [
         {
-          "id": "motor-r23",
-          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+          "id": "motor-r23-ilustracija",
+          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
           "dimensions": {
-            "width": 2560,
-            "height": 1637
+            "width": 1254,
+            "height": 1254
           },
-          "bytes": 489615,
-          "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
-          "sourceUrl": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
-          "sourcePage": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
-          "kind": "supplier-photo",
-          "quality": "best-available-source",
-          "contextOnly": false,
+          "bytes": 2182753,
+          "sha256": "992114e72991d85647c300a956b95f8a7a818ef327b573a1bf1a0d3d50415e2c",
+          "kind": "generated-illustration",
+          "quality": "high-quality-illustration",
           "visuallyVerified": true,
           "distinctView": true,
-          "altText": "Motorček R23 / RE280R — izvirna fotografija",
-          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
+          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
+          "notes": "New unbranded representative illustration based on visible generic metal can, dark end cap, two solder tabs and short shaft; not an exact manufactured model photograph. Fine construction details and electrical ratings are not established by illustration. Exact original supplier photo retained for reference. No local source edit was performed because reference-image reads are blocked by Windows ACL.",
+          "generation": {
+            "tool": "built-in-image_gen",
+            "prompt": "Create a new high-resolution photorealistic representative illustration for an unbranded small educational brushed DC motor, RE280/R23 form. One cylindrical silver metal motor can, diameter about24mm and body length about30.5mm, modestly longer than its diameter. Plain dull silver pressed sheet steel casing with subtle fine natural metal texture; dark charcoal rear plastic cap. TWO small flat solder tabs with tiny holes project from opposite points at the rear rim. Front has a small cylindrical bearing boss and short narrow smooth steel shaft about2mm diameter projecting about10mm forward. One small horizontal shallow ventilation slot near the rear quarter of the steel body, plus ordinary rear crimping cutouts. No printed or embossed text, brand, numbers or electrical ratings. Single motor lies on a tidy light wood technical classroom bench, shaft pointing right, three-quarter side view with rear at left and the small top slot visible. An ordinary wooden pencil and a loose coil of red insulated model wire sit far behind, soft focus, separate and clearly not included. Main motor is complete, sharply focused, occupies70percent of square image, realistic contact shadow and natural window lighting. Do not make a large industrial motor, no wires attached, no gear or propeller. This is an explicitly generic representative motor illustration, not a precise manufactured model or electrical performance claim."
+          }
         },
         {
           "id": "motor-r20",
@@ -3843,25 +3844,6 @@
           "visuallyVerified": true,
           "distinctView": true,
           "altText": "Motorček R20 / RE140 — izvirna fotografija",
-          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
-        },
-        {
-          "id": "motor-r21",
-          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
-          "dimensions": {
-            "width": 2560,
-            "height": 1863
-          },
-          "bytes": 583615,
-          "sha256": "a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351",
-          "sourceUrl": "https://www.opitec.com/media/e0/29/50/1764938962/224035-000-000-VO-02_v_9.jpg?ts=1764938962",
-          "sourcePage": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
-          "kind": "supplier-photo",
-          "quality": "best-available-source",
-          "contextOnly": false,
-          "visuallyVerified": true,
-          "distinctView": true,
-          "altText": "Motorček R21 / RE260 — izvirna fotografija",
           "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
         },
         {
@@ -3885,24 +3867,42 @@
           }
         },
         {
-          "id": "motor-r23-ilustracija",
-          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
+          "id": "motor-r23",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
           "dimensions": {
-            "width": 1254,
-            "height": 1254
+            "width": 2560,
+            "height": 1637
           },
-          "bytes": 2182753,
-          "sha256": "992114e72991d85647c300a956b95f8a7a818ef327b573a1bf1a0d3d50415e2c",
-          "kind": "generated-illustration",
-          "quality": "high-quality-illustration",
+          "bytes": 489615,
+          "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
+          "sourceUrl": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
+          "kind": "supplier-photo",
+          "quality": "best-available-source",
+          "contextOnly": false,
           "visuallyVerified": true,
           "distinctView": true,
-          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
-          "notes": "New unbranded representative illustration based on visible generic metal can, dark end cap, two solder tabs and short shaft; not an exact manufactured model photograph. Fine construction details and electrical ratings are not established by illustration. Exact original supplier photo retained for reference. No local source edit was performed because reference-image reads are blocked by Windows ACL.",
-          "generation": {
-            "tool": "built-in-image_gen",
-            "prompt": "Create a new high-resolution photorealistic representative illustration for an unbranded small educational brushed DC motor, RE280/R23 form. One cylindrical silver metal motor can, diameter about24mm and body length about30.5mm, modestly longer than its diameter. Plain dull silver pressed sheet steel casing with subtle fine natural metal texture; dark charcoal rear plastic cap. TWO small flat solder tabs with tiny holes project from opposite points at the rear rim. Front has a small cylindrical bearing boss and short narrow smooth steel shaft about2mm diameter projecting about10mm forward. One small horizontal shallow ventilation slot near the rear quarter of the steel body, plus ordinary rear crimping cutouts. No printed or embossed text, brand, numbers or electrical ratings. Single motor lies on a tidy light wood technical classroom bench, shaft pointing right, three-quarter side view with rear at left and the small top slot visible. An ordinary wooden pencil and a loose coil of red insulated model wire sit far behind, soft focus, separate and clearly not included. Main motor is complete, sharply focused, occupies70percent of square image, realistic contact shadow and natural window lighting. Do not make a large industrial motor, no wires attached, no gear or propeller. This is an explicitly generic representative motor illustration, not a precise manufactured model or electrical performance claim."
-          }
+          "altText": "Motorček R23 / RE280R — izvirna fotografija",
+          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
+        },
+        {
+          "id": "motor-r21",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
+          "dimensions": {
+            "width": 2560,
+            "height": 1863
+          },
+          "bytes": 583615,
+          "sha256": "a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351",
+          "sourceUrl": "https://www.opitec.com/media/e0/29/50/1764938962/224035-000-000-VO-02_v_9.jpg?ts=1764938962",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
+          "kind": "supplier-photo",
+          "quality": "best-available-source",
+          "contextOnly": false,
+          "visuallyVerified": true,
+          "distinctView": true,
+          "altText": "Motorček R21 / RE260 — izvirna fotografija",
+          "notes": "Same original motor photograph/geometry as existing supplier image at larger native source size. Current OPITEC electrical ratings have changed; no specification changes made. R21/R23 source remains visibly grainy despite large pixel dimensions; not falsely graded fully high quality."
         }
       ],
       "variantAssignments": [
@@ -3914,8 +3914,8 @@
             "/images/catalog/2026-09/motorcek.png"
           ],
           "addImageIds": [
-            "motor-r23",
-            "motor-r23-ilustracija"
+            "motor-r23-ilustracija",
+            "motor-r23"
           ],
           "uncertainty": "Sharp image is representative motor-form illustration; exact native source photograph is retained and remains grainy.",
           "hasVerifiedProductImage": true,
@@ -3942,8 +3942,8 @@
             "/images/catalog/2026-09/motorcek-3.png"
           ],
           "addImageIds": [
-            "motor-r21",
-            "motor-r21-ilustracija"
+            "motor-r21-ilustracija",
+            "motor-r21"
           ],
           "uncertainty": "Sharp image is representative motor-form illustration; exact native source photograph is retained and remains grainy.",
           "hasVerifiedProductImage": true,
@@ -5145,26 +5145,6 @@
       ],
       "additions": [
         {
-          "id": "klesce-za-izolacijo-10-drugi-pogled",
-          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
-          "dimensions": {
-            "width": 496,
-            "height": 500
-          },
-          "bytes": 33741,
-          "sha256": "8d5d40e2aa58fa387f1c43f0e24f4231887883bd4d30490781c467348e0142d3",
-          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/09/klešče-za-snemanje-izolacije1.jpg",
-          "sourcePage": "https://atehna.si/wp-json/wp/v2/media?per_page=100&search=kle%C5%A1%C4%8De",
-          "kind": "supplier-photo",
-          "quality": "best-available-source",
-          "visuallyVerified": true,
-          "reviewedBy": "variant_editor",
-          "distinctView": true,
-          "contextOnly": false,
-          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
-          "notes": "Distinct original source view: all ten matching blue/black manual stripping pliers in wooden stand. Native 496x500; acceptable supplementary image, not high-resolution."
-        },
-        {
           "id": "klesce-za-izolacijo-10-izvirnik",
           "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-izvirnik.jpg",
           "dimensions": {
@@ -5206,6 +5186,26 @@
             "prompt": "New high-resolution square photorealistic catalog application illustration. One manual wire-stripping plier lies prominently on a light wood school electronics workbench beside two short pieces of insulated copper wire, one with a clean exposed copper end and its removed insulation sleeve nearby. The plier has polished silver steel angled square-ended opposing V-cut jaws, a small brass knurled adjustment screw near the jaws, a central pivot and two curved ergonomic black-and-blue rubber handles. No brand names or lettering. Tool fully visible and sharply focused. A disconnected tiny practice circuit board further back adds real use context, no mains equipment, no live electricity, no active cutting or human hands. Warm natural daylight, clean but lived-in workbench, realistic tool size. This is a representative example of one tool's use; the sold set quantity remains defined in product details. No watermark."
           },
           "reviewedBy": "root"
+        },
+        {
+          "id": "klesce-za-izolacijo-10-drugi-pogled",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "dimensions": {
+            "width": 496,
+            "height": 500
+          },
+          "bytes": 33741,
+          "sha256": "8d5d40e2aa58fa387f1c43f0e24f4231887883bd4d30490781c467348e0142d3",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/09/klešče-za-snemanje-izolacije1.jpg",
+          "sourcePage": "https://atehna.si/wp-json/wp/v2/media?per_page=100&search=kle%C5%A1%C4%8De",
+          "kind": "supplier-photo",
+          "quality": "best-available-source",
+          "visuallyVerified": true,
+          "reviewedBy": "variant_editor",
+          "distinctView": true,
+          "contextOnly": false,
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "notes": "Distinct original source view: all ten matching blue/black manual stripping pliers in wooden stand. Native 496x500; acceptable supplementary image, not high-resolution."
         }
       ],
       "variantAssignments": [
@@ -5217,9 +5217,9 @@
             "/images/catalog/2026-09/elektricarske-klesce-za-snemanje-izolacije.jpg"
           ],
           "addImageIds": [
-            "klesce-za-izolacijo-10-drugi-pogled",
             "klesce-za-izolacijo-10-izvirnik",
-            "klesce-snemanje-izolacije-uporaba"
+            "klesce-snemanje-izolacije-uporaba",
+            "klesce-za-izolacijo-10-drugi-pogled"
           ],
           "hasVerifiedProductImage": true,
           "preferredExistingBlobUrls": []

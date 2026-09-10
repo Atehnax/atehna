@@ -6223,7 +6223,7 @@
           },
           "imageAssignments": [
             0,
-            4
+            3
           ]
         },
         {
@@ -6286,7 +6286,7 @@
           },
           "imageAssignments": [
             2,
-            3
+            4
           ]
         }
       ],
@@ -6295,14 +6295,14 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "motorcek-r23-izvirnik.jpg",
-          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Motorček R23 / RE280R — izvirna fotografija",
+          "filename": "motor-r23-ilustracija.png",
+          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
+          "mimeType": "image/png",
+          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
           "imageType": "product",
           "imageDimensions": {
-            "width": 2560,
-            "height": 1637
+            "width": 1254,
+            "height": 1254
           },
           "hidden": false,
           "position": 0
@@ -6327,22 +6327,6 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "motorcek-r21-izvirnik.jpg",
-          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Motorček R21 / RE260 — izvirna fotografija",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 2560,
-            "height": 1863
-          },
-          "hidden": false,
-          "position": 2
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
           "filename": "motor-r21-ilustracija.png",
           "blobUrl": "/images/catalog/2026-09/motor-r21-ilustracija.png",
           "mimeType": "image/png",
@@ -6353,20 +6337,36 @@
             "height": 1254
           },
           "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "motorcek-r23-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R23 / RE280R — izvirna fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2560,
+            "height": 1637
+          },
+          "hidden": false,
           "position": 3
         },
         {
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "motor-r23-ilustracija.png",
-          "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
-          "mimeType": "image/png",
-          "altText": "Motorček R23 — reprezentativna ilustracija oblike motorčka",
+          "filename": "motorcek-r21-izvirnik.jpg",
+          "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Motorček R21 / RE260 — izvirna fotografija",
           "imageType": "product",
           "imageDimensions": {
-            "width": 1254,
-            "height": 1254
+            "width": 2560,
+            "height": 1863
           },
           "hidden": false,
           "position": 4
@@ -8460,22 +8460,6 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "klesce-za-izolacijo-10-drugi-pogled.jpg",
-          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 496,
-            "height": 500
-          },
-          "hidden": false,
-          "position": 0
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
           "filename": "klesce-za-izolacijo-10-izvirnik.jpg",
           "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-izvirnik.jpg",
           "mimeType": "image/jpeg",
@@ -8486,7 +8470,7 @@
             "height": 2476
           },
           "hidden": false,
-          "position": 1
+          "position": 0
         },
         {
           "mediaKind": "image",
@@ -8500,6 +8484,22 @@
           "imageDimensions": {
             "width": 1254,
             "height": 1254
+          },
+          "hidden": false,
+          "position": 1
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Električarske klešče za snemanje izolacije (10 kosov v stojalu) — Osnovna izvedba",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 496,
+            "height": 500
           },
           "hidden": false,
           "position": 2

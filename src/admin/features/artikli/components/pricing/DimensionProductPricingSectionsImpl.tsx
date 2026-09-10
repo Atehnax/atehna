@@ -1,5 +1,9 @@
 'use client';
 
+import { VariantMatrixHeaderEdge } from '../VariantMatrixHeaderEdge';
+
+import { getVariantMatrixLayout, useVariantMatrixHover } from '../variantMatrixLayout';
+
 import { useCallback, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SVGProps } from 'react';
 import {
   DndContext,
@@ -1407,16 +1411,12 @@ function WeightVariantSortableHeader({
   label,
   disabled,
   className,
-  onMouseEnter,
-  onMouseLeave,
   children
 }: {
   id: string;
   label: string;
   disabled: boolean;
   className: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
   children: (dragHandle: ReactNode) => ReactNode;
 }) {
   const {
@@ -1455,15 +1455,16 @@ function WeightVariantSortableHeader({
     <div
       ref={setNodeRef}
       role="columnheader"
-      className={`${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
+      data-variant-matrix-column={id}
+      data-matrix-dragging={isDragging || undefined}
+      data-matrix-over={isOver || undefined}
+      className={`isolate ${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
         isOver && !isDragging ? 'z-30 ring-2 ring-inset ring-[color:var(--blue-500)]' : ''
       }`}
       style={{
         transform: DndCss.Transform.toString(transform),
         transition
       }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
     >
       {children(dragHandle)}
     </div>
@@ -1521,8 +1522,7 @@ export function WeightProductModule({
   const [expandedWeightVariantId, setExpandedWeightVariantId] = useState<string | null>(
     () => weightData.variants[0]?.id ?? null
   );
-  const [hoveredWeightVariantId, setHoveredWeightVariantId] = useState<string | null>(null);
-  const [collapseInactiveWeightVariants, setCollapseInactiveWeightVariants] = useState(true);
+  const weightMatrixHover = useVariantMatrixHover();
   const [draggedWeightVariantId, setDraggedWeightVariantId] = useState<string | null>(null);
   const [weightVariantFieldDrafts, setWeightVariantFieldDrafts] = useState<Record<string, string>>({});
   const weightVariantSensors = useSensors(
@@ -1618,26 +1618,10 @@ export function WeightProductModule({
   };
   const expandedWeightVariant =
     weightData.variants.find((variant) => variant.id === expandedWeightVariantId) ?? null;
-  // The selected cell contains a 320px-wide field plus 8px horizontal padding
-  // on each side. Keep the highlighted column fitted to that content.
-  const expandedWeightVariantTrackWidth = 336;
+  const weightMatrixLayout = getVariantMatrixLayout(
+    weightData.variants.length, weightData.variants.findIndex((variant) => variant.id === expandedWeightVariant?.id)
+  );
   const weightVariantLayoutCompactCount = Math.max(0, weightData.variants.length - 1);
-  const compactWeightVariantWidth = weightVariantLayoutCompactCount <= 2
-    ? 220
-    : weightVariantLayoutCompactCount <= 4
-      ? 140
-      : weightVariantLayoutCompactCount <= 6
-        ? 100
-        : weightVariantLayoutCompactCount <= 8
-          ? 82
-          : weightVariantLayoutCompactCount <= 12
-            ? 58
-            : weightVariantLayoutCompactCount <= 15
-              ? 44
-              : weightVariantLayoutCompactCount <= 19
-                ? 34
-                : 40;
-  const usesDenseWeightVariantLayout = weightVariantLayoutCompactCount >= 12;
   const usesSteepWeightVariantHeaders = weightVariantLayoutCompactCount > 15;
   const weightVariantHeaderHeight = usesSteepWeightVariantHeaders ? 138 : 118;
   const weightVariantNormalBandHeight = 36;
@@ -1645,62 +1629,12 @@ export function WeightProductModule({
   const weightVariantHeaderAngle = 45;
   const weightVariantHeaderTitleOpticalOffset = 6;
   const weightVariantHeaderSlant = weightVariantDiagonalHeight;
-  const weightVariantBaseTrackWidths = weightData.variants.map((variant) =>
-    variant.id !== expandedWeightVariant?.id
-    && collapseInactiveWeightVariants
-    && !variant.active
-      ? Math.min(26, compactWeightVariantWidth)
-      : compactWeightVariantWidth
-  );
-  const weightMatrixBaseWidth =
-    205 + weightVariantBaseTrackWidths.reduce((total, width) => total + width, 0);
-  const getWeightVariantTrack = (variant: WeightVariant, variantIndex: number) => {
-    const isExpanded = variant.id === expandedWeightVariant?.id;
-    const baseTrackWidth = weightVariantBaseTrackWidths[variantIndex] ?? compactWeightVariantWidth;
-    if (isExpanded) return `${expandedWeightVariantTrackWidth}px`;
-    if (!usesDenseWeightVariantLayout) return `${baseTrackWidth}px`;
-    const isCompressedInactive =
-      collapseInactiveWeightVariants && !variant.active;
-    const minimumWidth = isCompressedInactive
-      ? Math.min(26, compactWeightVariantWidth)
-      : compactWeightVariantWidth;
-    const flexibleWidth = isCompressedInactive ? 0 : 1;
-    return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
-  };
-  const weightMatrixOccupiedWidth =
-    weightMatrixBaseWidth
-    + (expandedWeightVariant
-      ? expandedWeightVariantTrackWidth - compactWeightVariantWidth
-      : 0);
-  const weightMatrixRemainderTrack =
-    usesDenseWeightVariantLayout
-      ? '0px'
-      : `calc(100% - ${weightMatrixOccupiedWidth}px)`;
-  const weightMatrixGridTemplateColumns = [
-    '205px',
-    ...weightData.variants.map(getWeightVariantTrack),
-    weightMatrixRemainderTrack
-  ].join(' ');
-  const weightMatrixMinWidth =
-    205
-    + weightData.variants.reduce((total, variant) => {
-      if (variant.id === expandedWeightVariant?.id) {
-        return total + expandedWeightVariantTrackWidth;
-      }
-      return total + (
-        collapseInactiveWeightVariants && !variant.active
-          ? Math.min(26, compactWeightVariantWidth)
-          : compactWeightVariantWidth
-      );
-    }, 0);
   const configuredDefaultWeightVariant =
     weightData.variants.find((variant) => variant.id === defaultVariantId && variant.active) ?? null;
   const resolvedDefaultWeightVariantId =
     configuredDefaultWeightVariant?.id
     ?? weightData.variants.find((variant) => variant.active)?.id
     ?? null;
-  const firstSelectedWeightVariant =
-    weightData.variants.find((variant) => selectedVariantIds.has(variant.id)) ?? null;
   const draggedWeightVariant =
     weightData.variants.find((variant) => variant.id === draggedWeightVariantId) ?? null;
   const hasCanonicalVariantStock = (variant: WeightVariant) => variant.stockManagedPerVariant || variant.stockRevision !== undefined;
@@ -1767,6 +1701,7 @@ export function WeightProductModule({
     });
   };
   const handleWeightVariantDragStart = (event: DragStartEvent) => {
+    weightMatrixHover.clearHover();
     setDraggedWeightVariantId(String(event.active.id));
   };
   const handleWeightVariantDragEnd = (event: DragEndEvent) => {
@@ -2349,7 +2284,7 @@ export function WeightProductModule({
     }
 
     setExpandedWeightVariantId(variantId);
-    setHoveredWeightVariantId(null);
+    weightMatrixHover.clearHover();
   };
 
   return (
@@ -2396,42 +2331,6 @@ export function WeightProductModule({
                   Povlecite ročico v glavi različice; ta vrstni red se uporabi tudi na strani izdelka.
                 </p>
               ) : null}
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
-              <div className="inline-flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={collapseInactiveWeightVariants}
-                  aria-label="Skrči neaktivne različice"
-                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition ${
-                    collapseInactiveWeightVariants
-                      ? 'border-[color:var(--blue-600)] bg-[color:var(--blue-600)]'
-                      : 'border-slate-300 bg-slate-200'
-                  }`}
-                  onClick={() => setCollapseInactiveWeightVariants((current) => !current)}
-                >
-                  <span
-                    className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                      collapseInactiveWeightVariants ? 'translate-x-[17px]' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-                Skrči neaktivne
-              </div>
-              <button
-                type="button"
-                className="inline-flex h-[30px] items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-[color:var(--blue-700)] transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-                disabled={!firstSelectedWeightVariant}
-                onClick={() => {
-                  if (firstSelectedWeightVariant) setExpandedWeightVariantId(firstSelectedWeightVariant.id);
-                }}
-              >
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-                  <path d="M6 2H2v4M10 14h4v-4M2.5 5.5 6 2M13.5 10.5 10 14" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Razširi izbrano
-              </button>
             </div>
           </div>
           {variantOptionsToolbar}
@@ -2503,9 +2402,11 @@ export function WeightProductModule({
                 role="table"
                 aria-label="Različice artikla po masi s polji v vrsticah"
                 className="admin-variant-matrix-track-transition grid min-w-full bg-transparent"
+              onMouseOver={weightMatrixHover.onMouseOver}
+              onMouseLeave={weightMatrixHover.onMouseLeave}
                 style={{
-                  minWidth: `${Math.max(720, weightMatrixMinWidth)}px`,
-                  gridTemplateColumns: weightMatrixGridTemplateColumns
+                  minWidth: `${weightMatrixLayout.minWidth}px`,
+                  gridTemplateColumns: weightMatrixLayout.gridTemplateColumns
                 }}
               >
                 <DndContext
@@ -2521,7 +2422,7 @@ export function WeightProductModule({
                   >
                     <div
                       role="row"
-                      className="admin-variant-matrix-row relative grid border-b border-slate-200 bg-slate-50/80"
+                      className="admin-variant-matrix-row admin-variant-matrix-header-row relative grid bg-slate-50/80"
                       style={{
                         height: `${weightVariantHeaderHeight}px`,
                         clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
@@ -2533,7 +2434,7 @@ export function WeightProductModule({
                       >
                         <span
                           aria-hidden="true"
-                          className="pointer-events-none absolute inset-0 bg-slate-50"
+                          className="pointer-events-none absolute inset-y-0 left-0 right-px bg-slate-50"
                           style={{
                             clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
                           }}
@@ -2558,11 +2459,9 @@ export function WeightProductModule({
                         const variantDisplayName = getWeightVariantCompactLabel(variant);
                         const variantHoverName = getWeightVariantDisplayLabel(variant);
                         const isExpanded = expandedWeightVariant?.id === variant.id;
-                        const isHovered = hoveredWeightVariantId === variant.id;
-                        const isCompressedInactive = collapseInactiveWeightVariants && !variant.active;
+                        const isInactiveVariant = !variant.active;
                         const nextVariantIsExpanded =
                           weightData.variants[variantIndex + 1]?.id === expandedWeightVariant?.id;
-                        const expandedVariantHasLeftSlant = variantIndex > 0;
                         if (isExpanded) {
                           return (
                             <WeightVariantSortableHeader
@@ -2578,52 +2477,14 @@ export function WeightProductModule({
                                     aria-hidden="true"
                                     className="pointer-events-none absolute bottom-0 h-full bg-sky-50/80"
                                     style={{
-                                      left: expandedVariantHasLeftSlant
-                                        ? `-${weightVariantHeaderSlant}px`
-                                        : 0,
-                                      width: expandedVariantHasLeftSlant
-                                        ? `calc(100% + ${weightVariantHeaderSlant}px)`
-                                        : '100%',
-                                      clipPath: expandedVariantHasLeftSlant
-                                        ? `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, ${weightVariantHeaderSlant}px 100%, ${weightVariantHeaderSlant}px ${weightVariantDiagonalHeight}px)`
-                                        : `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                                      left: `-${weightVariantHeaderSlant}px`,
+                                      width: `calc(100% + ${weightVariantHeaderSlant}px)`,
+                                      clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, ${weightVariantHeaderSlant}px 100%, ${weightVariantHeaderSlant}px ${weightVariantDiagonalHeight}px)`
                                     }}
                                   />
-                                  {expandedVariantHasLeftSlant ? (
-                                    <span
-                                      aria-hidden="true"
-                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
-                                      style={{
-                                        height: `${weightVariantDiagonalHeight}px`,
-                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
-                                      }}
-                                    />
-                                  ) : null}
-                                  <span
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-[color:var(--blue-500)]"
-                                    style={{
-                                      height: `${
-                                        expandedVariantHasLeftSlant
-                                          ? weightVariantNormalBandHeight
-                                          : weightVariantHeaderHeight
-                                      }px`
-                                    }}
-                                  />
-                                  <span
-                                    aria-hidden="true"
-                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
-                                    style={{
-                                      height: `${weightVariantDiagonalHeight}px`,
-                                      transform: `skewX(${weightVariantHeaderAngle}deg)`
-                                    }}
-                                  />
-                                  <span
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-[color:var(--blue-500)]"
-                                    style={{ height: `${weightVariantNormalBandHeight}px` }}
-                                  />
-                                  <div className="admin-dimension-variant-content-enter relative z-30 flex w-full min-w-0 items-center gap-1.5">
+                                  <VariantMatrixHeaderEdge side="left" highlighted diagonalHeight={weightVariantDiagonalHeight} height={weightVariantHeaderHeight} />
+                                <VariantMatrixHeaderEdge side="right" highlighted diagonalHeight={weightVariantDiagonalHeight} height={weightVariantHeaderHeight} />
+                                <div className="admin-dimension-variant-content-enter relative z-30 flex w-full min-w-0 items-center gap-1.5">
                                     {dragHandle}
                                     <span onClick={(event) => event.stopPropagation()}>
                                       <AdminCheckbox
@@ -2665,25 +2526,15 @@ export function WeightProductModule({
                             label={variantHoverName}
                             disabled={!editable || weightData.variants.length <= 1}
                             className={`relative min-w-0 overflow-visible transition-colors ${
-                              isHovered
-                                ? 'z-10'
-                                : isCompressedInactive
-                                  ? 'opacity-70'
-                                  : ''
+                              isInactiveVariant ? 'text-slate-500' : ''
                             }`}
-                            onMouseEnter={() => setHoveredWeightVariantId(variant.id)}
-                            onMouseLeave={() => setHoveredWeightVariantId((current) => current === variant.id ? null : current)}
                           >
                             {(dragHandle) => (
                               <>
                                 <button
                                   type="button"
                                   className={`absolute bottom-0 block h-full overflow-hidden outline-none transition-colors focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--blue-500)] ${
-                                    isHovered
-                                      ? 'bg-sky-50'
-                                      : isCompressedInactive
-                                        ? 'bg-slate-100/80'
-                                        : 'bg-slate-50/80'
+                                    isInactiveVariant ? 'bg-slate-100/80' : 'bg-slate-50/80'
                                   }`}
                                   style={{
                                     left: `-${weightVariantHeaderSlant}px`,
@@ -2694,7 +2545,7 @@ export function WeightProductModule({
                                   title={variantHoverName}
                                   onClick={() => {
                                     setExpandedWeightVariantId(variant.id);
-                                    setHoveredWeightVariantId(null);
+                                    weightMatrixHover.clearHover();
                                   }}
                                 >
                                   <span
@@ -2708,7 +2559,7 @@ export function WeightProductModule({
                                   >
                                     <span
                                       className={`block origin-center whitespace-nowrap text-[10.5px] font-semibold leading-none text-slate-800 ${
-                                        isCompressedInactive ? 'text-slate-500' : ''
+                                        isInactiveVariant ? 'text-slate-500' : ''
                                       }`}
                                       style={{ transform: `rotate(${weightVariantHeaderAngle}deg)` }}
                                     >
@@ -2716,41 +2567,9 @@ export function WeightProductModule({
                                     </span>
                                   </span>
                                 </button>
-                                {variantIndex === 0 ? (
-                                  <>
-                                    <span
-                                      aria-hidden="true"
-                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-slate-300"
-                                      style={{
-                                        height: `${weightVariantDiagonalHeight}px`,
-                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
-                                      }}
-                                    />
-                                    <span
-                                      aria-hidden="true"
-                                      className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-slate-300"
-                                      style={{ height: `${weightVariantNormalBandHeight}px` }}
-                                    />
-                                  </>
-                                ) : null}
-                                {!nextVariantIsExpanded ? (
-                                  <>
-                                    <span
-                                      aria-hidden="true"
-                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-slate-300"
-                                      style={{
-                                        height: `${weightVariantDiagonalHeight}px`,
-                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
-                                      }}
-                                    />
-                                    <span
-                                      aria-hidden="true"
-                                      className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-slate-300"
-                                      style={{ height: `${weightVariantNormalBandHeight}px` }}
-                                    />
-                                  </>
-                                ) : null}
-                                <span
+                                {variantIndex === 0 ? <VariantMatrixHeaderEdge side="left" diagonalHeight={weightVariantDiagonalHeight} height={weightVariantHeaderHeight} /> : null}
+                              {!nextVariantIsExpanded ? <VariantMatrixHeaderEdge side="right" diagonalHeight={weightVariantDiagonalHeight} height={weightVariantHeaderHeight} /> : null}
+                              <span
                                   className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5"
                                   onClick={(event) => event.stopPropagation()}
                                 >
@@ -2778,16 +2597,15 @@ export function WeightProductModule({
                   </DragOverlay>
                 </DndContext>
                 {weightVariantMatrixRows.map((row, rowIndex) => {
-                  const alternatingClassName = rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/45';
                   return (
                     <div
                       key={row.key}
                       role="row"
-                      className={`admin-variant-matrix-row grid min-h-[38px] border-b border-slate-200 ${alternatingClassName}`}
+                      className={`admin-variant-matrix-row admin-variant-matrix-body-row grid min-h-[38px] ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
                     >
                       <div
                         role="rowheader"
-                        className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r border-slate-200 px-3 text-[11px] font-normal text-slate-700 ${alternatingClassName}`}
+                        className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r px-3 text-[11px] font-normal text-slate-700 ${weightData.variants[0]?.id === expandedWeightVariant?.id ? 'border-[color:var(--blue-500)]' : 'border-slate-200'} ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
                       >
                         <span className="truncate">{row.label}</span>
                         <span
@@ -2804,16 +2622,16 @@ export function WeightProductModule({
                           </span>
                         </span>
                       </div>
-                      {weightData.variants.map((variant) => {
+                      {weightData.variants.map((variant, variantIndex) => {
                         const isExpanded = expandedWeightVariant?.id === variant.id;
-                        const isHovered = hoveredWeightVariantId === variant.id;
-                        const isCompressedInactive = collapseInactiveWeightVariants && !variant.active;
+                        const isInactiveVariant = !variant.active;
                         if (isExpanded) {
                           return (
                             <div
                               key={`${row.key}-${variant.id}`}
                               role="cell"
-                              className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-x border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
+                              data-variant-matrix-column={variant.id}
+                              className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-r border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
                                 row.key === 'default' ? 'justify-center' : ''
                               }`}
                             >
@@ -2831,16 +2649,13 @@ export function WeightProductModule({
                           <div
                             key={`${row.key}-${variant.id}`}
                             role="cell"
-                            className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r border-slate-200 px-0.5 py-1 ${
-                              isHovered
-                                ? 'z-10 border-x border-[color:var(--blue-500)] bg-sky-50'
-                                : isCompressedInactive
-                                  ? 'bg-slate-100/70 opacity-[0.65]'
-                                  : ''
+                            data-variant-matrix-column={variant.id}
+                            className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r px-0.5 py-1 ${
+                            weightData.variants[variantIndex + 1]?.id === expandedWeightVariant?.id ? 'border-[color:var(--blue-500)]' : 'border-slate-200'
+                          } ${
+                              isInactiveVariant ? 'bg-slate-100/70' : ''
                             }`}
                             onClick={(event) => activateCollapsedWeightVariant(event, variant.id)}
-                            onMouseEnter={() => setHoveredWeightVariantId(variant.id)}
-                            onMouseLeave={() => setHoveredWeightVariantId((current) => current === variant.id ? null : current)}
                           >
                             {renderCompactWeightVariantCell(variant, row.key)}
                           </div>

@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { formatSlInteger, formatSlOrderCount } from '@/shared/domain/formatting';
 import AdminPublicCode from '@/shared/ui/admin-table/AdminPublicCode';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
@@ -1135,6 +1136,7 @@ export default function AdminOrdersTable({
 
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
+  const filteredCountLabel = formatSlOrderCount(filteredAndSortedOrders.length);
   const hasSelectedRows = selectedCount > 0;
   const hasBulkSelectedRows = selectedCount > 1;
   const singleSelectedOrderId = selectedCount === 1 ? selected[0] ?? null : null;
@@ -2229,6 +2231,9 @@ export default function AdminOrdersTable({
           headerRight={
             <>
               <div className={adminTableToolbarActionsClassName}>
+                <span className="hidden whitespace-nowrap text-xs text-slate-500 xl:inline">
+                  {hasSelectedRows ? `Izbrano: ${formatSlInteger(selectedCount)} / ${filteredCountLabel}` : filteredCountLabel}
+                </span>
                 <IconButton
                   type="button"
                   onClick={handleDownloadAllDocuments}

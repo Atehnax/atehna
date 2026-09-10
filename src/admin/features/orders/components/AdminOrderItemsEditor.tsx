@@ -1078,7 +1078,7 @@ export default function AdminOrderItemsEditor({
                 </td>
                 <td colSpan={5} className="px-3 py-2.5 align-middle">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900">Pošljemo pozneje</span>
+                    <span className="font-semibold text-slate-900">Pošljemo kasneje</span>
                     <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-inset ring-sky-200">
                       {activeLaterItems.length}
                     </span>

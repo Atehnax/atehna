@@ -1,5 +1,9 @@
 'use client';
 
+import { VariantMatrixHeaderEdge } from './VariantMatrixHeaderEdge';
+
+import { getVariantMatrixLayout, useVariantMatrixHover } from './variantMatrixLayout';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -40,7 +44,6 @@ import {
   selectTokenClasses
 } from '@/shared/ui/theme/tokens';
 import EuiTabs from '@/shared/ui/eui-tabs';
-import SegmentedControl from '@/shared/ui/segmented/segmented-control';
 import {
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
@@ -138,7 +141,6 @@ import {
 } from '@/admin/features/artikli/components/artikliFieldStyles';
 import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
-import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { readCatalogSpecificationLabels } from '@/shared/domain/catalog/catalogSpecification';
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
@@ -180,7 +182,6 @@ type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type DimensionVariantViewMode = 'columns' | 'rows';
 type DimensionVariantMatrixRowKey =
   | 'default'
   | 'label'
@@ -801,16 +802,12 @@ function DimensionVariantSortableHeader({
   label,
   disabled,
   className,
-  onMouseEnter,
-  onMouseLeave,
   children
 }: {
   id: string;
   label: string;
   disabled: boolean;
   className: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
   children: (dragHandle: ReactNode, state: { isDragging: boolean; isOver: boolean }) => ReactNode;
 }) {
   const {
@@ -849,15 +846,16 @@ function DimensionVariantSortableHeader({
     <div
       ref={setNodeRef}
       role="columnheader"
-      className={`${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
+      data-variant-matrix-column={id}
+      data-matrix-dragging={isDragging || undefined}
+      data-matrix-over={isOver || undefined}
+      className={`isolate ${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
         isOver && !isDragging ? 'z-30 ring-2 ring-inset ring-[color:var(--blue-500)]' : ''
       }`}
       style={{
         transform: DndCss.Transform.toString(transform),
         transition
       }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
     >
       {children(dragHandle, { isDragging, isOver })}
     </div>
@@ -2312,12 +2310,10 @@ export default function AdminItemEditorPage({
       : null
   );
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
-  const [dimensionVariantViewMode, setDimensionVariantViewMode] = useState<DimensionVariantViewMode>('rows');
   const [expandedDimensionVariantId, setExpandedDimensionVariantId] = useState<string | null>(
     () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
   );
-  const [hoveredDimensionVariantId, setHoveredDimensionVariantId] = useState<string | null>(null);
-  const [collapseInactiveDimensionVariants, setCollapseInactiveDimensionVariants] = useState(true);
+  const dimensionMatrixHover = useVariantMatrixHover();
   const [draggedDimensionVariantId, setDraggedDimensionVariantId] = useState<string | null>(null);
   const dimensionVariantScrollRef = useRef<HTMLDivElement | null>(null);
   const dimensionVariantSensors = useSensors(
@@ -4806,26 +4802,10 @@ export default function AdminItemEditorPage({
 
   const expandedDimensionVariant =
     draft.variants.find((variant) => variant.id === expandedDimensionVariantId) ?? null;
-  // The selected cell contains a 320px-wide field plus 8px horizontal padding
-  // on each side. Keep the highlighted column fitted to that content.
-  const expandedDimensionVariantTrackWidth = 336;
+  const dimensionMatrixLayout = getVariantMatrixLayout(
+    draft.variants.length, draft.variants.findIndex((variant) => variant.id === expandedDimensionVariant?.id)
+  );
   const dimensionVariantLayoutCompactCount = Math.max(0, draft.variants.length - 1);
-  const compactDimensionVariantWidth = dimensionVariantLayoutCompactCount <= 2
-    ? 220
-    : dimensionVariantLayoutCompactCount <= 4
-      ? 140
-      : dimensionVariantLayoutCompactCount <= 6
-        ? 100
-        : dimensionVariantLayoutCompactCount <= 8
-          ? 82
-          : dimensionVariantLayoutCompactCount <= 12
-            ? 58
-            : dimensionVariantLayoutCompactCount <= 15
-              ? 44
-              : dimensionVariantLayoutCompactCount <= 19
-                ? 34
-                : 40;
-  const usesDenseDimensionVariantLayout = dimensionVariantLayoutCompactCount >= 12;
   const usesSteepDimensionVariantHeaders = dimensionVariantLayoutCompactCount > 15;
   const dimensionVariantHeaderHeight = usesSteepDimensionVariantHeaders ? 138 : 118;
   const dimensionVariantNormalBandHeight = 36;
@@ -4834,55 +4814,6 @@ export default function AdminItemEditorPage({
   const dimensionVariantHeaderAngle = 45;
   const dimensionVariantHeaderTitleOpticalOffset = 6;
   const dimensionVariantHeaderSlant = dimensionVariantDiagonalHeight;
-  const dimensionVariantBaseTrackWidths = draft.variants.map((variant) =>
-    variant.id !== expandedDimensionVariant?.id
-    && collapseInactiveDimensionVariants
-    && !variant.active
-      ? Math.min(26, compactDimensionVariantWidth)
-      : compactDimensionVariantWidth
-  );
-  const dimensionMatrixBaseWidth =
-    205 + dimensionVariantBaseTrackWidths.reduce((total, width) => total + width, 0);
-  const getDimensionVariantTrack = (variant: Variant, variantIndex: number) => {
-    const isExpanded = variant.id === expandedDimensionVariant?.id;
-    const baseTrackWidth = dimensionVariantBaseTrackWidths[variantIndex] ?? compactDimensionVariantWidth;
-    if (isExpanded) return `${expandedDimensionVariantTrackWidth}px`;
-    if (!usesDenseDimensionVariantLayout) return `${baseTrackWidth}px`;
-    const isCompressedInactive =
-      collapseInactiveDimensionVariants && !variant.active;
-    const minimumWidth = isCompressedInactive
-      ? Math.min(26, compactDimensionVariantWidth)
-      : compactDimensionVariantWidth;
-    const flexibleWidth = isCompressedInactive ? 0 : 1;
-    return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
-  };
-  const dimensionMatrixOccupiedWidth =
-    dimensionMatrixBaseWidth
-    + (expandedDimensionVariant
-      ? expandedDimensionVariantTrackWidth - compactDimensionVariantWidth
-      : 0);
-  const dimensionMatrixRemainderTrack =
-    usesDenseDimensionVariantLayout
-      ? '0px'
-      : `calc(100% - ${dimensionMatrixOccupiedWidth}px)`;
-  const dimensionMatrixGridTemplateColumns = [
-    '205px',
-    ...draft.variants.map(getDimensionVariantTrack),
-    dimensionMatrixRemainderTrack
-  ].join(' ');
-  const dimensionMatrixMinWidth =
-    205
-    + draft.variants.reduce((total, variant) => {
-      if (variant.id === expandedDimensionVariant?.id) {
-        return total + expandedDimensionVariantTrackWidth;
-      }
-      return total + (
-        collapseInactiveDimensionVariants && !variant.active
-          ? Math.min(26, compactDimensionVariantWidth)
-          : compactDimensionVariantWidth
-      );
-    }, 0);
-  const firstSelectedDimensionVariant = draft.variants.find((variant) => variantSelections.has(variant.id)) ?? null;
   const draggedDimensionVariant =
     draft.variants.find((variant) => variant.id === draggedDimensionVariantId) ?? null;
   const dimensionVariantTaxRate = Math.min(
@@ -4918,7 +4849,7 @@ export default function AdminItemEditorPage({
 
   const handleDimensionVariantDragStart = (event: DragStartEvent) => {
     commitPendingTextUndoSession();
-    setHoveredDimensionVariantId(null);
+    dimensionMatrixHover.clearHover();
     setDraggedDimensionVariantId(String(event.active.id));
   };
 
@@ -5285,9 +5216,9 @@ export default function AdminItemEditorPage({
 
   const renderCompactDimensionVariantCell = (
     variant: Variant,
-    rowKey: DimensionVariantMatrixRowKey
+    rowKey: DimensionVariantMatrixRowKey,
+    variantIndex: number
   ): ReactNode => {
-    const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
     const variantName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
     if (rowKey === 'default') {
       return (
@@ -5350,7 +5281,7 @@ export default function AdminItemEditorPage({
     }
 
     setExpandedDimensionVariantId(variantId);
-    setHoveredDimensionVariantId(null);
+    dimensionMatrixHover.clearHover();
   };
 
   const basicProductFields: Array<{
@@ -6310,7 +6241,7 @@ export default function AdminItemEditorPage({
                 Različice
                 <span className="ml-1.5 font-normal text-slate-500">({draft.variants.length})</span>
               </h3>
-              {dimensionVariantViewMode === 'rows' && draft.variants.length > 1 ? (
+              {draft.variants.length > 1 ? (
                 <p className="text-[10px] font-medium text-slate-500">
                   Povlecite ročico za vrstni red. Razširjena različica je vir za ikono »Uporabi za vse« ob polju.
                 </p>
@@ -6318,64 +6249,6 @@ export default function AdminItemEditorPage({
             </div>
             <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
               {variantOptionsToolbar}
-              <SegmentedControl
-                size="sm"
-                value={dimensionVariantViewMode}
-                onChange={(value) => setDimensionVariantViewMode(value as DimensionVariantViewMode)}
-                options={[
-                  {
-                    value: 'columns',
-                    label: 'Polja v stolpcih',
-                    activeClassName: '!rounded-[4px] !bg-[color:var(--blue-600)] !text-white',
-                    idleClassName: '!rounded-[4px]'
-                  },
-                  {
-                    value: 'rows',
-                    label: 'Polja v vrsticah',
-                    activeClassName: '!rounded-[4px] !bg-[color:var(--blue-600)] !text-white',
-                    idleClassName: '!rounded-[4px]'
-                  }
-                ]}
-                className="!h-[30px] !gap-0 !rounded-md !border !border-slate-300 !bg-white !p-0 [&>button]:!h-full [&>button]:!px-4 [&>button]:!text-[10px]"
-              />
-              {dimensionVariantViewMode === 'rows' ? (
-                <>
-                  <div className="inline-flex items-center gap-2 text-[10px] font-medium text-slate-600">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={collapseInactiveDimensionVariants}
-                      aria-label="Skrči neaktivne različice"
-                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition ${
-                        collapseInactiveDimensionVariants
-                          ? 'border-[color:var(--blue-600)] bg-[color:var(--blue-600)]'
-                          : 'border-slate-300 bg-slate-200'
-                      }`}
-                      onClick={() => setCollapseInactiveDimensionVariants((current) => !current)}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                          collapseInactiveDimensionVariants ? 'translate-x-[17px]' : 'translate-x-0.5'
-                        }`}
-                      />
-                    </button>
-                    Skrči neaktivne
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-[30px] items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-[color:var(--blue-700)] transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-                    disabled={!firstSelectedDimensionVariant}
-                    onClick={() => {
-                      if (firstSelectedDimensionVariant) setExpandedDimensionVariantId(firstSelectedDimensionVariant.id);
-                    }}
-                  >
-                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-                      <path d="M6 2H2v4M10 14h4v-4M2.5 5.5 6 2M13.5 10.5 10 14" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Razširi izbrano
-                  </button>
-                </>
-              ) : null}
             </div>
           </div>
           <div className="grid min-w-0 gap-3 border-b border-slate-200 bg-white px-3 py-3 lg:grid-cols-[minmax(90px,0.7fr)_minmax(280px,520px)_minmax(300px,1fr)] lg:items-center">
@@ -6437,7 +6310,7 @@ export default function AdminItemEditorPage({
               </div>
               {generatorError ? <div className="mt-1 text-xs text-rose-600">{generatorError}</div> : null}
             </div>
-            </> : <p className="text-xs text-slate-500 lg:col-span-2">Vsaka vrstica predstavlja eno prodajno različico. Če artikel nima izbir, uporabite eno vrstico. Mere in masa za dostavo so ločene od izbirnih lastnosti.</p>}
+            </> : <p className="text-xs text-slate-500 lg:col-span-2">Vsak stolpec predstavlja eno prodajno različico. Če artikel nima izbir, uporabite eno različico. Mere in masa za dostavo so ločene od izbirnih lastnosti.</p>}
             <div className="flex items-center justify-end gap-2 justify-self-end">
               <IconButton
                 type="button"
@@ -6500,18 +6373,7 @@ export default function AdminItemEditorPage({
             ref={dimensionVariantScrollRef}
             className="overflow-x-auto overflow-y-visible overscroll-x-contain"
           >
-          {dimensionVariantViewMode === 'columns' ? (
-          <table className="w-full text-[10px] leading-4" aria-label="Različice artikla s polji v stolpcih">
-            <THead><tr>
-              <TH className="px-2 py-2"><AdminCheckbox aria-label="Izberi vse različice" checked={isTableEditable && allVariantsSelected} onChange={() => setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))} disabled={!isTableEditable} /></TH>
-              {variantMatrixRows.map((row) => <TH key={row.key} className="min-w-[100px] px-2 py-2 text-center" title={row.help}>{row.label}</TH>)}
-            </tr></THead>
-            <tbody>{draft.variants.map((variant) => <tr key={variant.id} className="border-t border-slate-100">
-              <td className="px-2 py-2"><AdminCheckbox aria-label={`Izberi ${variant.label || variant.sku || 'različico'}`} checked={variantSelections.has(variant.id)} disabled={!isTableEditable} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} /></td>
-              {variantMatrixRows.map((row) => <td key={row.key} className={`px-2 py-2 ${row.key === 'dimensions' || row.key === 'shippingDimensions' ? 'min-w-[272px]' : row.key === 'label' || row.key === 'sku' || row.key.startsWith('option:') ? 'min-w-[160px]' : 'min-w-[100px]'}`}>{renderExpandedDimensionVariantCell(variant, row.key)}</td>)}
-            </tr>)}</tbody>
-          </table>
-          ) : draft.variants.length === 0 ? (
+          {draft.variants.length === 0 ? (
             <div className="border-b border-slate-200 px-4 py-10 text-center">
               <p className="text-sm font-semibold text-slate-700">Ni različic za prikaz.</p>
               <p className="mt-1 text-[11px] text-slate-500">
@@ -6523,9 +6385,11 @@ export default function AdminItemEditorPage({
               role="table"
               aria-label="Različice artikla s polji v vrsticah"
               className="admin-variant-matrix-track-transition grid min-w-full bg-transparent"
+              onMouseOver={dimensionMatrixHover.onMouseOver}
+              onMouseLeave={dimensionMatrixHover.onMouseLeave}
               style={{
-                minWidth: `${Math.max(720, dimensionMatrixMinWidth)}px`,
-                gridTemplateColumns: dimensionMatrixGridTemplateColumns
+                minWidth: `${dimensionMatrixLayout.minWidth}px`,
+                gridTemplateColumns: dimensionMatrixLayout.gridTemplateColumns
               }}
             >
               <DndContext
@@ -6541,7 +6405,7 @@ export default function AdminItemEditorPage({
                 >
                   <div
                     role="row"
-                    className="admin-variant-matrix-row relative grid border-b border-slate-200 bg-slate-50/80"
+                    className="admin-variant-matrix-row admin-variant-matrix-header-row relative grid bg-slate-50/80"
                     style={{
                       height: `${dimensionVariantHeaderHeight}px`,
                       clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
@@ -6553,7 +6417,7 @@ export default function AdminItemEditorPage({
                     >
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 bg-slate-50"
+                        className="pointer-events-none absolute inset-y-0 left-0 right-px bg-slate-50"
                         style={{
                           clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
                         }}
@@ -6570,16 +6434,13 @@ export default function AdminItemEditorPage({
                         Različica
                       </span>
                     </div>
-                    {draft.variants.map((variant) => {
-                      const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
+                    {draft.variants.map((variant, variantIndex) => {
                       const variantDisplayName = buildSalesVariantHeaderLabel(variant, variantIndex);
                       const variantHoverName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
                       const isExpanded = expandedDimensionVariant?.id === variant.id;
-                      const isHovered = hoveredDimensionVariantId === variant.id;
-                      const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
+                      const isInactiveVariant = !variant.active;
                       const nextVariantIsExpanded =
                         draft.variants[variantIndex + 1]?.id === expandedDimensionVariant?.id;
-                      const expandedVariantHasLeftSlant = variantIndex > 0;
                       if (isExpanded) {
                         return (
                           <DimensionVariantSortableHeader
@@ -6595,51 +6456,13 @@ export default function AdminItemEditorPage({
                                   aria-hidden="true"
                                   className="pointer-events-none absolute bottom-0 h-full bg-sky-50/80"
                                   style={{
-                                    left: expandedVariantHasLeftSlant
-                                      ? `-${dimensionVariantHeaderSlant}px`
-                                      : 0,
-                                    width: expandedVariantHasLeftSlant
-                                      ? `calc(100% + ${dimensionVariantHeaderSlant}px)`
-                                      : '100%',
-                                    clipPath: expandedVariantHasLeftSlant
-                                      ? `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, ${dimensionVariantHeaderSlant}px 100%, ${dimensionVariantHeaderSlant}px ${dimensionVariantDiagonalHeight}px)`
-                                      : `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                                    left: `-${dimensionVariantHeaderSlant}px`,
+                                    width: `calc(100% + ${dimensionVariantHeaderSlant}px)`,
+                                    clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, ${dimensionVariantHeaderSlant}px 100%, ${dimensionVariantHeaderSlant}px ${dimensionVariantDiagonalHeight}px)`
                                   }}
                                 />
-                                {expandedVariantHasLeftSlant ? (
-                                  <span
-                                    aria-hidden="true"
-                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
-                                    style={{
-                                      height: `${dimensionVariantDiagonalHeight}px`,
-                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
-                                    }}
-                                  />
-                                ) : null}
-                                <span
-                                  aria-hidden="true"
-                                  className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-[color:var(--blue-500)]"
-                                  style={{
-                                    height: `${
-                                      expandedVariantHasLeftSlant
-                                        ? dimensionVariantNormalBandHeight
-                                        : dimensionVariantHeaderHeight
-                                    }px`
-                                  }}
-                                />
-                                <span
-                                  aria-hidden="true"
-                                  className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
-                                  style={{
-                                    height: `${dimensionVariantDiagonalHeight}px`,
-                                    transform: `skewX(${dimensionVariantHeaderAngle}deg)`
-                                  }}
-                                />
-                                <span
-                                  aria-hidden="true"
-                                  className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-[color:var(--blue-500)]"
-                                  style={{ height: `${dimensionVariantNormalBandHeight}px` }}
-                                />
+                                <VariantMatrixHeaderEdge side="left" highlighted diagonalHeight={dimensionVariantDiagonalHeight} height={dimensionVariantHeaderHeight} />
+                                <VariantMatrixHeaderEdge side="right" highlighted diagonalHeight={dimensionVariantDiagonalHeight} height={dimensionVariantHeaderHeight} />
                                 <div className="admin-dimension-variant-content-enter relative z-30 flex w-full min-w-0 items-center gap-1.5">
                                   {dragHandle}
                                   <span onClick={(event) => event.stopPropagation()}>
@@ -6682,25 +6505,15 @@ export default function AdminItemEditorPage({
                           label={variantHoverName}
                           disabled={!isTableEditable || draft.variants.length <= 1}
                           className={`relative min-w-0 overflow-visible transition-colors ${
-                            isHovered
-                              ? 'z-10'
-                              : isCompressedInactive
-                                ? 'opacity-70'
-                                : ''
+                            isInactiveVariant ? 'text-slate-500' : ''
                           }`}
-                          onMouseEnter={() => setHoveredDimensionVariantId(variant.id)}
-                          onMouseLeave={() => setHoveredDimensionVariantId((current) => current === variant.id ? null : current)}
                         >
                           {(dragHandle) => (
                             <>
                               <button
                                 type="button"
                                 className={`absolute bottom-0 block h-full overflow-hidden outline-none transition-colors focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--blue-500)] ${
-                                  isHovered
-                                    ? 'bg-sky-50'
-                                    : isCompressedInactive
-                                      ? 'bg-slate-100/80'
-                                      : 'bg-slate-50/80'
+                                  isInactiveVariant ? 'bg-slate-100/80' : 'bg-slate-50/80'
                                 }`}
                                 style={{
                                   left: `-${dimensionVariantHeaderSlant}px`,
@@ -6711,7 +6524,7 @@ export default function AdminItemEditorPage({
                                 title={variantHoverName}
                                 onClick={() => {
                                   setExpandedDimensionVariantId(variant.id);
-                                  setHoveredDimensionVariantId(null);
+                                  dimensionMatrixHover.clearHover();
                                 }}
                               >
                                 <span
@@ -6725,7 +6538,7 @@ export default function AdminItemEditorPage({
                                 >
                                   <span
                                     className={`block origin-center whitespace-nowrap text-[10.5px] font-semibold leading-none text-slate-800 ${
-                                      isCompressedInactive ? 'text-slate-500' : ''
+                                      isInactiveVariant ? 'text-slate-500' : ''
                                     }`}
                                     style={{ transform: `rotate(${dimensionVariantHeaderAngle}deg)` }}
                                   >
@@ -6733,40 +6546,8 @@ export default function AdminItemEditorPage({
                                   </span>
                                 </span>
                               </button>
-                              {variantIndex === 0 ? (
-                                <>
-                                  <span
-                                    aria-hidden="true"
-                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-slate-300"
-                                    style={{
-                                      height: `${dimensionVariantDiagonalHeight}px`,
-                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
-                                    }}
-                                  />
-                                  <span
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-slate-300"
-                                    style={{ height: `${dimensionVariantNormalBandHeight}px` }}
-                                  />
-                                </>
-                              ) : null}
-                              {!nextVariantIsExpanded ? (
-                                <>
-                                  <span
-                                    aria-hidden="true"
-                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-slate-300"
-                                    style={{
-                                      height: `${dimensionVariantDiagonalHeight}px`,
-                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
-                                    }}
-                                  />
-                                  <span
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-slate-300"
-                                    style={{ height: `${dimensionVariantNormalBandHeight}px` }}
-                                  />
-                                </>
-                              ) : null}
+                              {variantIndex === 0 ? <VariantMatrixHeaderEdge side="left" diagonalHeight={dimensionVariantDiagonalHeight} height={dimensionVariantHeaderHeight} /> : null}
+                              {!nextVariantIsExpanded ? <VariantMatrixHeaderEdge side="right" diagonalHeight={dimensionVariantDiagonalHeight} height={dimensionVariantHeaderHeight} /> : null}
                               <span
                                 className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5"
                                 onClick={(event) => event.stopPropagation()}
@@ -6821,11 +6602,11 @@ export default function AdminItemEditorPage({
                   <div
                     key={row.key}
                     role="row"
-                    className={`admin-variant-matrix-row grid min-h-[38px] border-b border-slate-200 ${alternatingClassName}`}
+                    className={`admin-variant-matrix-row admin-variant-matrix-body-row grid min-h-[38px] ${alternatingClassName}`}
                   >
                     <div
                       role="rowheader"
-                      className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r border-slate-200 px-3 text-[11px] font-normal text-slate-700 ${alternatingClassName}`}
+                      className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r px-3 text-[11px] font-normal text-slate-700 ${draft.variants[0]?.id === expandedDimensionVariant?.id ? 'border-[color:var(--blue-500)]' : 'border-slate-200'} ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
                     >
                       <span className="truncate">{row.label}</span>
                       <span
@@ -6885,18 +6666,16 @@ export default function AdminItemEditorPage({
                         </span>
                       ) : null}
                     </div>
-                    {draft.variants.map((variant) => {
-                      const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
-                      const variantName = buildSalesVariantHeaderLabel(variant, variantIndex, true);
+                    {draft.variants.map((variant, variantIndex) => {
                       const isExpanded = expandedDimensionVariant?.id === variant.id;
-                      const isHovered = hoveredDimensionVariantId === variant.id;
-                      const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
+                      const isInactiveVariant = !variant.active;
                       if (isExpanded) {
                         return (
                           <div
                             key={`${row.key}-${variant.id}`}
                             role="cell"
-                            className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-x border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
+                            data-variant-matrix-column={variant.id}
+                            className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-r border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
                               row.key === 'default' ? 'justify-center' : ''
                             }`}
                           >
@@ -6914,18 +6693,15 @@ export default function AdminItemEditorPage({
                         <div
                           key={`${row.key}-${variant.id}`}
                           role="cell"
-                          className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r border-slate-200 px-0.5 py-1 ${
-                            isHovered
-                              ? 'z-10 border-x border-[color:var(--blue-500)] bg-sky-50'
-                              : isCompressedInactive
-                                ? 'bg-slate-100/70 opacity-[0.65]'
-                                : ''
+                          data-variant-matrix-column={variant.id}
+                          className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r px-0.5 py-1 ${
+                            draft.variants[variantIndex + 1]?.id === expandedDimensionVariant?.id ? 'border-[color:var(--blue-500)]' : 'border-slate-200'
+                          } ${
+                            isInactiveVariant ? 'bg-slate-100/70' : ''
                           }`}
                           onClick={(event) => activateCollapsedDimensionVariant(event, variant.id)}
-                          onMouseEnter={() => setHoveredDimensionVariantId(variant.id)}
-                          onMouseLeave={() => setHoveredDimensionVariantId((current) => current === variant.id ? null : current)}
                         >
-                          {renderCompactDimensionVariantCell(variant, row.key)}
+                          {renderCompactDimensionVariantCell(variant, row.key, variantIndex)}
                         </div>
                       );
                     })}
@@ -6935,7 +6711,7 @@ export default function AdminItemEditorPage({
             </div>
           )}
           </div>
-          {dimensionVariantViewMode === 'rows' && draft.variants.length > 0 ? (
+          {draft.variants.length > 0 ? (
             <>
               <span
                 aria-hidden="true"

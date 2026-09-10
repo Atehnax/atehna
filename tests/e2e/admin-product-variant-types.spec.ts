@@ -53,8 +53,14 @@ async function openEditor(page: Page, slug: string) {
   await page.goto(`/admin/artikli/${slug}`);
   await page.getByRole('tab', { name: 'Prodaja', exact: true }).click();
   await page.getByRole('button', { name: 'Uredi artikel', exact: true }).first().click();
-  const columns = page.getByRole('button', { name: 'Polja v stolpcih', exact: true });
-  if (await columns.count()) await columns.click();
+  await expandVariant(page, 'Ekspres 500 g');
+}
+async function expandVariant(page: Page, label: string) {
+  const field = page.getByLabel(`Izvedba za ${label}`, { exact: true });
+  if (!await field.isVisible()) {
+    await page.getByRole('button', { name: `Razširi različico ${label}`, exact: true }).click();
+  }
+  await expect(field).toBeVisible();
 }
 async function saveEditor(page: Page) {
   await page.getByRole('button', { name: 'Shrani', exact: true }).click();
@@ -91,6 +97,7 @@ test('standard products edit attributes in variant rows and keep same-mass formu
   await page.getByLabel('Nova lastnost različic', { exact:true }).fill('Pakiranje');
   await page.getByRole('button', { name:'Dodaj lastnost', exact:true }).click();
   for (const label of ['Ekspres 500 g', 'Special 500 g']) {
+    await expandVariant(page, label);
     await page.getByLabel(`Pakiranje za ${label}`, { exact:true }).fill('Plastenka');
     await page.getByLabel(`Pakiranje za ${label}`, { exact:true }).press('Tab');
   }
@@ -106,7 +113,7 @@ test('standard products edit attributes in variant rows and keep same-mass formu
   expect(after.variants.map(v=>v.optionValueIds)).not.toEqual([after.variants[0].optionValueIds,after.variants[0].optionValueIds]);
   await page.reload();
   await page.getByRole('tab', { name:'Prodaja',exact:true }).click();
-  await page.getByRole('button', { name:'Polja v stolpcih',exact:true }).click();
+  await expandVariant(page, 'Ekspres 500 g');
   await expect(page.getByLabel('Izvedba za Ekspres 500 g', {exact:true})).toHaveValue('Ekspres Plus');
 });
 

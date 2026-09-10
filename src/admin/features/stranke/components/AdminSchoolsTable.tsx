@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SupplierCatalogOption } from '@/shared/domain/supplierDirectory';
 import { CustomSelect } from '@/shared/ui/select';
+import { formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import type {
   SchoolDirectoryColumn,
   SchoolDirectoryData,
@@ -455,6 +456,9 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
       return compareCanonicalRowOrder(left, right);
     });
   }, [filteredRows, rows, sortState, cellDisplayValue]);
+  const filteredCountLabel = formatSlCount(filteredRows.length, isSupplierDirectory
+    ? { one: 'dobavitelj', two: 'dobavitelja', few: 'dobavitelji', other: 'dobaviteljev' }
+    : { one: 'šola', two: 'šoli', few: 'šole', other: 'šol' });
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
     storageKey: isSupplierDirectory ? 'admin-suppliers-page-size-v1' : 'admin-schools-page-size-v3',
@@ -915,8 +919,8 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
               {pendingMutations > 0
                 ? 'Shranjevanje ...'
                 : hasSelectedRows
-                  ? `${selectedRows.length} ${selectedRows.length === 1 ? 'izbrana' : 'izbranih'} / ${filteredRows.length} vrstic`
-                  : `${filteredRows.length} vrstic`}
+                  ? `Izbrano: ${formatSlInteger(selectedRows.length)} / ${filteredCountLabel}`
+                  : filteredCountLabel}
             </span>
             <div ref={exportMenuRootRef} className="relative">
               <IconButton

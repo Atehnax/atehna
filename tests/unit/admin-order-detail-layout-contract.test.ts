@@ -595,7 +595,7 @@ test('Postavke separates current and deferred delivery with atomic status coordi
   assert.match(itemsEditor, /data-testid="admin-order-items-current-group"/u);
   assert.match(itemsEditor, /data-testid="admin-order-items-later-group"/u);
   assert.match(itemsEditor, />V tej pošiljki</u);
-  assert.match(itemsEditor, />Pošljemo pozneje</u);
+  assert.match(itemsEditor, />Pošljemo kasneje</u);
   assert.match(itemsEditor, /V trenutni pošiljki ni postavk\./u);
   assert.match(itemsEditor, /Izberite postavke zgoraj in jih premaknite v poznejšo dobavo\./u);
   assert.match(itemsEditor, /onChange=\{\(\) => toggleDraftSection\(false\)\}/u);
@@ -652,10 +652,10 @@ test('Postavke separates current and deferred delivery with atomic status coordi
 
   assert.match(detail, /option\.value === 'partially_sent' && !canSelectPartiallySent/u);
   assert.match(detail, /deliveryPlanSnapshot\.currentItemCount > 0 && deliveryPlanSnapshot\.laterItemCount > 0/u);
-  assert.match(detail, /Najprej premaknite vsaj eno postavko v razdelek »Pošljemo pozneje«\./u);
+  assert.match(detail, /Najprej premaknite vsaj eno postavko v razdelek »Pošljemo kasneje«\./u);
   assert.match(detail, /V razdelku »V tej pošiljki« mora ostati vsaj ena postavka\./u);
   assert.match(detail, /option\.value === 'sent' \|\| option\.value === 'finished'/u);
-  assert.match(detail, /Najprej premaknite vse postavke iz razdelka »Pošljemo pozneje«/u);
+  assert.match(detail, /Najprej premaknite vse postavke iz razdelka »Pošljemo kasneje«/u);
   assert.match(detail, /const deliveryPlanEditingLockedReason = order\.is_historical[\s\S]*?: order\.deleted_at/u);
   assert.match(detail, /Zgodovinski vnos ne spreminja trenutnega razporeda dobave\./u);
   assert.match(detail, /Razporeda dobave izbrisanega naročila ni mogoče spreminjati\./u);

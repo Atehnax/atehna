@@ -2725,7 +2725,7 @@ textarea[readonly] {
 }
 
 .admin-variant-matrix-track-transition {
-  transition-property: grid-template-columns, min-width;
+  transition-property: grid-template-columns;
   transition-duration: 260ms;
   transition-timing-function: ease-in-out;
 }
@@ -2735,14 +2735,27 @@ textarea[readonly] {
   grid-template-columns: subgrid;
 }
 
+.admin-variant-matrix-header-row,
+.admin-variant-matrix-header-row > [role="columnheader"],
+.admin-variant-matrix-body-row,
+.admin-variant-matrix-body-row > [role="cell"],
+.admin-variant-matrix-body-row > [role="rowheader"] {
+  box-shadow: inset 0 -1px var(--border);
+}
+
+.admin-variant-matrix-track-transition [data-matrix-hovered="true"][role="cell"],
+.admin-variant-matrix-track-transition [data-matrix-hovered="true"][role="columnheader"] > button {
+  background-color: var(--color-sky-50, #f0f9ff);
+}
+
+.admin-variant-matrix-track-transition [data-matrix-hovered="true"][role="columnheader"]:not([data-matrix-dragging]):not([data-matrix-over]) {
+  z-index: 20;
+}
+
 .admin-variant-matrix-cell-transition {
   transition-property: background-color, border-color, opacity;
   transition-duration: 260ms;
   transition-timing-function: ease-in-out;
-}
-
-.admin-variant-matrix-diagonal-border {
-  width: 1.4142135624px;
 }
 
 .admin-dimension-variant-content-enter {

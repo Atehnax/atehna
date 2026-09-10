@@ -31,7 +31,6 @@ import {
 import { CSS as DndCss } from '@dnd-kit/utilities';
 import { Button } from '@/shared/ui/button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionUndoIcon, ApplyToAllIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, ProductSymbolIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
@@ -81,6 +80,7 @@ import {
   type MediaUploadPromiseCache
 } from '@/shared/domain/media/publicMediaUpload';
 import { formatEuroAmount } from '@/shared/domain/formatting';
+import { buildCatalogBaseSku, buildCatalogDimensionSkuSuffix } from '@/shared/domain/catalog/catalogSku';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
@@ -126,10 +126,10 @@ import {
   useCatalogItemIdentityAvailability
 } from '@/admin/features/artikli/components/useCatalogItemIdentityAvailability';
 import {
-  NOTE_TAG_OPTIONS,
+  useArticleNoteTags,
+  getNoteTagColor,
   NoteTagChip,
   getNoteTagLabel,
-  getNoteTagMenuItemClassName,
   normalizeNoteTagValue,
   type NoteTag
 } from '@/admin/features/artikli/components/NoteTagChip';
@@ -457,7 +457,6 @@ const UNDO_HISTORY_LIMIT = 10;
 const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const ITEM_NOTE_OPTIONS = NOTE_TAG_OPTIONS;
 
 const normalizeVariantTag = normalizeNoteTagValue;
 
@@ -755,14 +754,6 @@ function computeGrossPrice(netPrice: number, taxRate: number) {
   const netCents = Math.round(netPrice * 100);
   const taxCents = Math.round(netCents * Math.min(1, Math.max(0, taxRate)));
   return (netCents + taxCents) / 100;
-}
-
-function getVariantTagSummaryDotClassName(tag: VariantTag) {
-  if (tag === 'akcija') return 'bg-rose-500';
-  if (tag === 'novo') return 'bg-sky-500';
-  if (tag === 'zadnji-kosi') return 'bg-violet-500';
-  if (tag === 'ni-na-zalogi') return 'bg-slate-400';
-  return 'bg-emerald-500';
 }
 
 type SortableKeyboardMetadata = {
@@ -1307,10 +1298,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     videoUrl: ''
   };
 
-  const itemLevelNote = (() => {
-    const raw = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
-    return ITEM_NOTE_OPTIONS.some((entry) => entry.value === raw) ? raw : '';
-  })();
+  const itemLevelNote = normalizeVariantTag(initialData?.badge ?? initialData?.adminNotes);
 
   const documents = initialData?.media
     .filter((media) => media.mediaKind === 'document' && media.role === 'technical_sheet')
@@ -1329,7 +1317,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
   initialData?.variants.forEach((variant) => {
     const key = String(variant.id ?? '');
     const rawBadge = normalizeVariantTag(variant.badge) as VariantTag;
-    if (key && ITEM_NOTE_OPTIONS.some((entry) => entry.value === rawBadge)) variantTags[key] = rawBadge;
+    if (key && rawBadge) variantTags[key] = rawBadge;
   });
 
   const typeSpecificData = createInitialTypeSpecificData(initialData?.typeSpecificData, {
@@ -2232,47 +2220,6 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
 }
 
-function NeutralDropdownChip<Value extends string>({
-  value,
-  editable,
-  options,
-  onChange,
-  chipClassName,
-  placeholderLabel,
-  optionClassName,
-  menuPlacement = 'bottom'
-}: {
-  value: Value | '';
-  editable: boolean;
-  options: ReadonlyArray<{ value: Value; label: string }>;
-  onChange: (next: Value) => void;
-  chipClassName?: string;
-  placeholderLabel?: string;
-  optionClassName?: (value: Value) => string;
-  menuPlacement?: 'top' | 'bottom';
-}) {
-  const selectedOption = options.find((option) => option.value === value) ?? null;
-  const displayedLabel = selectedOption?.label ?? placeholderLabel ?? '';
-  const menuOptions = options.map((option): EditableChipMenuOption<Value> => ({
-    value: option.value,
-    label: option.label,
-    className: optionClassName?.(option.value)
-  }));
-
-  return (
-    <EditableChipMenu
-      label={displayedLabel}
-      variant="neutral"
-      editable={editable}
-      options={menuOptions}
-      onChange={onChange}
-      chipClassName={chipClassName}
-      menuPlacement={menuPlacement}
-      minMenuWidth={150}
-    />
-  );
-}
-
 export default function AdminItemEditorPage({
   articleId,
   mode,
@@ -2302,6 +2249,7 @@ export default function AdminItemEditorPage({
     optionAxes: cloneOptionAxes(initialPersistedState.draft.optionAxes),
     variants: initialPersistedState.draft.variants.map(cloneVariant)
   }));
+  const noteTags = useArticleNoteTags();
   const [productType, setProductType] = useState<ProductEditorType>(initialPersistedState.productType);
   const [typeSpecificData, setTypeSpecificData] = useState<UniversalProductSpecificData>(() => cloneTypeSpecificData(initialPersistedState.typeSpecificData));
   const [appearanceOverride, setAppearanceOverride] = useState<CatalogItemAppearanceOverride | null>(
@@ -3525,7 +3473,7 @@ export default function AdminItemEditorPage({
       let newVariantIndex = 0;
       const generated = generatedDimensions.map((dimensions) => {
         const dimensionSuffix = shouldUseThickness
-          ? [dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x')
+          ? buildCatalogDimensionSkuSuffix(dimensions)
           : [dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
         const generatedSku = baseSku
           ? `${normalizedBaseForVariants}-${dimensionSuffix}`
@@ -3578,7 +3526,7 @@ export default function AdminItemEditorPage({
     if (!baseSku) return;
     setDraft((current) => {
       if (current.variants.length === 0) return current;
-      if (current.variants.length === 1) {
+      if (current.variants.length === 1 && !buildCatalogDimensionSkuSuffix(current.variants[0])) {
         const variant = current.variants[0];
         if (variant.sku && variant.skuAutoGenerated === false) return current;
         if (variant.sku === baseSku) return current;
@@ -3592,7 +3540,7 @@ export default function AdminItemEditorPage({
       const variants = current.variants.map((variant) => {
         if (variant.skuAutoGenerated === false) return variant;
         if (variant.length === null || variant.thickness === null) return variant;
-        const dimensionSuffix = [variant.thickness, variant.length, variant.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
+        const dimensionSuffix = buildCatalogDimensionSkuSuffix(variant);
         const nextSku = `${normalizedBaseForVariants}-${dimensionSuffix}`;
         if (variant.sku === nextSku && variant.skuAutoGenerated) return variant;
         changed = true;
@@ -3852,16 +3800,6 @@ export default function AdminItemEditorPage({
 
   const updateDimensionVariantStock = (variant: Variant, stock: number) => {
     updateVariant(variant.id, { stock });
-    setVariantTags((current) => {
-      const currentTag = current[variant.id] ?? 'na-zalogi';
-      if (stock === 0 && currentTag === 'na-zalogi') {
-        return { ...current, [variant.id]: 'ni-na-zalogi' };
-      }
-      if (stock > 0 && currentTag === 'ni-na-zalogi') {
-        return { ...current, [variant.id]: 'na-zalogi' };
-      }
-      return current;
-    });
   };
 
   const updateDimensionVariantDeliveryDraft = (variantId: string, amount: string) => {
@@ -4027,7 +3965,7 @@ export default function AdminItemEditorPage({
   };
 
   const getVariantTag = (variant: Variant): VariantTag =>
-    variantTags[variant.id] ?? (variant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
+    variantTags[variant.id] ?? normalizeVariantTag(variant.badge);
 
   const applyDimensionVariantRowValueToAll = (
     rowKey: DimensionVariantBulkApplyRowKey
@@ -4111,7 +4049,6 @@ export default function AdminItemEditorPage({
     let nextVariants = variantsWithResolvedSource;
     let nextDefaultVariantId = draft.defaultVariantId;
     let sourceTag: VariantTag | null = null;
-    let stockTagVariantIds: string[] = [];
 
     if (rowKey === 'note') {
       sourceTag = getVariantTag(resolvedSourceVariant);
@@ -4133,25 +4070,6 @@ export default function AdminItemEditorPage({
           (variant) => variant.id === draft.defaultVariantId && variant.active
         );
         nextDefaultVariantId = configuredDefault?.id ?? resolvedSourceVariant.id;
-      } else if (rowKey === 'stock') {
-        const previousVariantById = new Map(
-          draft.variants.map((variant) => [variant.id, variant])
-        );
-        stockTagVariantIds = nextVariants
-          .filter((variant) => {
-            const previousVariant = previousVariantById.get(variant.id) ?? variant;
-            const currentTag = variantTags[variant.id]
-              ?? (previousVariant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
-            return (
-              (variant.stock === 0 && currentTag === 'na-zalogi')
-              || (variant.stock > 0 && currentTag === 'ni-na-zalogi')
-            );
-          })
-          .map((variant) => variant.id);
-        changedVariantIds = Array.from(new Set([
-          ...changedVariantIds,
-          ...stockTagVariantIds.filter((variantId) => variantId !== resolvedSourceVariant.id)
-        ]));
       }
     }
 
@@ -4168,7 +4086,7 @@ export default function AdminItemEditorPage({
           )
         );
       }
-      if (rowKey === 'note' && sourceTag && changedVariantIds.length > 0) {
+      if (rowKey === 'note' && sourceTag !== null && changedVariantIds.length > 0) {
         const changedVariantIdSet = new Set(changedVariantIds);
         setVariantTags((current) => {
           const next = { ...current };
@@ -4176,31 +4094,6 @@ export default function AdminItemEditorPage({
             if (changedVariantIdSet.has(variant.id)) next[variant.id] = sourceTag;
           });
           return next;
-        });
-      } else if (rowKey === 'stock') {
-        const previousVariantById = new Map(
-          draft.variants.map((variant) => [variant.id, variant])
-        );
-        const stockTagVariantIdSet = new Set(stockTagVariantIds);
-        setVariantTags((current) => {
-          let changed = false;
-          const next = { ...current };
-          nextVariants.forEach((variant) => {
-            if (!stockTagVariantIdSet.has(variant.id)) return;
-            const previousVariant = previousVariantById.get(variant.id) ?? variant;
-            const currentTag = current[variant.id]
-              ?? (previousVariant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
-            const nextTag = variant.stock === 0 && currentTag === 'na-zalogi'
-              ? 'ni-na-zalogi'
-              : variant.stock > 0 && currentTag === 'ni-na-zalogi'
-                ? 'na-zalogi'
-                : currentTag;
-            if (nextTag !== currentTag) {
-              next[variant.id] = nextTag;
-              changed = true;
-            }
-          });
-          return changed ? next : current;
         });
       }
     });
@@ -5248,7 +5141,8 @@ export default function AdminItemEditorPage({
       const tag = getVariantTag(variant);
       return (
         <span
-          className={`h-2.5 w-2.5 rounded-full ${getVariantTagSummaryDotClassName(tag)}`}
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: getNoteTagColor(tag, noteTags) }}
           title={getNoteTagLabel(tag)}
         >
           <span className="sr-only">{getNoteTagLabel(tag)}</span>
@@ -5365,25 +5259,12 @@ export default function AdminItemEditorPage({
                 editable={isEditable}
                 onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))}
               />
-              {itemLevelNote
-                ? (
-                  <NoteTagChip
-                    value={itemLevelNote}
-                    editable={isEditable}
-                    menuPlacement="bottom"
-                    onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
-                  />
-                )
-                : (
-                  <NeutralDropdownChip
-                    value=""
-                    editable={isEditable}
-                    placeholderLabel="Opombe"
-                    onChange={(value) => applySelectionChange(() => setItemLevelNote(value || 'na-zalogi'))}
-                    options={ITEM_NOTE_OPTIONS}
-                    optionClassName={getNoteTagMenuItemClassName}
-                  />
-                )}
+              <NoteTagChip
+                  value={itemLevelNote}
+                  editable={isEditable}
+                  menuPlacement="bottom"
+                  onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
+                />
             </div>
           </div>
           <div className="flex flex-nowrap items-center justify-end gap-3">
@@ -5498,25 +5379,12 @@ export default function AdminItemEditorPage({
                 </span>
               </h1>
               <div className="ml-auto flex items-center gap-1.5">
-                {itemLevelNote
-                  ? (
-                    <NoteTagChip
-                      value={itemLevelNote}
-                      editable={isEditable}
-                      menuPlacement="bottom"
-                      onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
-                    />
-                  )
-                  : (
-                    <NeutralDropdownChip
-                      value=""
-                      editable={isEditable}
-                      placeholderLabel="Opombe"
-                      onChange={(value) => applySelectionChange(() => setItemLevelNote(value || 'na-zalogi'))}
-                      options={ITEM_NOTE_OPTIONS}
-                      optionClassName={getNoteTagMenuItemClassName}
-                    />
-                  )}
+                <NoteTagChip
+                  value={itemLevelNote}
+                  editable={isEditable}
+                  menuPlacement="bottom"
+                  onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
+                />
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))} />
                 <IconButton type="button" tone="neutral" className={adminTableNeutralIconButtonClassName} onClick={handleEditModeToggle} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
                 <IconButton type="button" tone="neutral" className={adminTableNeutralIconButtonClassName} onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
@@ -5563,7 +5431,12 @@ export default function AdminItemEditorPage({
 
                   return (
                     <div key={field.title} className="min-h-10">
-                      <p className="text-sm font-semibold text-slate-900">{field.title}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{field.title}</p>
+                        {identityField === 'sku' && isEditable && selectedCategoryPath.length > 0 && draft.name.trim() ? (
+                          <button type="button" className="text-xs text-[color:var(--blue-600)] hover:underline" title={buildCatalogBaseSku(selectedCategoryPath, draft.name)} onClick={() => field.onChange(buildCatalogBaseSku(selectedCategoryPath, draft.name))}>Predlagaj po kategoriji</button>
+                        ) : null}
+                      </div>
                       <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'} ${hasConflict ? '!border-rose-400' : ''}`}>
                         <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
                         <input

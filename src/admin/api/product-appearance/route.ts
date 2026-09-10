@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { validateProductAppearanceConfigInput } from '@/shared/domain/style/productAppearance';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
 import {
-  getProductAppearanceConfig,
+  getAdminProductAppearanceConfig,
   revalidateProductAppearanceConfigCache,
   updateProductAppearanceConfig
 } from '@/shared/server/productAppearance';
@@ -12,7 +12,7 @@ import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({ config: await getProductAppearanceConfig() });
+  return NextResponse.json({ config: await getAdminProductAppearanceConfig() });
 }
 
 export async function PUT(request: Request) {

@@ -1,7 +1,9 @@
 import { getPool } from '@/shared/server/db';
 import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
-import { getAuditActor, getAuditRequestContext } from '@/shared/server/audit';
+import { getAuditActor, getAuditRequestContext, insertAuditEventForRequest } from '@/shared/server/audit';
+import type { AuditDiff } from '@/shared/audit/auditTypes';
+import { getCatalogActivationVariantIds, parseCatalogBulkActivationRequest, type CatalogBulkActivationRequest } from '@/shared/domain/catalog/catalogActivation';
 import { setPricingStockAuditContext } from '@/shared/server/pricingStockTransaction';
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
@@ -1921,31 +1923,38 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       coalesce(va.min_price, 0)::text as min_price,
       coalesce(va.max_price, 0)::text as max_price,
       coalesce(va.max_discount_pct, 0)::text as default_discount_pct,
-      (
-        select coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, ''))
-        from catalog_media cm
-        where cm.item_id = ci.id
-          and cm.media_kind = 'image'
-          and cm.role = 'gallery'
-          and coalesce(cm.hidden, false) = false
-          and coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, '')) is not null
-          and (
-            exists (
-              select 1
-              from catalog_variant_media active_assignment
-              join catalog_item_variants active_variant
-                on active_variant.id = active_assignment.variant_id
-              where active_assignment.media_id = cm.id
-                and active_variant.status = 'active'
+      coalesce(
+        (
+          select coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, ''))
+          from catalog_media cm
+          where cm.item_id = ci.id and cm.media_kind = 'image' and cm.role = 'gallery'
+            and coalesce(cm.hidden, false) = false
+            and coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, '')) is not null
+            and (
+              not exists (select 1 from catalog_variant_media assignment where assignment.media_id = cm.id)
+              or not exists (
+                select 1 from catalog_item_variants variant
+                where variant.item_id = ci.id and not exists (
+                  select 1 from catalog_variant_media assignment
+                  where assignment.media_id = cm.id and assignment.variant_id = variant.id
+                )
+              )
             )
-            or not exists (
-              select 1
-              from catalog_variant_media any_assignment
-              where any_assignment.media_id = cm.id
-            )
+          order by cm.position asc, cm.id asc limit 1
+        ),
+        (
+          select coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, ''))
+          from catalog_variant_media assignment
+          join catalog_media cm on cm.id = assignment.media_id and cm.item_id = ci.id
+          where assignment.variant_id = (
+            select variant.id from catalog_item_variants variant
+            where variant.item_id = ci.id order by variant.position asc, variant.id asc limit 1
           )
-        order by cm.position asc, cm.id asc
-        limit 1
+            and cm.media_kind = 'image' and cm.role = 'gallery'
+            and coalesce(cm.hidden, false) = false
+            and coalesce(nullif(cm.blob_url, ''), nullif(cm.external_url, '')) is not null
+          order by assignment.position asc, cm.position asc, cm.id asc limit 1
+        )
       ) as image_url,
       coalesce(va.variants, '[]'::json) as variants
     from catalog_items ci
@@ -2336,10 +2345,13 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     normalizeQuantityDiscountRule(entry as Record<string, unknown>, index)
   );
   const productType = requireCatalogEditorProductType(row.editor_product_type);
+  const skuAliasData = normalizeTypeSpecificData(row.type_specific_data);
+  const legacySkuAliases = Array.isArray(skuAliasData.legacySkuAliases) ? skuAliasData.legacySkuAliases.filter((value): value is string => typeof value === 'string') : [];
   const machineSerialOrderMatchSkus = productType === 'unique_machine'
     ? [
         asStringOrNull(row.sku),
-        ...variants.map((variant) => variant.variantSku)
+        ...variants.map((variant) => variant.variantSku),
+        ...legacySkuAliases
       ].filter((entry): entry is string => Boolean(entry?.trim()))
     : [];
   const machineSerialOrderMatches = machineSerialOrderMatchSkus.length > 0
@@ -2515,6 +2527,114 @@ export async function quickPatchCatalogItemByIdentifier(
   } finally {
     client.release();
   }
+}
+
+/** Activate selected parents and variant rows together; only publication status is changed. */
+export async function activateCatalogItems(
+  input: CatalogBulkActivationRequest,
+  options: { request?: Request } = {}
+): Promise<AdminCatalogListItem[]> {
+  const selection = parseCatalogBulkActivationRequest(input);
+  const pool = await getPool();
+  const client = await pool.connect();
+  let itemIds: number[] = [];
+  try {
+    await client.query('begin');
+    const identifiers = [...new Set([...selection.itemIdentifiers, ...selection.variants.map(target => target.itemIdentifier)])];
+    const idsByIdentifier = new Map<string, number>();
+    for (const identifier of identifiers) {
+      const id = await resolveItemIdByIdentifier(client, identifier);
+      if (!id) throw new CatalogItemValidationError('Izbrani artikel ne obstaja več. Osvežite seznam.');
+      idsByIdentifier.set(identifier, id);
+    }
+    itemIds = [...new Set(idsByIdentifier.values())].sort((left, right) => left - right);
+    // Use the same parent-first lock order as canonical editor saves and quick saves.
+    const itemsResult = await client.query(
+      `select id, slug, item_name, status, category_id from catalog_items
+       where id = any($1::bigint[]) order by id for update`, [itemIds]
+    );
+    if (itemsResult.rows.length !== itemIds.length || itemsResult.rows.some(item => item.status === 'deleted')) {
+      throw new CatalogItemValidationError('Izbrani artikel je bil odstranjen. Osvežite seznam.');
+    }
+    const variantsResult = await client.query(
+      `select id, item_id, position, variant_name, variant_sku, price, status,
+              shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+       from catalog_item_variants where item_id = any($1::bigint[]) order by item_id, position, id for update`, [itemIds]
+    );
+    const parentIds = new Set(selection.itemIdentifiers.map(identifier => idsByIdentifier.get(identifier)!));
+    const explicitIdsByItem = new Map<number, Set<number>>();
+    for (const target of selection.variants) {
+      const itemId = idsByIdentifier.get(target.itemIdentifier)!;
+      if (!variantsResult.rows.some(variant => asNumber(variant.id) === target.variantId && asNumber(variant.item_id) === itemId)) {
+        throw new CatalogItemValidationError('Izbrana različica ne pripada artiklu ali ne obstaja več. Osvežite seznam.');
+      }
+      const ids = explicitIdsByItem.get(itemId) ?? new Set<number>();
+      ids.add(target.variantId);
+      explicitIdsByItem.set(itemId, ids);
+    }
+    const plans = itemsResult.rows.map(item => {
+      const itemId = asNumber(item.id);
+      const variants = variantsResult.rows.filter(variant => asNumber(variant.item_id) === itemId);
+      const activateIds = new Set(explicitIdsByItem.get(itemId));
+      if (parentIds.has(itemId)) {
+        getCatalogActivationVariantIds(selection.mode, variants.map(variant => ({ id: asNumber(variant.id), position: asNumber(variant.position) })))
+          .forEach(id => activateIds.add(id));
+      }
+      return { item, itemId, variants, activateIds, nextStatus: parentIds.has(itemId) ? 'active' : item.status };
+    });
+    for (const plan of plans) {
+      if (plan.nextStatus !== 'active') continue;
+      await assertCatalogCategoryPathActive(client, asStringOrNull(plan.item.category_id));
+      assertCatalogItemPublicationReady(asStringOrNull(plan.item.category_id), normalizeCanonicalShippingMeasurements({}, 'Artikel'),
+        plan.variants.map(variant => ({
+          variantName: variant.variant_name, variantSku: variant.variant_sku,
+          price: asNumber(variant.price, Number.NaN),
+          status: plan.activateIds.has(asNumber(variant.id)) ? 'active' : variant.status,
+          shippingWeightGrams: asNullableNumber(variant.shipping_weight_grams),
+          shippingLengthMm: asNullableNumber(variant.shipping_length_mm),
+          shippingWidthMm: asNullableNumber(variant.shipping_width_mm),
+          shippingHeightMm: asNullableNumber(variant.shipping_height_mm)
+        }))
+      );
+    }
+    for (const plan of plans) {
+      const changedVariants = plan.variants.filter(variant => plan.activateIds.has(asNumber(variant.id)) && variant.status !== 'active');
+      if (changedVariants.length) {
+        await client.query("update catalog_item_variants set status = 'active' where item_id = $1 and id = any($2::bigint[])",
+          [plan.itemId, changedVariants.map(variant => asNumber(variant.id))]);
+      }
+      if (changedVariants.length || plan.item.status !== plan.nextStatus) {
+        await client.query('update catalog_items set status = $2, updated_at = now() where id = $1', [plan.itemId, plan.nextStatus]);
+      }
+      await ensureCatalogDefaultVariantIsUsable(client, plan.itemId);
+      if (plan.nextStatus === 'active') await assertPersistedCatalogOptionAssignmentsReady(client, plan.itemId);
+      if (options.request && (changedVariants.length || plan.item.status !== plan.nextStatus)) {
+        const diff: AuditDiff = {};
+        if (plan.item.status !== plan.nextStatus) diff.status = { label: 'Status', before: String(plan.item.status), after: String(plan.nextStatus) };
+        if (changedVariants.length) diff.variants = {
+          label: 'Različice', updated: changedVariants.map(variant => ({
+            id: String(variant.id), label: String(variant.variant_name),
+            changes: { status: { label: 'Status', before: String(variant.status), after: 'active' } }
+          }))
+        };
+        await insertAuditEventForRequest(options.request, {
+          entityType: 'item', entityId: String(plan.item.slug), entityLabel: String(plan.item.item_name),
+          action: 'status_changed', summary: 'Aktivacija artikla in različic', diff,
+          metadata: { activation_mode: selection.mode, activated_variant_ids: changedVariants.map(variant => asNumber(variant.id)) }
+        }, client);
+      }
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+  revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
+  const items = await fetchAdminCatalogListItems();
+  const requestedIds = new Set(itemIds);
+  return items.filter(item => requestedIds.has(item.id));
 }
 
 export async function quickPatchCatalogVariantByIdentifier(

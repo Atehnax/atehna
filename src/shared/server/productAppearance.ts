@@ -1,4 +1,5 @@
 import 'server-only';
+import { mergeExistingArticleNoteTags } from '@/shared/domain/catalog/articleNotes';
 import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
@@ -43,7 +44,7 @@ async function readProductAppearanceConfigFromDatabase(): Promise<ProductAppeara
 
 const getCachedProductAppearanceConfigFromDatabase = cacheDatabaseRead(
   readProductAppearanceConfigFromDatabase,
-  ['product-appearance-config-v11'],
+  ['product-appearance-config-v12'],
   { tags: [PRODUCT_APPEARANCE_CACHE_TAG] }
 );
 
@@ -88,6 +89,30 @@ export async function getProductAppearanceConfig(): Promise<ProductAppearanceCon
       console.error('Failed to load product appearance config', error);
     }
     return cloneDefaultProductAppearanceConfig();
+  }
+}
+
+/** Existing arbitrary note values are discovered only for authenticated admin surfaces. */
+export async function getAdminProductAppearanceConfig(): Promise<ProductAppearanceConfig> {
+  noStore();
+  const config = await getProductAppearanceConfig();
+  try {
+    const pool = await getPool();
+    const result = await pool.query<{ badge: string }>(
+      `select badge from (
+         select badge from catalog_items
+         union
+         select badge from catalog_item_variants
+       ) notes where badge is not null and btrim(badge) <> '' and length(badge) <= 100
+       order by badge limit 100`
+    );
+    return {
+      ...config,
+      articleNotes: { tags: mergeExistingArticleNoteTags(config.articleNotes.tags, result.rows.map((row) => row.badge)) }
+    };
+  } catch (error) {
+    if (!isDatabaseUnavailableError(error)) console.error('Failed to discover article note tags', error);
+    return config;
   }
 }
 

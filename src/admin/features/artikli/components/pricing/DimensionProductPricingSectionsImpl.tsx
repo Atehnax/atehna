@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS as DndCss } from '@dnd-kit/utilities';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
-import { NoteTagChip, normalizeNoteTagValue } from '@/admin/features/artikli/components/NoteTagChip';
+import { NoteTagChip, normalizeNoteTagValue, useArticleNoteTags, getNoteTagColor, getNoteTagLabel } from '@/admin/features/artikli/components/NoteTagChip';
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import type { BadgeVariant } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -1484,15 +1484,6 @@ function getWeightVariantCompactLabel(variant: WeightVariant) {
   ].filter(Boolean).join(' | ');
 }
 
-function getWeightNoteDotClassName(noteTag: string) {
-  const note = normalizeNoteTagValue(noteTag);
-  if (note === 'akcija') return 'bg-rose-500';
-  if (note === 'novo') return 'bg-sky-500';
-  if (note === 'zadnji-kosi') return 'bg-violet-500';
-  if (note === 'ni-na-zalogi' || note === '') return 'bg-slate-400';
-  return 'bg-emerald-500';
-}
-
 export function WeightProductModule({
   editable,
   data,
@@ -1506,6 +1497,7 @@ export function WeightProductModule({
   renderVariantOptions,
   onChange
 }: WeightProductModuleProps) {
+  const noteTags = useArticleNoteTags();
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
   const weightData = normalizeWeightProductData(data, { baseSku });
   const priceUnit = weightData.pricingBasis === 'kg' ? '€/kg' : '€/pak.';
@@ -2213,8 +2205,9 @@ export function WeightProductModule({
     if (rowKey === 'note') {
       return (
         <span
-          className={`h-2.5 w-2.5 rounded-full ${getWeightNoteDotClassName(variant.noteTag)}`}
-          title={normalizeNoteTagValue(variant.noteTag) || 'Brez opombe'}
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: getNoteTagColor(variant.noteTag, noteTags) }}
+          title={getNoteTagLabel(variant.noteTag, undefined, noteTags)}
         />
       );
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import MenuItem from '@/shared/ui/menu/menu-item';
 import MenuPanel from '@/shared/ui/menu/menu-panel';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
@@ -23,6 +23,7 @@ type EditableChipMenuProps<Value extends EditableChipMenuValue> = {
   options: ReadonlyArray<EditableChipMenuOption<Value>>;
   onChange: (next: Value) => void;
   chipClassName?: string;
+  chipStyle?: CSSProperties;
   chipEmphasisClassName?: string;
   menuPlacement?: 'top' | 'bottom';
   editScope?: string;
@@ -36,6 +37,7 @@ export default function EditableChipMenu<Value extends EditableChipMenuValue>({
   options,
   onChange,
   chipClassName,
+  chipStyle,
   chipEmphasisClassName,
   menuPlacement = 'bottom',
   editScope,
@@ -96,7 +98,7 @@ export default function EditableChipMenu<Value extends EditableChipMenuValue>({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">{'\u25be'}</span> : null}
         <span className="block">
-          <Chip size="adminStatusInfo" variant={variant} className={`${chipEmphasisClassName ?? ''} ${chipClassName ?? ''}`.trim()}>{label}</Chip>
+          <Chip size="adminStatusInfo" variant={variant} style={chipStyle} className={`${chipEmphasisClassName ?? ''} ${chipClassName ?? ''}`.trim()}>{label}</Chip>
         </span>
       </button>
 

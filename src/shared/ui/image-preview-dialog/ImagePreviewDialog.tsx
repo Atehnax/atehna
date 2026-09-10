@@ -10,6 +10,7 @@ export type ImagePreviewDialogProps = {
   src: string;
   alt: string;
   aspectRatio?: number;
+  unoptimized?: boolean;
   onClose: () => void;
 };
 
@@ -28,6 +29,7 @@ export default function ImagePreviewDialog({
   src,
   alt,
   aspectRatio,
+  unoptimized = false,
   onClose
 }: ImagePreviewDialogProps) {
   const [image, setImage] = useState<PreviewImage | null>(null);
@@ -156,6 +158,7 @@ export default function ImagePreviewDialog({
           src={image.src}
           alt={image.alt}
           fill
+          unoptimized={unoptimized}
           loading="eager"
           sizes="72vw"
           className="object-contain"

@@ -1,4 +1,5 @@
 import { expect, test as base, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { resolve } from 'node:path';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { assertAuthenticatedAdmin, E2E_BASE_URL } from './support/auth';
 
@@ -14,8 +15,9 @@ async function readItem(request: APIRequestContext, slug: string) {
   return response.json() as Promise<CatalogItemEditorHydration>;
 }
 
-const test = base.extend<{ imageItem: CatalogItemEditorHydration }>({
-  imageItem: async ({ request }, runFixture) => {
+const test = base.extend<{ imageItem: CatalogItemEditorHydration; externalImageUrl: string | null }>({
+  externalImageUrl: [null, { option: true }],
+  imageItem: async ({ request, externalImageUrl }, runFixture) => {
     await assertAuthenticatedAdmin(request);
     const seed = await readItem(request, 'aluminijasta-plosca');
     const suffix = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
@@ -25,7 +27,8 @@ const test = base.extend<{ imageItem: CatalogItemEditorHydration }>({
       itemType: 'unit', productType: 'simple', status: 'inactive', categoryPath: seed.categoryPath,
       unit: 'kos', taxRate: 0.22, optionAxes: [], quantityDiscounts: [],
       media: IMAGE_PATHS.map((blobUrl, index) => ({
-        mediaKind: 'image', role: 'gallery', sourceKind: 'upload', blobUrl,
+        mediaKind: 'image', role: 'gallery', sourceKind: 'upload',
+        ...(index === 0 && externalImageUrl ? { externalUrl: externalImageUrl } : { blobUrl }),
         filename: blobUrl.split('/').at(-1), mimeType: 'image/png', altText: IMAGE_ALTS[index],
         imageDimensions: { width: 1024, height: 1024 }, imageType: 'product', hidden: false, position: index
       })),
@@ -157,4 +160,49 @@ test('dragging gallery images reorders the draft without opening a preview or pe
   await page.keyboard.press('Escape');
   await expectClosedWithFocus(page, main);
   expect(await readItem(request, imageItem.slug)).toEqual(imageItem);
+});
+
+const SUPPLIER_IMAGE_URL = 'https://supplier-catalog.example/products/test-aluminium-sheet.png';
+
+test.describe('external supplier images', () => {
+  test.use({ externalImageUrl: SUPPLIER_IMAGE_URL });
+
+  test('thumbnail and shared preview load an unconfigured supplier URL directly without the Next image optimizer', async ({ page, request, imageItem }) => {
+    let directImageRequests = 0;
+    const optimizedImageRequests: string[] = [];
+    await page.route('https://supplier-catalog.example/**', async route => {
+      expect(route.request().url()).toBe(SUPPLIER_IMAGE_URL);
+      directImageRequests += 1;
+      await route.fulfill({
+        status: 200, contentType: 'image/png',
+        path: resolve('public', IMAGE_PATHS[0].slice(1)),
+        headers: { 'access-control-allow-origin': '*' }
+      });
+    });
+    page.on('request', outgoing => {
+      const url = new URL(outgoing.url());
+      if (url.pathname === '/_next/image' && url.searchParams.get('url') === SUPPLIER_IMAGE_URL) {
+        optimizedImageRequests.push(outgoing.url());
+      }
+    });
+    await page.goto('/admin/artikli/' + imageItem.slug);
+    expect(imageItem.media[0].externalUrl).toBe(SUPPLIER_IMAGE_URL);
+    const trigger = galleryImage(page, 0);
+    const thumbnail = trigger.locator('img');
+    await expect(thumbnail).toHaveAttribute('src', SUPPLIER_IMAGE_URL);
+    await expect.poll(() => thumbnail.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+
+    await trigger.click();
+    const dialog = lightbox(page);
+    await expect(dialog).toBeVisible();
+    const enlargedImage = dialog.locator('[data-storefront-gallery-lightbox-content] img');
+    await expect(enlargedImage).toHaveAttribute('src', SUPPLIER_IMAGE_URL);
+    await expect.poll(() => enlargedImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+    expect(directImageRequests).toBeGreaterThan(0);
+    expect(optimizedImageRequests).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expectClosedWithFocus(page, trigger);
+    await expect(page.getByRole('button', { name: 'Shrani', exact: true })).toBeDisabled();
+    expect(await readItem(request, imageItem.slug)).toEqual(imageItem);
+  });
 });

@@ -136,10 +136,10 @@ describe('related product appearance editor contracts', () => {
     expect(styles).toContain('flex-wrap: wrap;');
     expect(styles).toContain('align-items: center;');
     expect(styles).toContain(
-      'block-size: var(--product-related-image-height, 144px);'
+      'block-size: calc(var(--product-related-image-height, 144px) * 0.8);'
     );
     expect(styles).toMatch(
-      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1\.25em;/
+      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1em;/
     );
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-description\s*\{[\s\S]*?font-size:\s*1em;/
@@ -147,7 +147,9 @@ describe('related product appearance editor contracts', () => {
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-price-primary\s*\{[\s\S]*?font-size:\s*1\.375em;/
     );
-    expect(styles).toContain('justify-content: space-between;');
+    expect(styles).toMatch(
+      /\.storefront-related-product-purchase-row\s*\{[^}]*justify-content:\s*flex-end;/
+    );
     expect(styles).toContain('flex: 0 1 7rem;');
     expect(styles).toContain('max-inline-size: 100%;');
     expect(styles).toContain('justify-content: flex-end;');

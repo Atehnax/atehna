@@ -97,7 +97,7 @@ export default function PriceBreakdown({
   );
   const priceContent = (
     <>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="storefront-price-main-row flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <p
           aria-label={listingCard
             ? formatEuroRange(

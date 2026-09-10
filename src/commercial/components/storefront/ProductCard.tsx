@@ -235,23 +235,53 @@ export default function ProductCard({
             </p>
           )
         ) : null}
-        {wrapCanvasElement(
-          canvasId('card-title', 'product-related-card-title'),
-          'Naziv kartice',
-          <Link href={product.href} prefetch={false} className="block">
-            <h2
-              className="storefront-product-card-title font-semibold leading-snug text-[color:var(--site-color-text)] transition group-hover:text-[color:var(--site-color-primary)]"
-              style={{
-                display: '-webkit-box',
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: appearance.listings.titleLines,
-                overflow: 'hidden'
-              }}
-            >
-              {product.name}
-            </h2>
-          </Link>
-        )}
+        <div className="storefront-product-card-heading flex items-start justify-between gap-2">
+          {wrapCanvasElement(
+            canvasId('card-title', 'product-related-card-title'),
+            'Naziv kartice',
+            <Link href={product.href} prefetch={false} className="block min-w-0 flex-1">
+              <h2
+                className="storefront-product-card-title font-semibold leading-snug text-[color:var(--site-color-text)] transition group-hover:text-[color:var(--site-color-primary)]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: appearance.listings.titleLines,
+                  overflow: 'hidden'
+                }}
+              >
+                {product.name}
+              </h2>
+            </Link>,
+            'min-w-0 flex-1'
+          )}
+          <PriceBreakdown
+            unitNet={product.minUnitNet}
+            baseUnitNet={product.baseUnitNet}
+            maxUnitNet={
+              appearance.pricing.listingUsesPriceRange
+                ? product.maxUnitNet
+                : undefined
+            }
+            discountPct={
+              product.discountPct
+            }
+            taxRate={product.taxRate}
+            unit={product.unit}
+            compact
+            listingCard
+            className="storefront-product-card-price"
+            priceWrapper={
+              canvasActive
+                ? (children) =>
+                    wrapCanvasElement(
+                      canvasId('card-price', 'product-related-card-price'),
+                      'Cena kartice',
+                      children
+                    )
+                : undefined
+            }
+          />
+        </div>
 
         {(isRelated || appearance.listings.showShortDescription) &&
         product.shortDescription ? (
@@ -284,46 +314,6 @@ export default function ProductCard({
               : 'contents'
           }
         >
-        <div
-          className={
-            inlineRelatedPurchase
-              ? 'min-w-0'
-              : isRelated
-                ? 'mt-1'
-                : isCompactListing
-                  ? 'mt-2'
-                  : 'mt-4'
-          }
-        >
-          <PriceBreakdown
-            unitNet={product.minUnitNet}
-            baseUnitNet={product.baseUnitNet}
-            maxUnitNet={
-              appearance.pricing.listingUsesPriceRange
-                ? product.maxUnitNet
-                : undefined
-            }
-            discountPct={
-              product.discountPct
-            }
-            taxRate={product.taxRate}
-            unit={product.unit}
-            compact
-            listingCard
-            className="storefront-product-card-price"
-            priceWrapper={
-              canvasActive
-                ? (children) =>
-                    wrapCanvasElement(
-                      canvasId('card-price', 'product-related-card-price'),
-                      'Cena kartice',
-                      children
-                    )
-                : undefined
-            }
-          />
-        </div>
-
         {!isRelated && appearance.listings.showStock && !product.hasMultipleVariants ? (
           wrapCanvasElement(
             'card-stock',
@@ -430,7 +420,7 @@ export default function ProductCard({
                   href={product.href}
                   prefetch={false}
                   className={`site-button inline-flex w-full items-center justify-center ${
-                    isRelated || !productIsAvailable
+                    !productIsAvailable
                       ? 'site-button--secondary'
                       : ''
                   }`}

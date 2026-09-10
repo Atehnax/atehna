@@ -533,7 +533,7 @@ type ListingCardCommerceContract = {
   descriptionFontSize: number;
   descriptionLineHeight: number;
   descriptionHeight: number;
-  descriptionTitleGap: number;
+  descriptionHeadingGap: number;
   mediaAspectRatio: number;
   imageWidthRatio: number;
   imageHeightRatio: number;
@@ -613,11 +613,12 @@ async function expectVariantListingCardCommerceContract(
     'the card description preview should come from the catalog item description',
   ).toBe(makeExpectedListingDescription(sourceDescription));
 
-  const [titleBox, descriptionBox, priceBox, descriptionStyle, contentOrder] =
+  const [titleBox, descriptionBox, priceBox, headingBox, descriptionStyle, contentOrder] =
     await Promise.all([
       title.boundingBox(),
       description.boundingBox(),
       priceBlock.boundingBox(),
+      card.locator('.storefront-product-card-heading').boundingBox(),
       description.evaluate((element) => {
         const computed = getComputedStyle(element);
         const storefrontScale = Number.parseFloat(
@@ -645,10 +646,10 @@ async function expectVariantListingCardCommerceContract(
         );
         if (!titleElement || !descriptionElement || !priceElement) return false;
         return Boolean(
-          titleElement.compareDocumentPosition(descriptionElement)
+          titleElement.compareDocumentPosition(priceElement)
             & Node.DOCUMENT_POSITION_FOLLOWING,
         ) && Boolean(
-          descriptionElement.compareDocumentPosition(priceElement)
+          priceElement.compareDocumentPosition(descriptionElement)
             & Node.DOCUMENT_POSITION_FOLLOWING,
         );
       }),
@@ -656,7 +657,8 @@ async function expectVariantListingCardCommerceContract(
   expect(titleBox).not.toBeNull();
   expect(descriptionBox).not.toBeNull();
   expect(priceBox).not.toBeNull();
-  expect(contentOrder, 'description should sit between title and price in DOM order')
+  expect(headingBox).not.toBeNull();
+  expect(contentOrder, 'title and price should precede the description in DOM order')
     .toBeTruthy();
   expect(descriptionStyle.overflow, 'description overflow should stay clipped')
     .toBe('hidden');
@@ -677,16 +679,24 @@ async function expectVariantListingCardCommerceContract(
   expect(descriptionStyle.lineHeight, 'description line-height should stay compact')
     .toBeLessThanOrEqual(20);
 
-  const descriptionTitleGap = descriptionBox!.y
-    - (titleBox!.y + titleBox!.height);
-  expect(descriptionTitleGap, 'description should follow the title without overlap')
+  const descriptionHeadingGap = descriptionBox!.y
+    - (headingBox!.y + headingBox!.height);
+  expect(descriptionHeadingGap, 'description should follow the heading without overlap')
     .toBeGreaterThanOrEqual(-1);
-  expect(descriptionTitleGap, 'description should sit immediately below the title')
+  expect(descriptionHeadingGap, 'description should sit immediately below the heading')
     .toBeLessThanOrEqual(12);
   expect(
-    priceBox!.y,
-    'price content should remain below the compact description preview',
-  ).toBeGreaterThanOrEqual(descriptionBox!.y + descriptionBox!.height - 1);
+    Math.abs(priceBox!.y - titleBox!.y),
+    'price should align with the top of the title',
+  ).toBeLessThanOrEqual(1);
+  expect(
+    priceBox!.x,
+    'price should sit to the right of the title without overlap',
+  ).toBeGreaterThanOrEqual(titleBox!.x + titleBox!.width - 1);
+  expect(
+    Math.abs(priceBox!.x + priceBox!.width - headingBox!.x - headingBox!.width),
+    'price should align with the far right of the heading',
+  ).toBeLessThanOrEqual(1);
 
   const visibleCopy = (await card.textContent() ?? '').replace(/\s+/gu, ' ').trim();
   expect(
@@ -760,7 +770,7 @@ async function expectVariantListingCardCommerceContract(
     descriptionFontSize: descriptionStyle.fontSize,
     descriptionLineHeight: descriptionStyle.lineHeight,
     descriptionHeight: descriptionBox!.height,
-    descriptionTitleGap,
+    descriptionHeadingGap,
     mediaAspectRatio,
     imageWidthRatio,
     imageHeightRatio,
@@ -790,7 +800,7 @@ type MarketplaceCardContract = {
   priceFontRatio: number;
   actionWidthRatio: number;
   actionBottomGap: number;
-  titleBeforePrice: boolean;
+  titleAndPriceShareRow: boolean;
   priceBeforeAction: boolean;
 };
 
@@ -948,7 +958,8 @@ async function readMarketplaceCardContract(card: Locator): Promise<MarketplaceCa
     actionWidthRatio: actionControlBox!.width / contentInnerWidth,
     actionBottomGap: cardBox!.y + cardBox!.height
       - (actionControlBox!.y + actionControlBox!.height),
-    titleBeforePrice: titleBox!.y + titleBox!.height <= priceBox!.y + 1,
+    titleAndPriceShareRow: Math.abs(titleBox!.y - priceBox!.y) <= 1
+      && titleBox!.x + titleBox!.width <= priceBox!.x + 1,
     priceBeforeAction: priceBox!.y + priceBox!.height <= actionBox!.y + 1,
   };
 }
@@ -984,7 +995,7 @@ function expectAmazonInspiredListingCard(contract: MarketplaceCardContract) {
   expect(contract.mediaHeightRatio, 'media should remain the dominant upper card area')
     .toBeGreaterThanOrEqual(0.42);
 
-  expect(contract.titleBeforePrice, 'title should precede price visually')
+  expect(contract.titleAndPriceShareRow, 'title and price should share a row without overlap')
     .toBeTruthy();
   expect(contract.priceBeforeAction, 'price should precede the purchase action visually')
     .toBeTruthy();
@@ -1326,8 +1337,8 @@ test('variant listing card keeps price, square media, and CTA parity in the admi
     .toBeCloseTo(publicContract.descriptionLineHeight, 1);
   expect(adminContract.descriptionHeight)
     .toBeCloseTo(publicContract.descriptionHeight, 0);
-  expect(adminContract.descriptionTitleGap)
-    .toBeCloseTo(publicContract.descriptionTitleGap, 0);
+  expect(adminContract.descriptionHeadingGap)
+    .toBeCloseTo(publicContract.descriptionHeadingGap, 0);
   expect(
     adminContract.mediaAspectRatio,
     'public and admin listing cards should share the same square media geometry',

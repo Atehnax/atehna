@@ -147,7 +147,9 @@ describe('related product appearance editor contracts', () => {
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-price-primary\s*\{[\s\S]*?font-size:\s*1\.375em;/
     );
-    expect(styles).toContain('justify-content: space-between;');
+    expect(styles).toMatch(
+      /\.storefront-related-product-purchase-row\s*\{[^}]*justify-content:\s*flex-end;/
+    );
     expect(styles).toContain('flex: 0 1 7rem;');
     expect(styles).toContain('max-inline-size: 100%;');
     expect(styles).toContain('justify-content: flex-end;');

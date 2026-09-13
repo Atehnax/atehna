@@ -186,7 +186,7 @@ async function readShowcaseStructure(
 function expectSharedShowcaseStructure(
   actual: ShowcaseStructure,
   expected: ShowcaseStructure,
-  options: { compareHeight?: boolean; compareTypography?: boolean } = {}
+  options: { compareHeight?: boolean; compareTypography?: boolean; compareColumns?: boolean } = {}
 ) {
   if (options.compareHeight !== false) {
     expect(actual.tileHeight).toBeCloseTo(expected.tileHeight, 1);
@@ -197,9 +197,11 @@ function expectSharedShowcaseStructure(
   expect(actual.ordinalInsetX).toBeCloseTo(expected.ordinalInsetX, 1);
   expect(actual.ordinalInsetY).toBeCloseTo(expected.ordinalInsetY, 1);
   expect(actual.gap).toBeCloseTo(expected.gap, 1);
-  expect(actual.desktopColumns).toBe(expected.desktopColumns);
-  expect(actual.tabletColumns).toBe(expected.tabletColumns);
-  expect(actual.mobileColumns).toBe(expected.mobileColumns);
+  if (options.compareColumns !== false) {
+    expect(actual.desktopColumns).toBe(expected.desktopColumns);
+    expect(actual.tabletColumns).toBe(expected.tabletColumns);
+    expect(actual.mobileColumns).toBe(expected.mobileColumns);
+  }
   expect(actual.hasDirectionIndicator).toBe(expected.hasDirectionIndicator);
   if (options.compareTypography !== false) {
     expect(actual.titleFontSize).toBeCloseTo(expected.titleFontSize, 1);
@@ -624,8 +626,14 @@ test('nested category previews retain editor parity while public categories rend
     subcategory.slug
   );
   expectSharedShowcaseStructure(nestedAdminStructure, rootStructure);
+  const previewColumns = Number(await page.locator('#categories-preview-columns').inputValue());
+  expect(nestedAdminStructure.desktopColumns).toBe(String(Math.min(8, Math.max(3, previewColumns))));
+  expect(nestedAdminStructure.tabletColumns).toBe(String(Math.min(3, Math.max(2, previewColumns))));
+  expect(nestedAdminStructure.mobileColumns).toBe('1');
+  // The category editor owns its adjustable preview count; the homepage owns
+  // its separate responsive column settings. Their shared tile styling agrees.
   expectSharedShowcaseStructure(nestedAdminStructure, landingStructure, {
-    compareHeight: false, compareTypography: false
+    compareHeight: false, compareTypography: false, compareColumns: false
   });
 
   const nestedAdminVisuals = await readSharedCategoryVisuals(

@@ -254,20 +254,18 @@ function expectCompactGalleryControls(metrics: ControlMetric[]) {
     expect(hitColor.alpha, `${metric.kind} outer target should be transparent`)
       .toBe(0);
     const discColor = parseCssColor(metric.visualBackground);
-    expect(discColor.red).toBeLessThanOrEqual(30);
-    expect(discColor.green).toBeLessThanOrEqual(40);
-    expect(discColor.blue).toBeLessThanOrEqual(55);
-    expect(discColor.alpha, `${metric.kind} disc should be translucent`)
-      .toBeGreaterThanOrEqual(0.6);
-    expect(discColor.alpha, `${metric.kind} disc should be translucent`)
-      .toBeLessThanOrEqual(0.75);
+    expect(discColor.red).toBe(255);
+    expect(discColor.green).toBe(255);
+    expect(discColor.blue).toBe(255);
+    expect(discColor.alpha, `${metric.kind} light disc should preserve slight translucency`)
+      .toBeCloseTo(0.95, 2);
     const iconColor = parseCssColor(metric.iconColor);
-    expect(iconColor.red, `${metric.kind} icon should remain light`)
-      .toBeGreaterThanOrEqual(235);
-    expect(iconColor.green, `${metric.kind} icon should remain light`)
-      .toBeGreaterThanOrEqual(235);
-    expect(iconColor.blue, `${metric.kind} icon should remain light`)
-      .toBeGreaterThanOrEqual(235);
+    expect(iconColor.red, `${metric.kind} dark icon contrasts with the light disc`)
+      .toBeLessThanOrEqual(55);
+    expect(iconColor.green, `${metric.kind} dark icon contrasts with the light disc`)
+      .toBeLessThanOrEqual(55);
+    expect(iconColor.blue, `${metric.kind} dark icon contrasts with the light disc`)
+      .toBeLessThanOrEqual(65);
     expect(iconColor.alpha, `${metric.kind} icon should retain contrast`)
       .toBeGreaterThanOrEqual(0.9);
 
@@ -324,13 +322,17 @@ async function exerciseGalleryControls(
     name: 'Povečaj sliko',
     exact: true,
   });
-  const zoomIndicator = gallery.locator(
-    '[data-gallery-control="zoom-indicator"]',
-  );
+  const zoomIndicator = gallery.getByRole('button', {
+    name: 'Odpri predogled slike',
+    exact: true,
+  });
   await expect(previous).toBeVisible();
   await expect(next).toBeVisible();
   await expect(zoom).toBeVisible();
-  await expect(zoomIndicator).toHaveAttribute('aria-hidden', 'true');
+  await expect(zoomIndicator).toBeVisible();
+  await expect(zoomIndicator).toBeEnabled();
+  await expect(zoomIndicator).toHaveAttribute('type', 'button');
+  await expect(zoomIndicator).not.toHaveAttribute('aria-hidden', 'true');
 
   const zoomBox = await zoom.boundingBox();
   expect(zoomBox, 'zoom trigger should have rendered geometry').not.toBeNull();
@@ -422,21 +424,21 @@ async function exerciseGalleryControls(
   await expect(zoom).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 
-  await zoom.click();
-  await expect(dialog).toBeVisible();
+  await zoomIndicator.click();
+  await expect(dialog, 'the compact zoom button opens the same image preview').toBeVisible();
   await close.click();
   await expect(
     dialog,
     'the explicit close control should dismiss the lightbox',
   ).toBeHidden({ timeout: 2_000 });
-  await expect(zoom).toBeFocused();
+  await expect(zoomIndicator, 'focus returns to the compact zoom trigger').toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 
-  await zoom.click();
-  await expect(dialog).toBeVisible();
+  await zoomIndicator.press('Enter');
+  await expect(dialog, 'the compact zoom trigger also supports keyboard activation').toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden({ timeout: 2_000 });
-  await expect(zoom).toBeFocused();
+  await expect(zoomIndicator).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe(previousOverflow);
 }
 

@@ -5744,7 +5744,7 @@ export default function AdminItemEditorPage({
                                   />
                                 </button>
                                 <span className="min-w-0 whitespace-normal text-[10px] font-medium leading-tight text-slate-800">
-                                  {imageLabel}
+                                  <span>{imageLabel}</span>
                                   <span className={'mt-0.5 block text-[9px] font-normal ' + (slot.hidden ? 'text-amber-700' : 'text-slate-500')}>{slot.hidden ? 'Skrita na strani' : assignedVariants.length > 0 ? assignedVariants.some(({ variant }) => variant.active) ? 'Ob izbiri različice' : 'Neaktivne različice' : slot.imageType === 'dimension-diagram' ? 'Povežite različico' : 'Vse različice'}</span>
                                   {isMediaEditable ? (
                                     <button type="button" className="mt-0.5 text-[color:var(--blue-600)] hover:underline" onClick={() => setMediaImageSlots((current) => current.map((entry, index) => index === slotIndex ? { ...entry, hidden: !entry.hidden } : entry))} aria-label={(slot.hidden ? 'Prikaži ' : 'Skrij ') + imageLabel.toLocaleLowerCase('sl') + ' na strani izdelka'}>{slot.hidden ? 'Prikaži' : 'Skrij'}</button>

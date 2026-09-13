@@ -228,8 +228,11 @@ for (const imageVariantsMode of ['standard', 'dimensions'] as const) {
       const assignmentCell = first.getByRole('cell').nth(3);
       const labels = imageItem.variants.map((variant, index) => imageVariantsMode === 'dimensions'
         ? '0,5 × 300 × ' + dimensionWidth(index) + ' mm' : variant.variantName);
-      await expect(first.getByRole('cell').nth(0)).toHaveText('Glavna slika');
-      await expect(rows.nth(1).getByRole('cell').nth(0)).toHaveText('Slika 2');
+      await expect(first.getByRole('cell').nth(0).getByText('Glavna slika', { exact: true })).toBeVisible();
+      await expect(rows.nth(1).getByRole('cell').nth(0).getByText('Slika 2', { exact: true })).toBeVisible();
+      for (const row of await rows.all()) {
+        await expect(row.getByRole('cell').nth(0).getByText('Neaktivne različice', { exact: true })).toBeVisible();
+      }
       for (const label of new Set(labels)) await expect(assignmentCell.locator('span[title]').filter({ hasText: label })).toHaveCount(labels.filter(value => value === label).length);
       for (const [index, variant] of imageItem.variants.entries()) await expect(assignmentCell.locator('span[title]').nth(index)).toHaveAttribute('title', variant.variantName);
       for (const variant of imageItem.variants) await expect(assignmentCell).not.toContainText(variant.variantSku!);

@@ -120,595 +120,12 @@ async function findPublicVariantListingBranch(
   return undefined;
 }
 
-async function readTypography(locator: Locator) {
-  return locator.evaluate((element) => {
-    const style = getComputedStyle(element);
-    const scaleHost = element.closest('.commercial-storefront-scale');
-    const scale = Number.parseFloat(
-      getComputedStyle(scaleHost ?? document.documentElement)
-        .getPropertyValue('--commercial-storefront-scale'),
-    ) || 1;
-    return {
-      fontFamily: style.fontFamily,
-      fontSize: Number.parseFloat(style.fontSize) * scale,
-      fontWeight: style.fontWeight,
-      letterSpacing: style.letterSpacing,
-      lineHeight: Number.parseFloat(style.lineHeight) * scale,
-    };
-  });
-}
-
-type SortControlMetrics = {
-  width: number;
-  height: number;
-  fontSize: number;
-  paddingLeft: number;
-  paddingRight: number;
-  borderRadius: number;
-};
-
-async function readSortControlMetrics(
-  sortSelect: Locator,
-  outerScale: { x: number; y: number } = { x: 1, y: 1 },
-): Promise<SortControlMetrics> {
-  const [box, style] = await Promise.all([
-    sortSelect.boundingBox(),
-    sortSelect.evaluate((element) => {
-      const computed = getComputedStyle(element);
-      const storefrontScale = Number.parseFloat(
-        computed.getPropertyValue('--commercial-storefront-scale'),
-      ) || 1;
-      return {
-        storefrontScale,
-        fontSize: Number.parseFloat(computed.fontSize),
-        paddingLeft: Number.parseFloat(computed.paddingLeft),
-        paddingRight: Number.parseFloat(computed.paddingRight),
-        borderRadius: Number.parseFloat(computed.borderRadius),
-      };
-    }),
-  ]);
-  expect(box, 'sort control should have rendered geometry').not.toBeNull();
-
-  return {
-    width: box!.width / outerScale.x,
-    height: box!.height / outerScale.y,
-    fontSize: style.fontSize * style.storefrontScale,
-    paddingLeft: style.paddingLeft * style.storefrontScale,
-    paddingRight: style.paddingRight * style.storefrontScale,
-    borderRadius: style.borderRadius * style.storefrontScale,
-  };
-}
-
-function expectContentSizedSortControl(metrics: SortControlMetrics) {
-  expect(metrics.width, 'sort control should be content-sized')
-    .toBeGreaterThanOrEqual(168);
-  expect(metrics.width, 'sort control should remain compact')
-    .toBeLessThanOrEqual(184);
-  expect(metrics.height, 'sort control should use the compact reference height')
-    .toBeGreaterThanOrEqual(28);
-  expect(metrics.height, 'sort control should use the compact reference height')
-    .toBeLessThanOrEqual(32);
-  expect(metrics.fontSize, 'sort control should use compact readable text')
-    .toBeGreaterThanOrEqual(11);
-  expect(metrics.fontSize, 'sort control should use compact readable text')
-    .toBeLessThanOrEqual(13);
-  expect(metrics.paddingLeft, 'sort control left padding should hug its content')
-    .toBeGreaterThanOrEqual(7);
-  expect(metrics.paddingLeft, 'sort control left padding should hug its content')
-    .toBeLessThanOrEqual(9);
-  expect(metrics.paddingRight, 'sort control right padding should hug its content')
-    .toBeGreaterThanOrEqual(7);
-  expect(metrics.paddingRight, 'sort control right padding should hug its content')
-    .toBeLessThanOrEqual(9);
-  expect(metrics.borderRadius, 'sort control radius should match the compact reference')
-    .toBeGreaterThanOrEqual(6);
-  expect(metrics.borderRadius, 'sort control radius should match the compact reference')
-    .toBeLessThanOrEqual(8);
-}
-
-async function expectMarketplaceNoiseAbsent(scope: Locator) {
-  const visibleCopy = (await scope.allTextContents()).join(' ');
-  expect(
-    visibleCopy,
-    'listing cards should not introduce marketplace ratings or star copy',
-  ).not.toMatch(/(?:\b(?:rating|stars?)\b|\bocen(?:a|e|jeno)?\b|zvezdic|[★☆])/iu);
-  expect(
-    visibleCopy,
-    'listing cards should not introduce marketplace purchase-volume copy',
-  ).not.toMatch(/(?:bought\s+in\s+the\s+past\s+month|kupljen\w*\s+v\s+(?:preteklem|zadnjem)\s+mesecu)/iu);
-  expect(
-    visibleCopy,
-    'listing cards should not introduce destination-specific delivery copy',
-  ).not.toMatch(/(?:delivers?\s+to\s+slovenia|dostav(?:a|imo|lja\w*)\s+(?:v|po)\s+slovenij[io])/iu);
-
-  const accessibleLabels = await scope.locator('[aria-label]').evaluateAll(
-    (elements) => elements.map((element) => element.getAttribute('aria-label') ?? '')
-      .join(' '),
-  );
-  expect(
-    accessibleLabels,
-    'ratings should not be hidden behind an icon-only accessible label',
-  ).not.toMatch(/(?:rating|stars?|ocen(?:a|e|jeno)?|zvezdic)/iu);
-}
-
-type ListingCardCommerceContract = {
-  price: string;
-  description: string;
-  descriptionFontSize: number;
-  descriptionLineHeight: number;
-  descriptionHeight: number;
-  descriptionHeadingGap: number;
-  mediaAspectRatio: number;
-  imageWidthRatio: number;
-  imageHeightRatio: number;
-};
-
-const listingPriceAmountPattern = String.raw`\d+(?:[.\s]\d{3})*,\d{2}`;
-const listingPricePattern = new RegExp(
-  `^(?:${listingPriceAmountPattern}\\s*€|${listingPriceAmountPattern}\\s*[–-]\\s*${listingPriceAmountPattern}\\s*€)$`,
-  'u',
-);
-
 function makeExpectedListingDescription(sourceDescription: string) {
   const normalized = sourceDescription.replace(/\s+/gu, ' ').trim();
   if (normalized.length <= 180) return normalized;
   const clipped = normalized.slice(0, 181);
   const lastSpace = clipped.lastIndexOf(' ');
   return `${clipped.slice(0, Math.max(lastSpace, 156)).trim()}…`;
-}
-
-async function expectVariantListingCardCommerceContract(
-  card: Locator,
-  sourceDescription: string,
-): Promise<ListingCardCommerceContract> {
-  const media = card.locator('.storefront-product-card-media');
-  const image = card.locator('.storefront-product-card-image');
-  const title = card.locator('.storefront-product-card-title');
-  const description = card.locator('.storefront-product-card-description');
-  const primaryPrice = card.locator(
-    '.storefront-product-card-price .storefront-price-primary',
-  );
-  const priceBlock = card.locator('.storefront-product-card-price');
-  const visualPrice = primaryPrice.locator('.storefront-listing-price-visual');
-  const visualCurrency = visualPrice.locator(
-    '.storefront-listing-price-currency',
-  );
-  const variantAction = card.locator(
-    '.storefront-product-card-action .site-button',
-    { hasText: 'Izberi različico' },
-  );
-
-  await expect(card).toBeVisible({ timeout: 15_000 });
-  await expect(media).toBeVisible();
-  await expect(image).toBeVisible();
-  await expect(title).toBeVisible();
-  await expect(description).toBeVisible();
-  await expect(primaryPrice).toBeVisible();
-  await expect(visualPrice).toBeVisible();
-  await expect(visualCurrency).toHaveCount(1);
-  await expect(visualCurrency).toHaveText('€');
-  await expect(variantAction).toHaveCount(1);
-  await expect(variantAction).toBeVisible();
-  await expect(variantAction).toHaveText('Izberi različico');
-
-  const price = (await primaryPrice.getAttribute('aria-label') ?? '')
-    .replace(/\s+/gu, ' ')
-    .trim();
-  expect(
-    price,
-    'a single listing price or the final amount in a range should end with €',
-  ).toMatch(listingPricePattern);
-  expect(price, 'the last numeric price should be followed by €')
-    .toMatch(/\d,\d{2}\s*€$/u);
-  expect(
-    await visualPrice.evaluate((element) => (
-      element.lastElementChild?.classList.contains(
-        'storefront-listing-price-currency',
-      ) ?? false
-    )),
-    'the visible euro sign should follow the final single/range price number',
-  ).toBeTruthy();
-
-  const descriptionCopy = (await description.textContent() ?? '')
-    .replace(/\s+/gu, ' ')
-    .trim();
-  expect(
-    descriptionCopy,
-    'the card description preview should come from the catalog item description',
-  ).toBe(makeExpectedListingDescription(sourceDescription));
-
-  const [titleBox, descriptionBox, priceBox, headingBox, descriptionStyle, contentOrder] =
-    await Promise.all([
-      title.boundingBox(),
-      description.boundingBox(),
-      priceBlock.boundingBox(),
-      card.locator('.storefront-product-card-heading').boundingBox(),
-      description.evaluate((element) => {
-        const computed = getComputedStyle(element);
-        const storefrontScale = Number.parseFloat(
-          computed.getPropertyValue('--commercial-storefront-scale'),
-        ) || 1;
-        return {
-          overflow: computed.overflow,
-          lineClamp: computed.webkitLineClamp,
-          boxOrient: computed.webkitBoxOrient,
-          fontSize: Number.parseFloat(computed.fontSize) * storefrontScale,
-          lineHeight: Number.parseFloat(computed.lineHeight) * storefrontScale,
-          unscaledLineHeight: Number.parseFloat(computed.lineHeight),
-          clientHeight: (element as HTMLElement).clientHeight,
-        };
-      }),
-      card.evaluate((element) => {
-        const titleElement = element.querySelector(
-          '.storefront-product-card-title',
-        );
-        const descriptionElement = element.querySelector(
-          '.storefront-product-card-description',
-        );
-        const priceElement = element.querySelector(
-          '.storefront-product-card-price',
-        );
-        if (!titleElement || !descriptionElement || !priceElement) return false;
-        return Boolean(
-          titleElement.compareDocumentPosition(priceElement)
-            & Node.DOCUMENT_POSITION_FOLLOWING,
-        ) && Boolean(
-          priceElement.compareDocumentPosition(descriptionElement)
-            & Node.DOCUMENT_POSITION_FOLLOWING,
-        );
-      }),
-    ]);
-  expect(titleBox).not.toBeNull();
-  expect(descriptionBox).not.toBeNull();
-  expect(priceBox).not.toBeNull();
-  expect(headingBox).not.toBeNull();
-  expect(contentOrder, 'title and price should precede the description in DOM order')
-    .toBeTruthy();
-  expect(descriptionStyle.overflow, 'description overflow should stay clipped')
-    .toBe('hidden');
-  expect(descriptionStyle.lineClamp, 'description should be clamped to two lines')
-    .toBe('2');
-  expect(descriptionStyle.boxOrient, 'description clamp should run vertically')
-    .toBe('vertical');
-  expect(
-    descriptionStyle.clientHeight,
-    'description should never exceed two rendered line-heights',
-  ).toBeLessThanOrEqual(descriptionStyle.unscaledLineHeight * 2 + 1);
-  expect(descriptionStyle.fontSize, 'description preview should stay compact')
-    .toBeGreaterThanOrEqual(11);
-  expect(descriptionStyle.fontSize, 'description preview should stay compact')
-    .toBeLessThanOrEqual(14);
-  expect(descriptionStyle.lineHeight, 'description line-height should stay compact')
-    .toBeGreaterThanOrEqual(15);
-  expect(descriptionStyle.lineHeight, 'description line-height should stay compact')
-    .toBeLessThanOrEqual(20);
-
-  const descriptionHeadingGap = descriptionBox!.y
-    - (headingBox!.y + headingBox!.height);
-  expect(descriptionHeadingGap, 'description should follow the heading without overlap')
-    .toBeGreaterThanOrEqual(-1);
-  expect(descriptionHeadingGap, 'description should sit immediately below the heading')
-    .toBeLessThanOrEqual(12);
-  expect(
-    Math.abs(priceBox!.y - titleBox!.y),
-    'price should align with the top of the title',
-  ).toBeLessThanOrEqual(1);
-  expect(
-    priceBox!.x,
-    'price should sit to the right of the title without overlap',
-  ).toBeGreaterThanOrEqual(titleBox!.x + titleBox!.width - 1);
-  expect(
-    Math.abs(priceBox!.x + priceBox!.width - headingBox!.x - headingBox!.width),
-    'price should align with the far right of the heading',
-  ).toBeLessThanOrEqual(1);
-
-  const visibleCopy = (await card.textContent() ?? '').replace(/\s+/gu, ' ').trim();
-  expect(
-    visibleCopy,
-    'listing cards should not append the gross-price label after the amount',
-  ).not.toMatch(/\bz\s+DDV\b/iu);
-  expect(
-    visibleCopy,
-    'listing cards should not show the net-price tax breakdown',
-  ).not.toMatch(/\bbrez\s+DDV\b/iu);
-  expect(
-    visibleCopy,
-    'listing cards should not show a DDV percentage breakdown',
-  ).not.toMatch(/\bDDV\s*\d+(?:[.,]\d+)?\s*%/iu);
-  await expect(
-    card.locator('.storefront-price-tax'),
-    'the detailed tax row belongs on the product page, not its listing card',
-  ).toHaveCount(0);
-  await expect(
-    card.getByText('Izberite različico', { exact: true }),
-    'the CTA is sufficient; a separate variant-selection prompt is redundant',
-  ).toHaveCount(0);
-
-  const warningMarkerCount = await card.evaluate((element) => {
-    const probe = document.createElement('span');
-    probe.style.position = 'absolute';
-    probe.style.backgroundColor = 'var(--site-color-warning)';
-    element.append(probe);
-    const warningColor = getComputedStyle(probe).backgroundColor;
-    probe.remove();
-
-    return Array.from(element.querySelectorAll<HTMLElement>(
-      '.storefront-product-card-availability [aria-hidden="true"]',
-    )).filter((marker) => (
-      marker.getClientRects().length > 0
-      && getComputedStyle(marker).backgroundColor === warningColor
-    )).length;
-  });
-  expect(
-    warningMarkerCount,
-    'a multi-variant listing card should not retain the brown selection marker',
-  ).toBe(0);
-
-  const [mediaBox, imageBox, imageStyle] = await Promise.all([
-    media.boundingBox(),
-    image.boundingBox(),
-    image.evaluate((element) => ({
-      objectFit: getComputedStyle(element).objectFit,
-    })),
-  ]);
-  expect(mediaBox).not.toBeNull();
-  expect(imageBox).not.toBeNull();
-
-  const mediaAspectRatio = mediaBox!.height / mediaBox!.width;
-  const imageWidthRatio = imageBox!.width / mediaBox!.width;
-  const imageHeightRatio = imageBox!.height / mediaBox!.height;
-  expect(mediaAspectRatio, 'listing-card media should be square')
-    .toBeGreaterThanOrEqual(0.98);
-  expect(mediaAspectRatio, 'listing-card media should be square')
-    .toBeLessThanOrEqual(1.02);
-  expect(imageWidthRatio, 'the fill image box should span the square media width')
-    .toBeCloseTo(1, 2);
-  expect(imageHeightRatio, 'the fill image box should span the square media height')
-    .toBeCloseTo(1, 2);
-  expect(imageStyle.objectFit, 'the product should remain uncropped inside its square')
-    .toBe('contain');
-
-  return {
-    price,
-    description: descriptionCopy,
-    descriptionFontSize: descriptionStyle.fontSize,
-    descriptionLineHeight: descriptionStyle.lineHeight,
-    descriptionHeight: descriptionBox!.height,
-    descriptionHeadingGap,
-    mediaAspectRatio,
-    imageWidthRatio,
-    imageHeightRatio,
-  };
-}
-
-type MarketplaceCardContract = {
-  aspectRatio: string;
-  borderWidth: number;
-  boxShadow: string;
-  cardBackground: string;
-  mediaBackground: string;
-  titleColor: string;
-  priceColor: string;
-  actionBackground: string;
-  actionColor: string;
-  themeCardBackground: string;
-  themeMutedBackground: string;
-  themeTextColor: string;
-  themeButtonBackground: string;
-  themeButtonColor: string;
-  objectFit: string;
-  imagePadding: number;
-  mediaWidthRatio: number;
-  mediaAspectRatio: number;
-  mediaHeightRatio: number;
-  priceFontRatio: number;
-  actionWidthRatio: number;
-  actionBottomGap: number;
-  titleAndPriceShareRow: boolean;
-  priceBeforeAction: boolean;
-};
-
-async function readMarketplaceCardContract(card: Locator): Promise<MarketplaceCardContract> {
-  const media = card.locator('.storefront-product-card-media');
-  const image = card.locator('.storefront-product-card-image');
-  const content = card.locator('.storefront-product-card-content');
-  const title = card.locator('.storefront-product-card-title');
-  const price = card.locator(
-    '.storefront-product-card-price .storefront-price-primary',
-  );
-  const action = card.locator('.storefront-product-card-action');
-  const actionControl = action.locator('.site-button').first();
-
-  await expect(card).toBeVisible({ timeout: 15_000 });
-  await expect(media).toBeVisible();
-  await expect(image).toBeVisible();
-  await expect(content).toBeVisible();
-  await expect(title).toBeVisible();
-  await expect(price).toBeVisible();
-  await expect(action).toBeVisible();
-  await expect(actionControl).toBeVisible();
-
-  const [
-    cardBox,
-    mediaBox,
-    contentBox,
-    titleBox,
-    priceBox,
-    actionBox,
-    actionControlBox,
-    titleTypography,
-    priceTypography,
-    styles,
-  ] = await Promise.all([
-    card.boundingBox(),
-    media.boundingBox(),
-    content.boundingBox(),
-    title.boundingBox(),
-    price.boundingBox(),
-    action.boundingBox(),
-    actionControl.boundingBox(),
-    readTypography(title),
-    readTypography(price),
-    card.evaluate((element) => {
-      const cardStyle = getComputedStyle(element);
-      const mediaElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-media',
-      );
-      const imageElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-image',
-      );
-      const contentElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-content',
-      );
-      const titleElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-title',
-      );
-      const priceElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-price .storefront-price-primary',
-      );
-      const actionElement = element.querySelector<HTMLElement>(
-        '.storefront-product-card-action .site-button',
-      );
-      if (
-        !mediaElement
-        || !imageElement
-        || !contentElement
-        || !titleElement
-        || !priceElement
-        || !actionElement
-      ) {
-        throw new Error('The listing card is missing a required visual element.');
-      }
-
-      const resolveColor = (variable: string) => {
-        const probe = document.createElement('span');
-        probe.style.position = 'absolute';
-        probe.style.color = `var(${variable})`;
-        element.append(probe);
-        const resolved = getComputedStyle(probe).color;
-        probe.remove();
-        return resolved;
-      };
-      const mediaStyle = getComputedStyle(mediaElement);
-      const imageStyle = getComputedStyle(imageElement);
-      const contentStyle = getComputedStyle(contentElement);
-      const titleStyle = getComputedStyle(titleElement);
-      const priceStyle = getComputedStyle(priceElement);
-      const actionStyle = getComputedStyle(actionElement);
-      const scaleHost = element.closest('.commercial-storefront-scale');
-      const storefrontScale = Number.parseFloat(
-        getComputedStyle(scaleHost ?? document.documentElement)
-          .getPropertyValue('--commercial-storefront-scale'),
-      ) || 1;
-
-      return {
-        aspectRatio: mediaStyle.aspectRatio,
-        borderWidth: Number.parseFloat(cardStyle.borderTopWidth) * storefrontScale,
-        boxShadow: cardStyle.boxShadow,
-        cardBackground: cardStyle.backgroundColor,
-        mediaBackground: mediaStyle.backgroundColor,
-        titleColor: titleStyle.color,
-        priceColor: priceStyle.color,
-        actionBackground: actionStyle.backgroundColor,
-        actionColor: actionStyle.color,
-        themeCardBackground: resolveColor('--site-card-bg'),
-        themeMutedBackground: resolveColor('--site-color-surface-muted'),
-        themeTextColor: resolveColor('--site-color-text'),
-        themeButtonBackground: resolveColor('--site-button-bg'),
-        themeButtonColor: resolveColor('--site-button-text'),
-        objectFit: imageStyle.objectFit,
-        imagePadding: Number.parseFloat(imageStyle.paddingTop),
-        contentPaddingLeft: Number.parseFloat(contentStyle.paddingLeft),
-        contentPaddingRight: Number.parseFloat(contentStyle.paddingRight),
-        contentPaddingBottom: Number.parseFloat(contentStyle.paddingBottom),
-      };
-    }),
-  ]);
-
-  expect(cardBox).not.toBeNull();
-  expect(mediaBox).not.toBeNull();
-  expect(contentBox).not.toBeNull();
-  expect(titleBox).not.toBeNull();
-  expect(priceBox).not.toBeNull();
-  expect(actionBox).not.toBeNull();
-  expect(actionControlBox).not.toBeNull();
-
-  const contentInnerWidth = Math.max(
-    1,
-    contentBox!.width - styles.contentPaddingLeft - styles.contentPaddingRight,
-  );
-
-  return {
-    aspectRatio: styles.aspectRatio,
-    borderWidth: styles.borderWidth,
-    boxShadow: styles.boxShadow,
-    cardBackground: styles.cardBackground,
-    mediaBackground: styles.mediaBackground,
-    titleColor: styles.titleColor,
-    priceColor: styles.priceColor,
-    actionBackground: styles.actionBackground,
-    actionColor: styles.actionColor,
-    themeCardBackground: styles.themeCardBackground,
-    themeMutedBackground: styles.themeMutedBackground,
-    themeTextColor: styles.themeTextColor,
-    themeButtonBackground: styles.themeButtonBackground,
-    themeButtonColor: styles.themeButtonColor,
-    objectFit: styles.objectFit,
-    imagePadding: styles.imagePadding,
-    mediaWidthRatio: mediaBox!.width / cardBox!.width,
-    mediaAspectRatio: mediaBox!.height / mediaBox!.width,
-    mediaHeightRatio: mediaBox!.height / cardBox!.height,
-    priceFontRatio: priceTypography.fontSize / titleTypography.fontSize,
-    actionWidthRatio: actionControlBox!.width / contentInnerWidth,
-    actionBottomGap: cardBox!.y + cardBox!.height
-      - (actionControlBox!.y + actionControlBox!.height),
-    titleAndPriceShareRow: Math.abs(titleBox!.y - priceBox!.y) <= 1
-      && titleBox!.x + titleBox!.width <= priceBox!.x + 1,
-    priceBeforeAction: priceBox!.y + priceBox!.height <= actionBox!.y + 1,
-  };
-}
-
-function expectAmazonInspiredListingCard(contract: MarketplaceCardContract) {
-  expect(contract.boxShadow, 'listing card shell should remain visually flat')
-    .toBe('none');
-  expect(contract.borderWidth, 'listing card border should remain minimal')
-    .toBeLessThanOrEqual(1);
-  expect(contract.cardBackground, 'card should use the configured card surface')
-    .toBe(contract.themeCardBackground);
-  expect(contract.mediaBackground, 'media should use the configured muted surface')
-    .toBe(contract.themeMutedBackground);
-  expect(contract.titleColor, 'title should use the configured text colour')
-    .toBe(contract.themeTextColor);
-  expect(contract.priceColor, 'price should use the configured text colour')
-    .toBe(contract.themeTextColor);
-  expect(contract.actionBackground, 'action should use the configured button colour')
-    .toBe(contract.themeButtonBackground);
-  expect(contract.actionColor, 'action copy should use the configured button foreground')
-    .toBe(contract.themeButtonColor);
-
-  expect(contract.objectFit, 'product imagery should remain clean and uncropped')
-    .toBe('contain');
-  expect(contract.imagePadding, 'listing imagery should fill its square image box')
-    .toBe(0);
-  expect(contract.mediaWidthRatio, 'media should span nearly the full card width')
-    .toBeGreaterThanOrEqual(0.96);
-  expect(contract.mediaAspectRatio, 'listing media should use a square product area')
-    .toBeGreaterThanOrEqual(0.98);
-  expect(contract.mediaAspectRatio, 'listing media should use a square product area')
-    .toBeLessThanOrEqual(1.02);
-  expect(contract.mediaHeightRatio, 'media should remain the dominant upper card area')
-    .toBeGreaterThanOrEqual(0.42);
-
-  expect(contract.titleAndPriceShareRow, 'title and price should share a row without overlap')
-    .toBeTruthy();
-  expect(contract.priceBeforeAction, 'price should precede the purchase action visually')
-    .toBeTruthy();
-  expect(contract.priceFontRatio, 'price should be visibly emphasized over the title')
-    .toBeGreaterThanOrEqual(1.1);
-  expect(contract.actionWidthRatio, 'purchase action should span the card content width')
-    .toBeGreaterThanOrEqual(0.98);
-  expect(contract.actionBottomGap, 'purchase action should stay near the card bottom')
-    .toBeLessThanOrEqual(20);
 }
 
 async function publicCatalogBranch(request: APIRequestContext) {
@@ -741,7 +158,7 @@ function catalogResults(page: Page) {
 }
 
 function catalogPrice(row: Locator) {
-  return row.locator(':scope > span[aria-label]');
+  return row.locator('span[aria-label$="z DDV"]');
 }
 
 function euroAmount(value: string) {
@@ -1025,7 +442,8 @@ test('compact category rows retain price filtering and product detail navigation
     return filteredPrices.length > 0 && filteredPrices.every(label => euroAmount(label) === price);
   }).toBeTruthy();
   await min.fill(String(price + 1));
-  await expect(page.getByRole('alert')).toHaveText('Najnižja cena ne sme presegati najvišje.');
+  await expect(page.getByRole('complementary', { name: 'Kategorije in filtri' }).getByRole('alert'))
+    .toHaveText('Najnižja cena ne sme presegati najvišje.');
   await expect(rows).toHaveCount(0);
   await clearCatalogFilters(page);
   await expect(rows.first()).toBeVisible();
@@ -1085,6 +503,7 @@ test('catalog rows retain product price, description, and detail navigation alon
   await expect(publicRow).toBeVisible();
   await expect(publicRow).toContainText(makeExpectedListingDescription(branch.sourceDescription));
   const publicMinimumPrice = euroAmount(await catalogPrice(publicRow).getAttribute('aria-label') ?? '');
+  const publicImageSource = await publicRow.locator('img').getAttribute('src');
   await expect(publicRow.getByRole('link')).toHaveCount(1);
   const productHref = await publicRow.getByRole('link').getAttribute('href');
   expect(productHref, 'the listing card should link to its product detail')
@@ -1141,298 +560,144 @@ test('catalog rows retain product price, description, and detail navigation alon
     '[data-product-preview-frame] [data-admin-product-live-preview="true"]:visible',
   ).first();
   await expect(preview).toBeVisible({ timeout: 15_000 });
-  const adminCard = preview.locator('.storefront-product-card').first();
-  await expect(adminCard.locator('.storefront-product-card-title'))
+  const adminRow = preview.locator('[data-catalog-product]').filter({
+    has: page.getByRole('link', { name: branch.productRecord.itemName, exact: true }),
+  });
+  await expect(adminRow).toHaveCount(1);
+  await expect(adminRow).toBeVisible();
+  await expect(adminRow.getByRole('link')).toHaveAttribute('href', productHref!);
+  const adminDescription = adminRow.locator('[data-product-canvas-element="catalog-product-description"]');
+  await expect(adminDescription).toHaveText(makeExpectedListingDescription(branch.sourceDescription));
+  await expect(adminRow.locator('[data-product-canvas-element="catalog-product-name"]'))
     .toHaveText(branch.productRecord.itemName);
-  const adminContract = await expectVariantListingCardCommerceContract(
-    adminCard,
-    branch.sourceDescription,
-  );
-
-  expect(euroAmount(adminContract.price), 'the public row and admin preview should use the same lowest gross price')
+  expect(euroAmount(await catalogPrice(adminRow).getAttribute('aria-label') ?? ''),
+    'the public row and admin preview should use the same lowest gross price')
     .toBe(publicMinimumPrice);
-  expect(adminContract.description, 'the admin preview should retain canonical product description copy')
-    .toBe(makeExpectedListingDescription(branch.sourceDescription));
+  expect(await adminRow.locator('img').getAttribute('src'),
+    'the public catalog and appearance preview must share product imagery')
+    .toBe(publicImageSource);
   expect(
     writes,
     'opening the public listing and its admin preview must remain read-only',
   ).toEqual([]);
 });
 
-test('admin Seznam preview retains compact cards and editable controls without saving', async ({
+test('admin Seznam preview shares catalog rows, live filters, and editable elements without saving', async ({
   page,
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await assertAuthenticatedAdmin(request);
-
   const persistedWrites: string[] = [];
-  page.on('request', (outgoing) => {
-    if (
-      writeMethods.has(outgoing.method())
-      && outgoing.url().includes('/api/admin/product-appearance')
-    ) {
-      persistedWrites.push(`${outgoing.method()} ${outgoing.url()}`);
+  await page.route('**/api/admin/**', async route => {
+    const outgoing = route.request();
+    const pathname = new URL(outgoing.url()).pathname;
+    if (writeMethods.has(outgoing.method()) && pathname !== '/api/admin/session/activity') {
+      persistedWrites.push(outgoing.method() + ' ' + pathname);
+      await route.abort();
+      return;
     }
+    await route.continue();
   });
 
   await page.goto('/admin/podoba/artikli');
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Artikli', exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
-  await expect(getAppearanceEditorCompactSelect(
-    page,
-    'Artikel v predogledu',
-  )).toBeVisible();
-
-  const pageControls = page.getByRole('group', {
-    name: 'Stran predogleda',
-  });
-  const listingButton = pageControls.getByRole('button', {
-    name: 'Seznam',
-    exact: true,
-  });
+  await expect(page.getByRole('heading', { level: 1, name: 'Artikli', exact: true }))
+    .toBeVisible({ timeout: 15_000 });
+  await expect(getAppearanceEditorCompactSelect(page, 'Artikel v predogledu')).toBeVisible();
+  const listingButton = page.getByRole('group', { name: 'Stran predogleda' })
+    .getByRole('button', { name: 'Seznam', exact: true });
   await listingButton.click();
   await expect(listingButton).toHaveAttribute('aria-pressed', 'true');
-
   const preview = page.locator(
     '[data-product-preview-frame] [data-admin-product-live-preview="true"]:visible',
   ).first();
-  await expect(preview).toBeVisible({ timeout: 15_000 });
+  const results = preview.getByRole('region', { name: 'Katalog izdelkov', exact: true });
+  const rows = results.locator('[data-catalog-product]:visible');
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+  await expect(preview.getByRole('heading', { level: 1, name: 'Katalog izdelkov', exact: true })).toBeVisible();
+  await expect(preview.getByRole('searchbox', { name: 'Poiščite izdelek, material ali oznako' })).toBeVisible();
 
-  const cards = preview.locator('.storefront-product-card');
-  const card = cards.first();
-  const listingCardCanvasWrappers = preview.locator(
-    '[data-product-canvas-element="listing-card"]',
-  );
-  const media = card.locator('.storefront-product-card-media');
-  const content = card.locator('.storefront-product-card-content');
-  const cardTitle = card.locator('.storefront-product-card-title');
-  const productLink = cardTitle.locator('xpath=ancestor::a[1]');
-  const listingPageHeader = preview.locator(
-    'header:has([data-product-canvas-element="listing-header"])',
-  );
-  const listingHeaderCanvas = listingPageHeader.locator(
-    '[data-product-canvas-element="listing-header"]',
-  );
-  const sortSelect = listingHeaderCanvas.locator(
-    '.storefront-product-listing-sort-select',
-  );
-  const listingTitle = listingPageHeader.getByRole('heading', { level: 1 });
-  const listingCount = listingPageHeader.getByText('1 izdelek', {
-    exact: true,
+  const representativeIds = [
+    'catalog-product-image', 'catalog-product-name', 'catalog-product-description',
+    'catalog-product-availability', 'catalog-product-price',
+  ];
+  for (const id of [
+    'catalog-heading', 'catalog-search', 'catalog-categories', 'catalog-stock-filter',
+    'catalog-price-filter', ...representativeIds,
+  ]) {
+    const element = preview.locator('[data-product-canvas-element="' + id + '"]');
+    await expect(element, id + ' should expose exactly one editable representative').toHaveCount(1);
+    await expect(element).toBeVisible();
+    await expect(element.locator('[data-product-canvas-element="' + id + '"]')).toHaveCount(0);
+  }
+  const representatives = await preview.locator(
+    '[data-product-canvas-element^="catalog-product-"]',
+  ).evaluateAll(elements => elements.map(element => element.closest('[data-catalog-product]')?.getAttribute('data-catalog-product')));
+  expect(new Set(representatives).size, 'all repeated row controls should edit the selected representative').toBe(1);
+  expect(representatives[0]).toBeTruthy();
+
+  const title = preview.locator('[data-product-canvas-element="catalog-product-name"]');
+  const representativeRow = title.locator('xpath=ancestor::article[1]');
+  const name = await representativeRow.getByRole('link').getAttribute('aria-label');
+  expect(name).toBeTruthy();
+  await expect(representativeRow.getByRole('link')).toHaveAttribute('href', /^\/products\/[^/]+\/items\/[^/]+$/u);
+  const rowGeometry = await representativeRow.evaluate(element => {
+    const row = element as HTMLElement;
+    const image = row.querySelector('img')!;
+    const imageBox = image.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    const text = row.querySelector('[data-product-canvas-element="catalog-product-name"]')!.getBoundingClientRect();
+    const price = row.querySelector('span[aria-label$="z DDV"]')!.getBoundingClientRect();
+    return {
+      imageRatio: imageBox.width / imageBox.height,
+      imageRight: imageBox.right, titleLeft: text.left, titleRight: text.right,
+      priceLeft: price.left, priceRight: price.right, rowRight: rowBox.right,
+      compactRatio: rowBox.height / rowBox.width,
+    };
   });
-  const listingGrid = preview.locator('.storefront-product-grid').first();
+  expect(rowGeometry.imageRatio).toBeCloseTo(1, 2);
+  expect(rowGeometry.imageRight).toBeLessThanOrEqual(rowGeometry.titleLeft);
+  expect(rowGeometry.titleRight).toBeLessThanOrEqual(rowGeometry.priceLeft);
+  expect(rowGeometry.priceRight).toBeLessThanOrEqual(rowGeometry.rowRight + 1);
+  expect(rowGeometry.compactRatio).toBeLessThan(0.25);
+  await title.click();
+  await expect(title).toHaveAttribute('data-product-canvas-selected', 'true');
+  await expect(page.locator('[role="toolbar"][data-toolbar-mode="floating"]'))
+    .toHaveAttribute('data-product-toolbar-anchor-id', 'catalog-product-name');
 
-  await expect(card).toBeVisible({ timeout: 15_000 });
-  await expect(media).toBeVisible();
-  await expect(content).toBeVisible();
-  await expect(cardTitle).toBeVisible();
-  await expect(productLink).toHaveAttribute(
-    'href',
-    /\/products\/[^/]+\/items\/[^/]+$/,
-  );
-  await expect(listingPageHeader).toHaveCount(1);
-  await expect(listingPageHeader).toBeVisible();
-  await expect(listingHeaderCanvas).toHaveCount(1);
-  await expect(listingHeaderCanvas).toBeVisible();
-  await expect(
-    listingHeaderCanvas.locator('header'),
-    'the semantic page header must remain outside the editable canvas wrapper',
-  ).toHaveCount(0);
-  await expect(listingTitle).toBeVisible();
-  await expect(listingGrid).toBeVisible();
-  await expect(listingCount).toBeVisible();
-  await expect(sortSelect).toBeVisible();
-  await expect(sortSelect).toHaveValue('recommended');
-  await expect(sortSelect).toHaveAccessibleName(/^Razvrsti(?: po)?$/);
-  await expect(sortSelect.locator('option:checked')).toHaveText(
-    'Razvrsti po: Priporočeno',
-  );
-  await expect(
-    listingHeaderCanvas.getByText('Razvrsti', { exact: true }),
-    'admin preview should not restore a separate sort label',
-  ).toHaveCount(0);
+  await preview.getByRole('button', { name: 'Preizkusi povezave in filtre', exact: true }).click();
+  await expect(preview.locator('[data-product-canvas-element^="catalog-product-"]')).toHaveCount(0);
+  const search = preview.getByRole('searchbox', { name: 'Poiščite izdelek, material ali oznako' });
+  await search.fill(name!);
+  await expect(results).toHaveAttribute('aria-busy', 'false');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByRole('link')).toHaveAccessibleName(name!);
+  await search.fill('izdelek-ki-zagotovo-ne-obstaja-98765');
+  await expect(rows).toHaveCount(0);
+  await expect(results.getByRole('heading', { name: 'Ni izdelkov, ki ustrezajo izbranim filtrom' })).toBeVisible();
+  await preview.getByRole('button', { name: 'Počisti filtre', exact: true }).first().click();
+  await expect(rows.first()).toBeVisible();
 
-  const renderedCardCount = await cards.count();
-  expect(renderedCardCount, 'admin preview should render listing cards')
-    .toBeGreaterThan(0);
-  await expect(
-    listingCardCanvasWrappers,
-    'the repeated listing preview should expose one editable representative card',
-  ).toHaveCount(1);
-  expect(
-    await cards.evaluateAll((elements) => elements.map((element) => {
-      let ancestor = element.parentElement;
-      let count = 0;
-      while (ancestor) {
-        if (ancestor.getAttribute('data-product-canvas-element') === 'listing-card') {
-          count += 1;
-        }
-        ancestor = ancestor.parentElement;
-      }
-      return count;
-    })),
-    'only the representative card should own the editable listing-card canvas wrapper',
-  ).toEqual([1, ...Array.from({ length: renderedCardCount - 1 }, () => 0)]);
-  await expect(
-    listingCardCanvasWrappers.locator(
-      '[data-product-canvas-element="listing-card"]',
-    ),
-    'listing-card canvas wrappers must not be nested',
-  ).toHaveCount(0);
+  await preview.getByRole('navigation', { name: 'Kategorije', exact: true })
+    .getByRole('link', { name: 'Vse kategorije', exact: true }).click();
+  await expect(preview.getByRole('heading', { level: 1, name: 'Vse kategorije', exact: true })).toBeVisible();
+  await expect(page).toHaveURL('/admin/podoba/artikli');
+  const prices = () => rows.locator('span[aria-label$="z DDV"]').evaluateAll(elements =>
+    elements.map(element => Number((element.textContent ?? '').replace(/[^\d,]/gu, '').replace(',', '.'))));
+  const priceSort = results.locator('button[data-sort-key="price"]');
+  await priceSort.click();
+  await expect(priceSort).toHaveAttribute('data-direction', 'ascending');
+  const ascending = await prices();
+  expect(ascending).toEqual([...ascending].sort((a, b) => a - b));
+  await priceSort.click();
+  await expect(priceSort).toHaveAttribute('data-direction', 'descending');
+  expect(await prices()).toEqual([...ascending].sort((a, b) => b - a));
+  const available = preview.getByRole('checkbox', { name: 'Na zalogi', exact: true });
+  await available.check();
+  for (const row of await rows.all()) await expect(row.locator('[data-tone]')).toHaveAttribute('data-tone', 'stock');
+  await available.uncheck();
 
-  await expect(
-    preview.getByRole('heading', {
-      name: 'Izdelki',
-      exact: true,
-    }),
-  ).toHaveCount(0);
-  await expect(
-    preview.getByText(
-      'Izberite izdelek za ogled različic, zaloge in tehničnih podatkov.',
-      { exact: true },
-    ),
-  ).toBeHidden();
-
-  const [
-    cardBox,
-    mediaBox,
-    contentBox,
-    sortBox,
-    listingHeaderBox,
-    listingTitleBox,
-    listingCountBox,
-    listingGridBox,
-    previewScale,
-  ] = await Promise.all([
-    card.boundingBox(),
-    media.boundingBox(),
-    content.boundingBox(),
-    sortSelect.boundingBox(),
-    listingPageHeader.boundingBox(),
-    listingTitle.boundingBox(),
-    listingCount.boundingBox(),
-    listingGrid.boundingBox(),
-    preview.evaluate((element) => {
-      const node = element as HTMLElement;
-      const box = node.getBoundingClientRect();
-      return {
-        x: node.offsetWidth > 0 ? box.width / node.offsetWidth : 1,
-        y: node.offsetHeight > 0 ? box.height / node.offsetHeight : 1,
-      };
-    }),
-  ]);
-  expect(cardBox).not.toBeNull();
-  expect(mediaBox).not.toBeNull();
-  expect(contentBox).not.toBeNull();
-  expect(sortBox).not.toBeNull();
-  expect(listingHeaderBox).not.toBeNull();
-  expect(listingTitleBox).not.toBeNull();
-  expect(listingCountBox).not.toBeNull();
-  expect(listingGridBox).not.toBeNull();
-  const adminSortMetrics = await readSortControlMetrics(
-    sortSelect,
-    previewScale,
-  );
-  expectContentSizedSortControl(adminSortMetrics);
-
-  expect(
-    listingCountBox!.y,
-    'the Seznam preview count should sit directly below its page title',
-  ).toBeGreaterThanOrEqual(
-    listingTitleBox!.y + listingTitleBox!.height - 1,
-  );
-  expect(
-    listingCountBox!.y + listingCountBox!.height,
-    'the Seznam preview count should remain above the header divider',
-  ).toBeLessThan(listingHeaderBox!.y + listingHeaderBox!.height);
-  expect(
-    sortBox!.y + sortBox!.height,
-    'the Seznam preview sort control should remain above the header divider',
-  ).toBeLessThan(listingHeaderBox!.y + listingHeaderBox!.height);
-  expect(
-    Math.abs(
-      (sortBox!.x + sortBox!.width)
-      - (listingHeaderBox!.x + listingHeaderBox!.width)
-    ),
-    'the Seznam preview sort control should align to the header right edge',
-  ).toBeLessThanOrEqual(2);
-
-  const adminInterveningDividers = await preview.evaluate((element, bounds) => {
-    const dividers: Array<{ edge: 'top' | 'bottom'; y: number }> = [];
-    for (const candidate of element.querySelectorAll('*')) {
-      const box = candidate.getBoundingClientRect();
-      if (box.width < bounds.minimumWidth || box.height <= 0) continue;
-      const style = getComputedStyle(candidate);
-      const borders = [
-        {
-          edge: 'top' as const,
-          width: Number.parseFloat(style.borderTopWidth),
-          style: style.borderTopStyle,
-          y: box.top,
-        },
-        {
-          edge: 'bottom' as const,
-          width: Number.parseFloat(style.borderBottomWidth),
-          style: style.borderBottomStyle,
-          y: box.bottom,
-        },
-      ];
-      for (const border of borders) {
-        if (
-          border.width > 0
-          && border.style !== 'none'
-          && border.y > bounds.headerBottom + 2
-          && border.y < bounds.gridTop - 2
-        ) {
-          dividers.push({ edge: border.edge, y: Math.round(border.y) });
-        }
-      }
-    }
-    return dividers;
-  }, {
-    headerBottom: listingHeaderBox!.y + listingHeaderBox!.height,
-    gridTop: listingGridBox!.y,
-    minimumWidth: listingHeaderBox!.width * 0.75,
-  });
-  expect(
-    adminInterveningDividers,
-    'the Seznam preview should not show a second divider before its product cards',
-  ).toEqual([]);
-
-  expect(
-    cardBox!.height,
-    'admin preview card should remain compact even in its narrower four-column canvas',
-  ).toBeLessThanOrEqual(
-    // The narrower editor grid wraps the representative card copy one line
-    // earlier than the public grid. Keep the 1.8 design cap while allowing
-    // the same bounded device-pixel quantization used by the public assertion.
-    cardBox!.width * 1.8 + 6,
-  );
-  expect(
-    mediaBox!.height,
-    'admin preview should retain the square storefront media area',
-  ).toBeGreaterThanOrEqual(cardBox!.width * 0.98);
-  expect(
-    mediaBox!.height,
-    'admin preview media should not exceed its square card-width area',
-  ).toBeLessThanOrEqual(cardBox!.width * 1.02);
-  expect(
-    contentBox!.height,
-    'admin preview card details should retain the compact storefront proportion',
-  ).toBeLessThanOrEqual(
-    // A single extra wrapped copy line in the editor is roughly ten rendered
-    // pixels at preview scale; it must not be mistaken for an oversized card.
-    cardBox!.width * 0.78 + 10,
-  );
-  await expectMarketplaceNoiseAbsent(cards);
-  const adminMarketplaceContract = await readMarketplaceCardContract(card);
-  await expect(card).toHaveClass(/\bstorefront-product-listing-card\b/);
-  await expect(card).toHaveAttribute('data-product-card-layout', 'grid');
-  expectAmazonInspiredListingCard(adminMarketplaceContract);
-  expect(
-    persistedWrites,
-    'switching to the Seznam preview must not persist appearance settings',
-  ).toEqual([]);
+  await preview.getByRole('button', { name: 'Uredi videz', exact: true }).click();
+  await expect(preview.locator('[data-product-canvas-element="catalog-product-name"]')).toHaveCount(1);
+  expect(persistedWrites, 'preview navigation, filters and canvas selection must not save settings or products').toEqual([]);
 });

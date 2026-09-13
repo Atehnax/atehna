@@ -1,6 +1,5 @@
 import {
   expect,
-  test,
   type Locator
 } from '@playwright/test';
 import {
@@ -9,6 +8,7 @@ import {
   readAppearanceEditorCompactSelectValue
 } from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
+import { legacyProductAppearanceTest as test } from './support/product-appearance-fixture';
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -474,7 +474,7 @@ function expectPriceStyleParity(
     .toBeCloseTo(expected.currencyMarginLeftToPrimaryRatio, 2);
 }
 
-test.describe('related-product compact commerce card', () => {
+test.describe('legacy related-product compact commerce card', () => {
   test('uses listing price grammar, omits stock/tax, shrinks, and matches the admin preview', async ({
     page,
     request

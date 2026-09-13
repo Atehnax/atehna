@@ -62,6 +62,18 @@ export default async function globalSetup(config: FullConfig) {
       throw new Error('[e2e-preflight] Deterministic category seed is unavailable through the application.');
     }
 
+    // A production build may contain homepage HTML from the build job's
+    // disposable database. Invalidate it only after identity/auth checks, then
+    // require the first exact URL read to regenerate against this shard.
+    const resetHomepage = await adminRequest.post('/api/e2e/health');
+    if (!resetHomepage.ok()) {
+      throw new Error(`[e2e-preflight] Homepage cache invalidation failed with status ${resetHomepage.status()}.`);
+    }
+    const homepage = await adminRequest.get('/');
+    if (!homepage.ok() || homepage.headers()['x-nextjs-cache'] === 'STALE') {
+      throw new Error('[e2e-preflight] Homepage did not regenerate successfully after isolated cache invalidation.');
+    }
+
     await mkdir(dirname(ADMIN_STORAGE_STATE_PATH), { recursive: true });
     await adminRequest.storageState({ path: ADMIN_STORAGE_STATE_PATH });
     console.info('[e2e-preflight] Application, admin authentication, and protected database endpoint are healthy.');

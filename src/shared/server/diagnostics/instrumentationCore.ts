@@ -41,7 +41,10 @@ export function createDiagnosticsInstrumentation(sink: Sink, schedule: (task: ()
       } catch (error) { failure = errorCode(error); throw error; }
       finally {
         append(trace, { id: randomUUID(), recordedAt: new Date().toISOString(), traceId: trace.id, context: normalizedDiagnosticContext(context), operation: operation.slice(0, 180), kind, durationMs: Math.max(0, performance.now() - started), payloadBytes: kind === 'route' ? trace.payload ?? measuredBytes : measuredBytes, error: failure !== null, errorCode: failure, phases: kind === 'route' ? { ...trace.phases } : {}, details: kind === 'route' ? { repeatedHelpers: [...trace.helpers.entries()].filter(([, count]) => count > 1).map(([name, count]) => ({ name, count })), largestPayloadProducer: trace.payloadProducer, droppedSpans: trace.dropped } : {} });
-        if (!existing) await persist(trace.events);
+        // Persist complete outer traces through the host lifecycle, just like
+        // standalone invalidations. A cached read must not wait for telemetry's
+        // database connection or INSERT before its result can render.
+        if (!existing) schedule(() => persist(trace.events));
       }
     };
     return existing ? execute() : storage.run(trace, execute);

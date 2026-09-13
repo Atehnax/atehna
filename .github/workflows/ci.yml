@@ -16,6 +16,22 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    # Prerender complete public data against the same disposable seed contract
+    # used by the later E2E shards; builds must never cache database fallbacks.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_build
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_build"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -51,9 +67,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-node24-next-${{ hashFiles('package.json', 'package-lock.json', 'next.config.mjs', 'tsconfig.json', 'postcss.config.mjs', 'tailwind.config.ts', '.github/workflows/ci.yml') }}-
 
+      - name: Prepare isolated prerender database
+        env:
+          E2E_MODE: '1'
+          E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_build
+          E2E_STORAGE_NAMESPACE: run-${{ github.run_id }}-${{ github.run_attempt }}-build
+          E2E_ADMIN_USERNAME: e2e-admin
+          E2E_ADMIN_PASSWORD: e2e-admin-password
+          ADMIN_SESSION_SECRET: e2e-only-session-secret-with-at-least-32-characters
+        run: npm run e2e:db:prepare
+
       # Next 16.3 uses the project-local tsc CLI with this complete tsconfig.
       # Keep npm run typecheck for fast local feedback, without running it twice here.
       - name: Build and full-project TypeScript check
+        env:
+          E2E_MODE: '1'
+          E2E_LOCAL_PRIVATE_BLOB: '1'
+          E2E_STORAGE_NAMESPACE: run-${{ github.run_id }}-${{ github.run_attempt }}-build
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_build
+          PGSSLMODE: disable
+          BLOB_READ_WRITE_TOKEN: e2e-external-blob-disabled
         run: npm run build
 
       - name: Upload production build
@@ -114,6 +147,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Global setup expires the build job's homepage before its first visit,
+      # so each shard regenerates with its own database and local logo assets.
       - name: Download production build
         uses: actions/download-artifact@v7
         with:

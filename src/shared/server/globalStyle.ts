@@ -1,3 +1,4 @@
+import { preventCachingPublicFallback } from '@/shared/server/publicCacheFallback';
 import 'server-only';
 import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
@@ -83,6 +84,7 @@ export async function getGlobalStyleConfig(): Promise<GlobalStyleConfig> {
   try {
     return await getCachedGlobalStyleConfigFromDatabase();
   } catch (error) {
+    preventCachingPublicFallback();
     if (!isDatabaseUnavailableError(error)) console.error('Failed to load global style config', error);
     return cloneDefaultGlobalStyleConfig();
   }

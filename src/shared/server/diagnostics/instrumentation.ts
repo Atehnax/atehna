@@ -1,5 +1,6 @@
 import 'server-only';
 import { after } from 'next/server';
+import { captureRuntimeTiming, withRuntimeTiming, withoutRuntimeTiming } from './runtimeTiming';
 import { getDatabaseUrl, getPool } from '@/shared/server/db';
 import { createDiagnosticsInstrumentation } from './instrumentationCore';
 import type { DiagnosticEvent } from '@/shared/domain/analytics/diagnostics';
@@ -23,8 +24,17 @@ async function persist(events: DiagnosticEvent[]) {
   }
 }
 const globalState = globalThis as typeof globalThis & { atehnaDiagnostics?: ReturnType<typeof createDiagnosticsInstrumentation> };
-const instrumentation = globalState.atehnaDiagnostics ??= createDiagnosticsInstrumentation(persist, task => {
-  // Next keeps this work alive after actions whose cache invalidations have no enclosing trace.
+const instrumentation = globalState.atehnaDiagnostics ??= createDiagnosticsInstrumentation(events => withoutRuntimeTiming(() => persist(events)), task => {
+  // Next keeps every trace and standalone invalidation alive after the response.
   try { after(task); } catch { void task(); }
 });
-export const { instrumentAdminRouteRender, instrumentCatalogLoader, instrumentCatalogCacheMiss, profileRoutePhase, profilePayloadEstimate, recordCatalogInvalidation } = instrumentation;
+export const { profilePayloadEstimate } = instrumentation;
+export const instrumentAdminRouteRender: typeof instrumentation.instrumentAdminRouteRender = (context, run) => withRuntimeTiming('app.route', 'route-data-and-jsx', () => instrumentation.instrumentAdminRouteRender(context, run));
+export const instrumentCatalogLoader: typeof instrumentation.instrumentCatalogLoader = (operation, context, run) => withRuntimeTiming('app.loader', operation, () => instrumentation.instrumentCatalogLoader(operation, context, run));
+export const instrumentCatalogCacheMiss: typeof instrumentation.instrumentCatalogCacheMiss = (operation, context, run) => withRuntimeTiming('cache.refresh', operation, () => instrumentation.instrumentCatalogCacheMiss(operation, context, run));
+export const profileRoutePhase: typeof instrumentation.profileRoutePhase = (kind, name, run) => withRuntimeTiming('app.' + kind, name, () => instrumentation.profileRoutePhase(kind, name, run));
+export const recordCatalogInvalidation: typeof instrumentation.recordCatalogInvalidation = input => {
+  const timing = captureRuntimeTiming();
+  timing?.add({ category: 'cache.invalidation', operation: 'invalidate-tags', startMs: performance.now(), durationMs: 0, counts: { tags: input.tags.length, paths: input.revalidatedPaths ?? 0 } });
+  instrumentation.recordCatalogInvalidation(input);
+};

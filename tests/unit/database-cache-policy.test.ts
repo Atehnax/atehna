@@ -19,6 +19,7 @@ runInNewContext(ts.transpileModule(policySource, { compilerOptions: { module: ts
   exports: policy,
   require(id: string) {
     if (id === 'server-only') return {};
+    if (id === './diagnostics/runtimeTiming') return { withRuntimeTiming: (_category: string, _operation: string, run: () => Promise<unknown>) => run() };
     assert.equal(id, 'next/cache');
     return nextCache;
   }

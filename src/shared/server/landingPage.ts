@@ -1,3 +1,4 @@
+import { preventCachingPublicFallback } from '@/shared/server/publicCacheFallback';
 import 'server-only';
 import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
@@ -185,6 +186,7 @@ export async function getLandingPageConfig(): Promise<LandingPageConfig> {
   try {
     return await getCachedLandingPageConfigFromDatabase();
   } catch (error) {
+    preventCachingPublicFallback();
     if (!isDatabaseUnavailableError(error)) {
       console.error('Failed to load landing page config', error);
     }

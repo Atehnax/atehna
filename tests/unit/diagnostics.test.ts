@@ -73,3 +73,48 @@ test('standalone invalidation waits for the host lifecycle scheduler', async () 
   assert.equal(events[0].kind, 'invalidation');
   assert.deepEqual(events[0].details.tags, ['orders']);
 });
+
+test('complete route traces wait for the lifecycle scheduler without delaying the result', async () => {
+  const events: DiagnosticEvent[] = [], tasks: Array<() => Promise<void>> = [];
+  const metrics = createDiagnosticsInstrumentation(async batch => { events.push(...batch); }, task => { tasks.push(task); });
+  const result = await metrics.instrumentAdminRouteRender('/admin/orders', async () => {
+    await metrics.instrumentCatalogLoader('orders', '/admin/orders', async () => ({ total: 4 }));
+    metrics.recordCatalogInvalidation({ context: '/admin/orders', tags: ['orders'] });
+    return 42;
+  });
+  assert.equal(result, 42);
+  assert.equal(events.length, 0);
+  assert.equal(tasks.length, 1);
+  await tasks[0]();
+  assert.deepEqual(events.map(event => event.kind), ['loader', 'invalidation', 'route']);
+  assert.equal(new Set(events.map(event => event.traceId)).size, 1);
+
+  const expected = new Error('business failure');
+  await assert.rejects(metrics.instrumentAdminRouteRender('/admin/orders', async () => { throw expected; }), error => error === expected);
+  assert.equal(tasks.length, 2);
+  assert.equal(events.length, 3);
+  await tasks[1]();
+  assert.equal(events[3].errorCode, 'UNHANDLED');
+});
+
+test('an unfinished telemetry write cannot hold a cached loader result open', async () => {
+  let releaseWrite!: () => void;
+  let writeStarted = false;
+  const pendingWrite = new Promise<void>(resolve => { releaseWrite = resolve; });
+  const metrics = createDiagnosticsInstrumentation(async () => {
+    writeStarted = true;
+    await pendingWrite;
+  });
+  const operation = metrics.instrumentCatalogLoader('cached-read', '/products', async () => ({ cached: true }));
+  try {
+    const completed = await Promise.race([
+      operation.then(() => true),
+      new Promise<boolean>(resolve => { setImmediate(() => resolve(false)); })
+    ]);
+    assert.equal(writeStarted, true);
+    assert.equal(completed, true, 'the result should resolve while telemetry is still pending');
+  } finally {
+    releaseWrite();
+    await operation;
+  }
+});

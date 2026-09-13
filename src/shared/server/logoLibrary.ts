@@ -8,12 +8,8 @@ import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { LOGO_LIBRARY_SETTINGS_KEY, LOGO_PLACEMENT_IDS, type LogoLibrary, type LogoLibraryAction, type LogoSourceAsset, type LogoProject, type LogoPublishedRevision } from '@/shared/domain/logo/logoLibrary';
 import { validateLogoProject, resizeLogoLayer } from '@/shared/domain/logo/logoProject';
-import { decodeLogoImport, renderLogoProject } from '@/shared/server/logoLibraryRender';
-import { createLogoPublication, imageLogoProject, readLogoSource, storeLogoSource } from '@/shared/server/logoLibraryStorage';
 import { applyLogoLibraryAction, LogoLibraryError, LOGO_LIBRARY_MAX_ASSETS, publishedLogoProjection, requireLogoRevision } from '@/shared/server/logoLibraryOperations';
 import { commitLogoLibraryChange, initializeLogoLibraryTransaction, readLogoLibraryRecord } from '@/shared/server/logoLibraryTransaction';
-
-import { createInitialLogoLibrary } from './logoLibraryDefaults';
 
 export const LOGO_LIBRARY_PUBLIC_CACHE_TAG = 'logo-library-published';
 let pendingInitialization: Promise<LogoLibrary> | null = null;
@@ -22,7 +18,10 @@ let lastInitializationFailureAt = 0;
 async function initializeLogoLibrary(): Promise<LogoLibrary> {
   const pool = await getPool(); const client = await pool.connect();
   try {
-    return await initializeLogoLibraryTransaction(client, createInitialLogoLibrary);
+    return await initializeLogoLibraryTransaction(client, async () => {
+      const { createInitialLogoLibrary } = await import('./logoLibraryDefaults');
+      return createInitialLogoLibrary();
+    });
   } catch (error) {
     lastInitializationFailureAt = Date.now(); throw error;
   } finally { client.release(); }
@@ -68,6 +67,7 @@ export async function mutateLogoLibrary(input: Exclude<LogoLibraryAction, { acti
     if (!variant) throw new LogoLibraryError('Različica ne obstaja.', 404);
     requireLogoRevision(variant.draftRevision, input.expectedDraftRevision);
     validateProject(variant.draft, snapshot.assets);
+    const { createLogoPublication } = await import('./logoLibraryStorage');
     publication = await createLogoPublication(variant.draft, snapshot.assets);
   } else if (input.action === 'save') validateProject(input.project, snapshot.assets);
   else if (input.action === 'create' && input.project) validateProject(input.project, snapshot.assets);
@@ -84,6 +84,10 @@ export async function mutateLogoLibrary(input: Exclude<LogoLibraryAction, { acti
 export async function uploadLogoLibrarySource(name: string, bytes: Uint8Array, mimeType: LogoSourceAsset['mimeType'], expectedRevision: number, request?: Request) {
   const snapshot = await getLogoLibrary(); requireLogoRevision(snapshot.revision, expectedRevision);
   if (snapshot.assets.length >= LOGO_LIBRARY_MAX_ASSETS) throw new LogoLibraryError('Knjižnica že vsebuje največje dovoljeno število izvornih slik.');
+  const [{ decodeLogoImport }, { storeLogoSource, imageLogoProject }] = await Promise.all([
+    import('./logoLibraryRender'),
+    import('./logoLibraryStorage')
+  ]);
   let decoded: Awaited<ReturnType<typeof decodeLogoImport>>;
   try { decoded = await decodeLogoImport(Buffer.from(bytes), mimeType); }
   catch (error) { throw new LogoLibraryError(error instanceof Error ? error.message : 'Slike ni mogoče odpreti.'); }
@@ -106,5 +110,9 @@ export async function uploadLogoLibrarySource(name: string, bytes: Uint8Array, m
 export async function previewLogoProject(input: unknown) {
   const library = await getLogoLibrary();
   const project = validateProject(input, library.assets);
+  const [{ renderLogoProject }, { readLogoSource }] = await Promise.all([
+    import('./logoLibraryRender'),
+    import('./logoLibraryStorage')
+  ]);
   return renderLogoProject(project, library.assets, readLogoSource);
 }

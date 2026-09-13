@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
+import { withAdminRoute } from '@/shared/auth/adminRoute';
 import { getDatabaseUrl, getPool } from '@/shared/server/db';
 import schemaContract from '../../../../../database/schema-contract.json';
 
@@ -134,4 +136,32 @@ export async function GET() {
       { status: 503 }
     );
   }
+}
+
+const invalidatePrerenderedHomepage = withAdminRoute(async (_request: Request) => {
+  const readiness = await GET();
+  if (!readiness.ok) return readiness;
+  // CI shards share the compiled build, but have independent databases and
+  // local logo assets. Expire the build-time HTML before their first page visit.
+  revalidatePath('/');
+  return NextResponse.json({ ok: true, revalidated: '/' });
+});
+
+export async function POST(request: Request) {
+  if (
+    process.env.E2E_MODE !== '1'
+    || process.env.E2E_LOCAL_PRIVATE_BLOB !== '1'
+    || process.env.VERCEL === '1'
+    || new URL(request.url).protocol !== 'http:'
+    || new URL(request.url).hostname !== 'localhost'
+  ) return new NextResponse(null, { status: 404 });
+  try {
+    const target = getConfiguredDatabaseTarget();
+    if (!['localhost', '127.0.0.1', '::1'].includes(target.serverAddress)) {
+      return new NextResponse(null, { status: 404 });
+    }
+  } catch {
+    return NextResponse.json({ ok: false, reason: 'e2e-database-not-configured' }, { status: 503 });
+  }
+  return invalidatePrerenderedHomepage(request);
 }

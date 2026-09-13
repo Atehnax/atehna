@@ -1,3 +1,4 @@
+import { withRuntimeTiming } from '@/shared/server/diagnostics/runtimeTiming';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import SiteFooterGate from '@/commercial/components/SiteFooterGate';
 import { SiteLogoProvider } from '@/commercial/components/SiteLogo';
@@ -13,17 +14,18 @@ import { getProductAppearanceConfig } from '@/shared/server/productAppearance';
 import { getInventoryPolicySettings } from '@/shared/server/inventoryPolicy';
 
 export default async function CommercialRootLayout({ children }: { children: React.ReactNode }) {
-  const siteLogo = await getPublishedSiteLogos();
   const [
+    siteLogo,
     siteNavigation,
     globalStyle,
     productAppearance,
     inventoryPolicy
   ] = await Promise.all([
-    getSiteNavigationConfig(),
-    getGlobalStyleConfig(),
-    getProductAppearanceConfig(),
-    getInventoryPolicySettings()
+    withRuntimeTiming('app.dependency', 'shell.logo', () => getPublishedSiteLogos()),
+    withRuntimeTiming('app.dependency', 'shell.navigation', () => getSiteNavigationConfig()),
+    withRuntimeTiming('app.dependency', 'shell.global-style', () => getGlobalStyleConfig()),
+    withRuntimeTiming('app.dependency', 'shell.product-appearance', () => getProductAppearanceConfig()),
+    withRuntimeTiming('app.dependency', 'shell.inventory-policy', () => getInventoryPolicySettings())
   ]);
 
   return (

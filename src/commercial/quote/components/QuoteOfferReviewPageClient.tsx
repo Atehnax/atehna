@@ -538,7 +538,7 @@ export default function QuoteOfferReviewPageClient() {
     !currentOffer.canAccept && !currentOffer.canDecline && currentOffer.state !== 'accepted';
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="w-full min-w-0">
       <header className="site-panel p-6 sm:p-8">
         <p className="site-eyebrow">Ponudba Atehna</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">

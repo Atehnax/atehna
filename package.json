@@ -12,6 +12,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test:unit": "tsx --test --test-concurrency=4 tests/unit/*.test.ts",
     "test:e2e": "playwright test",
+    "check:page-width": "tsx scripts/check-page-content-width.mjs",
     "check:schema-contract": "node scripts/check-database-schema.mjs --files-only",
     "check:database-schema": "node scripts/check-database-schema.mjs --require-database",
     "e2e:db:prepare": "node scripts/e2e-database.mjs prepare",

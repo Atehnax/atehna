@@ -10,7 +10,6 @@
   min-block-size: 70vh;
 }
 .catalog {
-  max-inline-size: calc(1240 * var(--u));
   padding-block: calc(27 * var(--u)) calc(72 * var(--u));
   font-size: calc(14 * var(--u));
   line-height: 1.45;

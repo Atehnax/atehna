@@ -1011,11 +1011,7 @@ function ProductPreview({
     : isTablet
       ? 'minmax(0, 1.08fr) minmax(0, 0.92fr)'
       : `${config.productPage.galleryColumns}fr ${config.productPage.informationColumns}fr ${config.productPage.purchaseColumns}fr`;
-  const relatedColumnCount = isMobile
-    ? config.relatedProducts.mobileColumns
-    : isTablet
-      ? config.relatedProducts.tabletColumns
-      : config.relatedProducts.desktopColumns;
+  const relatedPreviewGap = Math.min(24, Math.max(8, config.relatedProducts.gapPx));
   const previewHasDocuments = false;
   const previewHasIncludedItems = false;
   const secondaryTabs = config.secondaryContent.blockOrder.filter((block) => (
@@ -1316,8 +1312,29 @@ function ProductPreview({
         {config.relatedProducts.enabled ? (
           wrapElement('product-related-products', <div>
             <h4 className="text-[12px] font-bold text-slate-900">Sorodni izdelki</h4>
-            <div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, relatedColumnCount)}, minmax(0, 1fr))` }}>
-              {Array.from({ length: Math.min(4, Math.max(2, relatedColumnCount)) }, (_, index) => <div key={index} className="aspect-[4/3] rounded-lg border border-slate-200 bg-slate-50" />)}
+            <div
+              className="mt-2 grid min-w-0 overflow-x-auto pb-1"
+              style={{
+                gridAutoFlow: 'column',
+                gridAutoColumns: isMobile || isTablet
+                  ? 'min(85%, 240px)'
+                  : `calc((100% - ${relatedPreviewGap * 5}px) / 6)`,
+                gap: relatedPreviewGap
+              }}
+              aria-hidden="true"
+            >
+              {Array.from({ length: Math.min(12, Math.max(1, config.relatedProducts.maxItems)) }, (_, index) => (
+                <div key={index} className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="aspect-square w-full bg-slate-100" />
+                  <div className="space-y-2 p-2">
+                    <div className="h-1.5 w-1/2 rounded bg-slate-200" />
+                    <div className="h-2 w-4/5 rounded bg-slate-300" />
+                    <div className="h-1.5 w-full rounded bg-slate-100" />
+                    <div className="h-1.5 w-3/4 rounded bg-slate-100" />
+                    <div className="pt-2"><div className="h-2 w-1/2 rounded bg-slate-300" /></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>, 'mt-4')
         ) : null}
@@ -1385,12 +1402,12 @@ export default function AdminProductAppearancePageClient({
     return {
       desktop: Math.max(
         tablet + 1,
-        toCommercialStorefrontLogicalPx(initialGlobalStyle.layout.maxWidthPx)
+        toCommercialStorefrontLogicalPx(initialSiteLayout.siteContentMaxWidthPx)
       ),
       tablet,
       mobile: toCommercialStorefrontLogicalPx(390)
     };
-  }, [initialGlobalStyle.layout.maxWidthPx]);
+  }, [initialSiteLayout.siteContentMaxWidthPx]);
   const getPreviewTargetGeometry = useCallback((
     device: PreviewDevice,
     availableWidth: number
@@ -2341,20 +2358,14 @@ export default function AdminProductAppearancePageClient({
 
     if (section === 'relatedProducts') return (
       <SettingsGroup title="Sorodni artikli in dodatki">
+        <p className="text-xs leading-5 text-slate-500">Na računalniku je šest pokončnih kartic v eni vrstici; na manjših zaslonih se vrstica pomika vodoravno. Slike so kvadratne, sklop zapolni širino vsebine.</p>
         <FieldGrid>
           <SelectField label="Samodejni izbor" value={config.relatedProducts.sourceMode} options={[{ value: 'same-category', label: 'Ista kategorija' }, { value: 'same-subcategory', label: 'Ista podkategorija' }, { value: 'manual-only', label: 'Samo ročno' }]} onChange={(sourceMode) => updateSection('relatedProducts', { sourceMode })} />
           <SelectField label="Ročno izbrani izdelki" value={config.relatedProducts.manualPlacement} options={[{ value: 'before-auto', label: 'Pred samodejnimi' }, { value: 'after-auto', label: 'Za samodejnimi' }]} onChange={(manualPlacement) => updateSection('relatedProducts', { manualPlacement })} />
           <NumberField label="Največ artiklov" value={config.relatedProducts.maxItems} min={1} max={12} onChange={(maxItems) => updateSection('relatedProducts', { maxItems })} />
-          <NumberField label="Stolpci · desktop" value={config.relatedProducts.desktopColumns} min={2} max={6} onChange={(desktopColumns) => updateSection('relatedProducts', { desktopColumns })} />
-          <NumberField label="Stolpci · tablica" value={config.relatedProducts.tabletColumns} min={1} max={4} onChange={(tabletColumns) => updateSection('relatedProducts', { tabletColumns })} />
-          <NumberField label="Stolpci · mobilno" value={config.relatedProducts.mobileColumns} min={1} max={2} onChange={(mobileColumns) => updateSection('relatedProducts', { mobileColumns })} />
-          <NumberField label="Razmik med karticami" value={config.relatedProducts.gapPx} min={8} max={64} suffix="px" onChange={(gapPx) => updateSection('relatedProducts', { gapPx })} />
-          <NumberField label="Širina kartice" value={config.relatedProducts.cardWidthPx} min={160} max={860} suffix="px" onChange={(cardWidthPx) => updateSection('relatedProducts', { cardWidthPx })} />
-          <NumberField label={config.productPage.layout === 'showcase' ? 'Velikost kvadratne slike' : 'Višina slike kartice'} value={config.relatedProducts.imageHeightPx} min={96} max={480} suffix="px" onChange={(imageHeightPx) => updateSection('relatedProducts', { imageHeightPx })} />
+          <NumberField label="Razmik med karticami" value={Math.min(24, config.relatedProducts.gapPx)} min={8} max={24} suffix="px" onChange={(gapPx) => updateSection('relatedProducts', { gapPx })} />
           <NumberField label="Velikost besedila kartice" value={config.relatedProducts.textScalePercent} min={70} max={140} suffix="%" onChange={(textScalePercent) => updateSection('relatedProducts', { textScalePercent })} />
-          <NumberField label="Širina sklopa" value={config.relatedProducts.sectionWidthPercent} min={25} max={100} suffix="%" onChange={(sectionWidthPercent) => updateSection('relatedProducts', { sectionWidthPercent })} />
           <SelectField label="Položaj sklopa" value={config.relatedProducts.sectionPlacement} options={[{ value: 'before-content', label: 'Pred opisom' }, { value: 'after-content', label: 'Za opisom' }]} onChange={(sectionPlacement) => updateSection('relatedProducts', { sectionPlacement })} />
-          <SelectField label="Poravnava sklopa" value={config.relatedProducts.sectionAlignment} options={[{ value: 'left', label: 'Levo' }, { value: 'center', label: 'Sredina' }, { value: 'right', label: 'Desno' }]} onChange={(sectionAlignment) => updateSection('relatedProducts', { sectionAlignment })} />
         </FieldGrid>
         <div className="grid gap-2 sm:grid-cols-2">
           <ToggleField label="Omogočeno" checked={config.relatedProducts.enabled} onChange={(enabled) => updateSection('relatedProducts', { enabled })} />

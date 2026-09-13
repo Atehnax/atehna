@@ -15,7 +15,7 @@ export const metadata = {
 export default function PurchaseOrderUploadPage() {
   return (
     <div className="container-base site-section" data-testid="purchase-order-page">
-      <div className="mx-auto max-w-6xl">
+      <div className="w-full min-w-0">
         <header className="site-card">
           <Link
             href="/order/confirmation"

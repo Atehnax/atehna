@@ -1464,7 +1464,7 @@ export default function AdminOrderDetailClient({
 
   return (
     <div className="w-full font-['Inter',system-ui,sans-serif]">
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="w-full min-w-0 space-y-5">
         <div className="-mb-2 text-xs text-slate-500">
           <Link href="/admin/orders" className="hover:underline">Naročila</Link>
           <span className="mx-1 text-slate-400">›</span>

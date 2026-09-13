@@ -894,7 +894,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
             openByDefault,
             content: (
               visibleRelatedProducts.length > 0 ? (
-                <div className="storefront-related-product-grid">
+                <div className="storefront-related-product-grid" role="region" aria-label={appearance.secondaryContent.sectionLabels.relatedProducts} tabIndex={0}>
                   {visibleRelatedProducts.map((related) => isShowcase ? (
                     <ProductRelatedReferenceCard key={related.id} product={related} canvasWrapper={wrapCanvasElement} />
                   ) : (
@@ -960,7 +960,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         'product-related-products',
         'Sorodni izdelki',
         <section
-          className={`storefront-related-products-section mt-6 ${!isShowcase && !canvasActive && !canvasEditor ? relatedResponsiveStyles.responsiveRelated : ''}`}
+          className={`storefront-related-products-section mt-6 ${relatedResponsiveStyles.responsiveRelated}`}
           aria-labelledby="related-products-title"
         >
           {wrapCanvasElement(

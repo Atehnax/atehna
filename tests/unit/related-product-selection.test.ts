@@ -134,8 +134,8 @@ describe('related product recommendation contracts', () => {
 
   test('uses the reference related-card sizing without altering ordinary listing cards', () => {
     expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts).toMatchObject({
-      cardWidthPx: 640,
-      imageHeightPx: 112,
+      cardWidthPx: 220,
+      imageHeightPx: 160,
       textScalePercent: 100
     });
 

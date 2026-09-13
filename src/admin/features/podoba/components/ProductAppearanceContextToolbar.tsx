@@ -1016,8 +1016,8 @@ function ContentPanel({
             <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
               <AppearanceEditorNumberInput
                 min={8}
-                max={64}
-                value={relatedProducts.gapPx}
+                max={24}
+                value={Math.min(24, relatedProducts.gapPx)}
                 onValueChange={(value) => onRelatedProductsChange({
                   gapPx: value
                 })}
@@ -1028,58 +1028,12 @@ function ContentPanel({
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {([
-            ['desktopColumns', 'Desktop', 6],
-            ['tabletColumns', 'Tablica', 4],
-            ['mobileColumns', 'Mobilno', 2]
-          ] as const).map(([key, label, maximum]) => (
-            <label key={key} className="grid gap-1">
-              <span className="text-[9px] font-medium text-white/70">{label}</span>
-              <AppearanceEditorNumberInput
-                min={1}
-                max={maximum}
-                value={relatedProducts[key]}
-                onValueChange={(value) => onRelatedProductsChange({
-                  [key]: value
-                })}
-                className={fieldClassName}
-              />
-            </label>
-          ))}
-        </div>
+        <p className="text-[10px] leading-4 text-white/65">
+          Na računalniku je šest pokončnih kartic v eni vrstici; na manjših zaslonih se vrstica pomika vodoravno.
+          Slike so kvadratne, sklop zapolni širino vsebine.
+        </p>
 
-        <div className="grid grid-cols-3 gap-2">
-          <label className="grid gap-1">
-            <span className="text-[9px] font-medium text-white/70">Širina kartice</span>
-            <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <AppearanceEditorNumberInput
-                min={160}
-                max={860}
-                value={relatedProducts.cardWidthPx}
-                onValueChange={(value) => onRelatedProductsChange({
-                  cardWidthPx: value
-                })}
-                className="h-8 min-w-0 flex-1 bg-transparent px-2 text-[10px] text-slate-800 outline-none"
-              />
-              <span className="grid place-items-center border-l border-slate-200 px-1.5 text-[9px] text-slate-500">px</span>
-            </div>
-          </label>
-          <label className="grid gap-1">
-            <span className="text-[9px] font-medium text-white/70">{productLayout === 'showcase' ? 'Velikost kvadratne slike' : 'Višina slike'}</span>
-            <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <AppearanceEditorNumberInput
-                min={96}
-                max={480}
-                value={relatedProducts.imageHeightPx}
-                onValueChange={(value) => onRelatedProductsChange({
-                  imageHeightPx: value
-                })}
-                className="h-8 min-w-0 flex-1 bg-transparent px-2 text-[10px] text-slate-800 outline-none"
-              />
-              <span className="grid place-items-center border-l border-slate-200 px-1.5 text-[9px] text-slate-500">px</span>
-            </div>
-          </label>
+        <div className="grid grid-cols-2 gap-2">
           <label className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Besedilo</span>
             <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -1095,9 +1049,6 @@ function ContentPanel({
               <span className="grid place-items-center border-l border-slate-200 px-1.5 text-[9px] text-slate-500">%</span>
             </div>
           </label>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Položaj sklopa</span>
             <CompactContextSelect
@@ -1111,33 +1062,7 @@ function ContentPanel({
               onChange={(sectionPlacement) => onRelatedProductsChange({ sectionPlacement })}
             />
           </div>
-          <div className="grid gap-1">
-            <span className="text-[9px] font-medium text-white/70">Poravnava</span>
-            <AppearanceEditorAlignmentControl
-              value={relatedProducts.sectionAlignment}
-              options={['left', 'center', 'right'] as const}
-              className="w-full"
-              ariaLabel="Poravnava sklopa povezanih izdelkov"
-              onValueChange={(sectionAlignment) => onRelatedProductsChange({ sectionAlignment })}
-            />
-          </div>
         </div>
-
-        <label className="grid gap-1">
-          <span className="text-[9px] font-medium text-white/70">Širina sklopa</span>
-          <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <AppearanceEditorNumberInput
-              min={25}
-              max={100}
-              value={relatedProducts.sectionWidthPercent}
-              onValueChange={(value) => onRelatedProductsChange({
-                sectionWidthPercent: value
-              })}
-              className="h-8 min-w-0 flex-1 bg-transparent px-2.5 text-[11px] text-slate-800 outline-none"
-            />
-            <span className="grid place-items-center border-l border-slate-200 px-2 text-[10px] text-slate-500">%</span>
-          </div>
-        </label>
 
         <div className="grid gap-2 border-t border-white/15 pt-3">
           <div>

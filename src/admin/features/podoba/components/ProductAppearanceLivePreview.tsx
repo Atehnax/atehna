@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   type RefObject
 } from 'react';
-import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
+import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import ProductDetailView from '@/commercial/components/storefront/ProductDetailView';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
 import type { StorefrontProduct } from '@/commercial/features/products/storefrontProduct';
@@ -26,6 +26,7 @@ import {
 import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import ProductCanvasGuidesOverlay from '@/shared/ui/product-canvas/ProductCanvasGuidesOverlay';
 import { appearancePreviewMotionEventName } from '@/shared/ui/responsive-preview-motion';
+import { getPageContentInsets } from '@/shared/domain/layout/pageContent';
 
 const logicalWidthByDevice: Record<Exclude<ProductCanvasDevice, 'desktop'>, number> = {
   tablet: toCommercialStorefrontLogicalPx(900),
@@ -65,7 +66,7 @@ export default function ProductAppearanceLivePreview({
   const [scale, setScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(620);
   const settledLogicalWidth = device === 'desktop'
-    ? toCommercialStorefrontLogicalPx(globalStyle.layout.maxWidthPx)
+    ? toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx)
     : logicalWidthByDevice[device];
   const previewConfig = config;
   const themeStyle = useMemo(() => {
@@ -77,6 +78,7 @@ export default function ProductAppearanceLivePreview({
     const contentMaxWidth = toCommercialStorefrontLogicalPx(
       siteLayout.siteContentMaxWidthPx
     );
+    const contentInsets = getPageContentInsets(settledLogicalWidth * COMMERCIAL_STOREFRONT_SCALE);
     return {
       ...variables,
       ...toProductAppearanceCssVariables(
@@ -84,6 +86,9 @@ export default function ProductAppearanceLivePreview({
         storefrontDimensionScale
       ),
       '--site-content-max-width': `${contentMaxWidth}px`,
+      '--site-page-content-scale': String(COMMERCIAL_STOREFRONT_SCALE),
+      '--site-page-inset-start': `${contentInsets.startPx}px`,
+      '--site-page-inset-end': `${contentInsets.endPx}px`,
       '--site-gutter': device === 'mobile'
         ? variables['--site-gutter-mobile']
         : device === 'tablet'
@@ -95,7 +100,7 @@ export default function ProductAppearanceLivePreview({
           ? variables['--site-section-space-tablet']
           : variables['--site-section-space-desktop']
     } as CSSProperties;
-  }, [device, globalStyle, previewConfig, siteLayout.siteContentMaxWidthPx]);
+  }, [device, globalStyle, previewConfig, settledLogicalWidth, siteLayout.siteContentMaxWidthPx]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;

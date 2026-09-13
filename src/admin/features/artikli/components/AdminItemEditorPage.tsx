@@ -146,6 +146,8 @@ import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/sh
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { readCatalogSpecificationLabels } from '@/shared/domain/catalog/catalogSpecification';
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
+import { isCatalogDimensionOptionAxis } from '@/shared/domain/catalog/catalogDimensionOptions';
+import { hydrateCatalogOptionAxes, hydrateVariantOptionSelections } from '@/admin/features/artikli/lib/optionHydration';
 import {
   classNames,
   CompactSegmentedField,
@@ -1115,26 +1117,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
 
 
 function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydration | null, createType: CreateType): EditorPersistedState {
-  const optionAxes: ProductOptionAxisDraft[] = (initialData?.optionAxes ?? []).map((axis, axisIndex) => ({
-    id: axis.id ? String(axis.id) : `axis-${axisIndex}`,
-    name: axis.name,
-    slug: axis.slug,
-    position: axis.position ?? axisIndex,
-    values: axis.values.map((value, valueIndex) => ({
-      id: value.id ? String(value.id) : `value-${axisIndex}-${valueIndex}`,
-      value: value.value,
-      slug: value.slug,
-      swatch: value.swatch ?? null,
-      position: value.position ?? valueIndex
-    }))
-  }));
-  const optionSelectionByValueId = new Map<number, { axisId: string; valueId: string }>();
-  for (const axis of optionAxes) {
-    for (const value of axis.values) {
-      const persistedValueId = /^\d+$/.test(value.id) ? Number(value.id) : null;
-      if (persistedValueId !== null) optionSelectionByValueId.set(persistedValueId, { axisId: axis.id, valueId: value.id });
-    }
-  }
+  const optionAxes = hydrateCatalogOptionAxes(initialData?.optionAxes ?? []);
   const family = initialData
     ? createFamily({
         id: String(initialData.id),
@@ -1181,12 +1164,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
                 sort: index + 1,
                 imageAssignments: [...(variant.imageAssignments ?? [])],
                 optionValueIds: [...(variant.optionValueIds ?? [])],
-                optionSelections: Object.fromEntries(
-                  (variant.optionValueIds ?? [])
-                    .map((valueId) => optionSelectionByValueId.get(valueId))
-                    .filter((selection): selection is { axisId: string; valueId: string } => Boolean(selection))
-                    .map((selection) => [selection.axisId, selection.valueId])
-                )
+                optionSelections: hydrateVariantOptionSelections(optionAxes, variant.optionValueIds ?? [])
               })
             )
           : [createVariant({ label: 'Osnovni artikel' })])
@@ -3176,14 +3154,27 @@ export default function AdminItemEditorPage({
       localImageUrlsToRevoke.forEach(revokeLocalImageUrl);
       localVideoUrlsToRevoke.forEach(revokeLocalImageUrl);
 
+      const savedOptionAxes = body.optionAxes
+        ? hydrateCatalogOptionAxes(body.optionAxes)
+        : nextDraft.optionAxes;
       const canonicalDraft: ProductFamily = {
         ...nextDraft,
+        optionAxes: savedOptionAxes,
         slug: body.slug ?? nextSlug,
         category: preparedState.selectedCategoryPath.join(' / '),
         variants: nextDraft.variants.map((variant, index) => {
           const persisted = body.variants?.find((entry) => String(entry.id) === variant.id)
             ?? (!/^\d+$/.test(variant.id) ? body.variants?.[index] : undefined);
-          return persisted ? { ...variant, id: String(persisted.id), stockRevision: persisted.stockRevision, pricingRevision: persisted.pricingRevision } : variant;
+          return persisted ? {
+            ...variant,
+            id: String(persisted.id),
+            stockRevision: persisted.stockRevision,
+            pricingRevision: persisted.pricingRevision,
+            ...(body.optionAxes && persisted.optionValueIds ? {
+              optionValueIds: [...persisted.optionValueIds],
+              optionSelections: hydrateVariantOptionSelections(savedOptionAxes, persisted.optionValueIds)
+            } : {})
+          } : variant;
         })
       };
       const canonicalSnapshot: EditorPersistedState = {
@@ -3734,12 +3725,22 @@ export default function AdminItemEditorPage({
     });
   };
 
+  // Dimension choices for the storefront are derived from the numeric row on save.
+  const editableOptionAxes = draft.optionAxes.filter((axis) =>
+    !isDimensionBasedMode || !isCatalogDimensionOptionAxis(axis)
+  );
   const updateOptionAxes = (optionAxes: ProductFamily['optionAxes']) => {
-    const valid = new Map(optionAxes.map((axis) => [axis.id, new Set(axis.values.map((value) => value.id))]));
-    setDraft((current) => ({ ...current, optionAxes, variants: current.variants.map((variant) => ({
-      ...variant,
-      optionSelections: Object.fromEntries(Object.entries(variant.optionSelections ?? {}).filter(([axisId, valueId]) => valid.get(axisId)?.has(valueId)))
-    })) }));
+    setDraft((current) => {
+      const managedAxes = isDimensionBasedMode
+        ? current.optionAxes.filter(isCatalogDimensionOptionAxis)
+        : [];
+      const nextAxes = [...managedAxes, ...optionAxes];
+      const valid = new Map(nextAxes.map((axis) => [axis.id, new Set(axis.values.map((value) => value.id))]));
+      return { ...current, optionAxes: nextAxes, variants: current.variants.map((variant) => ({
+        ...variant,
+        optionSelections: Object.fromEntries(Object.entries(variant.optionSelections ?? {}).filter(([axisId, valueId]) => valid.get(axisId)?.has(valueId)))
+      })) };
+    });
   };
   const renderVariantOptionField = (variant: Variant, axisId: string) => {
     const axis = draft.optionAxes.find((entry) => entry.id === axisId);
@@ -3753,12 +3754,12 @@ export default function AdminItemEditorPage({
       })}
     />;
   };
-  const variantOptionsToolbar = <ProductVariantOptionsCard editable={isEditable} axes={draft.optionAxes} onAxesChange={updateOptionAxes} />;
+  const variantOptionsToolbar = <ProductVariantOptionsCard editable={isEditable} axes={editableOptionAxes} onAxesChange={updateOptionAxes} />;
   const variantMatrixRows: typeof DIMENSION_VARIANT_MATRIX_ROWS = [
     ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'default'),
     { key: 'label', label: 'Naziv različice', help: 'Naziv prodajne različice.' },
     ...(isDimensionBasedMode ? DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => row.key === 'dimensions' || row.key === 'tolerance') : [{ key: 'shippingDimensions' as const, label: 'Mere za dostavo', help: 'Dolžina, širina in višina ene pošiljke v milimetrih. Potrebno za izračun poštnine.' }]),
-    ...draft.optionAxes.map((axis) => ({ key: `option:${axis.id}` as const, label: axis.name, help: 'Vnesite vrednost ali izberite obstoječo.' })),
+    ...editableOptionAxes.map((axis) => ({ key: `option:${axis.id}` as const, label: axis.name, help: 'Vnesite vrednost ali izberite obstoječo.' })),
     { key: 'unit', label: 'Prodajna enota', help: 'Enota cene in zaloge, na primer kos ali paket.' },
     ...DIMENSION_VARIANT_MATRIX_ROWS.filter((row) => !['default', 'dimensions', 'tolerance'].includes(row.key)).map((row) => row.key === 'weight' && !isDimensionBasedMode ? { ...row, label: 'Masa za dostavo', help: 'Masa ene prodajne enote za dostavo v gramih. Neto vsebino navedite kot lastnost različice.' } : row)
   ];
@@ -5189,7 +5190,7 @@ export default function AdminItemEditorPage({
   ];
   return (
     <div
-      className="mx-auto max-w-7xl space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden"
+      className="w-full min-w-0 space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden"
       onFocus={handleUndoTrackedFieldFocus}
       onBlur={handleUndoTrackedFieldBlur}
     >

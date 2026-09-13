@@ -319,7 +319,8 @@ export type CatalogItemIdentityConflict = CatalogItemIdentityAvailability & {
 };
 
 export type CatalogItemSaveResponse = {
-  variants?: Array<{ id: number; stockRevision: string; pricingRevision: string }>;
+  optionAxes?: CatalogItemOptionAxisPayload[];
+  variants?: Array<{ id: number; stockRevision: string; pricingRevision: string; optionValueIds?: number[] }>;
   id?: number;
   slug?: string;
   updatedAt?: string;

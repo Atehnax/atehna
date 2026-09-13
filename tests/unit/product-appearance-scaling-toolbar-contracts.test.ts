@@ -39,7 +39,7 @@ const deviceSettings = (
 
 describe('product appearance proportional scaling and toolbar contracts', () => {
   test('content scale defaults, normalizes, clamps, and round-trips per device', () => {
-    assert.equal(DEFAULT_PRODUCT_APPEARANCE_CONFIG.schemaVersion, 17);
+    assert.equal(DEFAULT_PRODUCT_APPEARANCE_CONFIG.schemaVersion, 18);
     assert.equal(
       DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS.contentScale,
       1

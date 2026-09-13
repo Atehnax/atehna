@@ -1,154 +1,67 @@
-/* Public product detail only: the section opts out while the canvas is active. */
-@media (max-width: 1439px) {
-  :global([data-storefront-theme]) .responsiveRelated {
-    --related-responsive-image-size: calc(128px / var(--commercial-storefront-scale));
-    width: 100%;
-    min-inline-size: 0;
-    margin-inline: 0;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-grid) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: calc(16px / var(--commercial-storefront-scale));
-    align-items: stretch;
-    justify-items: stretch;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card),
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card-shell) {
-    inline-size: 100%;
-    max-inline-size: none;
-    min-inline-size: 0;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card-layout) {
-    grid-template-columns: var(--related-responsive-image-size) minmax(0, 1fr);
-    align-items: stretch;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-media) {
-    align-self: center;
-    block-size: var(--related-responsive-image-size);
-    min-block-size: 0;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-image) {
-    padding: calc(8px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-content) {
-    padding: calc(12px / var(--commercial-storefront-scale));
-    padding-inline-start: calc(4px / var(--commercial-storefront-scale));
-    row-gap: calc(4px / var(--commercial-storefront-scale));
-    font-size: calc(14px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-heading) {
-    gap: calc(8px / var(--commercial-storefront-scale));
-    align-items: flex-start;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-title) {
-    font-size: calc(14px / var(--commercial-storefront-scale));
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-category) {
-    margin-block-end: calc(2px / var(--commercial-storefront-scale));
-    font-size: calc(10px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-description) {
-    margin-block-start: calc(4px / var(--commercial-storefront-scale));
-    font-size: calc(14px / var(--commercial-storefront-scale));
-    line-height: 1.4;
-    -webkit-line-clamp: 4;
-    overflow-wrap: anywhere;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-price-primary) {
-    min-inline-size: 0;
-    max-inline-size: 100%;
-    font-size: calc(16px / var(--commercial-storefront-scale));
-    line-height: 1.05;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-listing-price-visual) {
-    max-inline-size: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-price-label),
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-price-discount-row) {
-    font-size: calc(11px / var(--commercial-storefront-scale));
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-product-card-action) {
-    min-inline-size: 0;
-    inline-size: 100%;
-    padding-block-start: calc(8px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-related-product-purchase-row) > :global(.storefront-product-card-action) {
-    flex: 1 1 100%;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-related-product-purchase-row) :global(.storefront-related-product-quick-add) {
-    inline-size: 100%;
-    gap: calc(8px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.site-button),
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-related-product-quantity) {
-    box-sizing: border-box;
-    block-size: calc(44px / var(--commercial-storefront-scale));
+/* Related cards stay portrait in both layouts and in appearance previews. */
+:global([data-storefront-theme]) .responsiveRelated {
+  width: 100%;
+  min-inline-size: 0;
+  margin-inline: 0;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card),
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card-shell) {
+  inline-size: 100%;
+  max-inline-size: none;
+  min-inline-size: 0;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card-layout) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: stretch;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-media) {
+  aspect-ratio: 1;
+  block-size: auto;
+  min-block-size: 0;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-image) {
+  object-fit: contain;
+  padding: calc(8px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-content) {
+  padding: calc(12px / var(--commercial-storefront-scale));
+  row-gap: calc(5px / var(--commercial-storefront-scale));
+  font-size: calc(13px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-title) {
+  font-size: calc(14px / var(--commercial-storefront-scale));
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-category) {
+  margin-block-end: calc(2px / var(--commercial-storefront-scale));
+  font-size: calc(10px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-description) {
+  margin-block-start: 0;
+  font-size: calc(12px / var(--commercial-storefront-scale));
+  line-height: 1.4;
+  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-price) {
+  margin-block-start: auto;
+  padding-block-start: calc(6px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-price-primary) {
+  font-size: calc(16px / var(--commercial-storefront-scale));
+  line-height: 1.15;
+}
+:global([data-storefront-theme]) .responsiveRelated :global(.storefront-listing-price-visual) {
+  max-inline-size: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+@media (max-width: 1024px) {
+  :global([data-storefront-theme]) .responsiveRelated :global(.site-button),
+  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-quantity) {
     min-block-size: calc(44px / var(--commercial-storefront-scale));
     min-height: calc(44px / var(--commercial-storefront-scale));
-    font-size: calc(14px / var(--commercial-storefront-scale));
-    line-height: 1.25;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.site-button) {
-    padding-block: calc(8px / var(--commercial-storefront-scale));
-    padding-inline: calc(10px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-related-product-quantity) {
-    flex: 1 1 0;
-    inline-size: 0;
-    min-inline-size: calc(44px / var(--commercial-storefront-scale));
-    padding-inline: calc(6px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-card) :global(.storefront-related-product-cart-button) {
-    flex: 0 0 calc(44px / var(--commercial-storefront-scale));
-    inline-size: calc(44px / var(--commercial-storefront-scale));
-    padding: 0;
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-cart-button) > svg {
-    inline-size: calc(20px / var(--commercial-storefront-scale));
-    block-size: calc(20px / var(--commercial-storefront-scale));
-  }
-}
-
-@media (max-width: 767px) {
-  :global([data-storefront-theme]) .responsiveRelated {
-    --related-responsive-image-size: calc(112px / var(--commercial-storefront-scale));
-  }
-
-  :global([data-storefront-theme]) .responsiveRelated :global(.storefront-related-product-grid) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: calc(12px / var(--commercial-storefront-scale));
-  }
-}
-
-@media (max-width: 360px) {
-  :global([data-storefront-theme]) .responsiveRelated {
-    --related-responsive-image-size: calc(96px / var(--commercial-storefront-scale));
   }
 }

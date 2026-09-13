@@ -141,6 +141,36 @@ export default function ProductCard({
     return validation.quantity;
   };
 
+  const cardPrice = (
+    <PriceBreakdown
+      unitNet={product.minUnitNet}
+      baseUnitNet={product.baseUnitNet}
+      maxUnitNet={
+        appearance.pricing.listingUsesPriceRange
+    ? product.maxUnitNet
+    : undefined
+      }
+      discountPct={
+        product.discountPct
+      }
+      taxRate={product.taxRate}
+      unit={product.unit}
+      compact
+      listingCard
+      className="storefront-product-card-price"
+      priceWrapper={
+        canvasActive
+    ? (children) =>
+        wrapCanvasElement(
+          canvasId('card-price', 'product-related-card-price'),
+          'Cena kartice',
+          children
+        )
+    : undefined
+      }
+    />
+  );
+
   const card = (
     <article
       data-product-card-layout={isRelated ? undefined : layout}
@@ -254,33 +284,7 @@ export default function ProductCard({
             </Link>,
             'min-w-0 flex-1'
           )}
-          <PriceBreakdown
-            unitNet={product.minUnitNet}
-            baseUnitNet={product.baseUnitNet}
-            maxUnitNet={
-              appearance.pricing.listingUsesPriceRange
-                ? product.maxUnitNet
-                : undefined
-            }
-            discountPct={
-              product.discountPct
-            }
-            taxRate={product.taxRate}
-            unit={product.unit}
-            compact
-            listingCard
-            className="storefront-product-card-price"
-            priceWrapper={
-              canvasActive
-                ? (children) =>
-                    wrapCanvasElement(
-                      canvasId('card-price', 'product-related-card-price'),
-                      'Cena kartice',
-                      children
-                    )
-                : undefined
-            }
-          />
+          {!isRelated ? cardPrice : null}
         </div>
 
         {(isRelated || appearance.listings.showShortDescription) &&
@@ -297,6 +301,7 @@ export default function ProductCard({
             </p>
           )
         ) : null}
+        {isRelated ? cardPrice : null}
         {!isRelated && appearance.listings.showSku && product.sku ? (
           wrapCanvasElement(
             'card-sku',

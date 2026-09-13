@@ -1,6 +1,7 @@
 import { getPool } from '@/shared/server/db';
 import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
+import { normalizeCatalogDimensionOptions } from '@/shared/domain/catalog/catalogDimensionOptions';
 import { getAuditActor, getAuditRequestContext, insertAuditEventForRequest } from '@/shared/server/audit';
 import type { AuditDiff } from '@/shared/audit/auditTypes';
 import { getCatalogVariantPublicationReasons, parseCatalogBulkActivationRequest, planCatalogItemActivation, type CatalogActivationSkippedTarget, type CatalogBulkActivationRequest, type CatalogBulkActivationResult } from '@/shared/domain/catalog/catalogActivation';
@@ -2863,152 +2864,157 @@ export async function quickPatchCatalogVariantByIdentifier(
   }
 }
 
-async function syncCatalogOptionAxes(
+export async function syncCatalogOptionAxes(
   client: PoolClient,
   itemId: number,
   optionAxes: NonNullable<CatalogItemEditorPayload['optionAxes']>
 ) {
-  const existingAxesResult = await client.query(
-    `
-    select id
-    from catalog_option_axes
-    where item_id = $1
-    `,
-    [itemId]
-  );
-  const existingAxisIds = new Set(existingAxesResult.rows.map((row) => asNumber(row.id)));
-  const retainedAxisIds: number[] = [];
+  type ExistingOption = { id: number; slug: string };
+  type RequestedOption = { id?: number; slug: string };
 
-  for (let axisIndex = 0; axisIndex < optionAxes.length; axisIndex += 1) {
-    const axis = optionAxes[axisIndex];
+  const resolveIds = (
+    requested: RequestedOption[],
+    existing: ExistingOption[],
+    label: string,
+    foreignIdMessage: (id: number) => string
+  ): Array<number | null> => {
+    const existingIds = new Set(existing.map((entry) => entry.id));
+    const reservedIds = new Set<number>();
+    const requestedSlugs = new Set<string>();
+    for (const entry of requested) {
+      if (requestedSlugs.has(entry.slug)) {
+        throw new CatalogItemValidationError(`${label} vsebuje podvojen slug »${entry.slug}«.`);
+      }
+      requestedSlugs.add(entry.slug);
+      if (entry.id === undefined || entry.id === null) continue;
+      if (!Number.isInteger(entry.id) || entry.id <= 0 || !existingIds.has(entry.id)) {
+        throw new CatalogItemValidationError(foreignIdMessage(entry.id));
+      }
+      if (reservedIds.has(entry.id)) {
+        throw new CatalogItemValidationError(`${label} vsebuje več vnosov z isto oznako ${entry.id}.`);
+      }
+      reservedIds.add(entry.id);
+    }
+    const existingBySlug = new Map(existing.map((entry) => [entry.slug, entry.id]));
+    return requested.map((entry) => {
+      if (entry.id !== undefined && entry.id !== null) return entry.id;
+      const existingId = existingBySlug.get(entry.slug);
+      if (existingId === undefined || reservedIds.has(existingId)) return null;
+      reservedIds.add(existingId);
+      return existingId;
+    });
+  };
+
+  // The caller holds the item lock and transaction. Move renamed rows aside
+  // before deleting omitted rows so swaps and reused slugs preserve retained IDs.
+  const prepareSlugs = async (
+    table: 'catalog_option_axes' | 'catalog_option_values',
+    ownerColumn: 'item_id' | 'axis_id',
+    ownerId: number,
+    existing: ExistingOption[],
+    requested: Array<{ id: number | null; slug: string }>
+  ) => {
+    const requestedById = new Map(requested.flatMap((entry) => entry.id === null ? [] : [[entry.id, entry.slug] as const]));
+    const occupiedSlugs = new Set([...existing.map((entry) => entry.slug), ...requested.map((entry) => entry.slug)]);
+    for (const entry of existing) {
+      const desiredSlug = requestedById.get(entry.id);
+      if (desiredSlug === undefined || desiredSlug === entry.slug) continue;
+      let suffix = 0;
+      let temporarySlug = `__catalog_sync_${entry.id}`;
+      while (occupiedSlugs.has(temporarySlug)) temporarySlug = `__catalog_sync_${entry.id}_${++suffix}`;
+      occupiedSlugs.add(temporarySlug);
+      await client.query(
+        `update ${table} set slug = $1 where id = $2 and ${ownerColumn} = $3`,
+        [temporarySlug, entry.id, ownerId]
+      );
+    }
+    await client.query(
+      `delete from ${table} where ${ownerColumn} = $1 and not (id = any($2::bigint[]))`,
+      [ownerId, [...requestedById.keys()]]
+    );
+  };
+
+  const normalizedAxes = optionAxes.map((axis) => {
     const name = axis.name.trim();
     const slug = axis.slug.trim();
     if (!name || !slug) throw new CatalogItemValidationError('Vsaka izbirna lastnost potrebuje naziv in slug.');
     if (!Array.isArray(axis.values) || axis.values.length === 0) {
       throw new CatalogItemValidationError(`Izbirna lastnost »${name}« potrebuje najmanj eno vrednost.`);
     }
+    return {
+      ...axis, name, slug,
+      values: axis.values.map((entry) => {
+        const value = entry.value.trim();
+        const valueSlug = entry.slug.trim();
+        if (!value || !valueSlug) {
+          throw new CatalogItemValidationError(`Vsaka vrednost lastnosti »${name}« potrebuje naziv in slug.`);
+        }
+        return { ...entry, value, slug: valueSlug };
+      })
+    };
+  });
 
-    const requestedAxisId = axis.id && Number.isInteger(axis.id) && axis.id > 0 ? axis.id : null;
-    if (requestedAxisId !== null && !existingAxisIds.has(requestedAxisId)) {
-      throw new Error(`Izbirna lastnost ${requestedAxisId} ne pripada temu artiklu.`);
-    }
-
-    const axisId = requestedAxisId !== null
-      ? asNumber((
-          await client.query(
-            `
-            update catalog_option_axes
-            set name = $1,
-                slug = $2,
-                position = $3,
-                updated_at = now()
-            where id = $4
-              and item_id = $5
-            returning id
-            `,
-            [name, slug, axis.position ?? axisIndex, requestedAxisId, itemId]
-          )
-        ).rows[0]?.id)
-      : asNumber((
-          await client.query(
-            `
-            insert into catalog_option_axes (item_id, name, slug, position)
-            values ($1,$2,$3,$4)
-            returning id
-            `,
-            [itemId, name, slug, axis.position ?? axisIndex]
-          )
-        ).rows[0]?.id);
-
-    if (!axisId) throw new Error('Shranjevanje izbirne lastnosti ni uspelo.');
-    retainedAxisIds.push(axisId);
-
-    const existingValuesResult = await client.query(
-      `
-      select id
-      from catalog_option_values
-      where axis_id = $1
-      `,
+  const existingAxes = (await client.query(
+    'select id, slug from catalog_option_axes where item_id = $1',
+    [itemId]
+  )).rows.map((row) => ({ id: asNumber(row.id), slug: String(row.slug) }));
+  const resolvedAxisIds = resolveIds(
+    normalizedAxes, existingAxes, 'Seznam izbirnih lastnosti',
+    (id) => `Izbirna lastnost ${id} ne pripada temu artiklu.`
+  );
+  const plans = [];
+  for (const [axisIndex, axis] of normalizedAxes.entries()) {
+    const axisId = resolvedAxisIds[axisIndex];
+    const existingValues = axisId === null ? [] : (await client.query(
+      'select id, slug from catalog_option_values where axis_id = $1',
       [axisId]
+    )).rows.map((row) => ({ id: asNumber(row.id), slug: String(row.slug) }));
+    const valueIds = resolveIds(
+      axis.values, existingValues, `Izbirna lastnost »${axis.name}«`,
+      (id) => `Vrednost ${id} ne pripada izbirni lastnosti »${axis.name}«.`
     );
-    const existingValueIds = new Set(existingValuesResult.rows.map((row) => asNumber(row.id)));
-    const retainedValueIds: number[] = [];
-
-    for (let valueIndex = 0; valueIndex < axis.values.length; valueIndex += 1) {
-      const optionValue = axis.values[valueIndex];
-      const value = optionValue.value.trim();
-      const valueSlug = optionValue.slug.trim();
-      if (!value || !valueSlug) {
-        throw new CatalogItemValidationError(`Vsaka vrednost lastnosti »${name}« potrebuje naziv in slug.`);
-      }
-
-      const requestedValueId =
-        optionValue.id && Number.isInteger(optionValue.id) && optionValue.id > 0
-          ? optionValue.id
-          : null;
-      if (requestedValueId !== null && !existingValueIds.has(requestedValueId)) {
-        throw new Error(`Vrednost ${requestedValueId} ne pripada izbirni lastnosti »${name}«.`);
-      }
-
-      const valueId = requestedValueId !== null
-        ? asNumber((
-            await client.query(
-              `
-              update catalog_option_values
-              set value = $1,
-                  slug = $2,
-                  swatch = $3,
-                  position = $4,
-                  updated_at = now()
-              where id = $5
-                and axis_id = $6
-              returning id
-              `,
-              [value, valueSlug, asStringOrNull(optionValue.swatch), optionValue.position ?? valueIndex, requestedValueId, axisId]
-            )
-          ).rows[0]?.id)
-        : asNumber((
-            await client.query(
-              `
-              insert into catalog_option_values (axis_id, value, slug, swatch, position)
-              values ($1,$2,$3,$4,$5)
-              returning id
-              `,
-              [axisId, value, valueSlug, asStringOrNull(optionValue.swatch), optionValue.position ?? valueIndex]
-            )
-          ).rows[0]?.id);
-
-      if (!valueId) throw new Error('Shranjevanje vrednosti izbirne lastnosti ni uspelo.');
-      retainedValueIds.push(valueId);
-    }
-
-    if (retainedValueIds.length > 0) {
-      await client.query(
-        `
-        delete from catalog_option_values
-        where axis_id = $1
-          and not (id = any($2::bigint[]))
-        `,
-        [axisId, retainedValueIds]
-      );
-    } else {
-      await client.query('delete from catalog_option_values where axis_id = $1', [axisId]);
-    }
+    plans.push({ axis, axisId, existingValues, valueIds });
   }
 
-  if (retainedAxisIds.length > 0) {
-    await client.query(
-      `
-      delete from catalog_option_axes
-      where item_id = $1
-        and not (id = any($2::bigint[]))
-      `,
-      [itemId, retainedAxisIds]
-    );
-  } else {
-    await client.query('delete from catalog_option_axes where item_id = $1', [itemId]);
+  await prepareSlugs('catalog_option_axes', 'item_id', itemId, existingAxes,
+    plans.map(({ axis, axisId }) => ({ id: axisId, slug: axis.slug })));
+  for (const [axisIndex, plan] of plans.entries()) {
+    const { axis, existingValues, valueIds } = plan;
+    const axisId = plan.axisId !== null
+      ? asNumber((await client.query(
+          `update catalog_option_axes
+           set name = $1, slug = $2, position = $3, updated_at = now()
+           where id = $4 and item_id = $5 returning id`,
+          [axis.name, axis.slug, axis.position ?? axisIndex, plan.axisId, itemId]
+        )).rows[0]?.id)
+      : asNumber((await client.query(
+          `insert into catalog_option_axes (item_id, name, slug, position)
+           values ($1,$2,$3,$4) returning id`,
+          [itemId, axis.name, axis.slug, axis.position ?? axisIndex]
+        )).rows[0]?.id);
+    if (!axisId) throw new Error('Shranjevanje izbirne lastnosti ni uspelo.');
+
+    await prepareSlugs('catalog_option_values', 'axis_id', axisId, existingValues,
+      axis.values.map((value, index) => ({ id: valueIds[index], slug: value.slug })));
+    for (const [valueIndex, optionValue] of axis.values.entries()) {
+      const requestedValueId = valueIds[valueIndex];
+      const valueId = requestedValueId !== null
+        ? asNumber((await client.query(
+            `update catalog_option_values
+             set value = $1, slug = $2, swatch = $3, position = $4, updated_at = now()
+             where id = $5 and axis_id = $6 returning id`,
+            [optionValue.value, optionValue.slug, asStringOrNull(optionValue.swatch), optionValue.position ?? valueIndex, requestedValueId, axisId]
+          )).rows[0]?.id)
+        : asNumber((await client.query(
+            `insert into catalog_option_values (axis_id, value, slug, swatch, position)
+             values ($1,$2,$3,$4,$5) returning id`,
+            [axisId, optionValue.value, optionValue.slug, asStringOrNull(optionValue.swatch), optionValue.position ?? valueIndex]
+          )).rows[0]?.id);
+      if (!valueId) throw new Error('Shranjevanje vrednosti izbirne lastnosti ni uspelo.');
+    }
   }
 }
+
 
 async function syncCatalogVariantOptionAssignments(
   client: PoolClient,
@@ -3167,7 +3173,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
   if (!Array.isArray(inputPayload.variants) || inputPayload.variants.length === 0) {
     throw new CatalogItemValidationError('Artikel potrebuje najmanj eno različico.');
   }
-  const payload = normalizeCatalogEditorShippingPayload(inputPayload);
+  const payload = normalizeCatalogEditorShippingPayload(normalizeCatalogDimensionOptions(inputPayload));
   const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
     payload.appearanceOverride
   );

@@ -34,7 +34,12 @@ This project uses **CSS variables in `src/shared/styles/globals.css`** as the so
 - For new status/chart/UI colours, first add a CSS variable token in `globals.css`, then map in `tailwind.config.ts` if Tailwind class usage is needed.
 - Prefer semantic tokens (`--semantic-info/success/warning`) for meaning-driven UI (e.g. analytics colours, status-adjacent controls) rather than hardcoded brand shades.
 
-## Layout note
+## Page content width
 
-- Public pages are centered by the shared `.container-base` utility in `src/shared/styles/globals.css` (`mx-auto` + `max-w-6xl`).
-- The public page flow is hosted by `src/commercial/shell/rootLayout.tsx (re-exported by src/app/layout.tsx shell)` (`<main className="flex-1">`) to preserve normal block width behavior for centered containers.
+- Admin, landing, catalog, and product pages share `SiteNavigationConfig.siteLayout.siteContentMaxWidthPx` through `--site-content-max-width` (default 1500 rendered pixels). Do not add page-specific maximum widths or use the legacy homepage/product appearance width settings to override it.
+- Admin's `.site-page-content` fills the space inside its existing sidebar padding. Public `.container-base` and `.site-container` center the same available width: the smaller of the configured maximum and the viewport minus the admin's horizontal space reservation.
+- `--site-page-inset-start` / `--site-page-inset-end` define that reservation: 80/16 px below 768 px, 96/24 px from 768 px, and 96/28 px from 1024 px. These variables also supply the admin shell padding. `src/shared/domain/layout/pageContent.ts` supplies the equivalent measurements for device previews and hero guides.
+- Public content compensates for the existing 0.75 storefront scale through `--site-page-content-scale`. Preview content supplies its own logical scale and viewport insets. Width comparisons must use rendered bounding boxes, including the browser's scrollbar reservation.
+- Full-width backgrounds, internal text measures, galleries, forms, and document canvases may keep their own sizing. The outer page content container must follow this standard.
+- Navbar geometry remains independently locked by `docs/navbar-lock-requirements.md`; do not apply page width overrides to `.topbar-inner`.
+- Run `npm run check:page-width` to check actual CSS in Chromium across responsive sizes, custom maximum widths, and previews without requiring an application database.

@@ -7,7 +7,7 @@ const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8');
 
 describe('related product appearance editor contracts', () => {
-  test('offers automatic, manual, responsive sizing and placement controls in the canvas toolbar', () => {
+  test('offers selection and spacing controls without obsolete related-card layout controls', () => {
     const toolbar = source(
       'src/admin/features/podoba/components/ProductAppearanceContextToolbar.tsx'
     );
@@ -22,16 +22,16 @@ describe('related product appearance editor contracts', () => {
     expect(toolbar).toContain('relatedProducts.sourceMode');
     expect(toolbar).toContain('relatedProducts.manualPlacement');
     expect(toolbar).toContain('relatedProducts.maxItems');
-    expect(toolbar).toContain("['desktopColumns', 'Desktop', 6]");
-    expect(toolbar).toContain("['tabletColumns', 'Tablica', 4]");
-    expect(toolbar).toContain("['mobileColumns', 'Mobilno', 2]");
+    expect(toolbar).not.toContain("['desktopColumns', 'Desktop', 6]");
+    expect(toolbar).not.toContain("['tabletColumns', 'Tablica', 4]");
+    expect(toolbar).not.toContain("['mobileColumns', 'Mobilno', 2]");
     expect(toolbar).toContain('relatedProducts.gapPx');
-    expect(toolbar).toContain('relatedProducts.cardWidthPx');
-    expect(toolbar).toContain('relatedProducts.imageHeightPx');
+    expect(toolbar).not.toContain('relatedProducts.cardWidthPx');
+    expect(toolbar).not.toContain('relatedProducts.imageHeightPx');
     expect(toolbar).toContain('relatedProducts.textScalePercent');
     expect(toolbar).toContain('relatedProducts.sectionPlacement');
-    expect(toolbar).toContain('relatedProducts.sectionWidthPercent');
-    expect(toolbar).toContain('relatedProducts.sectionAlignment');
+    expect(toolbar).not.toContain('relatedProducts.sectionWidthPercent');
+    expect(toolbar).not.toContain('relatedProducts.sectionAlignment');
     expect(toolbar).toContain('manualProductSlugs');
     expect(toolbar).toContain('productOptions.filter');
     expect(adminPage).toContain('productOptions={productOptions}');
@@ -83,20 +83,20 @@ describe('related product appearance editor contracts', () => {
     expect(productCard).toContain('storefront-product-card-media');
     expect(productCard).toContain('storefront-product-card-content');
     expect(styles).toContain(
-      'gap: var(--product-related-gap, var(--product-listing-gap, 20px));'
+      'gap: var(--related-row-gap);'
     );
-    expect(styles).toContain('var(--product-related-card-width');
-    expect(styles).toContain('var(--product-related-image-height');
+    expect(styles).toContain('grid-auto-flow: column;');
+    expect(styles).toContain('aspect-ratio: 1;');
     expect(styles).toContain('var(--product-related-text-scale');
     expect(styles).toMatch(
       /\.storefront-related-product-grid[\s\S]*?\.storefront-product-card/
     );
     expect(styles).toContain(
-      'width: var(--product-related-section-width, 100%);'
+      'width: 100%;'
     );
   });
 
-  test('uses a compact horizontal card without weakening variant safety', () => {
+  test('uses a portrait card without weakening variant safety', () => {
     const productCard = source(
       'src/commercial/components/storefront/ProductCard.tsx'
     );
@@ -129,14 +129,14 @@ describe('related product appearance editor contracts', () => {
       'product.variants.length === 1 && purchasableVariants.length === 1'
     );
     expect(styles).toContain(
-      'grid-template-columns: minmax(6rem, 1fr) minmax(0, 1fr);'
+      'grid-template-rows: auto 1fr;'
     );
     expect(productCard).toContain('storefront-related-product-purchase-row');
     expect(styles).toContain('.storefront-related-product-purchase-row');
     expect(styles).toContain('flex-wrap: wrap;');
     expect(styles).toContain('align-items: center;');
     expect(styles).toContain(
-      'block-size: calc(var(--product-related-image-height, 144px) * 1.2);'
+      'grid-auto-columns: calc((100% - 5 * var(--related-row-gap)) / 6);'
     );
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1em;/

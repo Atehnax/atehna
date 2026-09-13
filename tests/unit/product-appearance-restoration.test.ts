@@ -21,7 +21,7 @@ test('old preset migrates to showcase without replacing custom appearance values
     relatedProducts: { imageHeightPx: 170 },
     canvas: { mode: 'free', elements: { 'product-title': { responsive: { mobile: { color: '#123456', widthPx: 280 } } } } }
   });
-  assert.equal(config.schemaVersion, 17);
+  assert.equal(config.schemaVersion, 18);
   assert.equal(config.productPage.layout, 'showcase');
   assert.equal(config.productPage.informationColumns, 5);
   assert.equal(config.information.showSku, true);

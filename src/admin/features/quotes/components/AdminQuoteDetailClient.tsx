@@ -2773,7 +2773,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
   };
   return (
     <div className="w-full font-['Inter',system-ui,sans-serif]" data-testid="admin-quote-detail">
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="w-full min-w-0 space-y-5">
         <div className="-mb-2 text-xs text-slate-500">
           <Link href="/admin/orders?view=quotes" className="hover:underline">Naročila</Link>
           <span className="mx-1 text-slate-400">›</span>

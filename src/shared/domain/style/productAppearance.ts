@@ -386,7 +386,7 @@ export type ProductAppearanceOverride = {
 };
 
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
-  schemaVersion: 17,
+  schemaVersion: 18,
   articleNotes: { tags: DEFAULT_ARTICLE_NOTE_TAGS.map((tag) => ({ ...tag })) },
   listings: {
     availableModes: 'grid',
@@ -577,13 +577,13 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     sourceMode: 'same-category',
     manualProductSlugs: [],
     manualPlacement: 'before-auto',
-    maxItems: 4,
-    desktopColumns: 3,
+    maxItems: 6,
+    desktopColumns: 6,
     tabletColumns: 2,
     mobileColumns: 1,
     gapPx: 24,
-    cardWidthPx: 640,
-    imageHeightPx: 112,
+    cardWidthPx: 220,
+    imageHeightPx: 160,
     textScalePercent: 100,
     sectionPlacement: 'after-content',
     sectionWidthPercent: 100,
@@ -900,6 +900,27 @@ function migrateSubtlePurchaseCopy(value: UnknownRecord): UnknownRecord {
   };
 }
 
+/** Upgrade the old automatic four-card preset; authored limits and sources remain intact. */
+function migrateRelatedProductPortraitRow(value: UnknownRecord): UnknownRecord {
+  if (typeof value.schemaVersion !== 'number' || value.schemaVersion >= 18) return value;
+  const related = asRecord(value.relatedProducts);
+  const inheritedAutomaticPreset = related.maxItems === 4
+    && related.desktopColumns === 3
+    && related.cardWidthPx === 640
+    && related.imageHeightPx === 112
+    && related.gapPx === 24
+    && (related.sourceMode ?? 'same-category') === 'same-category'
+    && (!Array.isArray(related.manualProductSlugs) || related.manualProductSlugs.length === 0);
+  if (!inheritedAutomaticPreset) return value;
+  return { ...value, relatedProducts: {
+    ...related,
+    maxItems: 6,
+    desktopColumns: 6,
+    cardWidthPx: 220,
+    imageHeightPx: 160
+  } };
+}
+
 export function applyProductShowcasePreset(value: unknown): ProductAppearanceConfig {
   const config = normalizeProductAppearanceConfig(value);
   const defaults = DEFAULT_PRODUCT_APPEARANCE_CONFIG;
@@ -916,7 +937,7 @@ export function applyProductShowcasePreset(value: unknown): ProductAppearanceCon
 }
 
 export function normalizeProductAppearanceConfig(value: unknown): ProductAppearanceConfig {
-  const record = migrateSubtlePurchaseCopy(migrateMinimalPurchaseDetails(migrateCompactRelatedProductColumns(migrateCompactProductGallery(migrateProductShowcaseDefaults(value)))));
+  const record = migrateRelatedProductPortraitRow(migrateSubtlePurchaseCopy(migrateMinimalPurchaseDetails(migrateCompactRelatedProductColumns(migrateCompactProductGallery(migrateProductShowcaseDefaults(value))))));
   const listings = asRecord(record.listings);
   const productPage = asRecord(record.productPage);
   const gallery = asRecord(record.gallery);

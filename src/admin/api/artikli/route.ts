@@ -159,10 +159,12 @@ export async function POST(request: Request) {
       id: saved.id,
       slug: saved.slug,
       updatedAt: saved.updatedAt,
+      optionAxes: after?.optionAxes,
       variants: after?.variants.filter((variant) => variant.id !== undefined).map((variant) => ({
         id: variant.id!,
         stockRevision: variant.stockRevision ?? '0',
-        pricingRevision: variant.pricingRevision ?? '0'
+        pricingRevision: variant.pricingRevision ?? '0',
+        optionValueIds: variant.optionValueIds ?? []
       }))
     });
   } catch (error) {

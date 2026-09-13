@@ -34,11 +34,11 @@ test('keeps the compact defaults separate from the approved image and content ge
     DEFAULT_PRODUCT_APPEARANCE_CONFIG.information.longDescriptionMaxWidthPx
   ).toBe(880);
   expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts).toMatchObject({
-    cardWidthPx: 640,
-    imageHeightPx: 112,
+    cardWidthPx: 220,
+    imageHeightPx: 160,
     textScalePercent: 100
   });
   expect(variables['--product-description-max-width']).toBe('880px');
-  expect(variables['--product-related-card-width']).toBe('640px');
-  expect(variables['--product-related-image-height']).toBe('112px');
+  expect(variables['--product-related-card-width']).toBe('220px');
+  expect(variables['--product-related-image-height']).toBe('160px');
 });

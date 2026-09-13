@@ -199,7 +199,7 @@ test.describe('admin podoba redesign', () => {
       const placementBounds = preview?.querySelector('.topbar-placement-bounds');
       const logoLink = preview?.querySelector('a[aria-label="Atehna home"]');
       const cartButton = preview?.querySelector('button[aria-label^="Ko"]');
-      const adminContentLane = document.querySelector('main main > div.mx-auto');
+      const adminContentLane = document.querySelector('.admin-scope main > .site-page-content');
       if (
         !(placementBounds instanceof HTMLElement)
         || !(logoLink instanceof HTMLElement)

@@ -54,6 +54,8 @@ import {
   resolveHomepageCanvasElementDeviceSettings,
   resolveHomepageSettingsForDevice
 } from '@/shared/domain/landing/landingPage';
+import { getPageContentInsets } from '@/shared/domain/layout/pageContent';
+import { DEFAULT_SITE_LAYOUT_SETTINGS } from '@/shared/domain/navigation/siteNavigation';
 import { resolveWebsiteFontStack } from '@/shared/domain/style/fontFamilies';
 import CategoryShowcase from '@/shared/features/category-showcase/CategoryShowcase';
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
@@ -75,12 +77,6 @@ const sectionGapClassNames: Record<HomepagePageSettings['sectionSpacing'], strin
   compact: 'gap-3',
   default: 'gap-5',
   spacious: 'gap-8'
-};
-
-const containerClassNames: Record<HomepagePageSettings['containerWidth'], string> = {
-  default: 'site-container',
-  wide: 'mx-auto w-full max-w-[calc(var(--site-content-max-width)+160px)] px-[var(--site-gutter,24px)]',
-  full: 'w-full px-[var(--site-gutter,24px)]'
 };
 
 const sectionRadiusClassNames: Record<HomepagePageSettings['sectionRadius'], string> = {
@@ -108,8 +104,6 @@ const infoIconMap: Record<HomepageInfoIcon, LucideIcon> = {
   mail: Mail
 };
 
-const siteContentMaxWidthPx = 1280;
-const siteWideContentMaxWidthPx = siteContentMaxWidthPx + 160;
 const heroMinimumTextWidthPx = 180;
 
 type HeroContentBounds = {
@@ -128,24 +122,17 @@ function getCurrentLogicalViewportWidth(root: HTMLElement | null, fallbackWidth?
   return root?.getBoundingClientRect().width ?? 0;
 }
 
-function getSiteGutterPx(viewportWidth: number) {
-  return clampNumber(viewportWidth * 0.04, 16, 32);
-}
-
-function getHeroContainerMetrics(page: HomepagePageSettings, viewportWidth: number) {
-  const gutter = getSiteGutterPx(viewportWidth);
-  const maxWidth = page.containerWidth === 'wide'
-    ? siteWideContentMaxWidthPx
-    : page.containerWidth === 'full'
-      ? viewportWidth
-      : siteContentMaxWidthPx;
-  const outerWidth = Math.min(viewportWidth, maxWidth);
+function getHeroContainerMetrics(viewportWidth: number) {
+  const insets = getPageContentInsets(viewportWidth * COMMERCIAL_STOREFRONT_SCALE);
+  const availableWidth = viewportWidth - toCommercialStorefrontLogicalPx(insets.startPx + insets.endPx);
+  // Actual CSS bounds replace this first-render fallback as soon as the hero mounts.
+  const maxWidth = toCommercialStorefrontLogicalPx(DEFAULT_SITE_LAYOUT_SETTINGS.siteContentMaxWidthPx);
+  const outerWidth = Math.max(0, Math.min(availableWidth, maxWidth));
   const outerLeft = Math.max(0, (viewportWidth - outerWidth) / 2);
-  const contentLeft = outerLeft + gutter;
-  const contentWidth = Math.max(heroMinimumTextWidthPx, outerWidth - gutter * 2);
+  const contentLeft = outerLeft;
+  const contentWidth = Math.max(heroMinimumTextWidthPx, outerWidth);
 
   return {
-    gutter,
     outerLeft,
     outerWidth,
     contentLeft,
@@ -156,11 +143,10 @@ function getHeroContainerMetrics(page: HomepagePageSettings, viewportWidth: numb
 
 function getHeroTextMetrics(
   hero: HomepageHeroSettings,
-  page: HomepagePageSettings,
   viewportWidth: number,
   measuredContent?: HeroContentBounds | null
 ) {
-  const fallbackContainer = getHeroContainerMetrics(page, viewportWidth);
+  const fallbackContainer = getHeroContainerMetrics(viewportWidth);
   const container = measuredContent
     ? {
         ...fallbackContainer,
@@ -255,6 +241,8 @@ type HomepageRendererProps = {
   preview?: boolean;
   previewDevice?: HomepagePreviewDevice;
   previewViewportWidth?: number;
+  previewContentMaxWidthPx?: number;
+  previewContentInsets?: ReturnType<typeof getPageContentInsets>;
   previewHeroStorefrontStyle?: CSSProperties;
 };
 
@@ -1158,12 +1146,10 @@ function getHeroTextBlockStyle(block: HomepageHeroTextBlock, device?: HomepagePr
 
 function HeroTechnicalGuides({
   hero,
-  page,
   viewportWidth,
   editorContentScale = 1
 }: {
   hero: HomepageHeroSettings;
-  page: HomepagePageSettings;
   viewportWidth: number;
   editorContentScale?: number;
 }) {
@@ -1203,7 +1189,7 @@ function HeroTechnicalGuides({
     };
   }, [viewportWidth]);
 
-  const metrics = getHeroTextMetrics(hero, page, viewportWidth, measuredContent);
+  const metrics = getHeroTextMetrics(hero, viewportWidth, measuredContent);
   const percent = (value: number) => `${(value / viewportWidth) * 100}%`;
   const mediaRight = metrics.mediaLeft + metrics.mediaWidthPx;
   const mediaDelta = hero.mediaWidthPercent - 100;
@@ -1829,7 +1815,7 @@ function HomepageHero({
     const logicalLeft = (nodeRect.left - rootRect.left) / (scaleX || 1);
     const logicalTop = (nodeRect.top - rootRect.top) / (scaleY || 1);
     const measuredContent = isBlock ? measureHeroContentBounds(heroRoot, logicalWidth) : null;
-    const contentLeft = measuredContent?.contentLeft ?? getHeroContainerMetrics(page, logicalWidth).contentLeft;
+    const contentLeft = measuredContent?.contentLeft ?? getHeroContainerMetrics(logicalWidth).contentLeft;
     const elementOffset = isBlock
       ? { x: Math.max(0, logicalLeft - contentLeft), y: hero.contentOffsetYPx }
       : getElementOffset(target);
@@ -2324,7 +2310,7 @@ function HomepageHero({
 
       <div
         data-homepage-hero-content
-        className={classNames('relative flex min-h-[inherit]', containerClassNames[page.containerWidth])}
+        className="site-container relative flex min-h-[inherit]"
       >
         <div
           className="flex min-h-[inherit] w-full flex-col justify-center py-16 text-left text-white"
@@ -2614,7 +2600,6 @@ function HomepageHero({
       {preview && showTechnicalGuides && previewViewportWidth ? (
         <HeroTechnicalGuides
           hero={hero}
-          page={page}
           viewportWidth={previewViewportWidth}
           editorContentScale={editorContentScale}
         />
@@ -3275,7 +3260,7 @@ function HomepageCategories({
   if (visibleCategories.length === 0 && hiddenCategories.length === 0) return null;
 
   return (
-    <div className={classNames(containerClassNames[settings.containerWidth], 'relative py-2')}>
+    <div className="site-container relative py-2">
       {hiddenCategories.map((category) => {
         const elementId = `categories:card:${category.slug}`;
         return (
@@ -3461,7 +3446,7 @@ function HomepageInfoBlocks({
   const cardRadius = sectionRadiusClassNames[page.sectionRadius];
 
   return (
-    <div className={classNames(containerClassNames[page.containerWidth], 'py-1')}>
+    <div className="site-container py-1">
       <div
         className={classNames(
           'grid overflow-hidden border-[#dde4ed] bg-white max-[900px]:[grid-template-columns:repeat(2,minmax(0,1fr))] max-[560px]:[grid-template-columns:1fr]',
@@ -3531,6 +3516,8 @@ export default function HomepageRenderer({
   preview = false,
   previewDevice,
   previewViewportWidth,
+  previewContentMaxWidthPx,
+  previewContentInsets,
   previewHeroStorefrontStyle
 }: HomepageRendererProps) {
   const normalizedSettings = useMemo(() => normalizeLandingPageConfig(settings), [settings]);
@@ -3540,8 +3527,18 @@ export default function HomepageRenderer({
     [normalizedSettings, renderDevice]
   );
   const activeEditorSectionId = editorSectionId ?? selectedSectionId;
-  const rootStyle = {
-    backgroundColor: resolvedSettings.page.backgroundColor || '#ffffff'
+  const rootStyle: CSSProperties & Record<`--${string}`, string | number> = {
+    backgroundColor: resolvedSettings.page.backgroundColor || '#ffffff',
+    ...(preview && previewContentMaxWidthPx
+      ? { '--site-content-max-width': `${previewContentMaxWidthPx}px` }
+      : {}),
+    ...(preview && previewContentInsets
+      ? {
+          '--site-page-inset-start': `${previewContentInsets.startPx}px`,
+          '--site-page-inset-end': `${previewContentInsets.endPx}px`,
+          '--site-page-content-scale': 1
+        }
+      : {})
   };
   const footerSettings = canonicalFooter ?? resolvedSettings.footer;
   const footerLogoElementId = 'footer:logo';
@@ -3749,7 +3746,7 @@ export default function HomepageRenderer({
                   spacing: resolvedSettings.footer.spacing,
                   topBorder: resolvedSettings.footer.topBorder
                 }}
-                containerClassName={containerClassNames[resolvedSettings.page.containerWidth]}
+                containerClassName="site-container"
                 responsivePresentation={false}
                 editorAdapter={footerEditorAdapter}
               />

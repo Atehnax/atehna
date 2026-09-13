@@ -1,9 +1,7 @@
 /* Keep desktop and the independently positioned admin canvas intact. */
 @media (max-width: 1439px) {
   :global([data-storefront-theme]) .page:global(.storefront-product-page) {
-    width: calc(100% - 48px / var(--commercial-storefront-scale)) !important;
-    max-width: none;
-    padding: calc(20px / var(--commercial-storefront-scale)) 0 calc(36px / var(--commercial-storefront-scale));
+    padding-block: calc(20px / var(--commercial-storefront-scale)) calc(36px / var(--commercial-storefront-scale));
   }
 
   .page :global(.storefront-product-breadcrumbs) {
@@ -147,7 +145,6 @@
 
 @media (max-width: 767px) {
   :global([data-storefront-theme]) .page:global(.storefront-product-page) {
-    width: calc(100% - 32px / var(--commercial-storefront-scale)) !important;
     padding-top: calc(16px / var(--commercial-storefront-scale));
   }
 

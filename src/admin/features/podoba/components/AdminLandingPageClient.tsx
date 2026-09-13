@@ -57,7 +57,6 @@ import {
   HOMEPAGE_CATEGORY_CARD_SIZES,
   HOMEPAGE_CATEGORY_CARD_STYLES,
   HOMEPAGE_CATEGORY_ORDER_MODES,
-  HOMEPAGE_CONTAINER_WIDTHS,
   HOMEPAGE_FOOTER_SPACINGS,
   HOMEPAGE_HERO_FONT_FAMILIES,
   HOMEPAGE_INFO_ICONS,
@@ -75,7 +74,6 @@ import {
   homepageCategoryCardSizeLabels,
   homepageCategoryCardStyleLabels,
   homepageCategoryOrderModeLabels,
-  homepageContainerWidthLabels,
   homepageFooterSpacingLabels,
   homepageInfoIconLabels,
   homepageInfoIconPositionLabels,
@@ -107,6 +105,7 @@ import {
   type HomepageSectionId,
   type HomepageSettings
 } from '@/shared/domain/landing/landingPage';
+import { getPageContentInsets } from '@/shared/domain/layout/pageContent';
 import { getWebsiteFontFamilyLabel } from '@/shared/domain/style/fontFamilies';
 import { toGlobalStyleCssVariables, type GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
 import { normalizeSiteNavigationConfig, type SiteNavigationConfig } from '@/shared/domain/navigation/siteNavigation';
@@ -380,7 +379,9 @@ type HomepagePreviewStorefrontStyle = CSSProperties & Record<`--${string}`, stri
 
 function createHomepagePreviewHeroStorefrontStyle(
   globalStyle: GlobalStyleConfig,
-  device: HomepagePreviewDevice
+  navigation: SiteNavigationConfig,
+  device: HomepagePreviewDevice,
+  contentInsets: ReturnType<typeof getPageContentInsets>
 ): HomepagePreviewStorefrontStyle {
   const variables = toGlobalStyleCssVariables(globalStyle, toCommercialStorefrontLogicalPx(1));
   const gutter = device === 'mobile'
@@ -396,7 +397,10 @@ function createHomepagePreviewHeroStorefrontStyle(
 
   return {
     ...variables,
-    '--site-content-max-width': variables['--site-global-max-width'],
+    '--site-content-max-width': `${toCommercialStorefrontLogicalPx(navigation.siteLayout.siteContentMaxWidthPx)}px`,
+    '--site-page-inset-start': `${contentInsets.startPx}px`,
+    '--site-page-inset-end': `${contentInsets.endPx}px`,
+    '--site-page-content-scale': COMMERCIAL_STOREFRONT_SCALE,
     '--site-gutter-min': variables['--site-gutter-mobile'],
     '--site-gutter-max': variables['--site-gutter-desktop'],
     '--site-gutter': gutter,
@@ -1850,9 +1854,10 @@ function ScaledHomepagePreview({
   const scale = viewportWidth > 0 && renderedWidth > 0 ? renderedWidth / viewportWidth : 1;
   const renderDevice = viewportTransition.responsiveMode;
   const editorOptions = editorOptionsByDevice[renderDevice];
+  const previewContentInsets = getPageContentInsets(viewportWidth);
   const heroPreviewStorefrontStyle = useMemo(
-    () => createHomepagePreviewHeroStorefrontStyle(globalStyle, renderDevice),
-    [globalStyle, renderDevice]
+    () => createHomepagePreviewHeroStorefrontStyle(globalStyle, navigation, renderDevice, previewContentInsets),
+    [globalStyle, navigation, previewContentInsets, renderDevice]
   );
   const scaledHeight = Math.ceil(HOMEPAGE_PREVIEW_PROFILES[renderDevice].fallbackHeight * scale);
   const zoomLabel = availableWidth > 0 ? formatZoomLabel(scale) : 'prilagajanje širini';
@@ -1963,6 +1968,8 @@ function ScaledHomepagePreview({
                     editorOptions={editorOptions}
                     previewDevice={renderDevice}
                     previewViewportWidth={viewportWidth}
+                    previewContentMaxWidthPx={navigation.siteLayout.siteContentMaxWidthPx}
+                    previewContentInsets={previewContentInsets}
                     previewHeroStorefrontStyle={heroPreviewStorefrontStyle}
                     preview
                   />
@@ -4232,7 +4239,6 @@ function AdminLandingPageClient({
             <NumberField label="Število prikazanih" value={categoryViewSettings.limit} onChange={(limit) => updateCategoriesView({ limit })} min={1} max={24} />
             <NumberField label="Stolpci" value={categoryViewSettings.columns} onChange={(columns) => updateCategoriesView({ columns })} min={1} max={6} />
             <NumberField label="Razmik" value={categoryViewSettings.gap} onChange={(gap) => updateCategoriesView({ gap })} min={0} max={48} suffix="px" />
-            <SelectField label="Širina" value={categoryViewSettings.containerWidth} options={createOptions(HOMEPAGE_CONTAINER_WIDTHS, homepageContainerWidthLabels)} onChange={(containerWidth) => updateCategoriesView({ containerWidth })} />
             <SelectField label="Velikost kartic" value={categoryViewSettings.cardSize} options={createOptions(HOMEPAGE_CATEGORY_CARD_SIZES, homepageCategoryCardSizeLabels)} onChange={(cardSize) => updateCategoriesView({ cardSize })} />
             <SelectField label="Slog kartic" value={categoryViewSettings.cardStyle} options={createOptions(HOMEPAGE_CATEGORY_CARD_STYLES, homepageCategoryCardStyleLabels)} onChange={(cardStyle) => updateCategoriesView({ cardStyle })} />
           </div>
@@ -4360,7 +4366,6 @@ function AdminLandingPageClient({
       <div className="space-y-2">
         <FieldBlock title="Splošno">
           <div className="grid gap-1">
-            <SelectField label="Širina vsebine" value={pageViewSettings.containerWidth} options={createOptions(HOMEPAGE_CONTAINER_WIDTHS, homepageContainerWidthLabels)} onChange={(containerWidth) => updatePageView({ containerWidth })} />
             <SelectField label="Razmik sekcij" value={pageViewSettings.sectionSpacing} options={createOptions(HOMEPAGE_SECTION_SPACINGS, homepageSectionSpacingLabels)} onChange={(sectionSpacing) => updatePageView({ sectionSpacing })} />
             <SelectField label="Zaobljenost" value={pageViewSettings.sectionRadius} options={createOptions(HOMEPAGE_SECTION_RADII, homepageSectionRadiusLabels)} onChange={(sectionRadius) => updatePageView({ sectionRadius })} />
             <SelectField label="Slog gumbov" value={config.page.buttonStyle} options={createOptions(HOMEPAGE_BUTTON_STYLES, homepageButtonStyleLabels)} onChange={(buttonStyle) => updatePage({ buttonStyle })} />

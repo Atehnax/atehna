@@ -446,7 +446,8 @@ describe('product appearance hybrid canvas contracts', () => {
       /\.storefront-product-page\s*\{[^}]*overflow-x:\s*clip;/s
     );
     expect(stylesSource).toMatch(
-      /\.storefront-product-page\s*\{[^}]*max-width:\s*min\([\s\S]*?var\(--site-content-max-width\)/s
+      /\.site-page-content,[\s\S]*?\.container-base,[\s\S]*?\.site-container\s*\{[^}]*max-width:\s*var\(--site-content-max-width\)/s
     );
+    expect(stylesSource).not.toMatch(/max-width:\s*min\(\s*var\(--product-page-content-max-width/s);
   });
 });

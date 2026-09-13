@@ -72,7 +72,7 @@ test('catalog saves overwrite every client shipping snapshot from physical varia
   );
   assert.match(
     serverSource,
-    /const payload = normalizeCatalogEditorShippingPayload[(]inputPayload[)];/u
+    /const payload = normalizeCatalogEditorShippingPayload[(]normalizeCatalogDimensionOptions[(]inputPayload[)][)];/u
   );
 });
 

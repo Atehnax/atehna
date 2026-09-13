@@ -147,7 +147,7 @@
 }
 .productRow:hover { background: #f8fbfe; }
 .productIdentity { display: grid; grid-template-columns: calc(49 * var(--u)) minmax(0, 1fr); align-items: center; gap: calc(15 * var(--u)); padding-block: 0; padding-inline-end: calc(20 * var(--u)); min-inline-size: 0; }
-.productImage { position: relative; display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: calc(49 * var(--u)); background: #f6f6f4; border-radius: calc(4 * var(--u)); overflow: hidden; }
+.productImage { position: relative; display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: calc(49 * var(--u)); background: #fff; border-radius: calc(4 * var(--u)); overflow: hidden; }
 .productImage img { object-fit: contain; }
 .productImage > svg { inline-size: calc(23 * var(--u)); block-size: calc(23 * var(--u)); color: #a0adba; }
 .productCopy { display: flex; flex-direction: column; min-inline-size: 0; gap: calc(3 * var(--u)); }

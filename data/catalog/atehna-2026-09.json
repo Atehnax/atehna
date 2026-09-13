@@ -1143,22 +1143,6 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "penjeni-pvc-komateks-real-rob-materiala.jpg",
-          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
-          "mimeType": "image/jpeg",
-          "altText": "Penjeni PVC – fotografija belega materiala in roba plošče",
-          "imageType": "product",
-          "imageDimensions": {
-            "width": 671,
-            "height": 574
-          },
-          "hidden": false,
-          "position": 0
-        },
-        {
-          "mediaKind": "image",
-          "role": "gallery",
-          "sourceKind": "upload",
           "filename": "penjeni-pvc-komateks.png",
           "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
           "mimeType": "image/png",
@@ -1167,6 +1151,22 @@
           "imageDimensions": {
             "width": 312,
             "height": 312
+          },
+          "hidden": false,
+          "position": 0
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "penjeni-pvc-komateks-real-rob-materiala.jpg",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Penjeni PVC – fotografija belega materiala in roba plošče",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 671,
+            "height": 574
           },
           "hidden": false,
           "position": 1
@@ -2017,14 +2017,14 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "seleshamer-real-beli-formati.jpg",
-          "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+          "filename": "seleshamer-real-beli-listi-v2.jpg",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-listi-v2.jpg",
           "mimeType": "image/jpeg",
-          "altText": "Bel šeleshamer 200 g – fotografija različnih formatov",
+          "altText": "Bel šeleshamer 200 g – predstavitvena fotografija listov papirja",
           "imageType": "product",
           "imageDimensions": {
-            "width": 1427,
-            "height": 925
+            "width": 658,
+            "height": 606
           },
           "hidden": false,
           "position": 0
@@ -2049,6 +2049,22 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "seleshamer-real-beli-formati.jpg",
+          "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Bel šeleshamer 200 g – fotografija različnih formatov",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 1427,
+            "height": 925
+          },
+          "hidden": true,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "seleshamer-studio-2.png",
           "blobUrl": "/images/catalog/2026-09/seleshamer-studio-2.png",
           "mimeType": "image/png",
@@ -2059,7 +2075,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -2075,7 +2091,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 3
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -2091,7 +2107,7 @@
             "height": 1080
           },
           "hidden": true,
-          "position": 4
+          "position": 5
         }
       ],
       "position": 7,
@@ -2293,7 +2309,7 @@
             "barva": "14329"
           },
           "imageAssignments": [
-            0
+            1
           ]
         },
         {
@@ -2319,7 +2335,7 @@
             "barva": "14326"
           },
           "imageAssignments": [
-            1
+            2
           ]
         },
         {
@@ -2345,7 +2361,7 @@
             "barva": "14325"
           },
           "imageAssignments": [
-            2
+            3
           ]
         },
         {
@@ -2371,7 +2387,7 @@
             "barva": "14324"
           },
           "imageAssignments": [
-            3
+            4
           ]
         },
         {
@@ -2397,7 +2413,7 @@
             "barva": "14323"
           },
           "imageAssignments": [
-            4
+            5
           ]
         },
         {
@@ -2423,7 +2439,7 @@
             "barva": "14322"
           },
           "imageAssignments": [
-            5
+            6
           ]
         },
         {
@@ -2449,7 +2465,7 @@
             "barva": "14328"
           },
           "imageAssignments": [
-            6
+            7
           ]
         },
         {
@@ -2475,7 +2491,7 @@
             "barva": "14327"
           },
           "imageAssignments": [
-            7
+            8
           ]
         },
         {
@@ -2501,7 +2517,7 @@
             "barva": "14321"
           },
           "imageAssignments": [
-            8
+            9
           ]
         },
         {
@@ -2527,7 +2543,7 @@
             "barva": "14320"
           },
           "imageAssignments": [
-            9
+            10
           ]
         },
         {
@@ -2553,7 +2569,7 @@
             "barva": "14319"
           },
           "imageAssignments": [
-            10
+            11
           ]
         },
         {
@@ -2579,7 +2595,7 @@
             "barva": "14318"
           },
           "imageAssignments": [
-            11
+            12
           ]
         },
         {
@@ -2605,7 +2621,7 @@
             "barva": "14317"
           },
           "imageAssignments": [
-            12
+            13
           ]
         },
         {
@@ -2631,7 +2647,7 @@
             "barva": "14316"
           },
           "imageAssignments": [
-            13
+            14
           ]
         },
         {
@@ -2657,7 +2673,7 @@
             "barva": "14314"
           },
           "imageAssignments": [
-            14
+            15
           ]
         },
         {
@@ -2683,7 +2699,7 @@
             "barva": "14313"
           },
           "imageAssignments": [
-            15
+            16
           ]
         },
         {
@@ -2709,7 +2725,7 @@
             "barva": "14312"
           },
           "imageAssignments": [
-            16
+            17
           ]
         },
         {
@@ -2735,7 +2751,7 @@
             "barva": "14311"
           },
           "imageAssignments": [
-            17
+            18
           ]
         },
         {
@@ -2761,7 +2777,7 @@
             "barva": "14310"
           },
           "imageAssignments": [
-            18
+            19
           ]
         },
         {
@@ -2787,7 +2803,7 @@
             "barva": "14308"
           },
           "imageAssignments": [
-            19
+            20
           ]
         },
         {
@@ -2813,7 +2829,7 @@
             "barva": "14307"
           },
           "imageAssignments": [
-            20
+            21
           ]
         },
         {
@@ -2839,7 +2855,7 @@
             "barva": "14306"
           },
           "imageAssignments": [
-            21
+            22
           ]
         },
         {
@@ -2865,7 +2881,7 @@
             "barva": "14305"
           },
           "imageAssignments": [
-            22
+            23
           ]
         },
         {
@@ -2891,7 +2907,7 @@
             "barva": "14304"
           },
           "imageAssignments": [
-            23
+            24
           ]
         },
         {
@@ -2917,7 +2933,7 @@
             "barva": "14303"
           },
           "imageAssignments": [
-            24
+            25
           ]
         },
         {
@@ -2943,7 +2959,7 @@
             "barva": "14302"
           },
           "imageAssignments": [
-            25
+            26
           ]
         },
         {
@@ -2969,11 +2985,27 @@
             "barva": "14301"
           },
           "imageAssignments": [
-            26
+            27
           ]
         }
       ],
       "media": [
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
+          "filename": "barvni-papir-real-pregled-barv-v2.png",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-pregled-barv-v2.png",
+          "mimeType": "image/png",
+          "altText": "Barvni papir - izvirna fotografija izbora barv",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 300,
+            "height": 300
+          },
+          "hidden": false,
+          "position": 0
+        },
         {
           "mediaKind": "image",
           "role": "gallery",
@@ -2988,7 +3020,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 0
+          "position": 1
         },
         {
           "mediaKind": "image",
@@ -3004,7 +3036,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 1
+          "position": 2
         },
         {
           "mediaKind": "image",
@@ -3020,7 +3052,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -3036,7 +3068,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 3
+          "position": 4
         },
         {
           "mediaKind": "image",
@@ -3052,7 +3084,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 4
+          "position": 5
         },
         {
           "mediaKind": "image",
@@ -3068,7 +3100,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 5
+          "position": 6
         },
         {
           "mediaKind": "image",
@@ -3084,7 +3116,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 6
+          "position": 7
         },
         {
           "mediaKind": "image",
@@ -3100,7 +3132,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 7
+          "position": 8
         },
         {
           "mediaKind": "image",
@@ -3116,7 +3148,7 @@
             "height": 484
           },
           "hidden": false,
-          "position": 8
+          "position": 9
         },
         {
           "mediaKind": "image",
@@ -3132,7 +3164,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 9
+          "position": 10
         },
         {
           "mediaKind": "image",
@@ -3148,7 +3180,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 10
+          "position": 11
         },
         {
           "mediaKind": "image",
@@ -3164,7 +3196,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 11
+          "position": 12
         },
         {
           "mediaKind": "image",
@@ -3180,7 +3212,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 12
+          "position": 13
         },
         {
           "mediaKind": "image",
@@ -3196,7 +3228,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 13
+          "position": 14
         },
         {
           "mediaKind": "image",
@@ -3212,7 +3244,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 14
+          "position": 15
         },
         {
           "mediaKind": "image",
@@ -3228,7 +3260,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 15
+          "position": 16
         },
         {
           "mediaKind": "image",
@@ -3244,7 +3276,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 16
+          "position": 17
         },
         {
           "mediaKind": "image",
@@ -3260,7 +3292,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 17
+          "position": 18
         },
         {
           "mediaKind": "image",
@@ -3276,7 +3308,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 18
+          "position": 19
         },
         {
           "mediaKind": "image",
@@ -3292,7 +3324,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 19
+          "position": 20
         },
         {
           "mediaKind": "image",
@@ -3308,7 +3340,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 20
+          "position": 21
         },
         {
           "mediaKind": "image",
@@ -3324,7 +3356,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 21
+          "position": 22
         },
         {
           "mediaKind": "image",
@@ -3340,7 +3372,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 22
+          "position": 23
         },
         {
           "mediaKind": "image",
@@ -3356,7 +3388,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 23
+          "position": 24
         },
         {
           "mediaKind": "image",
@@ -3372,7 +3404,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 24
+          "position": 25
         },
         {
           "mediaKind": "image",
@@ -3388,7 +3420,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 25
+          "position": 26
         },
         {
           "mediaKind": "image",
@@ -3404,7 +3436,7 @@
             "height": 500
           },
           "hidden": false,
-          "position": 26
+          "position": 27
         },
         {
           "mediaKind": "image",
@@ -3420,7 +3452,7 @@
             "height": 4480
           },
           "hidden": false,
-          "position": 27
+          "position": 28
         },
         {
           "mediaKind": "image",
@@ -3436,7 +3468,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 28
+          "position": 29
         },
         {
           "mediaKind": "image",
@@ -3452,7 +3484,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 29
+          "position": 30
         },
         {
           "mediaKind": "image",
@@ -3468,7 +3500,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 30
+          "position": 31
         },
         {
           "mediaKind": "image",
@@ -3484,7 +3516,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 31
+          "position": 32
         },
         {
           "mediaKind": "image",
@@ -3500,7 +3532,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 32
+          "position": 33
         },
         {
           "mediaKind": "image",
@@ -3516,7 +3548,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 33
+          "position": 34
         },
         {
           "mediaKind": "image",
@@ -3532,7 +3564,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 34
+          "position": 35
         },
         {
           "mediaKind": "image",
@@ -3548,7 +3580,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 35
+          "position": 36
         },
         {
           "mediaKind": "image",
@@ -3564,7 +3596,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 36
+          "position": 37
         },
         {
           "mediaKind": "image",
@@ -3580,7 +3612,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 37
+          "position": 38
         },
         {
           "mediaKind": "image",
@@ -3596,7 +3628,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 38
+          "position": 39
         },
         {
           "mediaKind": "image",
@@ -3612,7 +3644,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 39
+          "position": 40
         },
         {
           "mediaKind": "image",
@@ -3628,7 +3660,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 40
+          "position": 41
         },
         {
           "mediaKind": "image",
@@ -3644,7 +3676,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 41
+          "position": 42
         },
         {
           "mediaKind": "image",
@@ -3660,7 +3692,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 42
+          "position": 43
         },
         {
           "mediaKind": "image",
@@ -3676,7 +3708,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 43
+          "position": 44
         },
         {
           "mediaKind": "image",
@@ -3692,7 +3724,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 44
+          "position": 45
         },
         {
           "mediaKind": "image",
@@ -3708,7 +3740,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 45
+          "position": 46
         },
         {
           "mediaKind": "image",
@@ -3724,7 +3756,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 46
+          "position": 47
         },
         {
           "mediaKind": "image",
@@ -3740,7 +3772,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 47
+          "position": 48
         },
         {
           "mediaKind": "image",
@@ -3756,7 +3788,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 48
+          "position": 49
         },
         {
           "mediaKind": "image",
@@ -3772,7 +3804,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 49
+          "position": 50
         },
         {
           "mediaKind": "image",
@@ -3788,7 +3820,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 50
+          "position": 51
         },
         {
           "mediaKind": "image",
@@ -3804,7 +3836,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 51
+          "position": 52
         },
         {
           "mediaKind": "image",
@@ -3820,7 +3852,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 52
+          "position": 53
         },
         {
           "mediaKind": "image",
@@ -3836,7 +3868,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 53
+          "position": 54
         },
         {
           "mediaKind": "image",
@@ -3852,7 +3884,7 @@
             "height": 300
           },
           "hidden": true,
-          "position": 54
+          "position": 55
         }
       ],
       "position": 8,
@@ -3927,7 +3959,8 @@
             "izvedba": "14031"
           },
           "imageAssignments": [
-            0
+            0,
+            2
           ]
         },
         {
@@ -3954,7 +3987,8 @@
             "izvedba": "14030"
           },
           "imageAssignments": [
-            0
+            0,
+            2
           ]
         }
       ],
@@ -3963,14 +3997,14 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "grafopak.jpg",
-          "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
+          "filename": "grafopak-real-belo-siv-material-v2.jpg",
+          "blobUrl": "/images/catalog/2026-09/grafopak-real-belo-siv-material-v2.jpg",
           "mimeType": "image/jpeg",
-          "altText": "Grafopak – fotografija belo-sivega kartona",
+          "altText": "Belo-sivi karton GD2 – predstavitvena fotografija obeh strani materiala",
           "imageType": "product",
           "imageDimensions": {
-            "width": 2048,
-            "height": 1365
+            "width": 800,
+            "height": 600
           },
           "hidden": false,
           "position": 0
@@ -3995,6 +4029,22 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "grafopak.jpg",
+          "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Grafopak – fotografija belo-sivega kartona",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 2048,
+            "height": 1365
+          },
+          "hidden": false,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "grafopak-studio-1.png",
           "blobUrl": "/images/catalog/2026-09/grafopak-studio-1.png",
           "mimeType": "image/png",
@@ -4005,7 +4055,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -4021,7 +4071,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 3
+          "position": 4
         }
       ],
       "position": 9,
@@ -5300,10 +5350,10 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "lepenka-real-bela-povrsina.png",
-          "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
+          "filename": "lepenka-real-beli-rob.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
           "mimeType": "image/png",
-          "altText": "Bela lepenka – fotografija površine materiala",
+          "altText": "Bela lepenka – fotografija roba kartonske plošče",
           "imageType": "product",
           "imageDimensions": {
             "width": 640,
@@ -5316,10 +5366,10 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "lepenka-real-beli-rob.png",
-          "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+          "filename": "lepenka-real-bela-povrsina.png",
+          "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
           "mimeType": "image/png",
-          "altText": "Bela lepenka – fotografija roba kartonske plošče",
+          "altText": "Bela lepenka – fotografija površine materiala",
           "imageType": "product",
           "imageDimensions": {
             "width": 640,
@@ -5565,14 +5615,14 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
-          "filename": "risalni-list.png",
-          "blobUrl": "/images/catalog/2026-09/risalni-list.png",
-          "mimeType": "image/png",
-          "altText": "Risalni list – izvirna dobaviteljeva fotografija",
+          "filename": "risalni-list-real-robovi-v2.jpg",
+          "blobUrl": "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg",
+          "mimeType": "image/jpeg",
+          "altText": "Risalni papir - fotografija listov z vidnimi robovi in teksturo",
           "imageType": "product",
           "imageDimensions": {
-            "width": 670,
-            "height": 670
+            "width": 1500,
+            "height": 1500
           },
           "hidden": false,
           "position": 0
@@ -5597,6 +5647,22 @@
           "mediaKind": "image",
           "role": "gallery",
           "sourceKind": "upload",
+          "filename": "risalni-list.png",
+          "blobUrl": "/images/catalog/2026-09/risalni-list.png",
+          "mimeType": "image/png",
+          "altText": "Risalni list – izvirna dobaviteljeva fotografija",
+          "imageType": "product",
+          "imageDimensions": {
+            "width": 670,
+            "height": 670
+          },
+          "hidden": true,
+          "position": 2
+        },
+        {
+          "mediaKind": "image",
+          "role": "gallery",
+          "sourceKind": "upload",
           "filename": "risalni-list-studio-1.png",
           "blobUrl": "/images/catalog/2026-09/risalni-list-studio-1.png",
           "mimeType": "image/png",
@@ -5607,7 +5673,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 2
+          "position": 3
         },
         {
           "mediaKind": "image",
@@ -5623,7 +5689,7 @@
             "height": 1254
           },
           "hidden": true,
-          "position": 3
+          "position": 4
         }
       ],
       "position": 12,

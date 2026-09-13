@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "auditedAt": "2026-09-13",
+  "policy": "Square white catalog photo frames with whole-product containment. Promote or replace featureless light material views with authentic supplier photographs that reveal edges, texture and product shape. Preserve material and selected colour identity, native source pixels and unrelated catalog data.",
+  "framingReference": "https://sell.amazon.com/blog/product-photos",
+  "audit": {
+    "activeProducts": 40,
+    "visiblePhotographRows": 131,
+    "distinctPhotographs": 129,
+    "nonSquareOriginalPhotographs": 81,
+    "under600PixelsShortEdge": 40,
+    "dimensionDiagramsExcluded": 137
+  },
+  "products": [
+    {
+      "slug": "barvni-papir",
+      "additions": [
+        {
+          "id": "barvni-papir-pregled-barv",
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-real-pregled-barv-v2.png",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/barvnipapir.png",
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "kind": "source-photo",
+          "dimensions": {
+            "width": 300,
+            "height": 300
+          },
+          "sha256": "a8c4f08dc7f80c85c985a3cd072a2892a7987181dc5b5c8e627054b81bae9542",
+          "altText": "Barvni papir - izvirna fotografija izbora barv",
+          "visuallyVerified": true,
+          "notes": "Original ATEHNA photograph of the multicolour paper family. General article overview only; each colour-specific photograph retains its existing variant assignment and leads its selected variant gallery. Native 300px source retained without upscaling. No bitmap edits or generated content. Versioned copy of unchanged original bytes keeps historical hidden variant links untouched; this new record is general only."
+        }
+      ],
+      "replacements": [],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/barvni-papir-real-pregled-barv-v2.png"
+      ]
+    },
+    {
+      "slug": "grafopak",
+      "additions": [],
+      "replacements": [
+        {
+          "fromBlobUrl": "/images/catalog/2026-09/grafopak.jpg",
+          "photo": {
+            "id": "belo-siv-material-v2",
+            "blobUrl": "/images/catalog/2026-09/grafopak-real-belo-siv-material-v2.jpg",
+            "sourceUrl": "https://cdn.modulor.de/products/daag/1_1920_1920_r_chromoduplexkarton_gd_2_weiss_graulich.jpg",
+            "sourcePage": "https://www.modulor.de/en/chromo-duplex-board-gd-2-white-greyish.html",
+            "kind": "source-photo",
+            "dimensions": {
+              "width": 800,
+              "height": 600
+            },
+            "sha256": "e4a0543970b879bf74f577d3be6ed90a84bc2c1701ea5ea71c92304b666e0b56",
+            "altText": "Belo-sivi karton GD2 – predstavitvena fotografija obeh strani materiala",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "edits": [],
+            "notes": "Unchanged real supplier photograph of white-coated, gray-backed GD2 card samples. Generic material representation: the supplier listing is approximately 400 g Igepa card, whereas the catalog Grafopak is 350 g; do not infer exact brand, weight, thickness or cut size from the photo. Two complete samples show the white front, gray reverse and natural shadows. Actual downloaded dimensions are 800 x 600 pixels despite the 1920 URL label; no upscaling or local image edits. Retain the original Grafopak-specific Velpapir detail and older files for rollback."
+          },
+          "keepOriginalVisible": true
+        }
+      ],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/grafopak-real-belo-siv-material-v2.jpg"
+      ]
+    },
+    {
+      "slug": "lepenka",
+      "additions": [],
+      "replacements": [],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/lepenka-real-beli-rob.png"
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "additions": [],
+      "replacements": [],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/penjeni-pvc-komateks.png"
+      ]
+    },
+    {
+      "slug": "risalni-list",
+      "additions": [],
+      "replacements": [
+        {
+          "fromBlobUrl": "/images/catalog/2026-09/risalni-list.png",
+          "photo": {
+            "id": "risalni-list-robovi-v2",
+            "blobUrl": "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg",
+            "sourceUrl": "https://cdn11.bigcommerce.com/s-xoo1uq/images/stencil/original/products/2901/17174/Artway-STUDIO-170gsm-White-Cartridge-Paper-A1-A2-A3_14561__13754.1729768382.jpg?c=2",
+            "sourcePage": "https://artway.co.uk/artway-studio-170gsm-cartridge-paper-packs-a1-a2-a3/",
+            "kind": "source-photo",
+            "dimensions": {
+              "width": 1500,
+              "height": 1500
+            },
+            "sha256": "c73793227d9c3d30e5535dbd441aa56b68a70784aa8f5e25e1cf503ed5c41e4d",
+            "altText": "Risalni papir - fotografija listov z vidnimi robovi in teksturo",
+            "visuallyVerified": true,
+            "notes": "Unchanged authentic supplier photograph of white uncoated drawing-paper sheets. Three-quarter material detail makes sheet edges and surface legible at card size. General material representation; supplier brand, 170 gsm, pack quantity and cut dimensions are not catalog specifications. ATEHNA sells the selected format per sheet. No bitmap edits, artificial upscaling, added shadows or generated content."
+          }
+        }
+      ],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg"
+      ]
+    },
+    {
+      "slug": "seleshamer",
+      "additions": [],
+      "replacements": [
+        {
+          "fromBlobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+          "photo": {
+            "id": "beli-listi-v2",
+            "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-listi-v2.jpg",
+            "sourceUrl": "https://go2school.com/wp-content/uploads/2026/04/775112-KOS_1.jpg",
+            "sourcePage": "https://go2school.com/product/seleshamer-bel-200g-a4/",
+            "kind": "source-photo",
+            "dimensions": {
+              "width": 658,
+              "height": 606
+            },
+            "sha256": "87b1578895e1aa9ebc72bed49454b5ea12994e4762ef435e358201598cb53b1f",
+            "altText": "Bel šeleshamer 200 g – predstavitvena fotografija listov papirja",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "edits": [],
+            "notes": "Unchanged real supplier photograph from the Muflon A4 white 200 g paper listing. Representative white 200 g material view across the catalog formats, not evidence of the supplied brand, exact sheet dimensions or stack quantity. Native 658 x 606 pixels. The complete stack, bent top sheet and visible edge shadows are clearer at card size than the earlier flat format collage. Retain the original format image and older files for rollback."
+          }
+        }
+      ],
+      "leadBlobUrls": [
+        "/images/catalog/2026-09/seleshamer-real-beli-listi-v2.jpg"
+      ]
+    }
+  ],
+  "promotedExistingPhotos": [
+    {
+      "slug": "penjeni-pvc-komateks",
+      "photo": {
+        "id": "izvirna-fotografija",
+        "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
+        "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+        "sourcePage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+        "altText": "Penjeni PVC – dobaviteljeva fotografija belih plošč",
+        "variantIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "notes": "Original supplier image shared by all four actual cut-size listings, retained at native 312px.",
+        "kind": "source-photo",
+        "dimensions": {
+          "width": 312,
+          "height": 312
+        },
+        "sha256": "700347f73dcd460d8f1b7ee76439acc0662f6070b43417c94de575b59eeda7da",
+        "contextOnly": false,
+        "visuallyVerified": true
+      },
+      "reason": "Whole sheet stack and visible edges are more identifiable than a mostly blank corner closeup. Exact original supplier view; native312px is adequate for small cards. Larger candidates had incorrect branding, props or poorer visibility."
+    },
+    {
+      "slug": "lepenka",
+      "photo": {
+        "id": "beli-rob",
+        "sourceUrl": "https://s3-eu-west-1.amazonaws.com/cdn.papermilldirect.co.uk/paper-card-images/981W-1DR-single-sided-white-mount-board-inside.png",
+        "sourcePage": "https://www.papermilldirect.co.uk/paper-card/white-mount-board-1250-micron-2",
+        "altText": "Bela lepenka – fotografija roba kartonske plošče",
+        "variantIndices": [
+          0,
+          3
+        ],
+        "notes": "Second actual white board detail; representative material photo, not proof of exact thickness or format.",
+        "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+        "kind": "source-photo",
+        "dimensions": {
+          "width": 640,
+          "height": 640
+        },
+        "sha256": "710fbbb6206acf5262b01fd5320fb184b2da6f43f56933fe7ae2e1496f068061",
+        "contextOnly": false,
+        "visuallyVerified": true
+      },
+      "reason": "Promote the existing white board edge detail so core and surface are visible instead of a featureless upright sheet."
+    }
+  ],
+  "reviewedRetained": [
+    {
+      "slug": "pleksi-steklo",
+      "reason": "Existing native square photographs show real angled acrylic sheets and edges, with variant-specific white/clear identity retained."
+    },
+    {
+      "slug": "stiropor",
+      "reason": "Existing native1500px square angled stack clearly reveals EPS sheet layers. Square white viewport removes frame bands without discarding this useful photograph."
+    }
+  ]
+}

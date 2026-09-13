@@ -1155,7 +1155,7 @@ function ProductPreview({
                   {Array.from({ length: visibleThumbnailCount }, (_, index) => (
                     <div
                       key={index}
-                      className={`grid place-items-center rounded-lg border bg-[#f5f3f0] ${index === 0 ? 'border-[color:var(--blue-500)] ring-1 ring-[color:var(--blue-100)]' : 'border-slate-200'}`}
+                      className={`grid place-items-center rounded-lg border bg-white ${index === 0 ? 'border-[color:var(--blue-500)] ring-1 ring-[color:var(--blue-100)]' : 'border-slate-200'}`}
                       style={{ width: previewThumbnailSize, height: previewThumbnailSize }}
                     >
                       <span className="h-[28%] w-[62%] -rotate-6 border border-slate-300 bg-gradient-to-br from-slate-100 via-white to-slate-300 shadow-sm" />
@@ -1163,7 +1163,7 @@ function ProductPreview({
                   ))}
                 </div>
               ) : null}
-              <div className="relative grid place-items-center overflow-hidden rounded-xl border border-slate-200 bg-[#f5f3f0] shadow-sm" style={{ aspectRatio: config.gallery.imageRatio.replace(':', ' / ') }}>
+              <div className="relative grid place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" style={{ aspectRatio: 1 }}>
                 <div className="absolute left-[19%] top-[38%] h-[30%] w-[55%] -rotate-[8deg] border border-slate-300 bg-gradient-to-br from-slate-100 via-white to-slate-300 shadow-md" />
                 <div className="absolute left-[27%] top-[31%] h-[30%] w-[55%] -rotate-[2deg] border border-slate-300 bg-gradient-to-br from-slate-100 via-white to-slate-300 shadow-md" />
                 <div className="absolute left-[35%] top-[27%] h-[30%] w-[55%] rotate-[5deg] border border-slate-300 bg-gradient-to-br from-slate-100 via-white to-slate-300 shadow-md" />
@@ -1192,7 +1192,7 @@ function ProductPreview({
                 {Array.from({ length: visibleThumbnailCount }, (_, index) => (
                   <div
                     key={index}
-                    className={`grid place-items-center rounded-lg border bg-[#f5f3f0] ${index === 0 ? 'border-[color:var(--blue-500)]' : 'border-slate-200'}`}
+                    className={`grid place-items-center rounded-lg border bg-white ${index === 0 ? 'border-[color:var(--blue-500)]' : 'border-slate-200'}`}
                     style={{ width: previewThumbnailSize, height: previewThumbnailSize }}
                   >
                     <span className="h-[28%] w-[62%] -rotate-6 border border-slate-300 bg-gradient-to-br from-slate-100 via-white to-slate-300" />
@@ -2135,10 +2135,9 @@ export default function AdminProductAppearancePageClient({
   function renderSettings(section: SectionKey) {
     if (section === 'articleNotes') return <ArticleNoteSettingsEditor tags={config.articleNotes.tags} onChange={(tags) => updateSection('articleNotes', { tags })} />;
     if (section === 'listings') return (
-      <SettingsGroup title="Katalog in vrstice izdelkov" description="Predogled uporablja isti seznam kategorij, filtre in razvrščanje kot javni katalog. Posamezne elemente izberite na platnu za premikanje, velikost in vidnost.">
+      <SettingsGroup title="Katalog in vrstice izdelkov" description="Predogled uporablja isti seznam kategorij, filtre in razvrščanje kot javni katalog. Fotografije so kvadratne in prikazane v celoti. Posamezne elemente izberite na platnu za premikanje, velikost in vidnost.">
         <FieldGrid>
           <NumberField label="Vrstice naziva" value={config.listings.titleLines} min={1} max={4} onChange={(titleLines) => updateSection('listings', { titleLines })} />
-          <SelectField label="Prileganje slike" value={config.listings.imageFit} options={[{ value: 'contain', label: 'Celotna slika' }, { value: 'cover', label: 'Zapolni okvir' }]} onChange={(imageFit) => updateSection('listings', { imageFit })} />
         </FieldGrid>
         <div className="grid gap-2 sm:grid-cols-2">
           <ToggleField label="Kratek opis" checked={config.listings.showShortDescription} onChange={(showShortDescription) => updateSection('listings', { showShortDescription })} />
@@ -2180,11 +2179,9 @@ export default function AdminProductAppearancePageClient({
 
     if (section === 'gallery') return (
       <>
-        <SettingsGroup title="Slika in sličice">
+        <SettingsGroup title="Slika in sličice" description="Fotografije so v kvadratnem belem okvirju in prikazane v celoti, brez obrezovanja.">
           <FieldGrid>
             {config.productPage.layout === 'showcase' ? <NumberField label="Največja širina galerije" value={config.gallery.maxWidthPx} min={160} max={1000} suffix="px" onChange={(maxWidthPx) => updateSection('gallery', { maxWidthPx })} /> : null}
-            <SelectField label="Razmerje slike" value={config.gallery.imageRatio} options={[{ value: '1:1', label: 'Kvadrat 1 : 1' }, { value: '4:3', label: '4 : 3' }, { value: '3:2', label: '3 : 2' }, { value: '16:9', label: '16 : 9' }]} onChange={(imageRatio) => updateSection('gallery', { imageRatio })} />
-            <SelectField label="Prileganje slike" value={config.gallery.imageFit} options={[{ value: 'contain', label: 'Celotna slika' }, { value: 'cover', label: 'Zapolni okvir' }]} onChange={(imageFit) => updateSection('gallery', { imageFit })} />
             <SelectField label="Sličice · desktop" value={config.gallery.thumbnailPositionDesktop} options={[{ value: 'left', label: 'Levo · navpično' }, { value: 'right', label: 'Desno · navpično' }, { value: 'top', label: 'Zgoraj · vodoravno' }, { value: 'bottom', label: 'Spodaj · vodoravno' }, { value: 'hidden', label: 'Skrito' }]} onChange={(thumbnailPositionDesktop) => updateSection('gallery', { thumbnailPositionDesktop })} />
             <SelectField label="Sličice · mobilno" value={config.gallery.thumbnailPositionMobile} options={[{ value: 'left', label: 'Levo · navpično' }, { value: 'right', label: 'Desno · navpično' }, { value: 'top', label: 'Zgoraj · vodoravno' }, { value: 'bottom', label: 'Spodaj · vodoravno' }, { value: 'hidden', label: 'Skrito' }]} onChange={(thumbnailPositionMobile) => updateSection('gallery', { thumbnailPositionMobile })} />
             <NumberField label="Velikost galerije" value={config.gallery.sizePercent} min={50} max={100} suffix="%" onChange={(sizePercent) => updateSection('gallery', { sizePercent })} />

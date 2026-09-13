@@ -267,7 +267,7 @@ const PROTECTED_TABLES = [
   'orders', 'order_items', 'order_line_snapshots', 'order_stock_holds', 'order_historical_changes',
   'quote_requests', 'quote_request_items', 'quote_offer_versions', 'quote_offer_version_items', 'quote_offer_acceptances'
 ] as const;
-async function protectedHashes(client: pg.PoolClient) {
+export async function protectedHashes(client: pg.PoolClient) {
   const hashes: Record<string, string | null> = {};
   for (const table of PROTECTED_TABLES) {
     if (!(await client.query('select to_regclass($1) as name', [table])).rows[0].name) { hashes[table] = null; continue; }
@@ -277,7 +277,7 @@ async function protectedHashes(client: pg.PoolClient) {
   }
   return hashes;
 }
-async function readState(client: pg.PoolClient, lock = false): Promise<PhotoState> {
+export async function readState(client: pg.PoolClient, lock = false): Promise<PhotoState> {
   const suffix = lock ? ' for update' : '';
   // Parent-first locking matches the editor and quick-save lock order.
   const items = (await client.query('select * from catalog_items order by id' + suffix)).rows;

@@ -4,7 +4,11 @@ import {
   getVisibleProductMedia,
   resolveProductGallerySelection
 } from '@/commercial/components/storefront/productGalleryMedia';
-import type { StorefrontProductMedia } from '@/commercial/features/products/storefrontProduct';
+import {
+  buildStorefrontProductFromCatalogItem,
+  toStorefrontProductSummary,
+  type StorefrontProductMedia
+} from '@/commercial/features/products/storefrontProduct';
 
 const image = (
   id: string,
@@ -24,6 +28,43 @@ const image = (
 const ids = (media: StorefrontProductMedia[]) => media.map((entry) => entry.id);
 
 describe('variant gallery media', () => {
+  test('keeps a colour overview on cards while selected colours lead the detail gallery', () => {
+    const overview = image('colour-overview');
+    const red = image('red-paper', ['101']);
+    const blue = image('blue-paper', ['102']);
+    const catalogItem = {
+      id: 1,
+      slug: 'barvni-papir',
+      name: 'Barvni papir',
+      description: 'Barvni papir za ustvarjanje.',
+      status: 'active',
+      defaultVariantId: 101,
+      media: [overview, red, blue],
+      variants: [
+        { id: 101, variantName: 'Rdeča', status: 'active', price: 1, inventory: 10 },
+        { id: 102, variantName: 'Modra', status: 'active', price: 1, inventory: 10 }
+      ]
+    };
+    const product = buildStorefrontProductFromCatalogItem(catalogItem, {
+      href: '/products/materiali/items/barvni-papir',
+      fallbackSku: 'PAPER',
+      fallbackPrice: 1,
+      category: { slug: 'materiali', title: 'Materiali', href: '/products/materiali' }
+    });
+
+    assert.equal(toStorefrontProductSummary(product).image?.url, overview.url);
+    assert.equal(product.defaultVariantId, '101');
+    const visibleRed = getVisibleProductMedia(product.media, product.defaultVariantId);
+    assert.deepEqual(ids(visibleRed), ['red-paper', 'colour-overview']);
+    const selectedRed = resolveProductGallerySelection(visibleRed, null);
+    assert.equal(selectedRed?.url, red.url);
+    const visibleBlue = getVisibleProductMedia(product.media, '102');
+    assert.deepEqual(ids(visibleBlue), ['blue-paper', 'colour-overview']);
+    assert.equal(resolveProductGallerySelection(visibleBlue, selectedRed)?.url, blue.url);
+    assert.equal(toStorefrontProductSummary(product).image?.url, overview.url);
+    assert.deepEqual(ids(product.media), ['colour-overview', 'red-paper', 'blue-paper']);
+  });
+
   test('prioritizes matching photos and only shows the matching individual sketch', () => {
     const shared = image('shared');
     const variantPhoto = image('variant-a', ['a']);

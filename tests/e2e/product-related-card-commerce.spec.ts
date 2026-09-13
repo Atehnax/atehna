@@ -32,9 +32,10 @@ type DescriptionStyleContract = {
   logicalHeight: number;
   logicalLineHeight: number;
   logicalGapAfterHeading: number;
-  logicalGapAfterPrice: number;
+  logicalGapBeforePrice: number;
   immediatelyFollowsTitle: boolean;
-  purchaseImmediatelyFollowsDescription: boolean;
+  priceImmediatelyFollowsDescription: boolean;
+  purchaseImmediatelyFollowsPrice: boolean;
 };
 
 type TypographyContract = {
@@ -54,13 +55,14 @@ type RelatedCardContract = {
   logicalHeight: number;
   logicalWidth: number;
   mediaWidthRatio: number;
-  logicalTitlePriceGap: number;
+  mediaAspectRatio: number;
+  logicalGapAfterImage: number;
   logicalGapBeforePurchaseRow: number;
   contentJustification: string;
   purchaseRowDisplay: string;
   purchaseRowAlignItems: string;
   purchaseRowFlexWrap: string;
-  titleAndPriceShareRow: boolean;
+  orderedPortraitContent: boolean;
   actionFollowsPrice: boolean;
   descriptionStyle: DescriptionStyleContract;
   typography: TypographyContract;
@@ -136,6 +138,7 @@ async function expectRelatedCardContract(
 
   const price = card.locator('.storefront-product-card-price');
   const title = card.locator('.storefront-product-card-title');
+  const category = card.locator('.storefront-product-card-category');
   const description = card.locator('.storefront-product-card-description');
   const primaryPrice = price.locator('.storefront-price-primary');
   const visualPrice = primaryPrice.locator('.storefront-listing-price-visual');
@@ -151,6 +154,7 @@ async function expectRelatedCardContract(
 
   await expect(price).toBeVisible();
   await expect(title).toBeVisible();
+  await expect(category).toBeVisible();
   await expect(
     description,
     'related cards should show the canonical product-description excerpt'
@@ -213,6 +217,7 @@ async function expectRelatedCardContract(
   const geometry = await card.evaluate((root) => {
     const cardRoot = root as HTMLElement;
     const heading = cardRoot.querySelector<HTMLElement>('.storefront-product-card-heading');
+    const categoryElement = cardRoot.querySelector<HTMLElement>('.storefront-product-card-category');
     const content = cardRoot.querySelector<HTMLElement>(
       '.storefront-product-card-content'
     );
@@ -242,6 +247,7 @@ async function expectRelatedCardContract(
     );
     if (
       !heading
+      || !categoryElement
       || !content
       || !titleElement
       || !descriptionElement
@@ -266,6 +272,7 @@ async function expectRelatedCardContract(
     const descriptionChild = topLevelChild(descriptionElement);
     const rootBox = cardRoot.getBoundingClientRect();
     const titleBox = titleElement.getBoundingClientRect();
+    const categoryBox = categoryElement.getBoundingClientRect();
     const headingBox = heading.getBoundingClientRect();
     const descriptionContentBox = descriptionElement.getBoundingClientRect();
     const mediaBox = mediaElement.getBoundingClientRect();
@@ -291,28 +298,28 @@ async function expectRelatedCardContract(
     const titleFontSize = Number.parseFloat(titleStyle.fontSize);
     const descriptionFontSize = Number.parseFloat(descriptionStyle.fontSize);
     const priceFontSize = Number.parseFloat(primaryPriceStyle.fontSize);
-    const titlePriceOverlapY = Math.min(priceBox.bottom, titleBox.bottom)
-      - Math.max(priceBox.top, titleBox.top);
 
     return {
       logicalHeight: rootBox.height / transformScaleY * commercialScale,
       logicalWidth: rootBox.width / transformScaleX * commercialScale,
       mediaWidthRatio: mediaBox.width / rootBox.width,
-      logicalTitlePriceGap:
-        (priceBox.left - titleBox.right) / transformScaleX
+      mediaAspectRatio: mediaBox.width / mediaBox.height,
+      logicalGapAfterImage:
+        (categoryBox.top - mediaBox.bottom) / transformScaleY
         * commercialScale,
       logicalGapBeforePurchaseRow:
-        (purchaseRowBox.top - descriptionContentBox.bottom) / transformScaleY
+        (purchaseRowBox.top - priceBox.bottom) / transformScaleY
         * commercialScale,
       contentJustification: contentStyle.justifyContent,
       purchaseRowDisplay: purchaseRowStyle.display,
       purchaseRowAlignItems: purchaseRowStyle.alignItems,
       purchaseRowFlexWrap: purchaseRowStyle.flexWrap,
-      titleAndPriceShareRow:
-        titlePriceOverlapY > 0
-        && Math.abs(priceBox.top - titleBox.top) <= 1
-        && priceBox.left >= titleBox.right - 1
-        && Math.abs(priceBox.right - headingBox.right) <= 1,
+      orderedPortraitContent:
+        mediaBox.bottom <= categoryBox.top + 1
+        && categoryBox.bottom <= titleBox.top + 1
+        && titleBox.bottom <= descriptionContentBox.top + 1
+        && descriptionContentBox.bottom <= priceBox.top + 1
+        && priceBox.bottom <= purchaseRowBox.top + 1,
       actionFollowsPrice: Boolean(
         priceElement.compareDocumentPosition(actionElement)
         & Node.DOCUMENT_POSITION_FOLLOWING
@@ -330,20 +337,21 @@ async function expectRelatedCardContract(
         logicalGapAfterHeading:
           (descriptionContentBox.top - headingBox.bottom) / transformScaleY
           * commercialScale,
-        logicalGapAfterPrice:
-          (descriptionContentBox.top - priceBox.bottom) / transformScaleY
+        logicalGapBeforePrice:
+          (priceBox.top - descriptionContentBox.bottom) / transformScaleY
           * commercialScale,
         immediatelyFollowsTitle:
           titleChild.nextElementSibling === descriptionChild,
-        purchaseImmediatelyFollowsDescription:
-          descriptionChild.nextElementSibling
-          === topLevelChild(purchaseRowElement)
+        priceImmediatelyFollowsDescription:
+          descriptionChild.nextElementSibling === topLevelChild(priceElement),
+        purchaseImmediatelyFollowsPrice:
+          topLevelChild(priceElement).nextElementSibling === topLevelChild(purchaseRowElement)
       },
       typography: {
-        contentFontSize,
-        titleFontSize,
-        descriptionFontSize,
-        priceFontSize,
+        contentFontSize: contentFontSize * commercialScale,
+        titleFontSize: titleFontSize * commercialScale,
+        descriptionFontSize: descriptionFontSize * commercialScale,
+        priceFontSize: priceFontSize * commercialScale,
         titleToContentRatio: titleFontSize / contentFontSize,
         descriptionToContentRatio: descriptionFontSize / contentFontSize,
         priceToContentRatio: priceFontSize / contentFontSize
@@ -351,97 +359,54 @@ async function expectRelatedCardContract(
     };
   });
 
-  expect(
-    geometry.descriptionStyle.immediatelyFollowsTitle,
-    'the description excerpt should follow the title and price heading'
-  ).toBeTruthy();
-  expect(
-    geometry.descriptionStyle.purchaseImmediatelyFollowsDescription,
-    'the purchase controls should follow the description excerpt'
-  ).toBeTruthy();
+  expect(geometry.descriptionStyle.immediatelyFollowsTitle,
+    'the description excerpt follows the title').toBeTruthy();
+  expect(geometry.descriptionStyle.priceImmediatelyFollowsDescription,
+    'the price follows the description in reading order').toBeTruthy();
+  expect(geometry.descriptionStyle.purchaseImmediatelyFollowsPrice,
+    'purchase controls follow the price in reading order').toBeTruthy();
   expect(geometry.descriptionStyle.overflow).toBe('hidden');
-  expect(geometry.descriptionStyle.lineClamp).toBe('4');
+  expect(geometry.descriptionStyle.lineClamp).toBe('3');
   expect(geometry.descriptionStyle.boxOrient).toBe('vertical');
-  expect(
-    geometry.descriptionStyle.fontSize,
-    'description copy should not be larger than the compact card title'
-  ).toBeLessThanOrEqual(geometry.descriptionStyle.titleFontSize);
-  expect(
-    geometry.descriptionStyle.logicalHeight,
-    'the related description excerpt should show up to four lines'
-  ).toBeLessThanOrEqual(
-    geometry.descriptionStyle.logicalLineHeight * 4 + 1
+  expect(geometry.descriptionStyle.logicalHeight,
+    'the related excerpt shows at most three lines').toBeLessThanOrEqual(
+    geometry.descriptionStyle.logicalLineHeight * 3 + 1
   );
-  expect(
-    geometry.descriptionStyle.logicalGapAfterHeading,
-    'the description should have a deliberate gap beneath the heading'
-  ).toBeGreaterThanOrEqual(4);
+  expect(geometry.descriptionStyle.logicalGapAfterHeading).toBeGreaterThanOrEqual(4);
   expect(geometry.descriptionStyle.logicalGapAfterHeading).toBeLessThanOrEqual(14);
-  expect(
-    geometry.descriptionStyle.logicalGapAfterPrice,
-    'the description should follow the header price without overlap'
-  ).toBeGreaterThanOrEqual(0);
-  expect(
-    geometry.logicalGapBeforePurchaseRow,
-    'commerce should sit materially closer to the description instead of being pushed to the card bottom'
-  ).toBeLessThanOrEqual(24);
+  expect(geometry.descriptionStyle.logicalGapBeforePrice,
+    'the price does not overlap the description').toBeGreaterThanOrEqual(-1);
+  expect(geometry.logicalGapBeforePurchaseRow).toBeGreaterThanOrEqual(-1);
+  expect(geometry.logicalGapBeforePurchaseRow,
+    'quick-add stays close to the price').toBeLessThanOrEqual(24);
 
-  expect(
-    geometry.typography.titleFontSize,
-    'the compact related title should remain readable'
-  ).toBeGreaterThanOrEqual(15);
-  expect(
-    geometry.typography.descriptionFontSize,
-    'the related description should be at least one pixel larger than the former 14px treatment'
-  ).toBeGreaterThanOrEqual(15);
-  expect(
-    geometry.typography.priceFontSize,
-    'the related price should be at least two pixels larger than the former 20px treatment'
-  ).toBeGreaterThanOrEqual(22);
-  expect(geometry.typography.titleToContentRatio).toBeCloseTo(1, 3);
+  expect(geometry.typography.titleFontSize,
+    'the portrait title remains readable at storefront scale').toBeGreaterThanOrEqual(13.9);
+  expect(geometry.typography.descriptionFontSize).toBeGreaterThanOrEqual(11.9);
+  expect(geometry.typography.priceFontSize).toBeGreaterThanOrEqual(15.9);
+  expect(geometry.typography.titleFontSize)
+    .toBeGreaterThanOrEqual(geometry.typography.descriptionFontSize);
+  expect(geometry.typography.priceFontSize)
+    .toBeGreaterThanOrEqual(geometry.typography.titleFontSize);
   expect(geometry.typography.descriptionToContentRatio).toBeGreaterThan(0.875);
-  expect(geometry.typography.priceToContentRatio).toBeGreaterThan(1.25);
-  expect(
-    geometry.typography.titleFontSize,
-    'the compact related title should not be smaller than its description'
-  ).toBeGreaterThanOrEqual(geometry.typography.descriptionFontSize);
-  expect(
-    geometry.typography.priceFontSize,
-    'the related price should be at least as prominent as its title'
-  ).toBeGreaterThanOrEqual(geometry.typography.titleFontSize);
+  expect(geometry.typography.priceToContentRatio).toBeGreaterThan(1.15);
 
   expect(geometry.purchaseRowDisplay).toBe('flex');
   expect(geometry.purchaseRowAlignItems).toBe('center');
   expect(geometry.purchaseRowFlexWrap).toBe('wrap');
-  expect(
-    geometry.titleAndPriceShareRow,
-    'the price should align with the title at the far right of its heading'
-  ).toBeTruthy();
-  expect(
-    geometry.actionFollowsPrice,
-    'quick add should follow the price in DOM and reading order'
-  ).toBeTruthy();
-  expect(
-    geometry.mediaWidthRatio,
-    'the related image should occupy approximately half of the card width'
-  ).toBeGreaterThanOrEqual(0.48);
-  expect(geometry.mediaWidthRatio).toBeLessThanOrEqual(0.52);
-  expect(
-    ['flex-start', 'space-between'],
-    'related-card content should use an intentional compact flex alignment'
-  ).toContain(geometry.contentJustification);
-  expect(
-    geometry.logicalTitlePriceGap,
-    'the title and price should not overlap'
-  ).toBeGreaterThanOrEqual(0);
-  expect(
-    geometry.logicalTitlePriceGap,
-    'the title and price should retain a compact inline gap'
-  ).toBeLessThanOrEqual(28);
-  expect(
-    geometry.logicalHeight,
-    'the taller related card should make room for larger imagery and description'
-  ).toBeLessThanOrEqual(225);
+  expect(geometry.orderedPortraitContent,
+    'image, category, title, description, price and controls stack without overlap').toBeTruthy();
+  expect(geometry.actionFollowsPrice,
+    'quick add follows the price in DOM and reading order').toBeTruthy();
+  expect(geometry.mediaWidthRatio,
+    'the image spans the portrait card width').toBeGreaterThanOrEqual(0.95);
+  expect(geometry.mediaWidthRatio).toBeLessThanOrEqual(1);
+  expect(geometry.mediaAspectRatio, 'the image area is square').toBeCloseTo(1, 1);
+  expect(['flex-start', 'space-between']).toContain(geometry.contentJustification);
+  expect(geometry.logicalGapAfterImage).toBeGreaterThanOrEqual(0);
+  expect(geometry.logicalGapAfterImage).toBeLessThanOrEqual(28);
+  expect(geometry.logicalHeight,
+    'the related card is portrait').toBeGreaterThan(geometry.logicalWidth);
 
   const priceStyle = await readPriceStyle(price);
   expectCompactListingPriceStyle(priceStyle);
@@ -453,6 +418,34 @@ async function expectRelatedCardContract(
     ...geometry,
     priceStyle
   };
+}
+
+async function expectSixSlotDesktopRow(grid: Locator) {
+  await expect(grid).toBeVisible();
+  const geometry = await grid.evaluate((element) => {
+    const root = element as HTMLElement;
+    const style = getComputedStyle(root);
+    const rect = root.getBoundingClientRect();
+    const scale = rect.width / root.offsetWidth;
+    const gap = Number.parseFloat(style.columnGap);
+    return {
+      flow: style.gridAutoFlow,
+      expectedSlotWidth: (root.clientWidth - gap * 5) / 6,
+      viewportRight: rect.left + root.clientWidth * scale,
+      cards: Array.from(root.children).slice(0, 6).map(child => {
+        const box = child.getBoundingClientRect();
+        return { top: box.top, right: box.right, logicalWidth: box.width / scale };
+      })
+    };
+  });
+  expect(geometry.flow).toBe('column');
+  expect(geometry.cards.length, 'the fixture supplies related recommendations').toBeGreaterThan(0);
+  for (const card of geometry.cards) {
+    expect(card.top, 'all related cards share one row').toBeCloseTo(geometry.cards[0].top, 0);
+    expect(card.logicalWidth).toBeCloseTo(geometry.expectedSlotWidth, 0);
+    expect(card.right, 'the first six slots fit without horizontal scrolling')
+      .toBeLessThanOrEqual(geometry.viewportRight + 1);
+  }
 }
 
 function expectPriceStyleParity(
@@ -475,7 +468,7 @@ function expectPriceStyleParity(
 }
 
 test.describe('legacy related-product compact commerce card', () => {
-  test('uses listing price grammar, omits stock/tax, shrinks, and matches the admin preview', async ({
+  test('uses portrait cards in six desktop slots with matching public/admin price grammar', async ({
     page,
     request
   }) => {
@@ -520,6 +513,8 @@ test.describe('legacy related-product compact commerce card', () => {
       page.locator('.storefront-related-product-card').first()
     );
 
+    await expectSixSlotDesktopRow(page.locator('.storefront-related-product-grid'));
+
     await page.goto('/admin/podoba/artikli');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Artikli', exact: true })
@@ -558,6 +553,8 @@ test.describe('legacy related-product compact commerce card', () => {
       preview.locator('.storefront-related-product-card').first()
     );
 
+    await expectSixSlotDesktopRow(preview.locator('.storefront-related-product-grid'));
+
     expect(adminContract.priceText).toBe(publicContract.priceText);
     expect(
       adminContract.descriptionText,
@@ -568,14 +565,10 @@ test.describe('legacy related-product compact commerce card', () => {
     expect(adminContract.logicalWidth).toBeGreaterThan(0);
     expect(publicContract.logicalWidth).toBeGreaterThan(0);
     expect(
-      Math.abs(adminContract.logicalHeight - publicContract.logicalHeight),
-      'public/admin related-card heights should match after preview scaling'
-    ).toBeLessThanOrEqual(1.5);
-    expect(
       Math.abs(
         adminContract.mediaWidthRatio - publicContract.mediaWidthRatio
       ),
-      'public/admin related image-column ratios should match'
+      'public/admin images fill the same proportion of their portrait cards'
     ).toBeLessThanOrEqual(0.005);
     expect(adminContract.contentJustification)
       .toBe(publicContract.contentJustification);
@@ -583,8 +576,8 @@ test.describe('legacy related-product compact commerce card', () => {
       .toBe(publicContract.purchaseRowDisplay);
     expect(adminContract.purchaseRowAlignItems)
       .toBe(publicContract.purchaseRowAlignItems);
-    expect(adminContract.titleAndPriceShareRow)
-      .toBe(publicContract.titleAndPriceShareRow);
+    expect(adminContract.orderedPortraitContent)
+      .toBe(publicContract.orderedPortraitContent);
     expect(adminContract.typography.titleToContentRatio)
       .toBeCloseTo(publicContract.typography.titleToContentRatio, 3);
     expect(adminContract.typography.descriptionToContentRatio)
@@ -603,13 +596,6 @@ test.describe('legacy related-product compact commerce card', () => {
       .toBe(publicContract.descriptionStyle.boxOrient);
     expect(
       Math.abs(
-        adminContract.descriptionStyle.logicalHeight
-        - publicContract.descriptionStyle.logicalHeight
-      ),
-      'public/admin description heights should match after preview scaling'
-    ).toBeLessThanOrEqual(1.5);
-    expect(
-      Math.abs(
         adminContract.descriptionStyle.logicalGapAfterHeading
         - publicContract.descriptionStyle.logicalGapAfterHeading
       ),
@@ -620,7 +606,7 @@ test.describe('legacy related-product compact commerce card', () => {
         adminContract.logicalGapBeforePurchaseRow
         - publicContract.logicalGapBeforePurchaseRow
       ),
-      'public/admin description-to-commerce spacing should match after preview scaling'
+      'public/admin price-to-commerce spacing should match after preview scaling'
     ).toBeLessThanOrEqual(1.5);
     expectPriceStyleParity(adminContract.priceStyle, publicContract.priceStyle);
     expect(
@@ -736,6 +722,31 @@ test.describe('legacy related-product compact commerce card', () => {
     expect(geometry.quantityHeight).toBeGreaterThanOrEqual(28);
     expect(geometry.cartWidth).toBeGreaterThanOrEqual(28);
     expect(geometry.cartHeight).toBeGreaterThanOrEqual(28);
+    const quantity = card.locator('.storefront-related-product-quantity');
+    const originalQuantity = await quantity.inputValue();
+    await quantity.fill('');
+    await expect(quantity).toHaveValue('');
+    await quantity.fill(originalQuantity);
+    await expect(quantity).toHaveValue(originalQuantity);
+    await expect(card.locator('.storefront-related-product-cart-button')).toBeEnabled();
+
+    const grid = page.locator('.storefront-related-product-grid');
+    const row = await grid.evaluate((element) => {
+      const root = element as HTMLElement;
+      const tops = Array.from(root.children).map(child => child.getBoundingClientRect().top);
+      return { tops, overflow: root.scrollWidth - root.clientWidth };
+    });
+    expect(row.tops.length, 'the fixture supplies multiple related cards').toBeGreaterThan(1);
+    for (const top of row.tops) expect(top).toBeCloseTo(row.tops[0], 0);
+    expect(row.overflow, 'mobile related cards scroll within one row').toBeGreaterThan(0);
+    await grid.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+    await expect.poll(() => grid.evaluate(element => {
+      const root = element as HTMLElement;
+      const last = root.lastElementChild!.getBoundingClientRect();
+      const box = root.getBoundingClientRect();
+      const scale = box.width / root.offsetWidth;
+      return Math.abs(last.right - box.left - root.clientWidth * scale);
+    }), { message: 'the last related card is reachable by horizontal scrolling' }).toBeLessThanOrEqual(1);
     expect(writes, 'narrow layout inspection should remain read-only').toEqual([]);
   });
 });

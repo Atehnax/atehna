@@ -10,6 +10,7 @@ import {
   type OrderEstimate
 } from '@/commercial/order/contracts';
 import { readJsonResponse } from '@/shared/client/readJsonResponse';
+import { buildCartEstimateUpdate, buildCartEstimateErrorUpdates } from '@/commercial/order/cartReconciliation';
 
 export type OrderEstimateState = {
   estimate: OrderEstimate | null;
@@ -183,23 +184,7 @@ export function useOrderEstimate(
             'Košarice trenutno ni mogoče preveriti.'
           );
           const checkedAt = new Date().toISOString();
-          const issueByVariant = new Map(
-            (apiError.issues ?? [])
-              .filter((issue) => typeof issue.variantId === 'number')
-              .map((issue) => [issue.variantId as number, issue])
-          );
-          const updates: CartReconciliationUpdate[] = requestItems.map((item) => {
-            const issue = issueByVariant.get(item.variant!.id as number);
-            return {
-              lineId: item.lineId,
-              reconciliation: {
-                status: issue ? 'unavailable' : 'needs_review',
-                message: issue?.message ?? apiError.message,
-                checkedAt
-              }
-            };
-          });
-          reconcileItems(updates);
+          reconcileItems(buildCartEstimateErrorUpdates(requestItems, apiError, checkedAt));
           setState({ estimate: null, isLoading: false, error: apiError });
           return;
         }
@@ -225,37 +210,7 @@ export function useOrderEstimate(
             };
           }
 
-          const estimatedUnitGross =
-            estimateItem.quantity > 0
-              ? estimateItem.lineGross / estimateItem.quantity
-              : 0;
-          const previousGross = item.pricing?.quotedUnitGross;
-          const priceChanged =
-            typeof previousGross === 'number' &&
-            Math.abs(previousGross - estimatedUnitGross) > 0.005;
-
-          return {
-            lineId: item.lineId,
-            pricing: {
-              currency: 'EUR',
-              taxRate: estimateItem.taxRate,
-              baseUnitNet: estimateItem.baseUnitNet,
-              discountPct: estimateItem.discountPct,
-              unitNet: estimateItem.unitNet,
-              estimatedUnitGross,
-              quotedUnitGross: estimatedUnitGross,
-              quotedAt: checkedAt
-            },
-            reconciliation: {
-              status: priceChanged ? 'price_changed' : 'valid',
-              message: priceChanged
-                ? 'Cena je bila posodobljena po veljavnem ceniku.'
-                : undefined,
-              checkedAt,
-              availableStock: estimateItem.availableStock,
-              minOrder: estimateItem.minOrder
-            }
-          };
+          return buildCartEstimateUpdate(item, estimateItem, checkedAt);
         });
 
         reconcileItems(updates);

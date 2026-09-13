@@ -13,6 +13,7 @@ export const PRODUCT_IMAGE_FITS = ['contain', 'cover'] as const;
 export const PRODUCT_FILTER_PLACEMENTS = ['sidebar', 'toolbar'] as const;
 export const PRODUCT_PAGINATION_STYLES = ['pages', 'load-more'] as const;
 export const PRODUCT_WIDTH_MODES = ['global', 'wide'] as const;
+export const PRODUCT_PAGE_LAYOUTS = ['showcase', 'columns'] as const;
 export const PRODUCT_THUMBNAIL_POSITIONS = [
   'left',
   'right',
@@ -56,6 +57,7 @@ export type ProductImageFit = (typeof PRODUCT_IMAGE_FITS)[number];
 export type ProductFilterPlacement = (typeof PRODUCT_FILTER_PLACEMENTS)[number];
 export type ProductPaginationStyle = (typeof PRODUCT_PAGINATION_STYLES)[number];
 export type ProductWidthMode = (typeof PRODUCT_WIDTH_MODES)[number];
+export type ProductPageLayout = (typeof PRODUCT_PAGE_LAYOUTS)[number];
 export type ProductThumbnailPosition = (typeof PRODUCT_THUMBNAIL_POSITIONS)[number];
 export type ProductZoomMode = (typeof PRODUCT_ZOOM_MODES)[number];
 export type ProductPriceEmphasis = (typeof PRODUCT_PRICE_EMPHASIS)[number];
@@ -238,6 +240,7 @@ export type ProductAppearanceConfig = {
     subcategoryTilesVisible: boolean;
   };
   productPage: {
+    layout: ProductPageLayout;
     widthMode: ProductWidthMode;
     contentMaxWidthPx: number;
     galleryColumns: number;
@@ -250,6 +253,7 @@ export type ProductAppearanceConfig = {
     stickyPurchaseMobile: boolean;
   };
   gallery: {
+    maxWidthPx: number;
     sizePercent: number;
     imageRatio: ProductImageRatio;
     imageFit: ProductImageFit;
@@ -307,6 +311,7 @@ export type ProductAppearanceConfig = {
     panelStyle: ProductPurchasePanelStyle;
     fullWidthPrimaryAction: boolean;
     showAvailability: boolean;
+    showSaleUnit: boolean;
     showDeliveryEstimate: boolean;
     showMinimumOrder: boolean;
     showQuantityStepper: boolean;
@@ -381,7 +386,7 @@ export type ProductAppearanceOverride = {
 };
 
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
-  schemaVersion: 11,
+  schemaVersion: 17,
   articleNotes: { tags: DEFAULT_ARTICLE_NOTE_TAGS.map((tag) => ({ ...tag })) },
   listings: {
     availableModes: 'grid',
@@ -407,10 +412,11 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     subcategoryTilesVisible: true
   },
   productPage: {
+    layout: 'showcase',
     widthMode: 'global',
-    contentMaxWidthPx: 1500,
+    contentMaxWidthPx: 1280,
     galleryColumns: 6,
-    informationColumns: 4,
+    informationColumns: 5,
     purchaseColumns: 4,
     columnGapPx: 44,
     showBreadcrumbs: true,
@@ -427,13 +433,14 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     stickyPurchaseMobile: true
   },
   gallery: {
+    maxWidthPx: 300,
     sizePercent: 100,
-    imageRatio: '4:3',
+    imageRatio: '1:1',
     imageFit: 'cover',
-    thumbnailPositionDesktop: 'left',
+    thumbnailPositionDesktop: 'bottom',
     thumbnailPositionMobile: 'bottom',
-    thumbnailSizePx: 70,
-    thumbnailGapPx: 16,
+    thumbnailSizePx: 60,
+    thumbnailGapPx: 10,
     visibleThumbnailCount: 6,
     hideThumbnailsWhenSingle: true,
     showArrows: true,
@@ -447,7 +454,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     showCategory: true,
     showBrand: false,
     showBadge: true,
-    showSku: false,
+    showSku: true,
     showShortDescription: false,
     showKeyAttributes: false,
     longDescriptionMaxWidthPx: 880
@@ -465,7 +472,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     listingUsesPriceRange: true
   },
   variants: {
-    selectorStyle: 'auto',
+    selectorStyle: 'chips',
     selectWidthPx: 260,
     selectHeightPx: 44,
     chipWidthPx: 88,
@@ -481,9 +488,10 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     autoSelectFallbackInStock: true
   },
   purchaseArea: {
-    panelStyle: 'card',
+    panelStyle: 'flat',
     fullWidthPrimaryAction: true,
-    showAvailability: true,
+    showAvailability: false,
+    showSaleUnit: false,
     showDeliveryEstimate: true,
     showMinimumOrder: true,
     showQuantityStepper: true,
@@ -511,7 +519,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
         'Dobavljivost in rok potrdimo po prejemu naročila.',
       variantLabel: 'Različica',
       skuLabel: 'SKU',
-      minimumOrderLabel: 'Minimalno naročilo',
+      minimumOrderLabel: 'min.',
       quantityLabel: 'Količina',
       decreaseQuantityLabel: 'Zmanjšaj količino',
       increaseQuantityLabel: 'Povečaj količino',
@@ -520,7 +528,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
       unavailableActionLabel: 'Trenutno ni mogoče naročiti',
       deliveryFallbackMessage:
         'Predvideni rok sporočimo ob potrditvi naročila.',
-      paymentMessage: 'Plačilo uredimo ročno po ponudbi ali predračunu.',
+      paymentMessage: 'Plačilo po ponudbi ali predračunu.',
       secondaryActionLabel: 'Vprašajte za ponudbo'
     }
   },
@@ -547,8 +555,8 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     specificationLabels: {},
     combinedOverviewLabel: 'Opis in specifikacije',
     sectionLabels: {
-      specifications: 'Specifikacije',
-      description: 'Opis izdelka',
+      specifications: 'Tehnični podatki',
+      description: 'O izdelku',
       includedItems: 'Vključeno',
       documents: 'Dokumenti',
       relatedProducts: 'Sorodni izdelki'
@@ -558,7 +566,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     showSpecificationColumnDivider: true,
     showSpecificationRowDividers: true,
     dividerThicknessPx: 1,
-    descriptionColumnPercent: 42,
+    descriptionColumnPercent: 50,
     specificationFirstColumnPercent: 50,
     compactSpecifications: true,
     stripedSpecifications: false,
@@ -570,12 +578,12 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     manualProductSlugs: [],
     manualPlacement: 'before-auto',
     maxItems: 4,
-    desktopColumns: 4,
+    desktopColumns: 3,
     tabletColumns: 2,
     mobileColumns: 1,
     gapPx: 24,
-    cardWidthPx: 360,
-    imageHeightPx: 144,
+    cardWidthPx: 640,
+    imageHeightPx: 112,
     textScalePercent: 100,
     sectionPlacement: 'after-content',
     sectionWidthPercent: 100,
@@ -790,8 +798,125 @@ export function cloneDefaultProductAppearanceConfig() {
   return clone(DEFAULT_PRODUCT_APPEARANCE_CONFIG);
 }
 
-export function normalizeProductAppearanceConfig(value: unknown): ProductAppearanceConfig {
+function migrateProductShowcaseSectionLabels(labels: UnknownRecord): UnknownRecord {
+  return {
+    ...labels,
+    ...Object.fromEntries(Object.entries({ description: 'Opis izdelka', specifications: 'Specifikacije' })
+      .map(([key, previous]) => [key, labels[key] === undefined || labels[key] === previous
+        ? DEFAULT_PRODUCT_APPEARANCE_CONFIG.secondaryContent.sectionLabels[key as ProductSecondaryBlock]
+        : labels[key]]))
+  };
+}
+
+// Upgrade only the previous preset's values; existing custom media, copy and canvas styling remain intact.
+function migrateProductShowcaseDefaults(value: unknown): UnknownRecord {
   const record = asRecord(value);
+  const productPage = asRecord(record.productPage);
+  if (productPage.layout !== undefined || typeof record.schemaVersion !== 'number' || record.schemaVersion < 1 || record.schemaVersion >= 12) return record;
+  const migrate = (section: string, previous: UnknownRecord) => {
+    const source = asRecord(record[section]);
+    const defaults = asRecord(DEFAULT_PRODUCT_APPEARANCE_CONFIG[section as keyof ProductAppearanceConfig]);
+    return Object.fromEntries(Object.entries(previous).map(([key, previousValue]) => [
+      key,
+      source[key] === undefined || source[key] === previousValue ? defaults[key] : source[key]
+    ]));
+  };
+  return {
+    ...record,
+    productPage: { ...productPage, layout: 'showcase', ...migrate('productPage', { informationColumns: 4, contentMaxWidthPx: 1500 }) },
+    gallery: { ...asRecord(record.gallery), ...migrate('gallery', { thumbnailPositionDesktop: 'left', imageRatio: '4:3', thumbnailSizePx: 70, thumbnailGapPx: 16 }) },
+    information: { ...asRecord(record.information), ...migrate('information', { showSku: false }) },
+    variants: { ...asRecord(record.variants), ...migrate('variants', { selectorStyle: 'auto' }) },
+    purchaseArea: { ...asRecord(record.purchaseArea), ...migrate('purchaseArea', { panelStyle: 'card' }) },
+    secondaryContent: {
+      ...asRecord(record.secondaryContent),
+      ...migrate('secondaryContent', { descriptionColumnPercent: 42 }),
+      sectionLabels: migrateProductShowcaseSectionLabels(asRecord(asRecord(record.secondaryContent).sectionLabels))
+    },
+    relatedProducts: {
+      ...asRecord(record.relatedProducts),
+      ...migrate('relatedProducts', { desktopColumns: 4, cardWidthPx: 360, imageHeightPx: 144 }),
+      ...([340, 520].includes(Number(asRecord(record.relatedProducts).cardWidthPx))
+        ? { cardWidthPx: DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts.cardWidthPx } : {})
+    }
+  };
+}
+
+function migrateCompactProductGallery(value: UnknownRecord): UnknownRecord {
+  const productPage = asRecord(value.productPage);
+  if (value.schemaVersion !== 12 || productPage.layout === 'columns') return value;
+  const gallery = asRecord(value.gallery);
+  return {
+    ...value,
+    gallery: {
+      ...gallery,
+      ...(gallery.imageRatio === '3:2' && gallery.maxWidthPx === undefined ? { imageRatio: '1:1' } : {}),
+      ...(gallery.thumbnailSizePx === 88 ? { thumbnailSizePx: 60 } : {}),
+      ...(gallery.thumbnailGapPx === 16 ? { thumbnailGapPx: 10 } : {})
+    }
+  };
+}
+
+function migrateCompactRelatedProductColumns(value: UnknownRecord): UnknownRecord {
+  const productPage = asRecord(value.productPage);
+  const relatedProducts = asRecord(value.relatedProducts);
+  if (productPage.layout === 'columns') return value;
+  const previousTwoColumnDefault = [12, 13].includes(Number(value.schemaVersion)) && relatedProducts.desktopColumns === 2;
+  const previousFourColumnDefault = value.schemaVersion === 14 && relatedProducts.desktopColumns === 4;
+  if (!previousTwoColumnDefault && !previousFourColumnDefault) return value;
+  return { ...value, relatedProducts: { ...relatedProducts, desktopColumns: DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts.desktopColumns } };
+}
+
+/** Older saved layouts inherited the visible stock row. New layouts opt in explicitly. */
+function migrateMinimalPurchaseDetails(value: UnknownRecord): UnknownRecord {
+  if (typeof value.schemaVersion !== 'number' || value.schemaVersion < 1 || value.schemaVersion >= 16) return value;
+  const purchaseArea = asRecord(value.purchaseArea);
+  return {
+    ...value,
+    purchaseArea: {
+      ...purchaseArea,
+      ...(purchaseArea.showAvailability === true ? { showAvailability: false } : {})
+    }
+  };
+}
+
+/** Replace inherited purchase copy while preserving authored labels in the current schema. */
+function migrateSubtlePurchaseCopy(value: UnknownRecord): UnknownRecord {
+  if (typeof value.schemaVersion === 'number' && value.schemaVersion >= 17) return value;
+  const purchaseArea = asRecord(value.purchaseArea);
+  const copy = asRecord(purchaseArea.copy);
+  return {
+    ...value,
+    purchaseArea: {
+      ...purchaseArea,
+      copy: {
+        ...copy,
+        ...(['Minimalno naročilo', 'Najmanjše naročilo'].includes(String(copy.minimumOrderLabel))
+          ? { minimumOrderLabel: DEFAULT_PRODUCT_APPEARANCE_CONFIG.purchaseArea.copy.minimumOrderLabel } : {}),
+        ...(copy.paymentMessage === 'Plačilo uredimo ročno po ponudbi ali predračunu.'
+          ? { paymentMessage: DEFAULT_PRODUCT_APPEARANCE_CONFIG.purchaseArea.copy.paymentMessage } : {})
+      }
+    }
+  };
+}
+
+export function applyProductShowcasePreset(value: unknown): ProductAppearanceConfig {
+  const config = normalizeProductAppearanceConfig(value);
+  const defaults = DEFAULT_PRODUCT_APPEARANCE_CONFIG;
+  return normalizeProductAppearanceConfig({
+    ...config,
+    productPage: { ...config.productPage, layout: 'showcase', contentMaxWidthPx: 1280, galleryColumns: 6, informationColumns: 5, columnGapPx: 44 },
+    gallery: { ...config.gallery, maxWidthPx: 300, imageRatio: '1:1', thumbnailSizePx: 60, thumbnailGapPx: 10, thumbnailPositionDesktop: 'bottom', thumbnailPositionMobile: 'bottom' },
+    information: { ...config.information, showSku: true },
+    variants: { ...config.variants, selectorStyle: 'chips' },
+    purchaseArea: { ...config.purchaseArea, panelStyle: 'flat' },
+    secondaryContent: { ...config.secondaryContent, desktopLayout: 'stacked', descriptionColumnPercent: defaults.secondaryContent.descriptionColumnPercent, sectionLabels: migrateProductShowcaseSectionLabels(config.secondaryContent.sectionLabels) },
+    relatedProducts: { ...config.relatedProducts, desktopColumns: defaults.relatedProducts.desktopColumns, cardWidthPx: defaults.relatedProducts.cardWidthPx, imageHeightPx: defaults.relatedProducts.imageHeightPx }
+  });
+}
+
+export function normalizeProductAppearanceConfig(value: unknown): ProductAppearanceConfig {
+  const record = migrateSubtlePurchaseCopy(migrateMinimalPurchaseDetails(migrateCompactRelatedProductColumns(migrateCompactProductGallery(migrateProductShowcaseDefaults(value)))));
   const listings = asRecord(record.listings);
   const productPage = asRecord(record.productPage);
   const gallery = asRecord(record.gallery);
@@ -819,8 +944,6 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     purchaseAreaCopy.minimumOrderLabel,
     defaults.purchaseArea.copy.minimumOrderLabel
   );
-  const normalizedMinimumOrderLabel = minimumOrderLabel === 'Najmanjše naročilo'
-    ? defaults.purchaseArea.copy.minimumOrderLabel : minimumOrderLabel;
   return {
     schemaVersion: defaults.schemaVersion,
     articleNotes: { tags: normalizeArticleNoteTags(asRecord(record.articleNotes).tags) },
@@ -862,6 +985,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       subcategoryTilesVisible: true
     },
     productPage: {
+      layout: asEnum(productPage.layout, PRODUCT_PAGE_LAYOUTS, defaults.productPage.layout),
       // The product page shares the content lane governed by Globalni parametri.
       widthMode: 'global',
       contentMaxWidthPx: asNumber(
@@ -885,6 +1009,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       stickyPurchaseMobile: asBoolean(productPage.stickyPurchaseMobile, defaults.productPage.stickyPurchaseMobile)
     },
     gallery: {
+      maxWidthPx: asNumber(gallery.maxWidthPx, defaults.gallery.maxWidthPx, 160, 1000),
       sizePercent: asNumber(
         gallery.sizePercent,
         defaults.gallery.sizePercent,
@@ -998,6 +1123,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       panelStyle: asEnum(purchaseArea.panelStyle, PRODUCT_PURCHASE_PANEL_STYLES, defaults.purchaseArea.panelStyle),
       fullWidthPrimaryAction: asBoolean(purchaseArea.fullWidthPrimaryAction, defaults.purchaseArea.fullWidthPrimaryAction),
       showAvailability: asBoolean(purchaseArea.showAvailability, defaults.purchaseArea.showAvailability),
+      showSaleUnit: asBoolean(purchaseArea.showSaleUnit, defaults.purchaseArea.showSaleUnit),
       showDeliveryEstimate: asBoolean(purchaseArea.showDeliveryEstimate, defaults.purchaseArea.showDeliveryEstimate),
       showMinimumOrder: asBoolean(purchaseArea.showMinimumOrder, defaults.purchaseArea.showMinimumOrder),
       showQuantityStepper: asBoolean(purchaseArea.showQuantityStepper, defaults.purchaseArea.showQuantityStepper),
@@ -1085,7 +1211,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
           purchaseAreaCopy.skuLabel,
           defaults.purchaseArea.copy.skuLabel
         ),
-        minimumOrderLabel: normalizedMinimumOrderLabel,
+        minimumOrderLabel,
         quantityLabel: asString(
           purchaseAreaCopy.quantityLabel,
           defaults.purchaseArea.copy.quantityLabel
@@ -1220,7 +1346,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
         relatedProducts.cardWidthPx,
         defaults.relatedProducts.cardWidthPx,
         160,
-        520
+        860
       ),
       imageHeightPx: asNumber(
         relatedProducts.imageHeightPx,
@@ -1345,7 +1471,7 @@ export function validateProductAppearanceConfigInput(value: unknown): string[] {
   const errors: string[] = [];
   const articleNotes = asRecord(value).articleNotes;
   if (articleNotes !== undefined) errors.push(...validateArticleNoteTags(asRecord(articleNotes).tags));
-  if (columnTotal < 10 || columnTotal > 16) {
+  if (normalized.productPage.layout === 'columns' && (columnTotal < 10 || columnTotal > 16)) {
     errors.push('Vsota stolpcev galerije, informacij in nakupa mora biti med 10 in 16.');
   }
   if (
@@ -1380,6 +1506,7 @@ export function toProductAppearanceCssVariables(
     '--product-page-content-max-width': px(config.productPage.contentMaxWidthPx),
     '--product-page-column-gap': px(config.productPage.columnGapPx),
     '--product-gallery-size': `${config.gallery.sizePercent}%`,
+    '--product-gallery-max-width': px(config.gallery.maxWidthPx),
     '--product-gallery-ratio': ratio,
     '--product-gallery-image-fit': config.gallery.imageFit,
     '--product-gallery-thumbnail-size': px(config.gallery.thumbnailSizePx),

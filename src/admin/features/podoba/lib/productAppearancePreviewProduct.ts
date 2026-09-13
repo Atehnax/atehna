@@ -212,7 +212,7 @@ export function buildProductAppearancePreviewProduct(
     item.typeSpecificData
   );
   const categoryTitle = item.categoryPath[0] ?? 'Izdelki';
-  const categorySlug = slugify(categoryTitle);
+  const categorySlug = item.categorySlug ?? slugify(categoryTitle);
   const subcategoryTitle = item.categoryPath.length > 1
     ? item.categoryPath.at(-1) ?? null
     : null;

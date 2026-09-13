@@ -18,8 +18,13 @@ import {
 import ImagePreviewDialog from '@/shared/ui/image-preview-dialog/ImagePreviewDialog';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import { resolveGalleryZoomOrigin } from '@/commercial/components/storefront/productGalleryZoom';
+import {
+  isProductDimensionDiagram as isDimensionDiagram,
+  resolveProductGallerySelection
+} from '@/commercial/components/storefront/productGalleryMedia';
 import type { StorefrontProductMedia } from '@/commercial/features/products/storefrontProduct';
 import type { ProductCanvasDevice } from '@/shared/domain/style/productAppearance';
+import styles from './ProductGalleryReference.module.css';
 
 export { resolveGalleryZoomOrigin } from '@/commercial/components/storefront/productGalleryZoom';
 
@@ -27,6 +32,8 @@ type ProductGalleryProps = {
   media: StorefrontProductMedia[];
   productName: string;
   className?: string;
+  presentation?: 'reference';
+  footer?: ReactNode;
   previewDevice?: ProductCanvasDevice;
   canvasWrapper?: (
     elementId: string,
@@ -40,7 +47,7 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
 const mediaControlClassName =
-  'storefront-gallery-control absolute z-20 inline-grid place-items-center p-0 focus-visible:outline-none';
+  'storefront-gallery-control inline-grid place-items-center p-0';
 
 const mediaControlVisualClassName =
   'storefront-gallery-control-visual inline-grid place-items-center rounded-full';
@@ -143,13 +150,14 @@ function MediaViewer({
             ? 'duration-[360ms] ease-[cubic-bezier(0.4,0,0.2,1)]'
             : null
       )}
-      style={zoomOnHover
-        ? {
-            transform: hoverZoomActive ? 'scale(2)' : 'scale(1)',
-            transformOrigin:
-              'var(--storefront-gallery-zoom-x, 50%) var(--storefront-gallery-zoom-y, 50%)'
-          }
-        : undefined}
+      style={{
+        objectFit: isDimensionDiagram(media) ? 'contain' : undefined,
+        ...(zoomOnHover ? {
+          transform: hoverZoomActive ? 'scale(2)' : 'scale(1)',
+          transformOrigin:
+            'var(--storefront-gallery-zoom-x, 50%) var(--storefront-gallery-zoom-y, 50%)'
+        } : {})
+      }}
       data-storefront-gallery-hover-zoom={zoomOnHover || undefined}
       data-hover-zoom-active={hoverZoomActive || undefined}
       onLoad={(event) => {
@@ -166,6 +174,8 @@ export default function ProductGallery({
   media,
   productName,
   className,
+  presentation,
+  footer,
   previewDevice,
   canvasWrapper
 }: ProductGalleryProps) {
@@ -177,7 +187,7 @@ export default function ProductGallery({
       children: ReactNode,
       wrapperClassName?: string
     ) => wrapperClassName
-      ? <div className={wrapperClassName}>{children}</div>
+      ? <div key={_elementId} className={wrapperClassName}>{children}</div>
       : children
   );
   const galleryMedia = useMemo(
@@ -197,23 +207,23 @@ export default function ProductGallery({
       media
     ]
   );
-  const [selectedId, setSelectedId] = useState(galleryMedia[0]?.id ?? null);
+  const [selectedMedia, setSelectedMedia] = useState<StorefrontProductMedia | null>(
+    () => galleryMedia[0] ?? null
+  );
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [isHoverZoomActive, setIsHoverZoomActive] = useState(false);
   const [selectedImageAspectRatio, setSelectedImageAspectRatio] = useState(4 / 3);
   const mainImageSurfaceRef = useRef<HTMLDivElement>(null);
   const hoverZoomAnimationFrameRef = useRef<number | null>(null);
+  const selected = resolveProductGallerySelection(galleryMedia, selectedMedia);
   const selectedIndex = Math.max(
     0,
-    galleryMedia.findIndex((entry) => entry.id === selectedId)
+    galleryMedia.findIndex((entry) => entry.id === selected?.id)
   );
-  const selected = galleryMedia[selectedIndex] ?? null;
 
   useEffect(() => {
-    if (!galleryMedia.some((entry) => entry.id === selectedId)) {
-      setSelectedId(galleryMedia[0]?.id ?? null);
-    }
-  }, [galleryMedia, selectedId]);
+    if (selected !== selectedMedia) setSelectedMedia(selected);
+  }, [selected, selectedMedia]);
 
   const openZoom = useCallback(() => {
     setIsHoverZoomActive(false);
@@ -232,7 +242,7 @@ export default function ProductGallery({
     if (galleryMedia.length < 2) return;
     const nextIndex =
       (selectedIndex + offset + galleryMedia.length) % galleryMedia.length;
-    setSelectedId(galleryMedia[nextIndex].id);
+    setSelectedMedia(galleryMedia[nextIndex]);
   };
 
   const thumbnailCountAllowsDisplay =
@@ -296,7 +306,7 @@ export default function ProductGallery({
   useEffect(() => {
     resetHoverZoom();
     setSelectedImageAspectRatio(4 / 3);
-  }, [resetHoverZoom, selectedId]);
+  }, [resetHoverZoom, selected?.id]);
 
   if (!selected) {
     return (
@@ -325,6 +335,32 @@ export default function ProductGallery({
     );
   }
 
+  const renderMediaControl = (
+    elementId: string,
+    label: string,
+    control: string,
+    positionClassName: string,
+    icon: ReactNode,
+    onClick: () => void
+  ) => (
+    <div className={`absolute z-20 ${positionClassName}`}>
+      {wrapCanvasElement(
+        elementId,
+        label,
+        <button
+          type="button"
+          onClick={onClick}
+          data-gallery-control={control}
+          aria-label={label}
+          className="inline-grid h-full w-full place-items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)]"
+        >
+          <span aria-hidden="true" className={mediaControlVisualClassName}>{icon}</span>
+        </button>,
+        mediaControlClassName
+      )}
+    </div>
+  );
+
   const thumbnails = (
     <div
       className="storefront-gallery-thumbnail-list"
@@ -333,10 +369,13 @@ export default function ProductGallery({
       {galleryMedia
         .slice(0, appearance.gallery.visibleThumbnailCount)
         .map((entry, index) => (
+          wrapCanvasElement(
+            `product-gallery-thumbnail-${index + 1}`,
+            `Sličica ${index + 1}`,
           <button
             key={entry.id}
             type="button"
-            onClick={() => setSelectedId(entry.id)}
+            onClick={() => setSelectedMedia(entry)}
             className={`storefront-gallery-thumbnail site-radius-sm relative shrink-0 overflow-hidden border bg-[color:var(--site-color-surface)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)] ${
               selected.id === entry.id
                 ? 'border-[color:var(--site-color-primary)]'
@@ -362,6 +401,7 @@ export default function ProductGallery({
                 fill
                 sizes="96px"
                 className="object-cover"
+                style={isDimensionDiagram(entry) ? { objectFit: 'contain' } : undefined}
               />
             ) : entry.kind === 'video' ? (
               <span className="flex h-full w-full items-center justify-center text-[color:var(--site-color-primary)]">
@@ -379,7 +419,9 @@ export default function ProductGallery({
                 PDF
               </span>
             )}
-          </button>
+          </button>,
+            'storefront-gallery-thumbnail-item inline-flex shrink-0'
+          )
         ))}
     </div>
   );
@@ -389,8 +431,12 @@ export default function ProductGallery({
       <section
         className={classNames(
           'storefront-product-gallery',
+          presentation === 'reference' && styles.gallery,
           className
         )}
+        data-gallery-presentation={presentation}
+        data-gallery-device={previewDevice}
+        data-gallery-has-caption={footer ? 'true' : undefined}
         data-thumbnail-position-desktop={thumbnailDesktopPosition}
         data-thumbnail-position-mobile={thumbnailMobilePosition}
         data-thumbnail-position-preview={previewThumbnailPosition}
@@ -456,42 +502,35 @@ export default function ProductGallery({
                   title="Povečaj"
                   className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white/90"
                 />
-                <span
-                  aria-hidden="true"
-                  data-gallery-control="zoom-indicator"
-                  className={`${mediaControlClassName} pointer-events-none bottom-3 right-3`}
-                >
-                  <span className={mediaControlVisualClassName}>
-                    <Search className="storefront-gallery-control-icon" />
-                  </span>
-                </span>
+                {renderMediaControl(
+                  'product-gallery-zoom',
+                  'Odpri predogled slike',
+                  'zoom-indicator',
+                  'bottom-3 right-3',
+                  <Search className="storefront-gallery-control-icon" />,
+                  openZoom
+                )}
               </>
             ) : null}
 
             {appearance.gallery.showArrows && galleryMedia.length > 1 ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => selectRelative(-1)}
-                  data-gallery-control="previous"
-                  className={`${mediaControlClassName} left-3 top-1/2 -translate-y-1/2`}
-                  aria-label="Prejšnja slika"
-                >
-                  <span aria-hidden="true" className={mediaControlVisualClassName}>
-                    <ChevronLeft className="storefront-gallery-control-icon" />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectRelative(1)}
-                  data-gallery-control="next"
-                  className={`${mediaControlClassName} right-3 top-1/2 -translate-y-1/2`}
-                  aria-label="Naslednja slika"
-                >
-                  <span aria-hidden="true" className={mediaControlVisualClassName}>
-                    <ChevronRight className="storefront-gallery-control-icon" />
-                  </span>
-                </button>
+                {renderMediaControl(
+                  'product-gallery-previous',
+                  'Prejšnja slika',
+                  'previous',
+                  'left-3 top-1/2 -translate-y-1/2',
+                  <ChevronLeft className="storefront-gallery-control-icon" />,
+                  () => selectRelative(-1)
+                )}
+                {renderMediaControl(
+                  'product-gallery-next',
+                  'Naslednja slika',
+                  'next',
+                  'right-3 top-1/2 -translate-y-1/2',
+                  <ChevronRight className="storefront-gallery-control-icon" />,
+                  () => selectRelative(1)
+                )}
               </>
             ) : null}
           </div>
@@ -516,6 +555,12 @@ export default function ProductGallery({
           </div>,
           'storefront-gallery-main min-w-0'
         )}
+        {footer ? wrapCanvasElement(
+          'product-gallery-sale-unit',
+          'Prodajna enota pod galerijo',
+          footer,
+          styles.caption
+        ) : null}
       </section>
 
       <ImagePreviewDialog
@@ -523,6 +568,7 @@ export default function ProductGallery({
         src={selected.url}
         alt={selected.altText || productName}
         aspectRatio={selectedImageAspectRatio}
+        originalHref={isDimensionDiagram(selected) ? selected.url : undefined}
         onClose={closeZoom}
       />
     </>

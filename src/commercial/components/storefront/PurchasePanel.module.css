@@ -1,0 +1,257 @@
+/* Shared by the product page and the admin appearance preview. */
+:global([data-storefront-theme]) .integrated:global(.storefront-product-purchase-details),
+:global([data-storefront-theme]) .integrated:global(.storefront-product-purchase-area) {
+  container: product-purchase / inline-size;
+  min-width: 0;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pricing {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px / var(--commercial-storefront-scale));
+}
+.priceBlock,
+.pricing > :global([data-product-canvas-element='product-price']) { min-width: 0; }
+.priceFigures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(4px / var(--commercial-storefront-scale)) calc(12px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .integrated .priceFigures :global(.storefront-price-primary) {
+  font-size: calc(30px / var(--commercial-storefront-scale));
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-price-tax),
+:global([data-storefront-theme]) .integrated :global(.storefront-price-label),
+:global([data-storefront-theme]) .integrated :global(.storefront-price-discount-row) {
+  font-size: calc(12px / var(--commercial-storefront-scale));
+  line-height: 1.5;
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-price-tax) {
+  margin-top: calc(4px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-price-discount-row) { margin: 0; }
+:global([data-storefront-theme]) .integrated :global(.storefront-price-discount-row) :global(.site-radius-pill) {
+  border-radius: calc(4px / var(--commercial-storefront-scale));
+  background: color-mix(in srgb, var(--site-color-success) 10%, var(--site-color-surface));
+  color: var(--site-color-success);
+}
+:global([data-storefront-theme]) .integrated .availability,
+.pricing > :global([data-product-canvas-element='product-availability']) {
+  min-width: 0;
+  margin: 0;
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-availability-label),
+:global([data-storefront-theme]) .integrated :global(.storefront-availability-detail) {
+  margin: 0;
+  font-size: calc(12px / var(--commercial-storefront-scale));
+  line-height: 1.5;
+}
+:global([data-storefront-theme]) .integrated .availability :global(.storefront-availability-copy) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(2px / var(--commercial-storefront-scale)) calc(8px / var(--commercial-storefront-scale));
+}
+
+.variants {
+  min-width: 0;
+  margin-top: calc(8px / var(--commercial-storefront-scale));
+  padding-top: calc(8px / var(--commercial-storefront-scale));
+  border-top: 1px solid var(--site-divider-color);
+}
+:global([data-storefront-theme]) .integrated .variants :global(.storefront-product-variant-selector) {
+  margin-top: 0;
+  gap: calc(12px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .integrated .variants :global(.storefront-variant-chip),
+:global([data-storefront-theme]) .integrated .variants :global(.storefront-variant-option) {
+  min-height: max(var(--product-variant-chip-height, 0px), calc(44px / var(--commercial-storefront-scale)));
+}
+
+.purchaseRow {
+  display: grid;
+  grid-template-columns: max-content minmax(0, calc(220px / var(--commercial-storefront-scale)));
+  align-items: end;
+  column-gap: calc(12px / var(--commercial-storefront-scale));
+  margin-top: calc(8px / var(--commercial-storefront-scale));
+}
+.purchaseRow > :only-child { grid-column: 1 / -1; }
+:global([data-storefront-theme]) .integrated .purchaseRow :global(.storefront-product-quantity),
+:global([data-storefront-theme]) .integrated .purchaseRow :global(.storefront-product-primary-action-slot) {
+  min-width: 0;
+  margin: 0;
+}
+:global([data-storefront-theme]) .integrated label[for='product-quantity'] {
+  display: flex;
+  align-items: baseline;
+  gap: calc(4px / var(--commercial-storefront-scale));
+  margin-bottom: calc(6px / var(--commercial-storefront-scale));
+  font-size: calc(13px / var(--commercial-storefront-scale));
+  line-height: 1.4;
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-product-quantity-unit) {
+  font-size: inherit;
+  font-weight: 400;
+  color: var(--site-color-text-muted);
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-product-quantity-button),
+:global([data-storefront-theme]) .integrated :global(.storefront-product-quantity-input) {
+  width: calc(40px / var(--commercial-storefront-scale));
+  min-width: calc(40px / var(--commercial-storefront-scale));
+  height: calc(33px / var(--commercial-storefront-scale));
+  font-size: calc(14px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-product-primary-action) {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: calc(44px / var(--commercial-storefront-scale));
+  padding: calc(8px / var(--commercial-storefront-scale)) calc(16px / var(--commercial-storefront-scale));
+  border-radius: var(--site-field-radius);
+  font-size: calc(14px / var(--commercial-storefront-scale));
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
+}
+:global([data-storefront-theme]) .integrated :global(.storefront-product-minimum-order) {
+  margin-top: calc(6px / var(--commercial-storefront-scale));
+  font-size: calc(12px / var(--commercial-storefront-scale));
+  line-height: 1.5;
+}
+
+.fulfillment {
+  display: grid;
+  gap: calc(8px / var(--commercial-storefront-scale)) calc(20px / var(--commercial-storefront-scale));
+  margin-top: calc(8px / var(--commercial-storefront-scale));
+  padding-top: calc(8px / var(--commercial-storefront-scale));
+  border-top: 1px solid var(--site-divider-color);
+}
+:global([data-storefront-theme]) .integrated .delivery,
+:global([data-storefront-theme]) .integrated .payment {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(8px / var(--commercial-storefront-scale));
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--site-color-text-muted);
+  font-size: calc(12px / var(--commercial-storefront-scale));
+  line-height: 1.5;
+}
+.delivery p,
+.payment p { margin: 0; }
+.delivery svg,
+.payment svg {
+  width: calc(18px / var(--commercial-storefront-scale));
+  height: calc(18px / var(--commercial-storefront-scale));
+}
+.fulfillment > :only-child { grid-column: 1 / -1; }
+
+@container product-purchase (min-width: 400px) {
+  :global([data-storefront-theme]) .integrated .variants :global(.storefront-dimensional-variant-selector) {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    column-gap: calc(24px / var(--commercial-storefront-scale));
+    max-inline-size: none;
+  }
+  :global([data-storefront-theme]) .integrated .variants :global(.storefront-dimensional-variant-selector) > * + * {
+    margin-top: 0;
+  }
+  .fulfillment { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container product-purchase (max-width: 500px) {
+  .purchaseRow { column-gap: calc(8px / var(--commercial-storefront-scale)); }
+  :global([data-storefront-theme]) .integrated :global(.storefront-product-primary-action) {
+    padding-inline: calc(8px / var(--commercial-storefront-scale));
+    font-size: calc(13px / var(--commercial-storefront-scale));
+  }
+}
+.purchaseRow:has(:global([data-product-canvas-element='product-primary-action'][data-product-canvas-fixed-width='true'])) {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+/* Price and availability lead; fulfillment comes next and the buying controls finish the column. */
+.integrated[data-purchase-section='actions'] {
+  display: flex;
+  flex-direction: column;
+}
+.purchaseFooter {
+  margin-top: auto;
+  padding-top: calc(12px / var(--commercial-storefront-scale));
+}
+.purchaseFooter > :global(.storefront-product-minimum-order),
+.purchaseFooter > :global([data-product-canvas-element='product-minimum-order']) {
+  margin-bottom: calc(8px / var(--commercial-storefront-scale));
+}
+.integrated[data-purchase-section='actions'] .purchaseRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(12px / var(--commercial-storefront-scale));
+  margin-top: 0;
+  max-width: calc(220px / var(--commercial-storefront-scale));
+}
+.integrated[data-purchase-section='actions'] .fulfillment {
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(16px / var(--commercial-storefront-scale));
+  margin-top: calc(12px / var(--commercial-storefront-scale));
+  padding-top: calc(12px / var(--commercial-storefront-scale));
+}
+
+/* Quantity and purchase action share one width, including the live editor wrappers. */
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global(.storefront-product-quantity-controls),
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global([data-product-canvas-element='product-quantity-controls']) {
+  width: 100%;
+}
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global(.storefront-product-quantity-stepper) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global(.storefront-product-quantity-stepper) > * {
+  min-width: 0;
+}
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global(.storefront-product-quantity-button),
+:global([data-storefront-theme]) .integrated[data-purchase-section='actions'] :global(.storefront-product-quantity-input) {
+  width: 100%;
+  min-width: 0;
+}
+
+/* The minimum order is supporting copy for the quantity, not a separate row. */
+.quantityHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(3px / var(--commercial-storefront-scale)) calc(8px / var(--commercial-storefront-scale));
+  margin-bottom: calc(6px / var(--commercial-storefront-scale));
+}
+:global([data-storefront-theme]) .integrated .quantityHeading label[for='product-quantity'],
+.quantityHeading > :global([data-product-canvas-element='product-quantity-label']) {
+  margin-bottom: 0;
+}
+:global([data-storefront-theme]) .integrated .quantityHeading :global(.storefront-product-minimum-order) {
+  margin: 0;
+  color: var(--site-color-text-muted);
+  font-size: calc(10px / var(--commercial-storefront-scale));
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.quantityHeading > :global(.storefront-product-minimum-order),
+.quantityHeading > :global([data-product-canvas-element='product-minimum-order']) {
+  margin-inline-start: auto;
+}

@@ -226,6 +226,7 @@ function toEditorPayload(
       };
     }),
     quantityDiscounts: item.quantityDiscounts,
+    imageAssignmentScope: 'all-gallery',
     media: nextMedia
   };
 }

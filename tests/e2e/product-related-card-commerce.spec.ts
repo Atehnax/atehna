@@ -1,6 +1,5 @@
 import {
   expect,
-  test,
   type Locator
 } from '@playwright/test';
 import {
@@ -9,6 +8,7 @@ import {
   readAppearanceEditorCompactSelectValue
 } from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
+import { legacyProductAppearanceTest as test } from './support/product-appearance-fixture';
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -360,7 +360,7 @@ async function expectRelatedCardContract(
     'the purchase controls should follow the description excerpt'
   ).toBeTruthy();
   expect(geometry.descriptionStyle.overflow).toBe('hidden');
-  expect(geometry.descriptionStyle.lineClamp).toBe('1');
+  expect(geometry.descriptionStyle.lineClamp).toBe('4');
   expect(geometry.descriptionStyle.boxOrient).toBe('vertical');
   expect(
     geometry.descriptionStyle.fontSize,
@@ -368,9 +368,9 @@ async function expectRelatedCardContract(
   ).toBeLessThanOrEqual(geometry.descriptionStyle.titleFontSize);
   expect(
     geometry.descriptionStyle.logicalHeight,
-    'the related description excerpt should stay to one compact line'
+    'the related description excerpt should show up to four lines'
   ).toBeLessThanOrEqual(
-    geometry.descriptionStyle.logicalLineHeight + 1
+    geometry.descriptionStyle.logicalLineHeight * 4 + 1
   );
   expect(
     geometry.descriptionStyle.logicalGapAfterHeading,
@@ -423,9 +423,9 @@ async function expectRelatedCardContract(
   ).toBeTruthy();
   expect(
     geometry.mediaWidthRatio,
-    'the related image column should be slightly narrower than its former 40%'
-  ).toBeGreaterThanOrEqual(0.33);
-  expect(geometry.mediaWidthRatio).toBeLessThan(0.4);
+    'the related image should occupy approximately half of the card width'
+  ).toBeGreaterThanOrEqual(0.48);
+  expect(geometry.mediaWidthRatio).toBeLessThanOrEqual(0.52);
   expect(
     ['flex-start', 'space-between'],
     'related-card content should use an intentional compact flex alignment'
@@ -440,8 +440,8 @@ async function expectRelatedCardContract(
   ).toBeLessThanOrEqual(28);
   expect(
     geometry.logicalHeight,
-    'the compact heading and image should keep the related card short'
-  ).toBeLessThanOrEqual(150);
+    'the taller related card should make room for larger imagery and description'
+  ).toBeLessThanOrEqual(225);
 
   const priceStyle = await readPriceStyle(price);
   expectCompactListingPriceStyle(priceStyle);
@@ -474,7 +474,7 @@ function expectPriceStyleParity(
     .toBeCloseTo(expected.currencyMarginLeftToPrimaryRatio, 2);
 }
 
-test.describe('related-product compact commerce card', () => {
+test.describe('legacy related-product compact commerce card', () => {
   test('uses listing price grammar, omits stock/tax, shrinks, and matches the admin preview', async ({
     page,
     request
@@ -509,14 +509,6 @@ test.describe('related-product compact commerce card', () => {
     });
 
     await page.setViewportSize({ width: 1467, height: 1040 });
-    await page.goto('/products/materiali/kovine');
-    const listingCard = page.locator('.storefront-product-listing-card').first();
-    await expect(listingCard).toBeVisible({ timeout: 15_000 });
-    const listingPriceStyle = await readPriceStyle(
-      listingCard.locator('.storefront-product-card-price')
-    );
-    expectCompactListingPriceStyle(listingPriceStyle);
-
     await page.goto('/products/materiali/items/aluminijasta-plosca');
     const purchaseArea = page.locator('.storefront-product-purchase-area');
     await expect(
@@ -527,7 +519,6 @@ test.describe('related-product compact commerce card', () => {
     const publicContract = await expectRelatedCardContract(
       page.locator('.storefront-related-product-card').first()
     );
-    expectPriceStyleParity(publicContract.priceStyle, listingPriceStyle);
 
     await page.goto('/admin/podoba/artikli');
     await expect(

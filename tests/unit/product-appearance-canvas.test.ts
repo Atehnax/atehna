@@ -262,16 +262,16 @@ describe('product appearance hybrid canvas contracts', () => {
     ).toEqual(normalized.canvas.elements['product-primary-action']);
   });
 
-  test('commerce-critical canvas elements remain protected', () => {
+  test('product elements can be removed while cart controls remain protected', () => {
     expect([...PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS]).toEqual([
-      'product-purchase',
-      'product-price',
-      'product-primary-action',
       'cart-summary',
       'cart-primary-action'
     ]);
     expect(PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has('product-title')).toBe(false);
     expect(PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has('product-gallery')).toBe(false);
+    expect(PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has('product-primary-action')).toBe(false);
+    expect(PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has('product-price')).toBe(false);
+    expect(PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has('product-purchase')).toBe(false);
   });
 
   test('appearance preview uses the same type-specific presentation details as the catalogue', () => {

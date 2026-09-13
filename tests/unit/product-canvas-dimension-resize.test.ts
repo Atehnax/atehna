@@ -40,8 +40,16 @@ describe('product canvas dimension resizing', () => {
     expect(selectableElementIds.length).toBeGreaterThanOrEqual(38);
     expect(new Set(selectableElementIds).size).toBe(selectableElementIds.length);
     expect(selectableElementIds).toEqual(expect.arrayContaining([
-      'listing-header',
-      'listing-card',
+      'catalog-heading',
+      'catalog-search',
+      'catalog-categories',
+      'catalog-stock-filter',
+      'catalog-price-filter',
+      'catalog-product-image',
+      'catalog-product-name',
+      'catalog-product-description',
+      'catalog-product-availability',
+      'catalog-product-price',
       'product-gallery',
       'product-information',
       'product-purchase',
@@ -57,8 +65,9 @@ describe('product canvas dimension resizing', () => {
       'const productAppearanceLayerItems = useMemo<ProductAppearanceLayerItem[]>'
     );
     expect(editorSource).toContain(
-      'settings: resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice)'
+      '...resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice)'
     );
+    expect(editorSource).toContain('isProductCanvasElementContentEnabled(config, layer.id, previewDevice)');
     expect(editorSource).toContain('<ProductAppearanceLayersPanel');
     expect(editorSource).toContain('items={productAppearanceLayerItems}');
     expect(editorSource).toContain('settings={selectedCanvasSettings}');

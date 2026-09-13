@@ -298,7 +298,27 @@ function dimensionUpdates({
   });
 }
 
+const purchaseContentAliases: Record<string, string> = {
+  'product-price-main': 'product-price',
+  'product-price-tax': 'product-price',
+  'product-availability-label': 'product-availability',
+  'product-availability-detail': 'product-availability',
+  'product-delivery-title': 'product-delivery',
+  'product-delivery-note': 'product-delivery',
+  'product-payment': 'product-delivery',
+  'product-payment-text': 'product-delivery',
+  'product-delivery-and-payment': 'product-delivery'
+};
+
+const catalogContentAliases: Record<string, string> = {
+  'catalog-product-name': 'product-title',
+  'catalog-product-description': 'product-short-description',
+  'catalog-product-image': 'card-image'
+};
+
 const contentElementIds = new Set([
+  ...Object.keys(catalogContentAliases),
+  ...Object.keys(purchaseContentAliases),
   'card-image',
   'card-brand',
   'card-title',
@@ -459,9 +479,11 @@ const secondaryBlockDescriptions: Record<ProductSecondaryBlock, string> = {
 
 function SecondaryDividerControls({
   secondaryContent,
+  showTabDivider = true,
   onChange
 }: {
   secondaryContent: ProductAppearanceConfig['secondaryContent'];
+  showTabDivider?: boolean;
   onChange: (
     updates: Partial<ProductAppearanceConfig['secondaryContent']>
   ) => void;
@@ -497,7 +519,7 @@ function SecondaryDividerControls({
         vsebina še vedno zloži v en stolpec.
       </p>
       <div className="grid gap-1.5 sm:grid-cols-2">
-        {visibilityControls.map(([key, label]) => (
+        {visibilityControls.filter(([key]) => showTabDivider || key !== 'showTabDivider').map(([key, label]) => (
           <label
             key={key}
             className="flex min-h-8 cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/10 px-2 py-1.5"
@@ -603,6 +625,7 @@ function ContentPanel({
   purchaseArea,
   relatedProducts,
   secondaryContent,
+  productLayout,
   defaultFontSizePx,
   previewDevice,
   selectedVariantId,
@@ -626,6 +649,7 @@ function ContentPanel({
   purchaseArea: ProductAppearanceConfig['purchaseArea'];
   relatedProducts: ProductAppearanceConfig['relatedProducts'];
   secondaryContent: ProductAppearanceConfig['secondaryContent'];
+  productLayout: ProductAppearanceConfig['productPage']['layout'];
   defaultFontSizePx: number;
   previewDevice: ProductCanvasDevice;
   selectedVariantId: number | null;
@@ -1031,7 +1055,7 @@ function ContentPanel({
             <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
               <AppearanceEditorNumberInput
                 min={160}
-                max={520}
+                max={860}
                 value={relatedProducts.cardWidthPx}
                 onValueChange={(value) => onRelatedProductsChange({
                   cardWidthPx: value
@@ -1042,7 +1066,7 @@ function ContentPanel({
             </div>
           </label>
           <label className="grid gap-1">
-            <span className="text-[9px] font-medium text-white/70">Višina slike</span>
+            <span className="text-[9px] font-medium text-white/70">{productLayout === 'showcase' ? 'Velikost kvadratne slike' : 'Višina slike'}</span>
             <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
               <AppearanceEditorNumberInput
                 min={96}
@@ -1224,20 +1248,24 @@ function ContentPanel({
       <div className="grid gap-3">
         <div className="rounded-lg border border-white/15 bg-white/5 px-3 py-2">
           <p className="text-[10px] font-semibold text-white">
-            Zavihki in vsebinski sklopi · velja za vse artikle
+            {productLayout === 'showcase'
+              ? 'Vsebinski sklopi · velja za vse artikle'
+              : 'Zavihki in vsebinski sklopi · velja za vse artikle'}
           </p>
           <p className="mt-1 text-[9px] leading-4 text-white/65">
-            Opis in specifikacije sta v zloženem prikazu združena pod enim
-            zavihkom. Dodatni zavihki se pokažejo samo, ko ima izbrani artikel
-            ustrezno vsebino.
+            {productLayout === 'showcase'
+              ? 'Ta postavitev prikazuje vsebinske sklope skupaj. Na platnu jih lahko skrijete in spremenite njihov vrstni red.'
+              : 'Opis in specifikacije sta v zloženem prikazu združena pod enim zavihkom. Dodatni zavihki se pokažejo samo, ko ima izbrani artikel ustrezno vsebino.'}
           </p>
         </div>
 
         <SecondaryDividerControls
           secondaryContent={secondaryContent}
+          showTabDivider={productLayout !== 'showcase'}
           onChange={onSecondaryContentChange}
         />
 
+        {productLayout !== 'showcase' ? (
         <label className="grid gap-1">
           <span className="text-[9px] font-medium text-white/70">
             Skupni naslov opisa in specifikacij
@@ -1252,6 +1280,7 @@ function ContentPanel({
             className={fieldClassName}
           />
         </label>
+        ) : null}
 
         <div className="grid gap-1.5">
           {orderedBlocks.map((block) => {
@@ -1331,8 +1360,7 @@ function ContentPanel({
       </div>
     );
   }
-  const purchaseCopyElementId = selectedElementId === 'product-delivery-and-payment'
-    ? 'product-delivery' : selectedElementId;
+  const purchaseCopyElementId = purchaseContentAliases[selectedElementId] ?? selectedElementId;
 
   if (
     selectedElementId === 'product-purchase'
@@ -1469,6 +1497,15 @@ function ContentPanel({
                   }}
                 />
               </div>
+              {productLayout === 'showcase' ? (
+                <label className="grid gap-1">
+                  <span className="text-[9px] font-medium text-slate-500">Največja širina galerije</span>
+                  <div className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <AppearanceEditorNumberInput data-testid="product-gallery-max-width" aria-label="Največja širina galerije" min={160} max={1000} value={gallery.maxWidthPx} onValueChange={(maxWidthPx) => onGalleryChange({ maxWidthPx })} className="min-w-0 flex-1 bg-transparent px-2 text-right text-[11px] outline-none" />
+                    <span className="grid w-8 place-items-center border-l border-slate-200 text-[9px] text-slate-500">px</span>
+                  </div>
+                </label>
+              ) : null}
               <label className="grid gap-1">
                 <span className="text-[9px] font-medium text-slate-500">Galerija</span>
                 <div className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -1639,6 +1676,7 @@ function ContentPanel({
         />
         <SecondaryDividerControls
           secondaryContent={secondaryContent}
+          showTabDivider={productLayout !== 'showcase'}
           onChange={onSecondaryContentChange}
         />
         <p className="text-[9px] leading-4 text-slate-500">
@@ -1666,6 +1704,7 @@ function ContentPanel({
         </div>
         <SecondaryDividerControls
           secondaryContent={secondaryContent}
+          showTabDivider={productLayout !== 'showcase'}
           onChange={onSecondaryContentChange}
         />
         <div
@@ -1984,6 +2023,7 @@ export default function ProductAppearanceContextToolbar({
   purchaseArea,
   relatedProducts,
   secondaryContent,
+  productLayout,
   globalStyle,
   previewDevice,
   selectedVariantId,
@@ -2014,6 +2054,7 @@ export default function ProductAppearanceContextToolbar({
   purchaseArea: ProductAppearanceConfig['purchaseArea'];
   relatedProducts: ProductAppearanceConfig['relatedProducts'];
   secondaryContent: ProductAppearanceConfig['secondaryContent'];
+  productLayout: ProductAppearanceConfig['productPage']['layout'];
   globalStyle: GlobalStyleConfig;
   previewDevice: ProductCanvasDevice;
   selectedVariantId: number | null;
@@ -2231,7 +2272,7 @@ export default function ProductAppearanceContextToolbar({
               <AppearanceEditorToolbarButton label="Ponastavi element" onClick={onReset}>
                 <RotateCcw className="h-3.5 w-3.5" />
               </AppearanceEditorToolbarButton>
-              <AppearanceEditorToolbarButton label="Odstrani element" disabled={!canRemoveSelected} onClick={onRemove}>
+              <AppearanceEditorToolbarButton label="Odstrani element za to napravo" disabled={!canRemoveSelected} onClick={onRemove}>
                 <Trash2 className="h-3.5 w-3.5" />
               </AppearanceEditorToolbarButton>
             </>
@@ -2279,7 +2320,7 @@ export default function ProductAppearanceContextToolbar({
           >
           {panel === 'content' && selectedElementId && product ? (
             <ContentPanel
-                  selectedElementId={selectedElementId}
+                  selectedElementId={catalogContentAliases[selectedElementId] ?? selectedElementId}
                   product={product}
                   previewProduct={previewProduct}
                   productOptions={productOptions}
@@ -2288,6 +2329,7 @@ export default function ProductAppearanceContextToolbar({
                   purchaseArea={purchaseArea}
                   relatedProducts={relatedProducts}
                   secondaryContent={secondaryContent}
+                  productLayout={productLayout}
               defaultFontSizePx={settings && settings.fontSizePx > 0
                 ? settings.fontSizePx
                 : globalStyle.typography.paragraphSizePx}

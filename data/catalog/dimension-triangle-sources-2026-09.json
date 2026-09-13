@@ -1,0 +1,35 @@
+{
+  "products": [
+    {
+      "slug": "geotrikotnik",
+      "side": "hypotenuse",
+      "sourceUrls": [
+        "https://atehna.si/product/geotrikotnik/",
+        "https://www.wissner-aktiv-lernen.com/Geometriewinkel-60-cm/017050.000",
+        "https://www.wissner-aktiv-lernen.com/Geometriewinkel-80-cm/017150.000",
+        "https://www.koma-kreide.de/de/wandtafel-zeichengeraete/geo-zeichendreieck-60-cm-magnetisch",
+        "https://www.betzold.de/prod/A_685/"
+      ],
+      "note": "Preverjeno 11. 9. 2026. Atehnine izvorne oznake 017050/01705M in 017150/01715M se ujemajo z družinama Wissner 017050 in 017150. Dobavitelj Koma izrecno navaja hipotenuzo 60 cm pri magnetni in nemagnetni izvedbi; Betzold pri originalnem geotrikotniku Wissner izrecno navaja hipotenuzo 80 cm. Nominalni velikosti 60 in 80 cm označujeta hipotenuzo. Druge stranice in skupna debelina niso potrjene za vse štiri izvedbe in niso uporabljene. Mere pod naslovom Verpackung na straneh proizvajalca so mere embalaže, ne dodatne mere izdelka."
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "byAngle": {
+        "45": "hypotenuse",
+        "60": "long-leg"
+      },
+      "sourceUrls": [
+        "https://atehna.si/product/trikotniki-za-tablo/",
+        "https://atehna.si/wp-content/uploads/2017/10/45-stopinjski-trikotnik.jpg",
+        "https://atehna.si/wp-content/uploads/2017/10/60-stopinjski-trikotnik-570x708.jpg",
+        "https://www.wissner-aktiv-lernen.com/Rechter-Winkel-450-50-cm/010700.000",
+        "https://www.wissner-aktiv-lernen.com/Rechter-Winkel-450-60-cm/010710.000",
+        "https://www.wissner-aktiv-lernen.com/Spitzer-Winkel-600-50-cm/010800.000",
+        "https://www.wissner-aktiv-lernen.com/Spitzer-Winkel-600-60-cm/010810.000",
+        "https://www.wissner-aktiv-lernen.com/media/85/83/f2/1736259978/Wissner_010710.000.png?ts=1761748085",
+        "https://www.wissner-aktiv-lernen.com/media/22/42/20/1736317906/Wissner_010810.000.png?ts=1761748200"
+      ],
+      "note": "Preverjeno 11. 9. 2026 na izvornih fotografijah z vidnimi merilnimi skalami ter straneh točno določenih modelov. Izvorne oznake Atehna: 010700 = 45°/50 cm, 010710 = 45°/60 cm, 010800 = 60°/50 cm, 010810 = 60°/60 cm. Pri 45° izvedbah skala nominalne dolžine poteka po hipotenuzi: fotografija Atehna prikazuje 50 cm, fotografija proizvajalca modela 010710 prikazuje 60 cm. Pri 60° izvedbah nominalna dolžina označuje daljšo kateto: fotografija Atehna prikazuje 50 cm po daljši kateti in hipotenuzo s skalo prek 55 cm; fotografija proizvajalca modela 010810 prikazuje 60 cm po daljši kateti in hipotenuzo s skalo prek 65 cm. Identifikacija merjene stranice temelji na vizualnem branju dejanske merilne skale, ne na splošnem poimenovanju velikosti ali izračunu drugih stranic. Skica sme označiti samo to nominalno stranico in izbrani kot. Preostalih stranic, višine in debeline ne izračunavamo ali prevzemamo iz mer embalaže."
+    }
+  ]
+}

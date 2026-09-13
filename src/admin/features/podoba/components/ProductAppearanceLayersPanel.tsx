@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Eye, EyeOff, GripVertical, Lock, Unlock } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Lock, Plus, Unlock } from 'lucide-react';
 import { useCallback, useMemo, type ReactNode } from 'react';
 import type { ProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
 import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
@@ -345,6 +345,19 @@ export default function ProductAppearanceLayersPanel({
       <div className="border-b border-slate-100 px-3 py-1.5 text-[9px] text-slate-400">
         Ctrl/Cmd + klik izbere več plasti
       </div>
+      <details className="border-b border-slate-100 px-3 py-2" data-product-appearance-add-elements>
+        <summary className={'cursor-pointer rounded-md text-[10px] font-semibold text-slate-700 ' + adminControlFocusTokenClasses}>
+          Dodaj element ({orderedItems.filter((item) => !item.settings.visible).length})
+        </summary>
+        <div className="mt-2 grid gap-1">
+          {orderedItems.filter((item) => !item.settings.visible).map((item) => (
+            <button key={item.id} type="button" onClick={() => onToggleVisibility(item.id)} className={'flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 text-left text-[10px] text-slate-600 hover:bg-slate-50 ' + adminControlFocusTokenClasses} aria-label={'Dodaj element: ' + item.label}>
+              <Plus className="h-3 w-3 shrink-0" aria-hidden="true" /><span className="truncate">{item.label}</span>
+            </button>
+          ))}
+          {orderedItems.every((item) => item.settings.visible) ? <p className="text-[9px] text-slate-400">Vsi razpoložljivi elementi so že prikazani.</p> : null}
+        </div>
+      </details>
       <nav
         aria-label="Plasti predogleda"
         className="max-h-[min(640px,calc(100vh-220px))] overflow-y-auto overscroll-contain p-2"

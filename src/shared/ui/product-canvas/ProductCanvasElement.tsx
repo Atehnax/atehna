@@ -137,9 +137,6 @@ export function resolveProductCanvasResize({
 }
 
 export const PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS = new Set([
-  'product-purchase',
-  'product-price',
-  'product-primary-action',
   'cart-summary',
   'cart-primary-action'
 ]);

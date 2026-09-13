@@ -1118,7 +1118,7 @@ textarea[readonly] {
 
 [data-storefront-theme] .storefront-related-product-card-layout {
   display: grid;
-  grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 0.65fr);
+  grid-template-columns: minmax(6rem, 1fr) minmax(0, 1fr);
   border-radius: var(--site-radius-sm);
   box-shadow: none;
   transform: none;
@@ -1127,7 +1127,7 @@ textarea[readonly] {
 [data-storefront-theme]
   .storefront-related-product-card
   .storefront-product-card-media {
-  block-size: calc(var(--product-related-image-height, 144px) * 0.8);
+  block-size: calc(var(--product-related-image-height, 144px) * 1.2);
   min-block-size: 100%;
 }
 
@@ -1170,7 +1170,7 @@ textarea[readonly] {
   font-size: 1em;
   line-height: 1.3;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 4;
   overflow: hidden;
 }
 
@@ -1253,7 +1253,7 @@ textarea[readonly] {
   .storefront-related-product-purchase-row
   > :last-child {
   min-inline-size: 0;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 [data-storefront-theme]
@@ -1595,6 +1595,17 @@ textarea[readonly] {
     label[for='product-quantity']
   ) {
   font-size: calc(var(--site-font-size-body) * 0.875);
+}
+
+[data-storefront-theme]
+  .storefront-product-purchase-area
+  .storefront-product-minimum-order {
+  margin-block: calc(8px / var(--commercial-storefront-scale)) 0;
+  font-family: inherit;
+  font-size: calc(var(--site-font-size-body) * 0.75);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--site-color-text-muted);
 }
 
 [data-storefront-theme]
@@ -2664,7 +2675,7 @@ textarea[readonly] {
     align-items: start;
   }
 
-  [data-storefront-theme] .storefront-product-detail-grid > :nth-child(3) {
+  [data-storefront-theme] :where(.storefront-product-page:not([data-product-layout='showcase'])) .storefront-product-detail-grid > :nth-child(3) {
     grid-column: 2;
     inline-size: min(100%, calc(420px / var(--commercial-storefront-scale)));
     justify-self: end;
@@ -2699,7 +2710,7 @@ textarea[readonly] {
     column-gap: calc(32px / var(--commercial-storefront-scale));
   }
 
-  [data-storefront-theme] .storefront-product-detail-grid > :nth-child(3) {
+  [data-storefront-theme] :where(.storefront-product-page:not([data-product-layout='showcase'])) .storefront-product-detail-grid > :nth-child(3) {
     grid-column: auto;
     inline-size: calc(420px / var(--commercial-storefront-scale));
     justify-self: end;

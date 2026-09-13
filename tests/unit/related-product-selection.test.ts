@@ -73,7 +73,7 @@ describe('related product recommendation contracts', () => {
       tabletColumns: 1,
       mobileColumns: 2,
       gapPx: 64,
-      cardWidthPx: 520,
+      cardWidthPx: 860,
       imageHeightPx: 96,
       textScalePercent: 140,
       sectionPlacement: 'before-content',
@@ -87,7 +87,7 @@ describe('related product recommendation contracts', () => {
 
     const variables = toProductAppearanceCssVariables(normalized);
     expect(variables['--product-related-gap']).toBe('64px');
-    expect(variables['--product-related-card-width']).toBe('520px');
+    expect(variables['--product-related-card-width']).toBe('860px');
     expect(variables['--product-related-image-height']).toBe('96px');
     expect(variables['--product-related-text-scale']).toBe('1.4');
     expect(variables['--product-related-section-width']).toBe('25%');
@@ -134,8 +134,8 @@ describe('related product recommendation contracts', () => {
 
   test('uses the reference related-card sizing without altering ordinary listing cards', () => {
     expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts).toMatchObject({
-      cardWidthPx: 360,
-      imageHeightPx: 144,
+      cardWidthPx: 640,
+      imageHeightPx: 112,
       textScalePercent: 100
     });
 

@@ -290,7 +290,7 @@ export default function ProductCard({
             'Opis kartice',
             <p className={`storefront-product-card-description text-[color:var(--site-color-text-muted)] ${
               isRelated
-                ? 'mt-1 line-clamp-1 text-xs leading-4'
+                ? 'mt-1 line-clamp-4 text-xs leading-4'
                 : 'mt-2 line-clamp-2 text-sm leading-5'
             }`}>
               {product.shortDescription}

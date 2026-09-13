@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { House } from 'lucide-react';
+import StorefrontBreadcrumbs from '@/commercial/components/storefront/StorefrontBreadcrumbs';
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -18,7 +19,12 @@ import {
 import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
+import ProductRelatedReferenceCard from './ProductRelatedReferenceCard';
+import showcaseStyles from './ProductShowcase.module.css';
+import responsiveStyles from './ProductDetailResponsive.module.css';
+import relatedResponsiveStyles from './ProductRelatedResponsive.module.css';
 import ProductGallery from '@/commercial/components/storefront/ProductGallery';
+import { getVisibleProductMedia } from '@/commercial/components/storefront/productGalleryMedia';
 import PurchasePanel from '@/commercial/components/storefront/PurchasePanel';
 import SpecificationTable from '@/commercial/components/storefront/SpecificationTable';
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
@@ -119,40 +125,6 @@ const variantMatchesSelection = (
       ? variant.optionValueIds.includes(selectedValueId)
       : true;
   });
-
-function Breadcrumbs({ product }: { product: StorefrontProduct }) {
-  return (
-    <nav
-      aria-label="Drobtinice"
-      className="storefront-product-breadcrumbs mb-4"
-    >
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[color:var(--site-color-text-muted)]">
-        <li className="flex items-center gap-2">
-          <Link
-            href="/"
-            className="site-link inline-flex items-center"
-            aria-label="Domov"
-          >
-            <House aria-hidden="true" className="h-4 w-4" />
-          </Link>
-          <span aria-hidden="true">/</span>
-        </li>
-        {product.breadcrumbs.map((crumb, index) => (
-          <li key={`${crumb.label}-${index}`} className="flex items-center gap-2">
-            {index > 0 ? <span aria-hidden="true">/</span> : null}
-            {crumb.href ? (
-              <Link href={crumb.href} className="site-link">
-                {crumb.label}
-              </Link>
-            ) : (
-              <span aria-current="page">{crumb.label}</span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
 
 type DetailContentSection = {
   id: string;
@@ -516,9 +488,23 @@ function DetailLayout({
 function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps) {
   const appearance = useProductAppearance();
   const stockEnforcementEnabled = useStockEnforcementEnabled();
+  const isShowcase = appearance.productPage.layout === 'showcase';
   const responsiveCanvasDevice = useProductCanvasDevice();
   const canvasDevice = canvasEditor?.device ?? responsiveCanvasDevice;
   const canvasActive = appearance.canvas?.mode === 'free';
+  const productPageRef = useRef<HTMLDivElement>(null);
+  const [mainPurchaseVisible, setMainPurchaseVisible] = useState(false);
+
+  useEffect(() => {
+    if (canvasEditor || !appearance.productPage.stickyPurchaseMobile) return;
+    const action = productPageRef.current?.querySelector('.storefront-product-primary-action');
+    if (!action) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setMainPurchaseVisible(entry.isIntersecting);
+    }, { threshold: 0.25 });
+    observer.observe(action);
+    return () => observer.disconnect();
+  }, [canvasActive, canvasEditor, appearance.productPage.stickyPurchaseMobile]);
   const wrapCanvasElement: ProductCanvasWrapper = (
     elementId,
     label,
@@ -575,23 +561,10 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
     ) ??
     (product.optionAxes.length === 0 ? defaultVariant : null);
 
-  const visibleMedia = useMemo(() => {
-    if (!selectedVariant) {
-      return product.media.filter((entry) => entry.variantIds.length === 0);
-    }
-    const variantMedia = product.media.filter((entry) =>
-      entry.variantIds.includes(selectedVariant.id)
-    );
-    const parentMedia = product.media.filter((entry) => entry.variantIds.length === 0);
-    return [...variantMedia, ...parentMedia].filter((entry, index, all) => {
-      const mediaKey = `${entry.kind}:${entry.url}`;
-      return (
-        all.findIndex(
-          (candidate) => `${candidate.kind}:${candidate.url}` === mediaKey
-        ) === index
-      );
-    });
-  }, [product.media, selectedVariant]);
+  const visibleMedia = useMemo(
+    () => getVisibleProductMedia(product.media, selectedVariant?.id ?? null),
+    [product.media, selectedVariant?.id]
+  );
 
   const specifications = mergeStorefrontSpecifications(
     mergeStorefrontSpecifications(
@@ -701,8 +674,8 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
     }
     if (block === 'sku') {
       return appearance.information.showSku && selectedVariant ? (
-        <p className="mt-3 font-mono text-xs text-[color:var(--site-color-text-muted)]">
-          SKU: {selectedVariant.sku}
+        <p className="storefront-product-sku mt-3 text-xs text-[color:var(--site-color-text-muted)]">
+          {isShowcase ? selectedVariant.sku : `SKU: ${selectedVariant.sku}`}
         </p>
       ) : null;
     }
@@ -740,6 +713,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
     if (block === 'variants') {
       return (
         <VariantSelector
+          presentation={isShowcase ? 'reference' : undefined}
           axes={product.optionAxes}
           variants={product.variants}
           selection={selection}
@@ -802,6 +776,13 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
     stockEnforcementEnabled
   );
   const mobileHasAction = Boolean(selectionComplete && selectedVariant);
+  const canvasElementsVisible = (...ids: string[]) => !canvasActive || ids.every((id) =>
+    resolveProductCanvasElementDeviceSettings(appearance, id, canvasDevice).visible
+  );
+  const showMobilePurchase = !canvasEditor && appearance.productPage.stickyPurchaseMobile
+    && mobileHasAction && canvasElementsVisible('product-purchase', 'product-primary-action');
+  const showMobilePrice = appearance.pricing.showGrossPrice
+    && canvasElementsVisible('product-purchase', 'product-price', 'product-price-main');
   const longDescription =
     selectedVariant?.description ?? product.description ?? product.shortDescription;
   const longDescriptionHtml = selectedVariant?.description
@@ -819,7 +800,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
             title: appearance.secondaryContent.sectionLabels.specifications,
             openByDefault,
             canvasElementId: 'product-specifications',
-            content: <SpecificationTable specifications={specifications} />
+            content: <SpecificationTable specifications={specifications} canvasWrapper={canvasActive || canvasEditor ? wrapCanvasElement : undefined} />
           }
         ];
       }
@@ -914,7 +895,9 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
             content: (
               visibleRelatedProducts.length > 0 ? (
                 <div className="storefront-related-product-grid">
-                  {visibleRelatedProducts.map((related) => (
+                  {visibleRelatedProducts.map((related) => isShowcase ? (
+                    <ProductRelatedReferenceCard key={related.id} product={related} canvasWrapper={wrapCanvasElement} />
+                  ) : (
                     <ProductCard
                       key={related.id}
                       product={related}
@@ -977,7 +960,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         'product-related-products',
         'Sorodni izdelki',
         <section
-          className="storefront-related-products-section mt-6"
+          className={`storefront-related-products-section mt-6 ${!isShowcase && !canvasActive && !canvasEditor ? relatedResponsiveStyles.responsiveRelated : ''}`}
           aria-labelledby="related-products-title"
         >
           {wrapCanvasElement(
@@ -997,11 +980,61 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
       )
     : null;
 
+
+  const saleUnit = specifications.find((specification) =>
+    /prodajna enota/i.test(specification.label)
+  )?.value ?? selectedVariant?.unit;
+
+  const renderPurchasePanel = (section: 'all' | 'details' | 'actions') => (
+    <PurchasePanel
+      section={section}
+      presentation={isShowcase ? 'integrated' : undefined}
+      saleUnit={isShowcase ? saleUnit : undefined}
+      variantSelector={isShowcase && appearance.productPage.informationOrder.includes('variants')
+        ? wrapCanvasElement('product-variants', 'Izbira različice', renderInformationBlock('variants'))
+        : undefined}
+      variant={selectedVariant}
+      selectionComplete={selectionComplete}
+      quantity={quantity}
+      quantityError={quantityError}
+      onQuantityChange={(nextQuantity) => {
+        setQuantity(nextQuantity);
+        setQuantityError(null);
+      }}
+      onAdd={addSelectedVariant}
+      deliveryEstimate={product.deliveryEstimate}
+      canvasDevice={canvasDevice}
+      canvasWrapper={canvasActive || canvasEditor ? wrapCanvasElement : undefined}
+      className={!isShowcase && appearance.productPage.stickyPurchaseDesktop ? 'lg:sticky lg:top-8' : undefined}
+    />
+  );
+  const purchaseNode = wrapCanvasElement(
+    'product-purchase',
+    'Nakupno območje',
+    renderPurchasePanel(isShowcase ? 'actions' : 'all'),
+    'storefront-product-purchase-column min-w-0'
+  );
+  const descriptionSection = detailSections.find((section) => section.id === 'description');
+  const renderShowcaseSection = (section: DetailContentSection) => {
+    const id = section.canvasElementId ?? `product-${section.id}`;
+    return wrapCanvasElement(id, section.title,
+      <section key={section.id} data-detail-section={section.id} className="storefront-showcase-detail-section">
+        {wrapCanvasElement(`${id}-heading`, `Naslov: ${section.title}`,
+          <h2 className="site-heading-2 storefront-detail-section-heading">{section.title}</h2>)}
+        {wrapCanvasElement(`${id}-content`, `Vsebina: ${section.title}`, section.content)}
+      </section>, 'min-w-0'
+    );
+  };
+  const showcaseSections = detailSections.filter((section) => section.id !== 'relatedProducts' && section.id !== 'description');
+
   return (
     <div
+      ref={productPageRef}
       data-product-preview-device={canvasEditor?.device}
-      className={`container-base site-section storefront-product-page ${
-        appearance.productPage.stickyPurchaseMobile && mobileHasAction
+      data-product-layout={isShowcase ? 'showcase' : 'columns'}
+      data-sticky-purchase={showMobilePurchase || undefined}
+      className={`container-base site-section storefront-product-page ${isShowcase ? showcaseStyles.page : !canvasActive && !canvasEditor ? responsiveStyles.page : ''} ${
+        showMobilePurchase
           ? 'pb-28 lg:pb-[var(--site-section-space-current)]'
           : ''
       }`}
@@ -1019,7 +1052,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         ? wrapCanvasElement(
             'product-breadcrumbs',
             'Drobtinice',
-            <Breadcrumbs product={product} />
+            <StorefrontBreadcrumbs breadcrumbs={product.breadcrumbs} />
           )
         : null}
 
@@ -1027,8 +1060,9 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         {wrapCanvasElement(
           'product-gallery',
           'Galerija',
-          <div className="min-w-0">
+          <div className="storefront-product-gallery-area min-w-0">
             <ProductGallery
+              presentation={isShowcase ? 'reference' : undefined}
               media={visibleMedia}
               productName={displayTitle}
               previewDevice={canvasEditor?.device}
@@ -1043,8 +1077,8 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         {wrapCanvasElement(
           'product-information',
           'Informacije',
-          <div className="storefront-product-information min-w-0">
-            {canvasActive ? (
+          <div className="storefront-product-information min-w-0" data-sticky-information={isShowcase && appearance.productPage.stickyPurchaseDesktop || undefined}>
+            {canvasActive || canvasEditor ? (
               appearance.information.showCategory ||
               (
                 appearance.productPage.informationOrder.includes('brand') &&
@@ -1071,15 +1105,16 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
                 )
               ) : null
             ) : appearance.information.showCategory ? (
-              <p className="site-eyebrow">
+              <p className="site-eyebrow" data-product-information-block="category">
                 {product.breadcrumbs.at(-2)?.label}
               </p>
             ) : null}
             {appearance.productPage.informationOrder.map((block) => {
-              if (canvasActive && block === 'brand') return null;
+              if ((canvasActive || canvasEditor) && block === 'brand') return null;
+              if (isShowcase && block === 'variants') return null;
               const content = renderInformationBlock(block);
               if (!content) return null;
-              const node = <div key={block}>{content}</div>;
+              const node = <div key={block} data-product-information-block={block}>{content}</div>;
               if (block === 'brand') return node;
               const definition = informationCanvasElement[block];
               return wrapCanvasElement(
@@ -1088,40 +1123,26 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
                 node
               );
             })}
+            {isShowcase ? renderPurchasePanel('details') : null}
+            {isShowcase && descriptionSection ? renderShowcaseSection(descriptionSection) : null}
           </div>,
-          'min-w-0'
+          isShowcase && appearance.productPage.stickyPurchaseDesktop ? showcaseStyles.stickyInformation : 'min-w-0'
         )}
 
-        {wrapCanvasElement(
-          'product-purchase',
-          'Nakupno obmoÄje',
-          <PurchasePanel
-            variant={selectedVariant}
-            selectionComplete={selectionComplete}
-            quantity={quantity}
-            quantityError={quantityError}
-            onQuantityChange={(nextQuantity) => {
-              setQuantity(nextQuantity);
-              setQuantityError(null);
-            }}
-            onAdd={addSelectedVariant}
-            deliveryEstimate={product.deliveryEstimate}
-            canvasDevice={canvasDevice}
-            canvasWrapper={canvasEditor ? wrapCanvasElement : undefined}
-            className={
-              appearance.productPage.stickyPurchaseDesktop
-                ? 'lg:sticky lg:top-8'
-                : undefined
-            }
-          />
-        )}
+        {purchaseNode}
       </div>
 
       {appearance.relatedProducts.sectionPlacement === 'before-content'
         ? relatedProductsNode
         : null}
 
-      {primaryDetailSections.length > 0
+      {isShowcase ? wrapCanvasElement(
+        'product-secondary',
+        'Dodatna vsebina',
+        <div className="storefront-showcase-overview" data-content-divider-visible={appearance.secondaryContent.showContentDivider}>
+          {showcaseSections.map(renderShowcaseSection)}
+        </div>
+      ) : primaryDetailSections.length > 0
         ? wrapCanvasElement(
             'product-secondary',
             'Dodatna vsebina',
@@ -1171,21 +1192,21 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         ? relatedProductsNode
         : null}
 
-      {!canvasEditor && appearance.productPage.stickyPurchaseMobile && mobileHasAction ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[color:var(--site-divider-color)] bg-[color:var(--site-color-surface)] p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.1)] lg:hidden">
+      {showMobilePurchase ? (
+        <div data-main-action-visible={mainPurchaseVisible || undefined} className="storefront-product-mobile-purchase fixed inset-x-0 bottom-0 z-30 border-t border-[color:var(--site-divider-color)] bg-[color:var(--site-color-surface)] p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.1)] lg:hidden">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs text-[color:var(--site-color-text-muted)]">
                 {selectedVariant?.name}
               </p>
-              <p className="font-semibold text-[color:var(--site-color-text)]">
+              {showMobilePrice ? <p className="font-semibold text-[color:var(--site-color-text)]">
                 {selectedVariant
                   ? new Intl.NumberFormat('sl-SI', {
                       style: 'currency',
                       currency: 'EUR'
                     }).format(selectedVariant.unitNet * (1 + selectedVariant.taxRate))
                   : '—'}
-              </p>
+              </p> : null}
             </div>
             <button
               type="button"
@@ -1221,7 +1242,7 @@ export default function ProductDetailView(props: ProductDetailViewProps) {
 
   return (
     <ProductAppearanceProvider config={appearance}>
-      <div style={appearanceVariables}>
+      <div style={appearanceVariables} className={appearance.productPage.layout === 'showcase' ? showcaseStyles.surface : undefined}>
         <ProductDetailContent {...props} />
       </div>
     </ProductAppearanceProvider>

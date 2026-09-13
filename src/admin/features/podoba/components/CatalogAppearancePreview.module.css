@@ -1,0 +1,5 @@
+.preview { min-inline-size: 0; }
+.notice { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; font-size: 12px; color: #64748b; }
+.notice p { margin: 0; }
+.notice button { color: var(--blue-600); font-weight: 600; }
+.notice button:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 3px; }

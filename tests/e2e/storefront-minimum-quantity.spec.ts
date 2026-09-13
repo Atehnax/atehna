@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { legacyProductAppearanceTest } from './support/product-appearance-fixture';
 
 const productPath = '/products/materiali/items/aluminijasta-plosca';
 
@@ -31,11 +32,13 @@ test('accepts a multi-digit product and cart quantity before validating on commi
   );
   await dimensionalSelector.getByRole('button', { name: '1 mm', exact: true }).click();
 
-  await expect(purchasePanel).toContainText('Minimalno naročilo: 5');
-  const productQuantity = purchasePanel.getByLabel('Količina', {
+  await expect(purchasePanel).toContainText('min. 5 kos');
+  const productQuantity = purchasePanel.getByRole('spinbutton', {
+    name: 'Količina (kos)',
     exact: true
   });
   await expect(productQuantity).toHaveValue('5');
+  await expect(productQuantity).toHaveAccessibleDescription('min. 5 kos');
 
   await typeOneThenFive(productQuantity);
   await productQuantity.selectText();
@@ -102,7 +105,7 @@ test('accepts a multi-digit product and cart quantity before validating on commi
   await expect(page).toHaveURL(/\/order$/u);
 });
 
-test('validates a related-product quantity only when quick add is submitted', async ({
+legacyProductAppearanceTest('validates a related-product quantity only when quick add is submitted', async ({
   page
 }) => {
   await openProductWithEmptyCart(page);

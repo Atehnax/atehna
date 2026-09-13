@@ -7,6 +7,7 @@ import { getVariantMatrixLayout, useVariantMatrixHover } from './variantMatrixLa
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { catalogCategoryItemHref } from '@/commercial/catalog/catalogRoutes';
 import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -332,6 +333,8 @@ type StagedImageSlot = {
   file: File | null;
   filename: string | null;
   mimeType: string | null;
+  imageType: string | null;
+  hidden: boolean;
   imageDimensions: ImagePixelMetadata | null;
   altText: string;
   localId: string | null;
@@ -422,8 +425,7 @@ function isUntouchedDefaultQuantityDiscountSet(rules: QuantityDiscountDraft[]) {
 function getPersistableQuantityDiscounts(rules: QuantityDiscountDraft[], hadPersistedQuantityDiscounts: boolean) {
   return !hadPersistedQuantityDiscounts && isUntouchedDefaultQuantityDiscountSet(rules) ? [] : rules;
 }
-const MEDIA_SLOT_COUNT = 7;
-const GALLERY_SMALL_SLOT_COUNT = 6;
+const MIN_MEDIA_SLOT_COUNT = 7;
 const UNDO_HISTORY_LIMIT = 10;
 const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -614,6 +616,8 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
       altText: slot.altText,
       filename: slot.filename,
       mimeType: slot.mimeType,
+      imageType: slot.imageType,
+      hidden: slot.hidden,
       imageDimensions: slot.imageDimensions,
       localId: slot.localId,
       file: slot.file
@@ -1038,6 +1042,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     if (savedImageKey !== nextImageKey) {
       pushSaveDiff(imageItems, label, describeStagedImageSlot(savedSlot), describeStagedImageSlot(nextSlot));
     }
+    pushSaveDiff(imageItems, `${label} - prikaz na strani`, savedSlot.hidden ? 'Skrita' : 'Vidna', nextSlot.hidden ? 'Skrita' : 'Vidna');
     pushSaveDiff(imageItems, `${label} - alt`, formatSaveDiffText(savedSlot.altText), formatSaveDiffText(nextSlot.altText));
   }
   if (imageItems.length > 0) groups.push({ title: 'Slike', items: imageItems });
@@ -1217,6 +1222,8 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
         file: null,
         filename: media.filename ?? null,
         mimeType: media.mimeType ?? null,
+        imageType: media.imageType ?? null,
+        hidden: Boolean(media.hidden),
         imageDimensions: normalizeImagePixelDimensions(media.imageDimensions),
         altText: media.altText ?? '',
         localId: null
@@ -2292,7 +2299,7 @@ export default function AdminItemEditorPage({
   const technicalUploadInputRef = useRef<HTMLInputElement>(null);
   const [variantTags, setVariantTags] = useState<Record<string, VariantTag>>(() => ({ ...initialPersistedState.variantTags }));
   const [editingImageSlot, setEditingImageSlot] = useState<number | null>(null);
-  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string; aspectRatio?: number } | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string; aspectRatio?: number; originalHref?: string } | null>(null);
   const [decimalInputDrafts, setDecimalInputDrafts] = useState<Record<string, string>>({});
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
@@ -2318,6 +2325,7 @@ export default function AdminItemEditorPage({
   const [simulatorQuantity, setSimulatorQuantity] = useState(30);
   const [simulatorAppliesQuantityDiscounts, setSimulatorAppliesQuantityDiscounts] = useState(true);
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
+  const mediaSlotCount = Math.max(MIN_MEDIA_SLOT_COUNT, mediaImagesDraft.length + 1);
   const simpleProductData = typeSpecificData.simple;
   const weightProductData = typeSpecificData.weight;
   const machineProductData = typeSpecificData.uniqueMachine;
@@ -3114,6 +3122,7 @@ export default function AdminItemEditorPage({
           note: rule.note.trim() || null,
           position: index
         })),
+        imageAssignmentScope: 'all-gallery',
         media: [
           ...uploadedImages.map((entry, index) => ({
             id: entry.persistedId ?? undefined,
@@ -3124,6 +3133,8 @@ export default function AdminItemEditorPage({
             blobPathname: entry.blobPathname,
             filename: entry.filename,
             mimeType: entry.mimeType,
+            imageType: entry.imageType,
+            hidden: entry.hidden,
             imageDimensions: entry.imageDimensions,
             altText: entry.altText || null,
             position: index
@@ -4220,15 +4231,15 @@ export default function AdminItemEditorPage({
         const previous = next[slotIndex];
         if (previous && previous.previewUrl !== nextSlot.previewUrl) revokeLocalImageUrl(previous.previewUrl);
         next[slotIndex] = nextSlot;
-        return next.slice(0, MEDIA_SLOT_COUNT);
+        return next;
       }
       next.push(nextSlot);
-      return next.slice(0, MEDIA_SLOT_COUNT);
+      return next;
     });
   }, [revokeLocalImageUrl]);
 
   const stageImageFile = useCallback((file: File, slotIndex: number) => {
-    const boundedSlotIndex = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, slotIndex));
+    const boundedSlotIndex = Math.max(0, slotIndex);
     const previewUrl = createLocalImageUrl(file);
     updateImageAtSlot(boundedSlotIndex, {
       previewUrl,
@@ -4237,6 +4248,8 @@ export default function AdminItemEditorPage({
       file,
       filename: file.name,
       mimeType: file.type || null,
+      imageType: null,
+      hidden: mediaImageSlots[boundedSlotIndex]?.hidden ?? false,
       imageDimensions: null,
       altText: mediaImageSlots[boundedSlotIndex]?.altText ?? '',
       localId: createLocalStageId()
@@ -4248,16 +4261,9 @@ export default function AdminItemEditorPage({
     const queuedFiles = Array.from(files ?? []).filter((file): file is File => file instanceof File);
     if (queuedFiles.length === 0) return;
 
-    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - startSlot);
-    if (remainingSlots === 0) {
-      toast.error('Vse reže so že zapolnjene.');
-      return;
-    }
-
-    const maxFiles = Math.max(1, allowMultiple ? remainingSlots : 1);
-    const acceptedFiles = queuedFiles.slice(0, maxFiles);
+    const acceptedFiles = allowMultiple ? queuedFiles : queuedFiles.slice(0, 1);
     if (queuedFiles.length > acceptedFiles.length) {
-      toast.error(`Izberete lahko največ ${maxFiles} slik.`);
+      toast.error('Izberete lahko največ 1 sliko.');
     }
 
     acceptedFiles.forEach((file, offset) => {
@@ -4276,13 +4282,7 @@ export default function AdminItemEditorPage({
 
   const importImageUrls = async (urls: string[], startSlot: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
-    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - startSlot);
-    if (remainingSlots === 0) {
-      toast.error('Vse reže so že zapolnjene.');
-      return;
-    }
-
-    const acceptedUrls = urls.slice(0, Math.max(1, allowMultiple ? remainingSlots : 1));
+    const acceptedUrls = allowMultiple ? urls : urls.slice(0, 1);
     if (urls.length > acceptedUrls.length) {
       toast.error(`Prilepite lahko največ ${acceptedUrls.length} slik.`);
     }
@@ -4291,7 +4291,7 @@ export default function AdminItemEditorPage({
     for (const [offset, url] of acceptedUrls.entries()) {
       try {
         const uploaded = await uploadMediaUrl(url, 'image');
-        const targetSlot = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, startSlot + offset));
+        const targetSlot = Math.max(0, startSlot + offset);
         updateImageAtSlot(targetSlot, {
           previewUrl: uploaded.url,
           uploadedUrl: uploaded.url,
@@ -4299,6 +4299,8 @@ export default function AdminItemEditorPage({
           file: null,
           filename: uploaded.filename,
           mimeType: uploaded.mimeType,
+          imageType: null,
+          hidden: mediaImageSlots[targetSlot]?.hidden ?? false,
           imageDimensions: null,
           altText: mediaImageSlots[targetSlot]?.altText ?? '',
           localId: null
@@ -4384,7 +4386,7 @@ export default function AdminItemEditorPage({
         const imageFiles = clipboardFiles.filter((file) => file.type.startsWith('image/'));
         if (imageFiles.length > 0) {
           event.preventDefault();
-          queueImageUpload(imageFiles, Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1), true);
+          queueImageUpload(imageFiles, mediaImagesDraft.length, true);
           return;
         }
       }
@@ -4413,7 +4415,7 @@ export default function AdminItemEditorPage({
     event.preventDefault();
 
     if (mediaTab === 'slike') {
-      void importImageUrls(pastedUrls, Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1), true);
+      void importImageUrls(pastedUrls, mediaImagesDraft.length, true);
       return;
     }
     if (mediaTab === 'video') {
@@ -4446,7 +4448,7 @@ export default function AdminItemEditorPage({
       if (!image) return current;
       next.splice(fromIndex, 1);
       next.splice(Math.min(toIndex, next.length), 0, image);
-      return next.slice(0, MEDIA_SLOT_COUNT);
+      return next;
     });
     setDraft((current) => ({
       ...current,
@@ -4466,7 +4468,7 @@ export default function AdminItemEditorPage({
     setMediaImageSlots((current) => {
       const slotToRemove = current[slotIndex];
       if (slotToRemove?.previewUrl) revokeLocalImageUrl(slotToRemove.previewUrl);
-      return current.filter((_, index) => index !== slotIndex).slice(0, MEDIA_SLOT_COUNT);
+      return current.filter((_, index) => index !== slotIndex);
     });
     setDraft((current) => ({
       ...current,
@@ -4574,6 +4576,8 @@ export default function AdminItemEditorPage({
       file,
       filename: fileName,
       mimeType: nextMimeType,
+      imageType: mediaImageSlots[slotIndex]?.imageType ?? null,
+      hidden: mediaImageSlots[slotIndex]?.hidden ?? false,
       imageDimensions: null,
       altText: mediaImageSlots[slotIndex]?.altText ?? '',
       localId: createLocalStageId()
@@ -4592,6 +4596,7 @@ export default function AdminItemEditorPage({
     const dimensions = normalizeImagePixelDimensions(slot.imageDimensions);
     setPreviewImage({
       src: slot.previewUrl,
+      originalHref: slot.imageType === 'dimension-diagram' || slot.imageType === 'dimension-overview' ? slot.previewUrl : undefined,
       alt: slot.altText?.trim() || (slotIndex === 0 ? 'Glavna slika' : 'Slika ' + (slotIndex + 1)),
       aspectRatio: dimensions ? dimensions.width / dimensions.height : undefined
     });
@@ -4631,9 +4636,9 @@ export default function AdminItemEditorPage({
       },
       {
         key: 'hide',
-        label: 'Skrij',
+        label: mediaImageSlots[slotIndex]?.hidden ? 'Prikaži na strani izdelka' : 'Skrij na strani izdelka',
         tone: 'light' as const,
-        onClick: () => toast.info('Skrivanje slike bo na voljo kmalu.'),
+        onClick: () => setMediaImageSlots((current) => current.map((slot, index) => index === slotIndex ? { ...slot, hidden: !slot.hidden } : slot)),
         icon: (
           <svg viewBox="0 0 24 24" className={compact ? 'h-[12px] w-[12px]' : 'h-4 w-4'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M1.5 12s3.75-6.75 10.5-6.75S22.5 12 22.5 12s-3.75 6.75-10.5 6.75S1.5 12 1.5 12Z" />
@@ -5192,6 +5197,14 @@ export default function AdminItemEditorPage({
         <Link href="/admin/artikli" className="hover:underline">Artikli</Link>
         <span className="mx-1 text-slate-400">&rsaquo;</span>
         <span>{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</span>
+        {initialData ? (
+          <span className="ml-4 inline-flex flex-wrap gap-3">
+            {initialData.categorySlug && initialData.status === 'active' ? (
+              <Link href={catalogCategoryItemHref(initialData.categorySlug, initialData.slug)} target="_blank" className="text-[color:var(--blue-600)] hover:underline">Stran izdelka ↗</Link>
+            ) : null}
+            <Link href={'/admin/podoba/artikli?product=' + encodeURIComponent(initialData.slug)} className="text-[color:var(--blue-600)] hover:underline">Podoba izdelka</Link>
+          </span>
+        ) : null}
       </div>
       <section className={`${adminWindowCardClassName} px-5 py-4`} style={adminWindowCardStyle}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -5512,7 +5525,7 @@ export default function AdminItemEditorPage({
                     event.currentTarget.value = '';
                   }}
                 />
-                <div className="h-[11.5rem]">
+                <div className="h-[11.5rem] overflow-y-auto">
                   {mediaImagesDraft.length === 0 ? (
                     <ImageDropzoneField
                         disabled={!isMediaEditable}
@@ -5533,7 +5546,7 @@ export default function AdminItemEditorPage({
                         </span>
                     </ImageDropzoneField>
                   ) : (
-                    <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
+                    <div className="grid min-h-full auto-rows-[5.5rem] grid-cols-5 gap-2">
                       <div
                         className={`group relative col-span-2 row-span-2 overflow-hidden rounded-[8px] border border-slate-300 ${isMediaEditable ? 'cursor-grab' : ''}`}
                         draggable={Boolean(isMediaEditable)}
@@ -5575,11 +5588,11 @@ export default function AdminItemEditorPage({
                         </button>
                         {renderImageActionButtons(0)}
                       </div>
-                      {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
+                      {Array.from({ length: mediaSlotCount - 1 }).map((_, smallIndex) => {
                         const slotIndex = smallIndex + 1;
                         const slotImage = mediaImagesDraft[slotIndex];
-                        const nextUploadSlot = Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1);
-                        const isActiveUploadSlot = !slotImage && mediaImagesDraft.length < MEDIA_SLOT_COUNT && slotIndex === nextUploadSlot;
+                        const nextUploadSlot = mediaImagesDraft.length;
+                        const isActiveUploadSlot = !slotImage && slotIndex === nextUploadSlot;
 
                         if (slotImage) {
                           return (
@@ -5730,7 +5743,13 @@ export default function AdminItemEditorPage({
                                     onLoad={(event) => recordImageDimensions(slotIndex, slot.previewUrl, event.currentTarget)}
                                   />
                                 </button>
-                                <span className="min-w-0 whitespace-normal text-[10px] font-medium leading-tight text-slate-800">{imageLabel}</span>
+                                <span className="min-w-0 whitespace-normal text-[10px] font-medium leading-tight text-slate-800">
+                                  <span>{imageLabel}</span>
+                                  <span className={'mt-0.5 block text-[9px] font-normal ' + (slot.hidden ? 'text-amber-700' : 'text-slate-500')}>{slot.hidden ? 'Skrita na strani' : assignedVariants.length > 0 ? assignedVariants.some(({ variant }) => variant.active) ? 'Ob izbiri različice' : 'Neaktivne različice' : slot.imageType === 'dimension-diagram' ? 'Povežite različico' : 'Vse različice'}</span>
+                                  {isMediaEditable ? (
+                                    <button type="button" className="mt-0.5 text-[color:var(--blue-600)] hover:underline" onClick={() => setMediaImageSlots((current) => current.map((entry, index) => index === slotIndex ? { ...entry, hidden: !entry.hidden } : entry))} aria-label={(slot.hidden ? 'Prikaži ' : 'Skrij ') + imageLabel.toLocaleLowerCase('sl') + ' na strani izdelka'}>{slot.hidden ? 'Prikaži' : 'Skrij'}</button>
+                                  ) : null}
+                                </span>
                               </div>
                             </td>
                             <td className="px-1 py-1.5 text-center">
@@ -5799,7 +5818,7 @@ export default function AdminItemEditorPage({
                   </table>
                 </div>
                 <p className="px-0.5 text-[10px] leading-4 text-slate-500">
-                  Slika brez povezave velja za vse različice. Povežite jo le, kadar prikazuje točno določeno različico.
+                  To so slike strani izdelka. Skrite slike ostanejo shranjene v uredniku. Povezana slika se prikaže le ob izbiri aktivne različice; nepovezane fotografije veljajo za vse različice. Dimenzijsko skico povežite s pripadajočo različico.
                 </p>
               </div>
             ) : mediaTab === 'video' ? (
@@ -6750,6 +6769,7 @@ export default function AdminItemEditorPage({
         src={previewImage?.src ?? ''}
         alt={previewImage?.alt ?? ''}
         aspectRatio={previewImage?.aspectRatio}
+        originalHref={previewImage?.originalHref}
         onClose={() => setPreviewImage(null)}
       />
       {isMediaEditable && editingImageSlot !== null && mediaImagesDraft[editingImageSlot]

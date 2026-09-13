@@ -46,9 +46,18 @@ async function openSpecificationContentPanel(page: Page) {
   ).first();
   await expect(
     specificationContent,
-    'the nested specification grid should be directly selectable'
+    'the specification content should remain editable as a group'
   ).toBeVisible();
-  await specificationContent.click({ position: { x: 4, y: 4 } });
+  // Individual labels are editable children, so select their parent from the layers panel.
+  const firstLabel = specificationContent.locator('dt [data-product-canvas-element]').first();
+  await firstLabel.click();
+  await expect(firstLabel).toHaveAttribute('data-product-canvas-selected', 'true');
+  await page.getByRole('toolbar', { name: 'Glavna orodna vrstica predogleda' })
+    .getByRole('button', { name: 'Elementi', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Elementi predogleda' })
+    .locator('[data-product-appearance-layer="product-specifications-content"] > div')
+    .first()
+    .getByRole('button', { name: /^Izberi ali premakni plast:/u }).click();
   await expect(specificationContent).toHaveAttribute(
     'data-product-canvas-selected',
     'true'

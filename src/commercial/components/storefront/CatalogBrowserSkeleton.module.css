@@ -1,0 +1,32 @@
+/* Fast loads replace this fallback before it becomes visible. Keep its space
+   reserved, and reveal slow loads without waiting for client hydration. */
+.loading {
+  visibility: hidden;
+  animation: catalog-skeleton-reveal 0s 250ms forwards;
+}
+@keyframes catalog-skeleton-reveal { to { visibility: visible; } }
+
+.placeholder {
+  display: block;
+  flex-shrink: 0;
+  max-inline-size: 100%;
+  border-radius: calc(3 * var(--u));
+  background: color-mix(in srgb, var(--catalog-muted) 13%, var(--site-card-bg, white));
+  animation: catalog-skeleton-pulse 1.8s ease-in-out infinite;
+}
+.breadcrumbs { display: flex; align-items: center; gap: calc(10 * var(--u)); min-block-size: calc(15 * var(--u)); }
+.title { display: flex; align-items: center; block-size: calc(36 * var(--u)); }
+.description { display: flex; align-items: center; block-size: calc(20 * var(--u)); }
+.sidebarTitle { display: flex; align-items: center; min-block-size: calc(16 * var(--u)); margin-block-end: calc(10 * var(--u)); }
+.categoryLink { display: flex; align-items: center; gap: calc(14 * var(--u)); min-block-size: calc(36 * var(--u)); padding-inline: calc(4 * var(--u)); }
+.priceCaption { margin-block-start: calc(9 * var(--u)); }
+.range { display: flex; align-items: center; }
+.range::before, .range::after { content: ''; position: absolute; inline-size: calc(14 * var(--u)); block-size: calc(14 * var(--u)); border: 2px solid #d6e0e9; border-radius: 50%; background: var(--site-card-bg, white); }
+.range::before { inset-inline-start: 0; }
+.range::after { inset-inline-end: 0; }
+.priceInput { margin-block-start: calc(5 * var(--u)); }
+.groupTitle { display: flex; flex: 1; align-items: center; min-inline-size: 0; gap: calc(22 * var(--u)); min-block-size: calc(36 * var(--u)); }
+.branchTitle { justify-content: flex-start; gap: calc(11 * var(--u)); min-block-size: calc(32 * var(--u)); }
+.alignEnd { margin-inline-start: auto; }
+@keyframes catalog-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }

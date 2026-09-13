@@ -15,6 +15,7 @@ import {
   readAppearanceEditorCompactSelectValue
 } from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
+import { legacyProductAppearanceTest } from './support/product-appearance-fixture';
 
 type RectSize = {
   width: number;
@@ -155,7 +156,7 @@ async function applyCompactVariantSettings(page: Page, preview: Locator) {
 }
 
 test.describe('compact product-detail appearance', () => {
-  test('renders compact controls and lets a proportional CTA fill its canvas size without collateral resizing', async ({
+  legacyProductAppearanceTest('renders compact legacy controls and lets a proportional CTA fill its canvas size without collateral resizing', async ({
     page,
     request
   }) => {
@@ -408,7 +409,7 @@ test.describe('compact product-detail appearance', () => {
 
 test.describe('storefront product-detail panel alignment', () => {
   for (const viewportWidth of [1440, 1600]) {
-    test(`right-aligns the purchase card with the description panel at ${viewportWidth}px`, async ({
+    test(`keeps the showcase description contained beside an aligned purchase panel at ${viewportWidth}px`, async ({
       page
     }) => {
       await page.route('**/api/**', async (route) => {
@@ -426,9 +427,10 @@ test.describe('storefront product-detail panel alignment', () => {
         name: 'Nakup izdelka',
         exact: true
       });
-      const descriptionPanel = page.locator(
-        '#product-detail-desktop-description-panel'
-      );
+      const information = page.locator('.storefront-product-information');
+      const descriptionPanel = information.locator('[data-detail-section="description"]');
+      const gallery = page.locator('.storefront-product-gallery-area');
+      const detailGrid = page.locator('.storefront-product-detail-grid');
       await expect(purchasePanel).toBeVisible();
       await expect(descriptionPanel).toBeVisible();
 
@@ -443,12 +445,24 @@ test.describe('storefront product-detail panel alignment', () => {
         'description panel should have rendered geometry'
       ).not.toBeNull();
 
-      const purchaseRight = purchaseRect!.x + purchaseRect!.width;
+      const informationRect = await information.boundingBox();
+      const galleryRect = await gallery.boundingBox();
+      const gridRect = await detailGrid.boundingBox();
+      expect(informationRect).not.toBeNull();
+      expect(galleryRect).not.toBeNull();
+      expect(gridRect).not.toBeNull();
       const descriptionRight = descriptionRect!.x + descriptionRect!.width;
-      expect(
-        Math.abs(purchaseRight - descriptionRight),
-        'purchase and description panels should share their right edge'
-      ).toBeLessThanOrEqual(1.5);
+      expect(descriptionRect!.x).toBeGreaterThanOrEqual(informationRect!.x - 1);
+      expect(descriptionRight).toBeLessThanOrEqual(informationRect!.x + informationRect!.width + 1);
+      expect(descriptionRight, 'description must not spill into purchasing').toBeLessThan(purchaseRect!.x);
+      expect(Math.abs(purchaseRect!.x + purchaseRect!.width - gridRect!.x - gridRect!.width),
+        'purchase panel stays at the far right of the hero').toBeLessThanOrEqual(1.5);
+      expect(Math.abs(purchaseRect!.y - galleryRect!.y),
+        'gallery and purchase sections share their top edge').toBeLessThanOrEqual(1.5);
+      expect(Math.abs(purchaseRect!.height - galleryRect!.height),
+        'gallery and purchase sections receive the same allocated height').toBeLessThanOrEqual(1.5);
+      expect(await descriptionPanel.evaluate(element => element.scrollWidth - element.clientWidth),
+        'description text remains inside its middle column').toBeLessThanOrEqual(1);
     });
   }
 });

@@ -59,8 +59,9 @@ describe('product purchase copy contracts', () => {
       inStockDetail: 'Na voljo: {stock} {unit}',
       insufficientStockDetail: expect.stringContaining('{minimum}'),
       quantityLabel: 'Količina',
-      minimumOrderLabel: 'Minimalno naročilo',
-      addToCartActionLabel: 'Dodaj v košarico'
+      minimumOrderLabel: 'min.',
+      addToCartActionLabel: 'Dodaj v košarico',
+      paymentMessage: 'Plačilo po ponudbi ali predračunu.'
     });
     expect(defaults.deliveryFallbackMessage).toBe(
       'Predvideni rok sporočimo ob potrditvi naročila.'
@@ -84,8 +85,34 @@ describe('product purchase copy contracts', () => {
           }
         }
       }).purchaseArea.copy.minimumOrderLabel
-    ).toBe('Minimalno naročilo');
+    ).toBe('min.');
 
+
+    for (const minimumOrderLabel of ['Minimalno naročilo', 'Najmanjše naročilo']) {
+      const migratedCopy = normalizeProductAppearanceConfig({
+        schemaVersion: 16,
+        purchaseArea: {
+          copy: {
+            minimumOrderLabel,
+            paymentMessage: 'Plačilo uredimo ročno po ponudbi ali predračunu.'
+          }
+        }
+      }).purchaseArea.copy;
+      expect(migratedCopy.minimumOrderLabel).toBe('min.');
+      expect(migratedCopy.paymentMessage).toBe('Plačilo po ponudbi ali predračunu.');
+    }
+    const customCopy = {
+      minimumOrderLabel: 'Naročite najmanj',
+      paymentMessage: 'Plačilo po dogovoru.'
+    };
+    expect(normalizeProductAppearanceConfig({
+      schemaVersion: 16,
+      purchaseArea: { copy: customCopy }
+    }).purchaseArea.copy).toMatchObject(customCopy);
+    expect(normalizeProductAppearanceConfig({
+      schemaVersion: 17,
+      purchaseArea: { copy: { minimumOrderLabel: 'Minimalno naročilo' } }
+    }).purchaseArea.copy.minimumOrderLabel).toBe('Minimalno naročilo');
 
     const normalized = normalizeProductAppearanceConfig({
       purchaseArea: {
@@ -199,7 +226,7 @@ describe('product purchase copy contracts', () => {
     );
     expect(purchasePanelSource).toContain("'product-minimum-order'");
     expect(purchasePanelSource).toContain(
-      '<span>{copy.minimumOrderLabel}</span>: {variant.minOrder}'
+      "<span>{copy.minimumOrderLabel}</span>{copy.minimumOrderLabel.endsWith('.') ? ' ' : ': '}{variant.minOrder}"
     );
     expect(adminPageSource).toContain(
       "id: 'product-minimum-order'"

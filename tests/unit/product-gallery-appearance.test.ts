@@ -16,10 +16,10 @@ describe('product gallery appearance contracts', () => {
   test('normalizes and stores every thumbnail layout control', () => {
     expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.gallery).toMatchObject({
       sizePercent: 100,
-      thumbnailPositionDesktop: 'left',
+      thumbnailPositionDesktop: 'bottom',
       thumbnailPositionMobile: 'bottom',
-      thumbnailSizePx: 70,
-      thumbnailGapPx: 16,
+      thumbnailSizePx: 60,
+      thumbnailGapPx: 10,
       hideThumbnailsWhenSingle: true
     });
 
@@ -111,8 +111,9 @@ describe('product gallery appearance contracts', () => {
     expect(gallerySource).not.toContain('object-contain p-1.5');
     expect(gallerySource).toContain('storefront-gallery-control');
     expect(gallerySource).toContain('storefront-gallery-control-visual');
-    expect(gallerySource).toContain('data-gallery-control="next"');
-    expect(gallerySource).toContain('data-gallery-control="zoom-indicator"');
+    expect(gallerySource).toContain('data-gallery-control={control}');
+    expect(gallerySource).toMatch(/renderMediaControl\(\s*'product-gallery-next',\s*'Naslednja slika',\s*'next'/u);
+    expect(gallerySource).toMatch(/renderMediaControl\(\s*'product-gallery-zoom',\s*'Odpri predogled slike',\s*'zoom-indicator'/u);
     expect(previewSource).toContain('data-gallery-control="lightbox-close"');
     expect(previewSource).toContain('lightboxCloseControlClassName');
     expect(gallerySource).not.toContain('backdrop-blur-sm');

@@ -177,13 +177,13 @@ test.describe('product appearance toolbar parity contracts', () => {
       const pageControls = page.getByRole('group', { name: 'Stran predogleda' });
       await pageControls.getByRole('button', { name: 'Seznam', exact: true }).click();
 
-      const listingHeader = page.locator('[data-product-canvas-element="listing-header"]');
+      const listingHeader = page.locator('[data-product-canvas-element="catalog-heading"]');
       await expect(listingHeader).toBeVisible();
       const pageToolbar = page.getByRole('toolbar', { name: 'Glavna orodna vrstica predogleda' });
       await pageToolbar.getByRole('button', { name: 'Elementi', exact: true }).click();
       await page
         .getByRole('dialog', { name: 'Elementi predogleda' })
-        .getByRole('button', { name: 'Izberi ali premakni plast: Glava seznama', exact: true })
+        .getByRole('button', { name: 'Izberi ali premakni plast: Naslov in opis kataloga', exact: true })
         .click();
       await expect(listingHeader).toHaveAttribute('data-product-canvas-selected', 'true');
 
@@ -192,7 +192,7 @@ test.describe('product appearance toolbar parity contracts', () => {
       await expect(floatingToolbar).toBeVisible();
       await expect(floatingToolbar).toHaveAttribute(
         'data-product-toolbar-anchor-id',
-        'listing-header'
+        'catalog-heading'
       );
       await expect(floatingToolbar).toHaveAttribute('data-toolbar-ready', 'true');
 
@@ -222,13 +222,13 @@ test.describe('product appearance toolbar parity contracts', () => {
       expect(toolbarBox.x + toolbarBox.width, 'toolbar right edge should stay inside the preview')
         .toBeLessThanOrEqual(frameBox.x + frameBox.width + 2);
 
-      const cardTitle = page.locator('[data-product-canvas-element="card-title"]').first();
+      const cardTitle = page.locator('[data-product-canvas-element="catalog-product-name"]').first();
       await expect(cardTitle).toBeVisible();
       await cardTitle.click();
       await expect(cardTitle).toHaveAttribute('data-product-canvas-selected', 'true');
       await expect(floatingToolbar).toHaveAttribute(
         'data-product-toolbar-anchor-id',
-        'card-title'
+        'catalog-product-name'
       );
       await expect(floatingToolbar).toHaveAttribute('data-toolbar-ready', 'true');
       await expectToolbarBesideAnchor(floatingToolbar, cardTitle);

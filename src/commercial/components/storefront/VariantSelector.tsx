@@ -18,6 +18,7 @@ import {
   type ProductCanvasDevice
 } from '@/shared/domain/style/productAppearance';
 import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElement';
+import styles from './ProductSelectionReference.module.css';
 
 export type VariantSelection = Record<string, string>;
 
@@ -26,6 +27,7 @@ type VariantSelectorProps = {
   variants: StorefrontVariant[];
   selection: VariantSelection;
   onChange: (axisId: string, valueId: string) => void;
+  presentation?: 'reference';
   canvasDevice?: ProductCanvasDevice;
   canvasWrapper?: (
     elementId: string,
@@ -77,11 +79,13 @@ export default function VariantSelector({
   variants,
   selection,
   onChange,
+  presentation,
   canvasDevice = 'desktop',
   canvasWrapper,
   className
 }: VariantSelectorProps) {
   const appearance = useProductAppearance();
+  const referencePresentation = presentation === 'reference';
   const stockEnforcementEnabled = useStockEnforcementEnabled();
   const isPurchasable = (variant: StorefrontVariant) =>
     isStorefrontVariantPurchasable(variant, stockEnforcementEnabled);
@@ -92,7 +96,9 @@ export default function VariantSelector({
     children: ReactNode,
     elementClassName = ''
   ) => {
-    if (!canvasActive) return children;
+    if (!canvasActive) return referencePresentation && elementClassName
+      ? <div key={elementId} className={elementClassName}>{children}</div>
+      : children;
     return (
       <ProductCanvasElement
         key={`${elementId}-${canvasDevice}`}
@@ -145,15 +151,21 @@ export default function VariantSelector({
 
     return (
       <div
-        className={`storefront-product-variant-selector storefront-dimensional-variant-selector space-y-3 ${
+        className={`storefront-product-variant-selector storefront-dimensional-variant-selector ${referencePresentation ? '' : 'space-y-3'} ${
           className ?? ''
-        }`.trim()}
+        } ${referencePresentation ? styles.selector : ''}`.trim()}
+        data-variant-presentation={presentation}
       >
         {wrapCanvasElement(
           'product-variant-thickness',
           'Debelina',
-          <fieldset>
-            <legend
+          <fieldset className={referencePresentation ? styles.thickness : undefined} aria-label="Debelina">
+            {referencePresentation ? wrapCanvasElement(
+              'product-variant-thickness-label',
+              'Naziv: Debelina',
+              <span>Debelina{selectedGroup && appearance.variants.showSelectedSummary ? <span className={styles.summary}> {selectedGroup.thicknessLabel}</span> : null}</span>,
+              styles.label
+            ) : <legend
               className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
                 appearance.variants.labelAboveSelector
                   ? ''
@@ -166,11 +178,11 @@ export default function VariantSelector({
                   {selectedGroup.thicknessLabel}
                 </span>
               ) : null}
-            </legend>
+            </legend>}
             {wrapCanvasElement(
               'product-variant-thickness-options',
               'Gumbi debeline',
-              <div className="flex flex-wrap gap-2">
+              <div className={`flex flex-wrap gap-2 ${referencePresentation ? styles.options : ''}`}>
                 {groups.map((group, groupIndex) => {
                   const selected = group.thickness === selectedGroup?.thickness;
                   const groupPurchasable = group.choices.some((choice) =>
@@ -217,8 +229,13 @@ export default function VariantSelector({
           wrapCanvasElement(
             'product-variant-dimensions',
             'Dimenzije',
-            <fieldset className="storefront-dimensional-size-selector">
-              <legend
+            <fieldset className="storefront-dimensional-size-selector" aria-label="Dimenzije">
+              {referencePresentation ? wrapCanvasElement(
+                'product-variant-dimensions-label',
+                'Naziv: Dimenzije',
+                <span><span className={styles.dimensionLabel}><span>Dimenzije</span><span className={styles.unit}>[mm]</span></span>{selectedChoice && appearance.variants.showSelectedSummary ? <span className={styles.summary}> · {selectedChoice.sizeLabel}</span> : null}</span>,
+                styles.label
+              ) : <legend
                 className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
                   appearance.variants.labelAboveSelector
                     ? ''
@@ -231,11 +248,35 @@ export default function VariantSelector({
                     {selectedChoice.sizeLabel}
                   </span>
                 ) : null}
-              </legend>
+              </legend>}
               {wrapCanvasElement(
                 'product-variant-dimensions-control',
                 'Izbirnik dimenzij',
-                <select
+                referencePresentation && appearance.variants.selectorStyle !== 'select' ? (
+                  <div className={styles.dimensions}>
+                    {selectedGroup.choices.map((choice, choiceIndex) => {
+                      const purchasable = isPurchasable(choice.variant);
+                      const selected = choice.axisValueId === selectedChoice?.axisValueId;
+                      return wrapCanvasElement(
+                        `product-variant-dimensions-option-${choiceIndex + 1}`,
+                        choice.sizeLabel,
+                        <button
+                          key={choice.axisValueId}
+                          type="button"
+                          onClick={() => onChange(axis.id, choice.axisValueId)}
+                          aria-pressed={selected}
+                          aria-label={`Dimenzije: ${choice.sizeLabel}${purchasable ? '' : ' – trenutno ni na zalogi'}`}
+                          title={purchasable ? undefined : `${choice.sizeLabel} trenutno ni na zalogi.`}
+                          className={`storefront-variant-chip ${styles.dimensionOption}`}
+                          data-purchasable={purchasable}
+                        >
+                          {choice.sizeLabel.replace(/\s+mm$/, '')}
+                        </button>,
+                        styles.dimensionWrapper
+                      );
+                    })}
+                  </div>
+                ) : <select
                   className="site-field storefront-variant-select w-full"
                   value={selectedChoice?.axisValueId ?? ''}
                   onChange={(event) => onChange(axis.id, event.target.value)}
@@ -266,9 +307,10 @@ export default function VariantSelector({
 
   return (
     <div
-      className={`storefront-product-variant-selector space-y-3 ${
+      className={`storefront-product-variant-selector ${referencePresentation ? '' : 'space-y-3'} ${
         className ?? ''
-      }`.trim()}
+      } ${referencePresentation ? styles.selector : ''}`.trim()}
+      data-variant-presentation={presentation}
     >
       {axes.map((axis, axisIndex) => {
         const selectedValue = axis.values.find(
@@ -286,8 +328,13 @@ export default function VariantSelector({
         return wrapCanvasElement(
           axisCanvasId,
           axis.name,
-          <fieldset key={axis.id}>
-            <legend
+          <fieldset key={axis.id} aria-label={axis.name}>
+            {referencePresentation ? wrapCanvasElement(
+              `${axisCanvasId}-label`,
+              `Naziv: ${axis.name}`,
+              <span>{axis.name}{selectedValue && appearance.variants.showSelectedSummary ? <span className={styles.summary}> {selectedValue.label}</span> : null}</span>,
+              styles.label
+            ) : <legend
               className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
                 appearance.variants.labelAboveSelector
                   ? ''
@@ -300,7 +347,7 @@ export default function VariantSelector({
                   {selectedValue.label}
                 </span>
               ) : null}
-            </legend>
+            </legend>}
 
             {wrapCanvasElement(
               controlCanvasId,

@@ -2061,15 +2061,16 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     ),
     category_path as (
       with recursive chain as (
-        select cc.id, cc.parent_id, cc.title, 0 as depth
+        select cc.id, cc.parent_id, cc.title, cc.slug, 0 as depth
         from catalog_categories cc
         join item i on i.category_id = cc.id
         union all
-        select parent.id, parent.parent_id, parent.title, chain.depth + 1
+        select parent.id, parent.parent_id, parent.title, parent.slug, chain.depth + 1
         from catalog_categories parent
         join chain on chain.parent_id = parent.id
       )
-      select coalesce(array_agg(title order by depth desc), array[]::text[]) as path
+      select coalesce(array_agg(title order by depth desc), array[]::text[]) as path,
+             (array_agg(slug order by depth desc))[1] as root_slug
       from chain
     )
     select
@@ -2112,6 +2113,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
         limit 1
       ), '{}'::jsonb) as type_specific_data,
       coalesce((select path from category_path), array[]::text[]) as category_path,
+      (select root_slug from category_path) as category_slug,
       coalesce((
         select json_agg(
           json_build_object(
@@ -2361,6 +2363,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     deletedAt: row.deleted_at instanceof Date ? row.deleted_at.toISOString() : asStringOrNull(row.deleted_at),
     purgeAfter: row.purge_after instanceof Date ? row.purge_after.toISOString() : asStringOrNull(row.purge_after),
     categoryPath: Array.isArray(row.category_path) ? row.category_path.map((entry) => String(entry)) : [],
+    categorySlug: asStringOrNull(row.category_slug),
     sku: asStringOrNull(row.sku),
     slug: String(row.slug ?? ''),
     unit: asStringOrNull(row.unit),
@@ -3760,7 +3763,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
           position: media.position ?? 0
         });
       }
-      if (media.mediaKind === 'image' && media.role === 'gallery' && !media.hidden) {
+      if (media.mediaKind === 'image' && media.role === 'gallery' && (payload.imageAssignmentScope === 'all-gallery' || !media.hidden)) {
         retainedGalleryImageIds.push(persistedMediaId);
       }
     }

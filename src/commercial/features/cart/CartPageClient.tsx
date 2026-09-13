@@ -196,7 +196,7 @@ export default function CartPageClient() {
               </div>
             ) : (
               <p className="mt-3 text-xs text-[color:var(--site-color-text-muted)]">
-                Plačilo uredimo ročno po ponudbi ali predračunu.
+                Plačilo po ponudbi ali predračunu.
               </p>
             )}
 

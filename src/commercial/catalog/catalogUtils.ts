@@ -1,5 +1,6 @@
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 import { formatEuro } from '@/shared/domain/formatting';
+import { getCatalogDiscountedUnitNet } from '@/shared/domain/catalog/catalogPricing';
 
 export function getCatalogItemSku(
   categorySlug: string,
@@ -60,6 +61,5 @@ export function sortCatalogItems(items: CatalogItem[]): CatalogItem[] {
 }
 
 export function getDiscountedPrice(price: number, discountPct?: number): number {
-  const safe = Math.max(0, Math.min(100, Number(discountPct ?? 0)));
-  return Number((price * (1 - safe / 100)).toFixed(2));
+  return getCatalogDiscountedUnitNet(price, Number(discountPct ?? 0));
 }

@@ -46,6 +46,9 @@ type VariantSpacingMetrics = {
   dimensionsGap: number;
   dimensionsBorderTopWidth: number;
   dimensionsPaddingTop: number;
+  unitTopDelta: number;
+  unitHeightDelta: number;
+  unitFollowsName: boolean;
 };
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -106,54 +109,41 @@ async function readVariantSpacing(
   selector: Locator
 ): Promise<VariantSpacingMetrics> {
   await expect(selector).toBeVisible();
+  await expect(selector.getByRole('group', { name: 'Debelina', exact: true })).toBeVisible();
+  await expect(selector.getByRole('group', { name: 'Dimenzije', exact: true })).toBeVisible();
   return selector.evaluate((root) => {
-    const fieldsets = Array.from(root.querySelectorAll('fieldset'));
-    const findFieldset = (label: string) => fieldsets.find((fieldset) => (
-      fieldset.querySelector('legend')?.textContent?.trim().startsWith(label)
-    ));
-    const thickness = findFieldset('Debelina');
-    const dimensions = findFieldset('Dimenzije');
-    const thicknessLabel = thickness?.querySelector('legend');
-    const dimensionsLabel = dimensions?.querySelector('legend');
-    const thicknessControl = thickness?.querySelector<HTMLElement>(
-      '.storefront-variant-chip'
-    );
-    const dimensionsControl = dimensions?.querySelector<HTMLElement>(
-      '.storefront-variant-select'
-    );
-    if (
-      !thickness
-      || !dimensions
-      || !thicknessLabel
-      || !dimensionsLabel
-      || !thicknessControl
-      || !dimensionsControl
-    ) {
+    const thickness = root.querySelector<HTMLElement>('fieldset[aria-label="Debelina"]');
+    const dimensions = root.querySelector<HTMLElement>('fieldset[aria-label="Dimenzije"]');
+    const thicknessLabel = thickness?.firstElementChild;
+    const dimensionsLabel = dimensions?.firstElementChild;
+    const thicknessControl = thickness?.querySelector<HTMLElement>('.storefront-variant-chip');
+    const dimensionsControl = dimensions?.querySelector<HTMLElement>('.storefront-variant-chip, .storefront-variant-select');
+    if (!thickness || !dimensions || !thicknessLabel || !dimensionsLabel || !thicknessControl || !dimensionsControl) {
       throw new Error('Dimensional selector is missing a label or control.');
     }
-
-    const scale = Number.parseFloat(
-      getComputedStyle(root).getPropertyValue('--commercial-storefront-scale')
-    ) || 1;
+    const name = Array.from(dimensionsLabel.querySelectorAll('span')).find(element =>
+      element.textContent?.trim() === 'Dimenzije'
+    );
+    const unit = Array.from(dimensionsLabel.querySelectorAll('span')).find(element =>
+      element.textContent?.trim() === '[mm]'
+    );
+    if (!name || !unit) throw new Error('The dimensions heading needs its inline [mm] unit.');
+    const scale = Number.parseFloat(getComputedStyle(root).getPropertyValue('--commercial-storefront-scale')) || 1;
     const dimensionsStyle = getComputedStyle(dimensions);
     const rootStyle = getComputedStyle(root);
-    const thicknessLabelStyle = getComputedStyle(thicknessLabel);
-    const dimensionsLabelStyle = getComputedStyle(dimensionsLabel);
-
+    const renderedScale = root.getBoundingClientRect().width / Number.parseFloat(rootStyle.width) || 1;
+    const physical = (value: number) => value / renderedScale * scale;
+    const labelGap = (label: Element, control: HTMLElement) =>
+      physical(control.getBoundingClientRect().top - label.getBoundingClientRect().bottom);
     return {
-      cssGap: (
-        Number.parseFloat(
-          rootStyle.getPropertyValue('--product-variant-label-control-gap')
-        ) || 0
-      ) * scale,
-      thicknessGap:
-        Number.parseFloat(thicknessLabelStyle.marginBottom) * scale,
-      dimensionsGap:
-        Number.parseFloat(dimensionsLabelStyle.marginBottom) * scale,
-      dimensionsBorderTopWidth:
-        Number.parseFloat(dimensionsStyle.borderTopWidth) * scale,
-      dimensionsPaddingTop:
-        Number.parseFloat(dimensionsStyle.paddingTop) * scale
+      cssGap: (Number.parseFloat(rootStyle.getPropertyValue('--product-variant-label-control-gap')) || 0) * scale,
+      thicknessGap: labelGap(thicknessLabel, thicknessControl),
+      dimensionsGap: labelGap(dimensionsLabel, dimensionsControl),
+      dimensionsBorderTopWidth: Number.parseFloat(dimensionsStyle.borderTopWidth) * scale,
+      dimensionsPaddingTop: Number.parseFloat(dimensionsStyle.paddingTop) * scale,
+      unitTopDelta: physical(Math.abs(unit.getBoundingClientRect().top - name.getBoundingClientRect().top)),
+      unitHeightDelta: physical(Math.abs(unit.getBoundingClientRect().height - name.getBoundingClientRect().height)),
+      unitFollowsName: unit.getBoundingClientRect().left >= name.getBoundingClientRect().right
     };
   });
 }
@@ -162,6 +152,9 @@ function expectSharedVariantGap(
   metrics: VariantSpacingMetrics,
   expectedGap: number
 ) {
+  expect(metrics.unitTopDelta, '[mm] stays on the dimensions text line').toBeLessThanOrEqual(0.75);
+  expect(metrics.unitHeightDelta, '[mm] uses the dimensions text size').toBeLessThanOrEqual(0.75);
+  expect(metrics.unitFollowsName, '[mm] follows Dimenzije horizontally').toBeTruthy();
   expect(metrics.cssGap, 'the rendered shared gap token').toBeCloseTo(
     expectedGap,
     1
@@ -214,7 +207,7 @@ async function openVariantContentPanel(
 }
 
 test.describe('product variant label-to-control spacing', () => {
-  test('keeps the divider removed and the shared gap in public and responsive admin previews', async ({
+  test('keeps the shared gap and aligned [mm] label in public and responsive admin previews', async ({
     page,
     request
   }) => {

@@ -1,3 +1,5 @@
+export const CATALOG_ALL_PRODUCTS_HREF = '/products/vsi-izdelki';
+
 function decodeRouteSegment(value: string): string {
   const trimmed = value.trim();
 

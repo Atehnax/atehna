@@ -1,3 +1,4 @@
+import { getCatalogBrowserShellServer } from '@/commercial/catalog/catalogBrowserServer';
 import AdminProductAppearancePageClient from '@/admin/features/podoba/components/AdminProductAppearancePageClient';
 import type { AdminCatalogListItem } from '@/shared/domain/catalog/catalogAdminTypes';
 import {
@@ -40,6 +41,7 @@ export default async function AdminPodobaArtikliPage({
     navigation,
     inventoryPolicy,
     productResult,
+    catalogPreview,
     resolvedSearchParams
   ] = await Promise.all([
     getAdminProductAppearanceConfig(),
@@ -47,6 +49,7 @@ export default async function AdminPodobaArtikliPage({
     getSiteNavigationConfig(),
     getInventoryPolicySettings(),
     loadProductsForAppearanceEditor(),
+    getCatalogBrowserShellServer(),
     searchParams ?? Promise.resolve<{ product?: string | string[] }>({})
   ]);
   const requestedProduct = Array.isArray(resolvedSearchParams.product)
@@ -72,6 +75,7 @@ export default async function AdminPodobaArtikliPage({
       initialSiteLayout={navigation.siteLayout}
       initialStockEnforcementEnabled={inventoryPolicy.stockEnforcementEnabled}
       initialProducts={productResult}
+      initialCatalogPreview={catalogPreview}
       initialProduct={initialProduct}
     />
   );

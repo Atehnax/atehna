@@ -10,11 +10,12 @@ export type ImagePreviewDialogProps = {
   src: string;
   alt: string;
   aspectRatio?: number;
+  originalHref?: string;
   unoptimized?: boolean;
   onClose: () => void;
 };
 
-type PreviewImage = { src: string; alt: string; aspectRatio: number };
+type PreviewImage = { src: string; alt: string; aspectRatio: number; originalHref?: string };
 type PreviewKeyEvent = Pick<KeyboardEvent, 'key' | 'preventDefault' | 'stopPropagation'>;
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -29,12 +30,14 @@ export default function ImagePreviewDialog({
   src,
   alt,
   aspectRatio,
+  originalHref,
   unoptimized = false,
   onClose
 }: ImagePreviewDialogProps) {
   const [image, setImage] = useState<PreviewImage | null>(null);
   const [isZoomVisible, setIsZoomVisible] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const originalLinkRef = useRef<HTMLAnchorElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const isMounted = image !== null;
@@ -48,6 +51,7 @@ export default function ImagePreviewDialog({
       setImage((current) => ({
         src,
         alt,
+        originalHref,
         aspectRatio: typeof aspectRatio === 'number' && Number.isFinite(aspectRatio) && aspectRatio > 0
           ? aspectRatio
           : current?.src === src ? current.aspectRatio : 4 / 3
@@ -62,7 +66,7 @@ export default function ImagePreviewDialog({
     setIsZoomVisible(false);
     const timer = setTimeout(() => setImage(null), reduceMotion ? 0 : 280);
     return () => clearTimeout(timer);
-  }, [open, src, alt, aspectRatio]);
+  }, [open, src, alt, aspectRatio, originalHref]);
 
   const onPreviewKeyDown = useCallback((event: PreviewKeyEvent) => {
     if (event.key === 'Escape') {
@@ -72,7 +76,11 @@ export default function ImagePreviewDialog({
     } else if (event.key === 'Tab') {
       event.preventDefault();
       event.stopPropagation();
-      closeButtonRef.current?.focus();
+      if (originalLinkRef.current && document.activeElement === closeButtonRef.current) {
+        originalLinkRef.current.focus();
+      } else {
+        closeButtonRef.current?.focus();
+      }
     }
   }, [closeZoom]);
 
@@ -107,7 +115,8 @@ export default function ImagePreviewDialog({
       ref={dialogRef}
       className={classNames(
         'fixed inset-0 z-[1000] flex cursor-zoom-out items-center justify-center bg-slate-950/65 p-2 backdrop-blur-[2px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:p-3',
-        isZoomVisible ? 'opacity-100' : 'opacity-0'
+        isZoomVisible ? 'opacity-100' : 'opacity-0',
+        image.originalHref && 'flex-col gap-3'
       )}
       role="dialog"
       aria-modal="true"
@@ -172,6 +181,17 @@ export default function ImagePreviewDialog({
           }}
         />
       </div>
+      {image.originalHref ? (
+        <a
+          ref={originalLinkRef}
+          href={image.originalHref}
+          target="_blank"
+          rel="noreferrer"
+          className="max-w-[calc(100vw-2rem)] shrink-0 cursor-pointer rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-800 shadow-lg hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950/65"
+        >
+          Odpri skico v polni velikosti
+        </a>
+      ) : null}
     </div>,
     document.body
   );

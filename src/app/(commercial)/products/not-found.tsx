@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import CatalogBrowserInvalidPage from '@/commercial/components/storefront/CatalogBrowserInvalidPage';
 
 export default function ProductNotFound() {
   return (
     <div className="container-base site-section">
+      <CatalogBrowserInvalidPage />
       <div className="site-panel mx-auto max-w-2xl border-dashed p-8 text-center">
         <p className="site-eyebrow">Izdelek ni na voljo</p>
         <h1 className="site-heading-2 mt-2">

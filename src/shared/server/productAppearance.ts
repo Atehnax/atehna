@@ -44,7 +44,7 @@ async function readProductAppearanceConfigFromDatabase(): Promise<ProductAppeara
 
 const getCachedProductAppearanceConfigFromDatabase = cacheDatabaseRead(
   readProductAppearanceConfigFromDatabase,
-  ['product-appearance-config-v12'],
+  ['product-appearance-config-v18'],
   { tags: [PRODUCT_APPEARANCE_CACHE_TAG] }
 );
 

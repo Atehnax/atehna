@@ -1,3 +1,5 @@
+import CatalogBrowser from '@/commercial/components/storefront/CatalogBrowser';
+import { getCatalogBrowserMetadataServer, getCatalogBrowserPageServer } from '@/commercial/catalog/catalogBrowserServer';
 import {
   catalogCategoryItemHref,
   toPublicCatalogSlug
@@ -37,6 +39,9 @@ export async function generateMetadata(
   props: { params: Promise<{ category: string; subcategory: string; item: string }> }
 ) {
   const params = await props.params;
+  const categoryPath = [params.category, params.subcategory, params.item];
+  const categoryMetadata = await getCatalogBrowserMetadataServer(categoryPath);
+  if (categoryMetadata.title) return categoryMetadata;
   const resolved = await getCatalogProductByGlobalSlugServer(params.item);
   if (!resolved) return {};
   return { title: resolved.item.name, description: resolved.item.description };
@@ -46,6 +51,8 @@ export default async function ItemPage(
   props: { params: Promise<{ category: string; subcategory: string; item: string }> }
 ) {
   const params = await props.params;
+  const pageData = await getCatalogBrowserPageServer([params.category, params.subcategory, params.item]);
+  if (pageData) return <CatalogBrowser key={pageData.currentHref} {...pageData} />;
   const resolved = await getCatalogProductByGlobalSlugServer(params.item);
   if (!resolved) notFound();
   permanentRedirect(

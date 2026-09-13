@@ -26,6 +26,7 @@ export type OrderEstimateItem = {
   minOrder: number;
   availableStock: number | null;
   imageUrl: string | null;
+  optionAssignments?: Array<{ axisId: number; axisName: string; valueId: number; value: string }>;
   attributes: Record<string, string | number>;
   baseUnitNet: number;
   discountPct: number;
@@ -68,6 +69,8 @@ export type OrderApiIssue = {
   message: string;
   variantId?: number;
   field?: string;
+  minOrder?: number;
+  availableStock?: number;
 };
 
 export type OrderApiError = {
@@ -252,7 +255,11 @@ export function parseOrderApiError(
           ...(typeof issue.variantId === 'number'
             ? { variantId: issue.variantId }
             : {}),
-          ...(typeof issue.field === 'string' ? { field: issue.field } : {})
+          ...(typeof issue.field === 'string' ? { field: issue.field } : {}),
+          ...(typeof issue.minOrder === 'number' && Number.isSafeInteger(issue.minOrder) && issue.minOrder >= 1
+            ? { minOrder: issue.minOrder } : {}),
+          ...(typeof issue.availableStock === 'number' && Number.isSafeInteger(issue.availableStock) && issue.availableStock >= 0
+            ? { availableStock: issue.availableStock } : {})
         });
         return result;
       }, [])

@@ -146,7 +146,11 @@ export const useCartStore = create<CartState>()(
                     ? {
                         ...item,
                         quantity: Math.max(1, Math.floor(quantity)),
-                        reconciliation: { status: 'unchecked' }
+                        reconciliation: {
+                          status: 'unchecked',
+                          minOrder: item.reconciliation.minOrder,
+                          availableStock: item.reconciliation.availableStock
+                        }
                       }
                     : item
                 ),
@@ -172,6 +176,7 @@ export const useCartStore = create<CartState>()(
               if (!update) return item;
               return {
                 ...item,
+                ...update.catalog,
                 quantity: update.quantity ?? item.quantity,
                 pricing: item.pricing
                   ? { ...item.pricing, ...update.pricing }

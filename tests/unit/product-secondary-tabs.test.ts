@@ -40,8 +40,8 @@ describe('product secondary content tab contracts', () => {
 
     expect(defaults.combinedOverviewLabel).toBe('Opis in specifikacije');
     expect(defaults.sectionLabels).toEqual({
-      specifications: 'Specifikacije',
-      description: 'Opis izdelka',
+      specifications: 'Tehnični podatki',
+      description: 'O izdelku',
       includedItems: 'Vključeno',
       documents: 'Dokumenti',
       relatedProducts: 'Sorodni izdelki'

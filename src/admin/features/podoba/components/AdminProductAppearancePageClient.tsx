@@ -31,15 +31,9 @@ import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
 import { StorefrontInventoryPolicyProvider } from '@/commercial/components/StorefrontInventoryPolicyProvider';
-import ProductCard from '@/commercial/components/storefront/ProductCard';
-import {
-  ProductListingHeader,
-  ProductListingToolbar
-} from '@/commercial/components/storefront/ProductListing';
-import {
-  toStorefrontProductSummary,
-  type StorefrontProduct
-} from '@/commercial/features/products/storefrontProduct';
+import type { StorefrontProduct } from '@/commercial/features/products/storefrontProduct';
+import type { CatalogBrowserShellData } from '@/commercial/catalog/catalogBrowserTypes';
+import CatalogAppearancePreview from './CatalogAppearancePreview';
 import type {
   AdminCatalogListItem,
   CatalogItemEditorHydration,
@@ -59,6 +53,7 @@ import {
 import {
   PRODUCT_INFORMATION_BLOCKS,
   PRODUCT_SECONDARY_BLOCKS,
+  applyProductShowcasePreset,
   cloneDefaultProductAppearanceConfig,
   normalizeProductAppearanceConfig,
   normalizeProductCanvasElementDeviceSettings,
@@ -100,6 +95,7 @@ import {
   appearanceEditorToolbarPopoverSurfaceClassName
 } from './AppearanceEditorToolbarPrimitives';
 import ProductAppearanceLivePreview from './ProductAppearanceLivePreview';
+import ProductMinimumOrderSettings from './ProductMinimumOrderSettings';
 import ProductAppearanceLayersPanel, {
   rankProductAppearanceLayersTopFirst,
   type ProductAppearanceLayerItem
@@ -108,6 +104,11 @@ import AdminPodobaTabs from './AdminPodobaTabs';
 import ArticleNoteSettingsEditor from './ArticleNoteSettingsEditor';
 import { publishArticleNoteTags } from '@/shared/client/articleNoteTags';
 import { buildProductAppearancePreviewProduct } from '../lib/productAppearancePreviewProduct';
+import {
+  isProductCanvasElementContentEnabled,
+  optionalProductCanvasElements,
+  restoreProductCanvasElements
+} from '../lib/productAppearanceElementVisibility';
 
 type SectionKey = Exclude<
   keyof ProductAppearanceConfig,
@@ -160,25 +161,24 @@ function readRuntimeProductCanvasLayers(root: HTMLElement | null) {
 }
 
 const productCanvasElements: ProductCanvasElementDefinition[] = [
-  { id: 'listing-view-grid', label: 'Gumb Mreža', page: 'listing', group: 'Glava seznama' },
-  { id: 'listing-view-list', label: 'Gumb Seznam', page: 'listing', group: 'Glava seznama' },
-  { id: 'listing-sort', label: 'Polje razvrščanja', page: 'listing', group: 'Glava seznama' },
-  { id: 'listing-header', label: 'Glava seznama', page: 'listing', group: 'Seznam' },
-  { id: 'listing-card', label: 'Kartica artikla', page: 'listing', group: 'Kartica' },
-  { id: 'card-image', label: 'Slika kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-content', label: 'Vsebina kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-category', label: 'Kategorija kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-brand', label: 'Blagovna znamka', page: 'listing', group: 'Kartica' },
-  { id: 'card-title', label: 'Naziv kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-description', label: 'Opis kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-sku', label: 'SKU kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-stock', label: 'Zaloga kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-price', label: 'Cena kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-action', label: 'Dejanje kartice', page: 'listing', group: 'Kartica' },
+  { id: 'catalog-heading', label: 'Naslov in opis kataloga', page: 'listing', group: 'Katalog' },
+  { id: 'catalog-search', label: 'Iskanje po katalogu', page: 'listing', group: 'Katalog' },
+  { id: 'catalog-categories', label: 'Stranski meni kategorij', page: 'listing', group: 'Filtri' },
+  { id: 'catalog-stock-filter', label: 'Filter dobavljivosti', page: 'listing', group: 'Filtri' },
+  { id: 'catalog-price-filter', label: 'Cenovni filter', page: 'listing', group: 'Filtri' },
+  { id: 'catalog-product-image', label: 'Slika izdelka', page: 'listing', group: 'Vrstica izdelka' },
+  { id: 'catalog-product-name', label: 'Naziv izdelka', page: 'listing', group: 'Vrstica izdelka' },
+  { id: 'catalog-product-description', label: 'Opis izdelka', page: 'listing', group: 'Vrstica izdelka' },
+  { id: 'catalog-product-availability', label: 'Dobavljivost izdelka', page: 'listing', group: 'Vrstica izdelka' },
+  { id: 'catalog-product-price', label: 'Cena izdelka', page: 'listing', group: 'Vrstica izdelka' },
   { id: 'product-breadcrumbs', label: 'Drobtinice', page: 'product', group: 'Stran artikla' },
   { id: 'product-gallery', label: 'Galerija', page: 'product', group: 'Stran artikla' },
   { id: 'product-gallery-thumbnails', label: 'Sličice galerije', page: 'product', group: 'Galerija' },
   { id: 'product-gallery-main', label: 'Glavna slika galerije', page: 'product', group: 'Galerija' },
+  { id: 'product-gallery-sale-unit', label: 'Prodajna enota', page: 'product', group: 'Cena' },
+  { id: 'product-gallery-zoom', label: 'Povečava slike', page: 'product', group: 'Galerija' },
+  { id: 'product-gallery-previous', label: 'Prejšnja slika', page: 'product', group: 'Galerija' },
+  { id: 'product-gallery-next', label: 'Naslednja slika', page: 'product', group: 'Galerija' },
   { id: 'product-information', label: 'Informacije', page: 'product', group: 'Stran artikla' },
   { id: 'product-category', label: 'Kategorija in znamka', page: 'product', group: 'Informacije' },
   { id: 'product-title', label: 'Naziv artikla', page: 'product', group: 'Informacije' },
@@ -188,20 +188,31 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'product-key-attributes', label: 'Ključne lastnosti', page: 'product', group: 'Informacije' },
   { id: 'product-variants', label: 'Različice', page: 'product', group: 'Informacije' },
   { id: 'product-variant-thickness', label: 'Debelina', page: 'product', group: 'Različice' },
+  { id: 'product-variant-thickness-label', label: 'Naslov debeline', page: 'product', group: 'Različice' },
   { id: 'product-variant-thickness-options', label: 'Gumbi debeline', page: 'product', group: 'Različice' },
   { id: 'product-variant-dimensions', label: 'Dimenzije', page: 'product', group: 'Različice' },
+  { id: 'product-variant-dimensions-label', label: 'Naslov dimenzij', page: 'product', group: 'Različice' },
   { id: 'product-variant-dimensions-control', label: 'Izbirnik dimenzij', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-1', label: 'Različica 1', page: 'product', group: 'Različice' },
+  { id: 'product-variant-axis-1-label', label: 'Naslov različice 1', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-1-control', label: 'Kontrole različice 1', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-2', label: 'Različica 2', page: 'product', group: 'Različice' },
+  { id: 'product-variant-axis-2-label', label: 'Naslov različice 2', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-2-control', label: 'Kontrole različice 2', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-3', label: 'Različica 3', page: 'product', group: 'Različice' },
+  { id: 'product-variant-axis-3-label', label: 'Naslov različice 3', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-3-control', label: 'Kontrole različice 3', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-4', label: 'Različica 4', page: 'product', group: 'Različice' },
+  { id: 'product-variant-axis-4-label', label: 'Naslov različice 4', page: 'product', group: 'Različice' },
   { id: 'product-variant-axis-4-control', label: 'Kontrole različice 4', page: 'product', group: 'Različice' },
   { id: 'product-purchase', label: 'Nakupno območje', page: 'product', group: 'Nakup' },
   { id: 'product-price', label: 'Cena in DDV', page: 'product', group: 'Nakup' },
+  { id: 'product-price-main', label: 'Glavna cena', page: 'product', group: 'Cena' },
+  { id: 'product-price-tax', label: 'Neto cena in DDV', page: 'product', group: 'Cena' },
   { id: 'product-availability', label: 'Razpoložljivost', page: 'product', group: 'Nakup' },
+  { id: 'product-availability-indicator', label: 'Oznaka dobavljivosti', page: 'product', group: 'Dobavljivost' },
+  { id: 'product-availability-label', label: 'Naslov dobavljivosti', page: 'product', group: 'Dobavljivost' },
+  { id: 'product-availability-detail', label: 'Pojasnilo dobavljivosti', page: 'product', group: 'Dobavljivost' },
   { id: 'product-summary', label: 'Povzetek različice', page: 'product', group: 'Nakup' },
   { id: 'product-minimum-order', label: 'Minimalno naročilo', page: 'product', group: 'Nakup' },
   { id: 'product-quantity', label: 'Količina', page: 'product', group: 'Nakup' },
@@ -212,6 +223,12 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'product-quantity-controls', label: 'Kontrole količine', page: 'product', group: 'Količina' },
   { id: 'product-primary-action', label: 'Primarno dejanje', page: 'product', group: 'Nakup' },
   { id: 'product-delivery', label: 'Dostava', page: 'product', group: 'Nakup' },
+  { id: 'product-delivery-icon', label: 'Ikona dostave', page: 'product', group: 'Dostava' },
+  { id: 'product-delivery-title', label: 'Naslov dostave', page: 'product', group: 'Dostava' },
+  { id: 'product-delivery-note', label: 'Pojasnilo dostave', page: 'product', group: 'Dostava' },
+  { id: 'product-payment', label: 'Plačilo', page: 'product', group: 'Nakup' },
+  { id: 'product-payment-icon', label: 'Ikona plačila', page: 'product', group: 'Plačilo' },
+  { id: 'product-payment-text', label: 'Besedilo plačila', page: 'product', group: 'Plačilo' },
   { id: 'product-secondary-action', label: 'Sekundarno dejanje', page: 'product', group: 'Nakup' },
   { id: 'product-secondary', label: 'Dodatna vsebina', page: 'product', group: 'Vsebina' },
   { id: 'product-secondary-tabs', label: 'Zavihki podrobnosti', page: 'product', group: 'Vsebina' },
@@ -250,6 +267,20 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'cart-primary-action', label: 'Nadaljuj na naročilo', page: 'cart', group: 'Košarica' }
 ];
 
+const showcaseInformationElementIds = new Set([
+  'product-summary',
+  'product-description'
+]);
+
+function productCanvasElementGroup(
+  definition: ProductCanvasElementDefinition | undefined,
+  layout: ProductAppearanceConfig['productPage']['layout']
+) {
+  return definition && layout === 'showcase' && showcaseInformationElementIds.has(definition.id)
+    ? 'Informacije'
+    : definition?.group;
+}
+
 const sections: Array<{
   key: SectionKey;
   label: string;
@@ -257,7 +288,7 @@ const sections: Array<{
   group: string;
   preview: PreviewPage;
 }> = [
-  { key: 'listings', label: 'Seznami in kartice', description: 'Mreža, kartice, filtri in straničenje', group: 'Katalog', preview: 'listing' },
+  { key: 'listings', label: 'Katalog', description: 'Kategorije, vrstice izdelkov in filtri', group: 'Katalog', preview: 'listing' },
   { key: 'productPage', label: 'Postavitev artikla', description: 'Razmerje galerije, informacij in nakupa', group: 'Stran artikla', preview: 'product' },
   { key: 'gallery', label: 'Galerija', description: 'Slike, sličice, razmerje in povečava', group: 'Stran artikla', preview: 'product' },
   { key: 'information', label: 'Informacije', description: 'Vidnost in širina vsebine', group: 'Stran artikla', preview: 'product' },
@@ -806,6 +837,8 @@ function ProductPreview({
   page,
   device,
   product,
+  catalogPreview,
+  onOpenProduct,
   interactive = false,
   selectedElementId = null,
   onSelectElement,
@@ -817,6 +850,8 @@ function ProductPreview({
   page: PreviewPage;
   device: PreviewDevice;
   product?: StorefrontProduct | null;
+  catalogPreview: CatalogBrowserShellData;
+  onOpenProduct?: (slug: string) => void;
   interactive?: boolean;
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
@@ -845,18 +880,6 @@ function ProductPreview({
   });
   const productImage = product?.media.find((media) => media.kind === 'image')?.url;
   const productName = product?.name ?? 'Tehnični artikel';
-  const previewListingProduct = product
-    ? {
-        ...toStorefrontProductSummary(product),
-        purchasableVariant: null
-      }
-    : null;
-  const previewListingMode =
-    config.listings.availableModes === 'both'
-      ? config.listings.defaultMode
-      : config.listings.availableModes;
-  const previewListingTitle = product?.breadcrumbs.at(-2)?.label ?? 'Kategorija';
-  const cardCount = isMobile ? config.listings.mobileColumns : isTablet ? config.listings.tabletColumns : config.listings.desktopColumns;
   const canvasActive = config.canvas.mode === 'free';
   const wrapElement = (
     elementId: string,
@@ -894,7 +917,7 @@ function ProductPreview({
         data-storefront-theme="true"
         data-admin-product-live-preview="true"
         data-preview-device={device}
-        className={`admin-product-live-preview relative min-h-[430px] bg-slate-50 p-4 ${interactive ? 'admin-product-canvas-surface' : ''}`}
+        className={`admin-product-live-preview relative min-h-[430px] bg-white ${interactive ? 'admin-product-canvas-surface' : ''}`}
         data-show-grid={interactive && config.canvas.showGrid}
         style={{
           ...vars,
@@ -902,67 +925,10 @@ function ProductPreview({
         } as CSSProperties}
       >
         <ProductAppearanceProvider config={config}>
-          <ProductListingHeader
-            title={previewListingTitle}
-            productCount={previewListingProduct ? 1 : 0}
-            toolbar={
-              previewListingProduct
-                ? wrapElement(
-                    'listing-header',
-                    <ProductListingToolbar
-                      appearance={config}
-                      mode={previewListingMode}
-                      sort="recommended"
-                      onModeChange={() => undefined}
-                      onSortChange={() => undefined}
-                      canvasWrapper={(
-                        elementId,
-                        _label,
-                        children,
-                        className
-                      ) => wrapElement(elementId, children, className)}
-                    />
-                  )
-                : null
-            }
-          />
-          <div
-            className={
-              previewListingMode === 'grid'
-                ? 'storefront-product-grid mt-5'
-                : 'mt-5 grid gap-[var(--product-listing-gap,20px)]'
-            }
-            data-card-density={config.listings.cardDensity}
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(
-                1,
-                previewListingMode === 'grid' ? cardCount : 1
-              )}, minmax(0, 1fr))`
-            }}
-          >
-            {previewListingProduct
-              ? Array.from(
-                  { length: Math.max(2, previewListingMode === 'grid' ? cardCount : 1) },
-                  (_, index) => (
-                    <div key={index} className="min-w-0">
-                      <ProductCard
-                        product={previewListingProduct}
-                        layout={previewListingMode}
-                        canvasWrapper={(elementId, _label, children, className) =>
-                          wrapElement(
-                            elementId,
-                            children,
-                            className,
-                            false,
-                            index === 0
-                          )
-                        }
-                      />
-                    </div>
-                  )
-                )
-              : null}
-          </div>
+          <CatalogAppearancePreview data={catalogPreview} device={device} product={product} interactive={interactive}
+            onOpenProduct={onOpenProduct}
+            canvasWrapper={(id, _label, children, className, representative) =>
+              wrapElement(id, children, className, false, representative)} />
         </ProductAppearanceProvider>
         <ProductCanvasGuidesOverlay
           rootRef={previewRootRef}
@@ -1372,6 +1338,7 @@ export default function AdminProductAppearancePageClient({
   initialSiteLayout,
   initialStockEnforcementEnabled,
   initialProducts,
+  initialCatalogPreview,
   initialProduct
 }: {
   initialConfig: ProductAppearanceConfig;
@@ -1379,6 +1346,7 @@ export default function AdminProductAppearancePageClient({
   initialSiteLayout: SiteNavigationSiteLayoutSettings;
   initialStockEnforcementEnabled: boolean;
   initialProducts: AdminCatalogListItem[];
+  initialCatalogPreview: CatalogBrowserShellData;
   initialProduct: CatalogItemEditorHydration | null;
 }) {
   const router = useRouter();
@@ -1394,6 +1362,7 @@ export default function AdminProductAppearancePageClient({
   const [isElementPickerOpen, setIsElementPickerOpen] = useState(false);
   const [isGridSettingsOpen, setIsGridSettingsOpen] = useState(false);
   const [runtimeCanvasLayers, setRuntimeCanvasLayers] = useState<RuntimeProductCanvasLayer[]>([]);
+  const rememberedCanvasLayersRef = useRef<{ key: string; layers: RuntimeProductCanvasLayer[] }>({ key: '', layers: [] });
   const [productOptions, setProductOptions] = useState<AdminCatalogListItem[]>(initialProducts);
   const [selectedProductSlug, setSelectedProductSlug] = useState(initialProduct?.slug ?? '');
   const [product, setProduct] = useState<CatalogItemEditorHydration | null>(initialProduct);
@@ -1463,7 +1432,9 @@ export default function AdminProductAppearancePageClient({
   const isAppearanceDirty = comparable(config) !== comparable(savedConfig);
   const isProductDirty = comparableProduct(product) !== comparableProduct(savedProduct);
   const isDirty = isAppearanceDirty || isProductDirty;
-  const visibleCanvasElements = productCanvasElements.filter((element) => element.page === previewPage);
+  const visibleCanvasElements = productCanvasElements
+    .filter((element) => element.page === previewPage)
+    .map((element) => ({ ...element, group: productCanvasElementGroup(element, config.productPage.layout) ?? element.group }));
   const selectedCanvasElementId = selectedCanvasElementIds.at(-1) ?? null;
   const selectedCanvasDefinition = productCanvasElements.find(
     (element) => element.id === selectedCanvasElementId
@@ -1489,15 +1460,31 @@ export default function AdminProductAppearancePageClient({
   );
   const productAppearanceLayerItems = useMemo<ProductAppearanceLayerItem[]>(() => {
     const runtimeById = new Map(runtimeCanvasLayers.map((layer) => [layer.id, layer]));
-    return runtimeCanvasLayers.map((layer) => {
+    const disabledContentLayers = previewPage === 'product' ? optionalProductCanvasElements
+      .filter((element) => !runtimeById.has(element.id) && (element.id === 'product-minimum-order' || !isProductCanvasElementContentEnabled(config, element.id, previewDevice)))
+      .map((element, index) => ({
+        ...element,
+        parentId: config.productPage.layout === 'showcase'
+          && element.id === 'product-description'
+          ? 'product-information'
+          : config.productPage.layout === 'showcase' && config.purchaseArea.showQuantityStepper
+            && element.id === 'product-minimum-order'
+            ? 'product-quantity' : element.parentId,
+        domOrder: runtimeCanvasLayers.length + index
+      })) : [];
+    return [...runtimeCanvasLayers, ...disabledContentLayers].map((layer) => {
       const definition = productCanvasElements.find((element) => element.id === layer.id);
       return {
         ...layer,
         label: definition?.label ?? layer.label,
-        group: definition?.group
+        group: productCanvasElementGroup(definition, config.productPage.layout)
           ?? (layer.parentId ? runtimeById.get(layer.parentId)?.label : null)
           ?? previewPageLabels[previewPage],
-        settings: resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice),
+        settings: {
+          ...resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice),
+          visible: resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice).visible
+            && (previewPage !== 'product' || isProductCanvasElementContentEnabled(config, layer.id, previewDevice))
+        },
         protectedElement: PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(layer.id)
       };
     });
@@ -1537,7 +1524,29 @@ export default function AdminProductAppearancePageClient({
     if (!root) return undefined;
 
     const refreshLayers = () => {
-      const next = readRuntimeProductCanvasLayers(root);
+      const currentLayers = readRuntimeProductCanvasLayers(root);
+      const key = previewPage + ':' + (previewProduct?.id ?? 'none');
+      const remembered = rememberedCanvasLayersRef.current;
+      const previous = remembered.key === key ? remembered.layers : [];
+      const previousById = new Map(previous.map((layer) => [layer.id, layer]));
+      const renderedIds = new Set(currentLayers.map((layer) => layer.id));
+      const hiddenIds = new Set(Array.from(root.querySelectorAll<HTMLElement>('[data-product-canvas-hidden="true"]'))
+        .map((element) => element.dataset.productCanvasElement));
+      const hasHiddenAncestor = (layer: RuntimeProductCanvasLayer) => {
+        const visited = new Set<string>();
+        let parentId = layer.parentId;
+        while (parentId && !visited.has(parentId)) {
+          if (hiddenIds.has(parentId)) return true;
+          visited.add(parentId);
+          parentId = previousById.get(parentId)?.parentId ?? null;
+        }
+        return false;
+      };
+      const next = [
+        ...currentLayers,
+        ...previous.filter((layer) => !renderedIds.has(layer.id) && hasHiddenAncestor(layer))
+      ];
+      rememberedCanvasLayersRef.current = { key, layers: next };
       setRuntimeCanvasLayers((current) => (
         JSON.stringify(current) === JSON.stringify(next) ? current : next
       ));
@@ -1549,7 +1558,7 @@ export default function AdminProductAppearancePageClient({
       attributes: true,
       childList: true,
       subtree: true,
-      attributeFilter: ['data-product-canvas-element', 'data-product-canvas-label']
+      attributeFilter: ['data-product-canvas-element', 'data-product-canvas-label', 'data-product-canvas-hidden']
     });
     const frame = window.requestAnimationFrame(refreshLayers);
     return () => {
@@ -1730,11 +1739,12 @@ export default function AdminProductAppearancePageClient({
   function toggleLayerVisibility(elementId: string) {
     const targetIds = layerActionTargetIds(elementId);
     setConfig((current) => {
-      const visible = !resolveProductCanvasElementDeviceSettings(
-        current,
-        elementId,
-        previewDevice
-      ).visible;
+      const visible = !resolveProductCanvasElementDeviceSettings(current, elementId, previewDevice).visible
+        || (previewPage === 'product' && !isProductCanvasElementContentEnabled(current, elementId, previewDevice));
+      if (visible && previewPage === 'product') {
+        return restoreProductCanvasElements(current, targetIds, previewDevice,
+          new Map(productAppearanceLayerItems.map((layer) => [layer.id, layer.parentId])));
+      }
       let elements = { ...current.canvas.elements };
       for (const targetId of targetIds) {
         if (!visible && PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(targetId)) continue;
@@ -1814,15 +1824,13 @@ export default function AdminProductAppearancePageClient({
       let elements = { ...current.canvas.elements };
       for (const elementId of selectedCanvasElementIds) {
         if (PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(elementId)) continue;
-        for (const device of ['desktop', 'tablet', 'mobile'] as const) {
-          elements = writeCanvasElementDeviceUpdates(
-            current,
-            elements,
-            elementId,
-            device,
-            { visible: false }
-          );
-        }
+        elements = writeCanvasElementDeviceUpdates(
+          current,
+          elements,
+          elementId,
+          previewDevice,
+          { visible: false }
+        );
       }
       return {
         ...current,
@@ -2110,47 +2118,36 @@ export default function AdminProductAppearancePageClient({
   function renderSettings(section: SectionKey) {
     if (section === 'articleNotes') return <ArticleNoteSettingsEditor tags={config.articleNotes.tags} onChange={(tags) => updateSection('articleNotes', { tags })} />;
     if (section === 'listings') return (
-      <>
-        <SettingsGroup title="Postavitev seznama">
-          <FieldGrid>
-            <SelectField label="Razpoložljivi pogledi" value={config.listings.availableModes} options={[{ value: 'grid', label: 'Samo mreža' }, { value: 'list', label: 'Samo seznam' }, { value: 'both', label: 'Mreža in seznam' }]} onChange={(availableModes) => updateSection('listings', { availableModes })} />
-            <SelectField label="Privzeti pogled" value={config.listings.defaultMode} options={[{ value: 'grid', label: 'Mreža' }, { value: 'list', label: 'Seznam' }]} onChange={(defaultMode) => updateSection('listings', { defaultMode })} />
-            <NumberField label="Stolpci · desktop" value={config.listings.desktopColumns} min={2} max={6} onChange={(desktopColumns) => updateSection('listings', { desktopColumns })} />
-            <NumberField label="Stolpci · tablica" value={config.listings.tabletColumns} min={1} max={4} onChange={(tabletColumns) => updateSection('listings', { tabletColumns })} />
-            <NumberField label="Stolpci · mobilno" value={config.listings.mobileColumns} min={1} max={2} onChange={(mobileColumns) => updateSection('listings', { mobileColumns })} />
-            <NumberField label="Razmik med karticami" value={config.listings.gapPx} min={8} max={48} suffix="px" onChange={(gapPx) => updateSection('listings', { gapPx })} />
-            <SelectField label="Gostota kartice" value={config.listings.cardDensity} options={[{ value: 'compact', label: 'Kompaktna' }, { value: 'comfortable', label: 'Uravnotežena' }, { value: 'spacious', label: 'Prostorna' }]} onChange={(cardDensity) => updateSection('listings', { cardDensity })} />
-            <NumberField label="Vrstice naziva" value={config.listings.titleLines} min={1} max={4} onChange={(titleLines) => updateSection('listings', { titleLines })} />
-            <SelectField label="Razmerje slike" value={config.listings.imageRatio} options={[{ value: '1:1', label: 'Kvadrat 1 : 1' }, { value: '4:3', label: '4 : 3' }, { value: '3:2', label: '3 : 2' }, { value: '16:9', label: '16 : 9' }]} onChange={(imageRatio) => updateSection('listings', { imageRatio })} />
-            <SelectField label="Prileganje slike" value={config.listings.imageFit} options={[{ value: 'contain', label: 'Celotna slika' }, { value: 'cover', label: 'Zapolni okvir' }]} onChange={(imageFit) => updateSection('listings', { imageFit })} />
-            <SelectField label="Položaj filtrov" hint="Na voljo po uvedbi podatkovnega modela filtrov." disabled value={config.listings.filterPlacement} options={[{ value: 'sidebar', label: 'Stranski stolpec' }, { value: 'toolbar', label: 'Orodna vrstica' }]} onChange={(filterPlacement) => updateSection('listings', { filterPlacement })} />
-            <SelectField label="Straničenje" hint="Na voljo po uvedbi strežniškega straničenja." disabled value={config.listings.paginationStyle} options={[{ value: 'pages', label: 'Številke strani' }, { value: 'load-more', label: 'Naloži več' }]} onChange={(paginationStyle) => updateSection('listings', { paginationStyle })} />
-          </FieldGrid>
-        </SettingsGroup>
-        <SettingsGroup title="Vsebina kartice">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <ToggleField label="Blagovna znamka" checked={config.listings.showBrand} onChange={(showBrand) => updateSection('listings', { showBrand })} />
-            <ToggleField label="SKU" checked={config.listings.showSku} onChange={(showSku) => updateSection('listings', { showSku })} />
-            <ToggleField label="Kratek opis" checked={config.listings.showShortDescription} onChange={(showShortDescription) => updateSection('listings', { showShortDescription })} />
-            <ToggleField label="Zaloga" checked={config.listings.showStock} onChange={(showStock) => updateSection('listings', { showStock })} />
-            <ToggleField label="Popust" checked={config.listings.showDiscount} onChange={(showDiscount) => updateSection('listings', { showDiscount })} />
-            <ToggleField label="Nakupno dejanje" checked={config.listings.showPurchaseAction} onChange={(showPurchaseAction) => updateSection('listings', { showPurchaseAction })} />
-            <ToggleField label="Hiter nakup enostavnega artikla" checked={config.listings.allowSimpleQuickAdd} onChange={(allowSimpleQuickAdd) => updateSection('listings', { allowSimpleQuickAdd })} />
-            <ToggleField label="Prikaži nerazpoložljive različice" description="Dogovorjeno vedenje: aktivne različice z zalogo 0 ostanejo vidne." checked={config.listings.showUnavailableVariants} onChange={() => undefined} locked />
-            <ToggleField label="Ploščice podkategorij" description="Združevanje izdelkov brez ploščic zahteva prihodnjo spremembo podatkovnega vira." checked={config.listings.subcategoryTilesVisible} onChange={() => undefined} locked />
-          </div>
-        </SettingsGroup>
-      </>
+      <SettingsGroup title="Katalog in vrstice izdelkov" description="Predogled uporablja isti seznam kategorij, filtre in razvrščanje kot javni katalog. Posamezne elemente izberite na platnu za premikanje, velikost in vidnost.">
+        <FieldGrid>
+          <NumberField label="Vrstice naziva" value={config.listings.titleLines} min={1} max={4} onChange={(titleLines) => updateSection('listings', { titleLines })} />
+          <SelectField label="Prileganje slike" value={config.listings.imageFit} options={[{ value: 'contain', label: 'Celotna slika' }, { value: 'cover', label: 'Zapolni okvir' }]} onChange={(imageFit) => updateSection('listings', { imageFit })} />
+        </FieldGrid>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ToggleField label="Kratek opis" checked={config.listings.showShortDescription} onChange={(showShortDescription) => updateSection('listings', { showShortDescription })} />
+          <ToggleField label="Dobavljivost" checked={config.listings.showStock} onChange={(showStock) => updateSection('listings', { showStock })} />
+        </div>
+      </SettingsGroup>
     );
 
     if (section === 'productPage') return (
       <>
+        <SettingsGroup title="Predloga strani" description="Predloga določa osnovno postavitev. Vsak element nato uredite v resničnem predogledu za izbrano napravo.">
+          <SelectField label="Postavitev" value={config.productPage.layout} options={[{ value: 'showcase', label: 'Galerija in nakup' }, { value: 'columns', label: 'Trije stolpci' }]} onChange={(layout) => updateSection('productPage', { layout })} />
+          <Button variant="outline" size="sm" onClick={() => setConfig((current) => applyProductShowcasePreset(current))}>Uporabi novo predlogo</Button>
+        </SettingsGroup>
         <SettingsGroup title="Mreža strani" description="Širina sledi vsebinskemu pasu iz Globalnih parametrov; tukaj urejate samo razmerja znotraj njega.">
           <FieldGrid>
             <NumberField label="Razmik stolpcev" value={config.productPage.columnGapPx} min={8} max={64} suffix="px" onChange={(columnGapPx) => updateSection('productPage', { columnGapPx })} />
-            <NumberField label="Galerija" value={config.productPage.galleryColumns} min={3} max={7} suffix="delov" onChange={(galleryColumns) => updateSection('productPage', { galleryColumns })} />
-            <NumberField label="Informacije" value={config.productPage.informationColumns} min={3} max={6} suffix="delov" onChange={(informationColumns) => updateSection('productPage', { informationColumns })} />
-            <NumberField label="Nakup" value={config.productPage.purchaseColumns} min={2} max={5} suffix="delov" onChange={(purchaseColumns) => updateSection('productPage', { purchaseColumns })} />
+            {config.productPage.layout === 'showcase' ? (
+              <NumberField label="Največja širina galerije" value={config.gallery.maxWidthPx} min={160} max={1000} suffix="px" onChange={(maxWidthPx) => updateSection('gallery', { maxWidthPx })} />
+            ) : (
+              <>
+                <NumberField label="Galerija" value={config.productPage.galleryColumns} min={3} max={7} suffix="delov" onChange={(galleryColumns) => updateSection('productPage', { galleryColumns })} />
+                <NumberField label="Informacije" value={config.productPage.informationColumns} min={3} max={6} suffix="delov" onChange={(informationColumns) => updateSection('productPage', { informationColumns })} />
+                <NumberField label="Nakup" value={config.productPage.purchaseColumns} min={2} max={5} suffix="delov" onChange={(purchaseColumns) => updateSection('productPage', { purchaseColumns })} />
+              </>
+            )}
           </FieldGrid>
         </SettingsGroup>
         <SettingsGroup title="Obnašanje">
@@ -2168,6 +2165,7 @@ export default function AdminProductAppearancePageClient({
       <>
         <SettingsGroup title="Slika in sličice">
           <FieldGrid>
+            {config.productPage.layout === 'showcase' ? <NumberField label="Največja širina galerije" value={config.gallery.maxWidthPx} min={160} max={1000} suffix="px" onChange={(maxWidthPx) => updateSection('gallery', { maxWidthPx })} /> : null}
             <SelectField label="Razmerje slike" value={config.gallery.imageRatio} options={[{ value: '1:1', label: 'Kvadrat 1 : 1' }, { value: '4:3', label: '4 : 3' }, { value: '3:2', label: '3 : 2' }, { value: '16:9', label: '16 : 9' }]} onChange={(imageRatio) => updateSection('gallery', { imageRatio })} />
             <SelectField label="Prileganje slike" value={config.gallery.imageFit} options={[{ value: 'contain', label: 'Celotna slika' }, { value: 'cover', label: 'Zapolni okvir' }]} onChange={(imageFit) => updateSection('gallery', { imageFit })} />
             <SelectField label="Sličice · desktop" value={config.gallery.thumbnailPositionDesktop} options={[{ value: 'left', label: 'Levo · navpično' }, { value: 'right', label: 'Desno · navpično' }, { value: 'top', label: 'Zgoraj · vodoravno' }, { value: 'bottom', label: 'Spodaj · vodoravno' }, { value: 'hidden', label: 'Skrito' }]} onChange={(thumbnailPositionDesktop) => updateSection('gallery', { thumbnailPositionDesktop })} />
@@ -2260,8 +2258,9 @@ export default function AdminProductAppearancePageClient({
         <div className="grid gap-2 sm:grid-cols-2">
           <ToggleField label="Primarno dejanje čez širino" checked={config.purchaseArea.fullWidthPrimaryAction} onChange={(fullWidthPrimaryAction) => updateSection('purchaseArea', { fullWidthPrimaryAction })} />
           <ToggleField label="Razpoložljivost" checked={config.purchaseArea.showAvailability} onChange={(showAvailability) => updateSection('purchaseArea', { showAvailability })} />
+          <ToggleField label="Prodajna enota" description="Dodatna vrstica ob ceni; tehnični podatki ostanejo nespremenjeni." checked={config.purchaseArea.showSaleUnit} onChange={(showSaleUnit) => updateSection('purchaseArea', { showSaleUnit })} />
           <ToggleField label="Ocena dobave" checked={config.purchaseArea.showDeliveryEstimate} onChange={(showDeliveryEstimate) => updateSection('purchaseArea', { showDeliveryEstimate })} />
-          <ToggleField label="Najmanjša količina" checked={config.purchaseArea.showMinimumOrder} onChange={(showMinimumOrder) => updateSection('purchaseArea', { showMinimumOrder })} />
+          <ToggleField label="Minimalno naročilo" description="Obvestilo uporablja najmanjšo količino različice iz Artikli." checked={config.purchaseArea.showMinimumOrder} onChange={(showMinimumOrder) => updateSection('purchaseArea', { showMinimumOrder })} />
           <ToggleField label="Krmilnik količine" checked={config.purchaseArea.showQuantityStepper} onChange={(showQuantityStepper) => updateSection('purchaseArea', { showQuantityStepper })} />
           <ToggleField label="Sekundarno dejanje" checked={config.purchaseArea.showSecondaryAction} onChange={(showSecondaryAction) => updateSection('purchaseArea', { showSecondaryAction })} />
         </div>
@@ -2270,16 +2269,19 @@ export default function AdminProductAppearancePageClient({
 
     if (section === 'secondaryContent') return (
       <>
-        <SettingsGroup title="Postavitev">
-          <FieldGrid>
+        <SettingsGroup
+          title="Postavitev"
+          description={config.productPage.layout === 'showcase' ? 'Ta postavitev prikazuje vsebinske sklope skupaj. Na platnu jih lahko skrijete in spremenite njihov vrstni red.' : undefined}
+        >
+          {config.productPage.layout !== 'showcase' ? <FieldGrid>
             <SelectField label="Desktop" value={config.secondaryContent.desktopLayout} options={[{ value: 'stacked', label: 'Zloženi sklopi' }, { value: 'tabs', label: 'Zavihki' }, { value: 'accordions', label: 'Harmonike' }]} onChange={(desktopLayout) => updateSection('secondaryContent', { desktopLayout })} />
             <SelectField label="Mobilno" value={config.secondaryContent.mobileLayout} options={[{ value: 'stacked', label: 'Zloženi sklopi' }, { value: 'tabs', label: 'Zavihki' }, { value: 'accordions', label: 'Harmonike' }]} onChange={(mobileLayout) => updateSection('secondaryContent', { mobileLayout })} />
-          </FieldGrid>
+          </FieldGrid> : null}
           <OrderEditor label="Vrstni red sklopov" values={config.secondaryContent.blockOrder} labels={secondaryLabels} onChange={(blockOrder) => updateSection('secondaryContent', { blockOrder })} />
         </SettingsGroup>
-        <SettingsGroup title="Odprto in oblikovano">
+        <SettingsGroup title={config.productPage.layout === 'showcase' ? 'Oblikovanje' : 'Odprto in oblikovano'}>
           <div className="grid gap-2 sm:grid-cols-2">
-            {PRODUCT_SECONDARY_BLOCKS.map((block) => (
+            {config.productPage.layout !== 'showcase' && PRODUCT_SECONDARY_BLOCKS.map((block) => (
               <ToggleField
                 key={block}
                 label={`${secondaryLabels[block]} · odprto privzeto`}
@@ -2328,7 +2330,7 @@ export default function AdminProductAppearancePageClient({
             />
           </FieldGrid>
           <div className="grid gap-2 sm:grid-cols-2">
-            <ToggleField label="Črta pod zavihki" checked={config.secondaryContent.showTabDivider} onChange={(showTabDivider) => updateSection('secondaryContent', { showTabDivider })} />
+            {config.productPage.layout !== 'showcase' ? <ToggleField label="Črta pod zavihki" checked={config.secondaryContent.showTabDivider} onChange={(showTabDivider) => updateSection('secondaryContent', { showTabDivider })} /> : null}
             <ToggleField label="Med opisom in specifikacijami" checked={config.secondaryContent.showContentDivider} onChange={(showContentDivider) => updateSection('secondaryContent', { showContentDivider })} />
             <ToggleField label="Med skupinama specifikacij" checked={config.secondaryContent.showSpecificationColumnDivider} onChange={(showSpecificationColumnDivider) => updateSection('secondaryContent', { showSpecificationColumnDivider })} />
             <ToggleField label="Med vrsticami specifikacij" checked={config.secondaryContent.showSpecificationRowDividers} onChange={(showSpecificationRowDividers) => updateSection('secondaryContent', { showSpecificationRowDividers })} />
@@ -2347,8 +2349,8 @@ export default function AdminProductAppearancePageClient({
           <NumberField label="Stolpci · tablica" value={config.relatedProducts.tabletColumns} min={1} max={4} onChange={(tabletColumns) => updateSection('relatedProducts', { tabletColumns })} />
           <NumberField label="Stolpci · mobilno" value={config.relatedProducts.mobileColumns} min={1} max={2} onChange={(mobileColumns) => updateSection('relatedProducts', { mobileColumns })} />
           <NumberField label="Razmik med karticami" value={config.relatedProducts.gapPx} min={8} max={64} suffix="px" onChange={(gapPx) => updateSection('relatedProducts', { gapPx })} />
-          <NumberField label="Širina kartice" value={config.relatedProducts.cardWidthPx} min={160} max={520} suffix="px" onChange={(cardWidthPx) => updateSection('relatedProducts', { cardWidthPx })} />
-          <NumberField label="Višina slike kartice" value={config.relatedProducts.imageHeightPx} min={96} max={480} suffix="px" onChange={(imageHeightPx) => updateSection('relatedProducts', { imageHeightPx })} />
+          <NumberField label="Širina kartice" value={config.relatedProducts.cardWidthPx} min={160} max={860} suffix="px" onChange={(cardWidthPx) => updateSection('relatedProducts', { cardWidthPx })} />
+          <NumberField label={config.productPage.layout === 'showcase' ? 'Velikost kvadratne slike' : 'Višina slike kartice'} value={config.relatedProducts.imageHeightPx} min={96} max={480} suffix="px" onChange={(imageHeightPx) => updateSection('relatedProducts', { imageHeightPx })} />
           <NumberField label="Velikost besedila kartice" value={config.relatedProducts.textScalePercent} min={70} max={140} suffix="%" onChange={(textScalePercent) => updateSection('relatedProducts', { textScalePercent })} />
           <NumberField label="Širina sklopa" value={config.relatedProducts.sectionWidthPercent} min={25} max={100} suffix="%" onChange={(sectionWidthPercent) => updateSection('relatedProducts', { sectionWidthPercent })} />
           <SelectField label="Položaj sklopa" value={config.relatedProducts.sectionPlacement} options={[{ value: 'before-content', label: 'Pred opisom' }, { value: 'after-content', label: 'Za opisom' }]} onChange={(sectionPlacement) => updateSection('relatedProducts', { sectionPlacement })} />
@@ -2394,6 +2396,23 @@ export default function AdminProductAppearancePageClient({
       </SettingsGroup>
     );
   }
+
+  const layoutPresetControls = previewPage === 'product' ? (
+                <div className="flex items-center gap-2">
+                  <AppearanceEditorCompactSelect
+                    value={config.productPage.layout}
+                    options={[
+                      { value: 'showcase', label: 'Galerija in nakup' },
+                      { value: 'columns', label: 'Trije stolpci' }
+                    ]}
+                    ariaLabel="Postavitev artikla"
+                    testId="product-layout-preset"
+                    onValueChange={(layout) => updateSection('productPage', { layout })}
+                    className="min-w-40"
+                  />
+                  <button type="button" onClick={() => setConfig((current) => applyProductShowcasePreset(current))} className={'h-8 rounded-lg px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-100 ' + adminControlFocusTokenClasses}>Uporabi predlogo</button>
+                </div>
+              ) : null;
 
   const groupedSections = sections.reduce<Array<{ label: string; items: typeof sections }>>((groups, section) => {
     const existing = groups.find((group) => group.label === section.group);
@@ -2461,7 +2480,13 @@ export default function AdminProductAppearancePageClient({
               href={`/admin/artikli/${encodeURIComponent(product.slug)}`}
               className={`inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 ${adminControlFocusTokenClasses}`}
             >
-              Odpri celoten zapis
+              Uredi artikel
+            </a>
+          ) : null}
+          {previewProduct && product?.status === 'active' ? (
+            <a href={previewProduct.href} target="_blank" rel="noopener noreferrer"
+              className={'inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 ' + adminControlFocusTokenClasses}>
+              Odpri stran artikla
             </a>
           ) : null}
           <button
@@ -2486,6 +2511,17 @@ export default function AdminProductAppearancePageClient({
           </button>
         </div>
       </section>
+
+
+      {previewPage === 'product' && product ? (
+        <ProductMinimumOrderSettings
+          product={product}
+          selectedVariantId={selectedVariantId}
+          purchaseArea={config.purchaseArea}
+          onVariantChange={setSelectedVariantId}
+          onChange={(updates) => updateSection('purchaseArea', updates)}
+        />
+      ) : null}
 
       {showAdvancedSettings ? (
       <div className="grid min-w-0 gap-4 min-[1020px]:grid-cols-[220px_minmax(0,1fr)]">
@@ -2543,6 +2579,7 @@ export default function AdminProductAppearancePageClient({
                 </div>
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <PreviewDeviceControls value={previewDevice} onChange={setPreviewDevice} />
+                  {layoutPresetControls}
                   <div className="ml-auto shrink-0">
                     <PreviewPageControls value={previewPage} onChange={selectPreviewPage} />
                   </div>
@@ -2579,6 +2616,8 @@ export default function AdminProductAppearancePageClient({
                         config={config}
                         globalStyle={initialGlobalStyle}
                         page={previewPage}
+                        catalogPreview={initialCatalogPreview}
+                        onOpenProduct={(slug) => { void changeSelectedProduct(slug); selectPreviewPage('product'); }}
                         device={previewMotion.renderDevice}
                         product={previewProduct}
                       />
@@ -2601,6 +2640,7 @@ export default function AdminProductAppearancePageClient({
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <PreviewDeviceControls value={previewDevice} onChange={setPreviewDevice} />
+              {layoutPresetControls}
               <div
                 ref={inlineToolbarRef}
                 role="toolbar"
@@ -2832,6 +2872,8 @@ export default function AdminProductAppearancePageClient({
                       config={config}
                       globalStyle={initialGlobalStyle}
                       page={previewPage}
+                      catalogPreview={initialCatalogPreview}
+                      onOpenProduct={(slug) => { void changeSelectedProduct(slug); selectPreviewPage('product'); }}
                       device={previewMotion.renderDevice}
                       product={previewProduct}
                       interactive
@@ -2871,6 +2913,7 @@ export default function AdminProductAppearancePageClient({
                   purchaseArea={config.purchaseArea}
                   relatedProducts={config.relatedProducts}
                   secondaryContent={config.secondaryContent}
+                  productLayout={config.productPage.layout}
                   globalStyle={initialGlobalStyle}
                   previewDevice={previewDevice}
                   selectedVariantId={selectedVariantId}

@@ -129,14 +129,14 @@ describe('related product appearance editor contracts', () => {
       'product.variants.length === 1 && purchasableVariants.length === 1'
     );
     expect(styles).toContain(
-      'grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 0.65fr);'
+      'grid-template-columns: minmax(6rem, 1fr) minmax(0, 1fr);'
     );
     expect(productCard).toContain('storefront-related-product-purchase-row');
     expect(styles).toContain('.storefront-related-product-purchase-row');
     expect(styles).toContain('flex-wrap: wrap;');
     expect(styles).toContain('align-items: center;');
     expect(styles).toContain(
-      'block-size: calc(var(--product-related-image-height, 144px) * 0.8);'
+      'block-size: calc(var(--product-related-image-height, 144px) * 1.2);'
     );
     expect(styles).toMatch(
       /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1em;/

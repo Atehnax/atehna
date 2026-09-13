@@ -102,7 +102,7 @@ export default async function CategoryItemPage(
           subcategory: {
             slug: subcategory.slug,
             title: subcategory.title,
-            href: catalogSubcategoryHref(category.slug, subcategory.slug)
+            href: resolved.subcategoryHref ?? catalogSubcategoryHref(category.slug, subcategory.slug)
           }
         }
       : {})

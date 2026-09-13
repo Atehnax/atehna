@@ -92,6 +92,7 @@ export type CartReconciliationUpdate = {
   lineId: string;
   reconciliation: CartReconciliation;
   pricing?: Partial<CartPricingSnapshot>;
+  catalog?: Pick<CartItem, 'sku' | 'name' | 'productId' | 'productSlug' | 'productHref' | 'imageUrl' | 'imageAlt' | 'variant' | 'unit'>;
   quantity?: number;
 };
 

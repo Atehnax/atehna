@@ -733,6 +733,7 @@ async function buildAuthoritativeOrderEstimateInternal(
           )
           and coalesce(nullif(cm.blob_url, ''), cm.external_url) is not null
         order by
+          case when cm.image_type in ('dimension-diagram', 'dimension-overview') then 1 else 0 end,
           case when exists (
             select 1
             from catalog_variant_media assigned_media

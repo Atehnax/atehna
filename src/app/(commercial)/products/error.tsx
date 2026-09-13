@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import CatalogBrowserInvalidPage from '@/commercial/components/storefront/CatalogBrowserInvalidPage';
 import { useEffect } from 'react';
 
 export default function ProductsError({
   error,
-  reset
+  retry
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error('[storefront.products] render failed', {
@@ -19,6 +20,7 @@ export default function ProductsError({
 
   return (
     <div className="container-base site-section">
+      <CatalogBrowserInvalidPage />
       <div
         className="site-panel mx-auto max-w-2xl border-[color:var(--site-color-danger)] p-8 text-center"
         role="alert"
@@ -32,7 +34,7 @@ export default function ProductsError({
         </p>
         <button
           type="button"
-          onClick={reset}
+          onClick={retry}
           className="site-button site-button--primary mt-6"
         >
           Poskusi znova

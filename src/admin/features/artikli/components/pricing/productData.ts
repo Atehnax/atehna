@@ -16,6 +16,7 @@ import type {
 } from './pricingTypes';
 import type { QuantityDiscountDraft } from '@/shared/domain/catalog/catalogAdminTypes';
 import { parseExplicitPackageDimensionsMm } from '@/shared/domain/catalog/catalogShipping';
+import { getCatalogDiscountedUnitNet } from '@/shared/domain/catalog/catalogPricing';
 
 export const allDiscountTargetLabel = 'Vse';
 export const adminProductInputChipClassName =
@@ -357,7 +358,7 @@ function clampPercent(value: number): number {
 }
 
 function getDiscountedPrice(basePrice: number, discountPercent: number): number {
-  return Number((Math.max(0, basePrice) * (1 - clampPercent(discountPercent) / 100)).toFixed(2));
+  return getCatalogDiscountedUnitNet(basePrice, clampPercent(discountPercent));
 }
 
 export function parsePackagingMass(label: string): number | null {

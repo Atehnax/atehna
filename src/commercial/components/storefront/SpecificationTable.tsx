@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import type { StorefrontSpecification } from '@/commercial/features/products/storefrontProduct';
 import { prepareStorefrontSpecifications } from '@/commercial/features/products/storefrontSpecifications';
@@ -9,14 +9,24 @@ type SpecificationTableProps = {
   specifications: StorefrontSpecification[];
   emptyMessage?: string;
   className?: string;
+  canvasWrapper?: (
+    elementId: string,
+    label: string,
+    children: ReactNode,
+    className?: string
+  ) => ReactNode;
 };
 
 export default function SpecificationTable({
   specifications,
   emptyMessage = 'Tehnični podatki za ta artikel še niso objavljeni.',
-  className
+  className,
+  canvasWrapper
 }: SpecificationTableProps) {
   const appearance = useProductAppearance();
+  const wrapCanvasElement = canvasWrapper ?? (
+    (_elementId: string, _label: string, children: ReactNode) => children
+  );
   const visibleSpecifications = prepareStorefrontSpecifications(
     specifications,
     appearance.secondaryContent.specificationOrder,
@@ -33,6 +43,7 @@ export default function SpecificationTable({
 
   return (
     <dl
+      data-compact={appearance.secondaryContent.compactSpecifications}
       className={`storefront-specification-grid overflow-hidden ${className ?? ''}`.trim()}
       data-column-divider-visible={
         appearance.secondaryContent.showSpecificationColumnDivider
@@ -64,10 +75,18 @@ export default function SpecificationTable({
           }`}
         >
           <dt className="font-semibold text-[color:var(--site-color-text)]">
-            {specification.label}
+            {wrapCanvasElement(
+              `product-specification-${specification.orderKey || specification.id}-label`,
+              `Podatek: ${specification.label} – naziv`,
+              specification.label
+            )}
           </dt>
           <dd className="min-w-0 [overflow-wrap:anywhere] text-[color:var(--site-color-text-muted)]">
-            {specification.value}
+            {wrapCanvasElement(
+              `product-specification-${specification.orderKey || specification.id}-value`,
+              `Podatek: ${specification.label} – vrednost`,
+              specification.value
+            )}
           </dd>
         </div>
       ))}

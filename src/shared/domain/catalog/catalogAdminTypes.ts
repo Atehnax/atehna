@@ -143,6 +143,8 @@ export type CatalogItemEditorPayload = CatalogShippingMeasurements & {
   optionAxes?: CatalogItemOptionAxisPayload[];
   variants: CatalogItemEditorVariantPayload[];
   quantityDiscounts?: CatalogItemQuantityDiscountRule[];
+  /** Omitted clients use visible gallery slots; the editor also retains hidden image assignments. */
+  imageAssignmentScope?: 'visible-gallery' | 'all-gallery';
   media: CatalogItemMediaPayload[];
 };
 
@@ -210,6 +212,7 @@ export type CatalogItemEditorHydration = CatalogShippingMeasurements & {
   deletedAt: string | null;
   purgeAfter: string | null;
   categoryPath: string[];
+  categorySlug?: string | null;
   sku: string | null;
   slug: string;
   unit: string | null;

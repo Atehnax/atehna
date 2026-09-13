@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
+import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategory, RecursiveCatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
 import { selectCatalogRelatedItems } from '@/commercial/catalog/catalogRelatedProducts';
 import { catalogCategoryItemHref, toPublicCatalogSlug } from '@/commercial/catalog/catalogRoutes';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
@@ -80,6 +80,7 @@ const loadCatalogProductByGlobalSlugServer = cache(
         };
         return {
           canonicalSlug: directItem.slug,
+          subcategoryHref: undefined as string | undefined,
           category: categoryContext,
           subcategory: null,
           item: directItem,
@@ -108,6 +109,7 @@ const loadCatalogProductByGlobalSlugServer = cache(
         };
         return {
           canonicalSlug: item.slug,
+          subcategoryHref: undefined as string | undefined,
           category: categoryContext,
           subcategory: subcategoryContext,
           item,
@@ -120,6 +122,41 @@ const loadCatalogProductByGlobalSlugServer = cache(
       }
     }
 
+    // The lightweight index covers the first two category levels. Deeper public
+    // nodes need the recursive cache so canonical product links remain valid.
+    const recursiveCatalog = await getCatalogDataFromDatabase({
+      diagnosticsContext: '/products/[category]/items/[item]:deep-category'
+    });
+    const findNestedItem = (
+      nodes: RecursiveCatalogSubcategory[],
+      parentPath: string[]
+    ): { item: CatalogItem; subcategory: RecursiveCatalogSubcategory; path: string[] } | null => {
+      for (const node of nodes) {
+        const path = [...parentPath, node.slug];
+        const item = node.items.find((entry) => toPublicCatalogSlug(entry.slug) === routeSlug);
+        if (item) return { item, subcategory: node, path };
+        const nested = findNestedItem(node.subcategories, path);
+        if (nested) return nested;
+      }
+      return null;
+    };
+    for (const category of recursiveCatalog.categories) {
+      const match = findNestedItem(category.subcategories, [category.slug]);
+      if (!match) continue;
+      const categoryContext = { id: category.id, slug: category.slug, title: category.title };
+      const subcategoryContext = {
+        id: match.subcategory.id, slug: match.subcategory.slug, title: match.subcategory.title
+      };
+      const current = { item: match.item, category: categoryContext, subcategory: subcategoryContext };
+      return {
+        canonicalSlug: match.item.slug,
+        subcategoryHref: '/products/' + match.path.map(toPublicCatalogSlug).join('/'),
+        category: categoryContext,
+        subcategory: subcategoryContext,
+        item: match.item,
+        relatedItems: selectCatalogRelatedItems(categories, current, globalAppearance)
+      };
+    }
     return null;
   }
 );

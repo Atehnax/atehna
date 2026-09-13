@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { AdminAccountSetupError } from './admin-account-core.mjs';
 import { createAdminSetupPool } from './admin-setup-database.mjs';
 import { loadManifest, requirementsSha256, verifyDatabaseContract } from './check-database-schema.mjs';
+import { previousSuppliersContract } from './migrate-catalog-suppliers.mjs';
 
 const previousContractId = '20260907.historical-orders-v6';
 const previousContractSha256 = '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af';
@@ -22,8 +23,19 @@ export function previousAuthContract(manifest) {
   return { contractId: previousContractId, contractSha256: previousContractSha256, requirements };
 }
 
+/** The later supplier release still needs the exact, hash-verified auth contract first. */
+export function resolveAdminAuthMigrationContract(manifest) {
+  const target = manifest.contractId === '20260908.catalog-suppliers-v1'
+    ? previousSuppliersContract(manifest)
+    : manifest;
+  if (target.contractId !== '20260908.admin-auth-v1') {
+    throw new AdminAccountSetupError('This migration requires the admin-auth-v1 or catalog-suppliers-v1 schema release.');
+  }
+  return target;
+}
+
 export async function migrateAdminAuth(pool) {
-  const manifest = await loadManifest();
+  const manifest = resolveAdminAuthMigrationContract(await loadManifest());
   const baseline = previousAuthContract(manifest);
   const sql = await readFile(new URL('../database/migrations/20260908.admin-auth-v1.sql', import.meta.url), 'utf8');
   const client = await pool.connect();

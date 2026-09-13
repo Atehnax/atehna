@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import type { StorefrontVariant } from '@/commercial/features/products/storefrontProduct';
@@ -10,6 +11,12 @@ type AvailabilityProps = {
   fallbackDeliveryEstimate?: string;
   compact?: boolean;
   className?: string;
+  elementWrapper?: (
+    elementId: string,
+    label: string,
+    children: ReactNode,
+    className?: string
+  ) => ReactNode;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -30,9 +37,11 @@ export default function Availability({
   selectionComplete = true,
   fallbackDeliveryEstimate,
   compact = false,
-  className
+  className,
+  elementWrapper
 }: AvailabilityProps) {
   const copy = useProductAppearance().purchaseArea.copy;
+  const wrapElement = elementWrapper ?? ((_id: string, _label: string, children: ReactNode) => children);
   const stockEnforcementEnabled = useStockEnforcementEnabled();
   let tone = 'var(--site-color-warning)';
   let label = copy.selectVariantLabel;
@@ -90,21 +99,32 @@ export default function Availability({
       role="status"
       aria-live="polite"
     >
-      <span
-        aria-hidden="true"
-        className="mt-[0.38em] h-2 w-2 shrink-0 rounded-full"
-        style={{ backgroundColor: tone }}
-      />
-      <div className="min-w-0">
-        <p
-          className={classNames(
-            'storefront-availability-label font-semibold text-[color:var(--site-color-text)]',
-            compact ? 'text-xs' : 'text-sm'
-          )}
-        >
-          {label}
-        </p>
-        {!compact && detail ? (
+      {wrapElement(
+        'product-availability-indicator',
+        'Oznaka razpoložljivosti',
+        <span
+          aria-hidden="true"
+          className="mt-[0.38em] block h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: tone }}
+        />,
+        'inline-flex shrink-0'
+      )}
+      <div className="storefront-availability-copy min-w-0">
+        {wrapElement(
+          'product-availability-label',
+          'Stanje zaloge',
+          <p
+            className={classNames(
+              'storefront-availability-label font-semibold text-[color:var(--site-color-text)]',
+              compact ? 'text-xs' : 'text-sm'
+            )}
+          >
+            {label}
+          </p>
+        )}
+        {!compact && detail ? wrapElement(
+          'product-availability-detail',
+          'Podrobnosti zaloge',
           <p className="storefront-availability-detail mt-0.5 text-xs leading-5 text-[color:var(--site-color-text-muted)]">
             {detail}
           </p>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="machine-title machine-description">
+    <title id="machine-title">Krivilnik za plastične mase THERMOFORM 400 – tehnična skica</title>
+    <desc id="machine-description">Shematski prikaz delovnega dela · vse mere v mm. Zunanje mere celotnega stroja niso navedene. Skica prikazuje delovno površino.</desc>
+    <metadata>{&quot;basis&quot;:[&quot;https://alton.nl/thermoform-400.html&quot;,&quot;https://atehna.si/product/krivilnik-za-plasticne-mase-thermoform-400/&quot;,&quot;Alton: delovna širina 400 mm; največja debelina materiala 5 mm.&quot;,&quot;Atehna: delovna površina 440 × 165 mm; dolžina grelne žice 400 mm.&quot;,&quot;Zunanje mere celotnega stroja niso potrjene; diagram prikazuje samo delovno površino.&quot;],&quot;schematic&quot;:true}</metadata>
+    <rect width="1600" height="1200" fill="#f5f2ea"/>
+    <g font-family="Arial, Helvetica, sans-serif" fill="#253238" stroke-linecap="round" stroke-linejoin="round">
+      <text x="100" y="68" font-size="22" fill="#137f84" letter-spacing="3" font-weight="600">TEHNIČNA SKICA</text>
+    <text x="100" y="133" font-size="42" font-weight="600" letter-spacing="-0.5">Krivilnik za plastične mase THERMOFORM 400</text>
+    <text x="100" y="178" font-size="25" fill="#65706e">Shematski prikaz delovnega dela · vse mere v mm</text>
+    <line x1="100" y1="222" x2="1500" y2="222"  stroke-width="1.6" stroke="#c9c8bf"/>
+      
+    <text x="265" y="286" font-size="23" fill="#65706e" letter-spacing="1.2">POGLED OD ZGORAJ · DELOVNA POVRŠINA</text>
+    <rect x="265" y="400" width="1056" height="396" rx="3" fill="#ebe7dc" stroke="#253238" stroke-width="2.5"/>
+    <rect x="279" y="414" width="1028" height="368" rx="1" fill="none" stroke="#253238" stroke-width="1" opacity="0.12"/>
+    <g class="dimension"><line x1="265" y1="400" x2="265" y2="335" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1321" y1="400" x2="1321" y2="335" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="265" y1="347" x2="1321" y2="347" stroke="#253238" stroke-width="1.6" /><line x1="259" y1="354" x2="271" y2="340"  stroke-width="1.6" stroke="#137f84"/><line x1="1315" y1="354" x2="1327" y2="340"  stroke-width="1.6" stroke="#137f84"/><text x="793" y="329" font-size="30" text-anchor="middle" fill="#137f84">440 mm</text></g>
+    <g class="dimension"><line x1="1321" y1="400" x2="1420" y2="400" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1321" y1="796" x2="1420" y2="796" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1408" y1="400" x2="1408" y2="796" stroke="#253238" stroke-width="1.6" /><line x1="1402" y1="407" x2="1414" y2="393"  stroke-width="1.6" stroke="#137f84"/><line x1="1402" y1="803" x2="1414" y2="789"  stroke-width="1.6" stroke="#137f84"/><text x="1446" y="598" font-size="30" text-anchor="middle" fill="#137f84" transform="rotate(-90 1446 598)">165 mm</text></g>
+    <text x="313" y="463" font-size="25" fill="#137f84">Grelna žica</text>
+    <line x1="313" y1="493" x2="1273" y2="493" stroke="#137f84" stroke-width="5"/>
+    <g class="dimension"><line x1="313" y1="493" x2="313" y2="566" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1273" y1="493" x2="1273" y2="566" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="313" y1="554" x2="1273" y2="554" stroke="#253238" stroke-width="1.6" /><line x1="307" y1="561" x2="319" y2="547"  stroke-width="1.6" stroke="#137f84"/><line x1="1267" y1="561" x2="1279" y2="547"  stroke-width="1.6" stroke="#137f84"/><text x="793" y="593" font-size="30" text-anchor="middle" fill="#137f84">400 mm</text></g>
+    <text x="793" y="704" font-size="30" text-anchor="middle" fill="#65706e">Delovna površina</text>
+    <text x="793" y="746" font-size="25" text-anchor="middle" fill="#65706e">440 × 165 mm</text>
+    <g transform="translate(265 868)">
+      <text x="0" y="29" font-size="22" fill="#65706e" letter-spacing="1.4">MATERIAL</text>
+      <text x="0" y="77" font-size="28" >Največja debelina plošče</text>
+      <rect x="865" y="0" width="191" height="114" rx="7" fill="#e5e8de"/>
+      <text x="960" y="72" font-size="42" text-anchor="middle" fill="#137f84" font-weight="600">5 mm</text>
+    </g>
+      <line x1="100" y1="1063" x2="1500" y2="1063"  stroke-width="1.6" stroke="#c9c8bf"/>
+      <text x="100" y="1111" font-size="24" >Zunanje mere celotnega stroja niso navedene. Skica prikazuje delovno površino.</text>
+      <text x="100" y="1153" font-size="22" fill="#65706e">Vira: Alton — Thermoform 400; Atehna — krivilnik THERMOFORM 400.</text>
+    </g>
+  </svg>

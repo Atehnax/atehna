@@ -16,19 +16,43 @@ test('reference product appearance defaults stay compact and inherit global widt
   expect(appearance.productPage.columnGapPx).toBe(44);
   expect(appearance.productPage).toMatchObject({
     galleryColumns: 6,
-    informationColumns: 4,
+    informationColumns: 5,
     purchaseColumns: 4
   });
-  expect(appearance.gallery.imageRatio).toBe('4:3');
+  expect(appearance.gallery.imageRatio).toBe('1:1');
+  expect(appearance.gallery.maxWidthPx).toBe(300);
+  expect(appearance.gallery.thumbnailSizePx).toBe(60);
+  expect(appearance.gallery.thumbnailGapPx).toBe(10);
   expect(appearance.gallery.imageFit).toBe('cover');
   expect(appearance.gallery.showDocumentThumbnails).toBe(false);
-  expect(variables['--product-gallery-ratio']).toBe('4 / 3');
+  expect(variables['--product-gallery-ratio']).toBe('1 / 1');
+  expect(variables['--product-gallery-max-width']).toBe('300px');
   expect(variables['--product-gallery-image-fit']).toBe('cover');
-  expect(variables['--product-page-content-max-width']).toBe('1500px');
-  expect(appearance.information.showSku).toBe(false);
+  expect(variables['--product-page-content-max-width']).toBe('1280px');
+  expect(appearance.information.showSku).toBe(true);
   expect(appearance.information.showKeyAttributes).toBe(false);
   expect(appearance.variants.showSelectedSummary).toBe(false);
-  expect(appearance.schemaVersion).toBe(11);
+  expect(appearance.schemaVersion).toBe(17);
+  expect(appearance.purchaseArea.showAvailability).toBe(false);
+  expect(appearance.purchaseArea.showSaleUnit).toBe(false);
+  expect(appearance.productPage.layout).toBe('showcase');
+  expect(appearance.relatedProducts.desktopColumns).toBe(3);
+  expect(variables['--product-related-columns-desktop']).toBe('3');
+  expect(normalizeProductAppearanceConfig({ schemaVersion: 13, relatedProducts: { desktopColumns: 2, imageHeightPx: 170 } }).relatedProducts).toMatchObject({ desktopColumns: 3, imageHeightPx: 170 });
+  expect(normalizeProductAppearanceConfig({ schemaVersion: 14, relatedProducts: { desktopColumns: 4, maxItems: 4, gapPx: 32 } }).relatedProducts).toMatchObject({ desktopColumns: 3, maxItems: 4, gapPx: 32, tabletColumns: 2, mobileColumns: 1 });
+  for (const authored of [
+    { schemaVersion: 15, relatedProducts: { desktopColumns: 4 } },
+    { schemaVersion: 13, relatedProducts: { desktopColumns: 4 } },
+    { schemaVersion: 14, productPage: { layout: 'columns' }, relatedProducts: { desktopColumns: 4 } },
+    { schemaVersion: 14, relatedProducts: { desktopColumns: 2 } },
+    { schemaVersion: 13, relatedProducts: { desktopColumns: 3 } },
+    { schemaVersion: 13, productPage: { layout: 'columns' }, relatedProducts: { desktopColumns: 2 } }
+  ]) {
+    expect(normalizeProductAppearanceConfig(authored).relatedProducts.desktopColumns).toBe(authored.relatedProducts.desktopColumns);
+  }
+  expect(appearance.gallery.thumbnailPositionDesktop).toBe('bottom');
+  expect(appearance.variants.selectorStyle).toBe('chips');
+  expect(appearance.purchaseArea.panelStyle).toBe('flat');
   expect(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS.contentScale).toBe(1);
   expect(appearance.listings).toMatchObject({
     tabletColumns: 3,

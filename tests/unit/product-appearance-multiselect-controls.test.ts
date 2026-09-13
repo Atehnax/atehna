@@ -27,13 +27,17 @@ describe('product appearance individual controls and multi-selection contracts',
       "{ id: 'product-delivery-and-payment', label: 'Dostava in plačilo'"
     );
     expect(toolbarSource).toContain(
-      "selectedElementId === 'product-delivery-and-payment'"
+      "'product-delivery-and-payment': 'product-delivery'"
     );
-    expect(toolbarSource).toContain("? 'product-delivery' : selectedElementId");
+    expect(toolbarSource).toContain("purchaseContentAliases[selectedElementId] ?? selectedElementId");
+    expect(toolbarSource).toContain("'product-payment': 'product-delivery'");
+    expect(toolbarSource).toContain("purchaseCopyGroups.filter((group) => group.id === purchaseCopyElementId)");
     expect(editorSource).toContain('function removeSelectedCanvasElements()');
-    expect(editorSource).toContain(
-      "for (const device of ['desktop', 'tablet', 'mobile'] as const)"
+    const removalSource = editorSource.slice(
+      editorSource.indexOf('function removeSelectedCanvasElements()'),
+      editorSource.indexOf('const applyLoadedProduct =', editorSource.indexOf('function removeSelectedCanvasElements()'))
     );
+    expect(removalSource).toMatch(/writeCanvasElementDeviceUpdates\(\s*current,\s*elements,\s*elementId,\s*previewDevice,\s*\{ visible: false \}/u);
   });
 
   test('dropdown fields and buttons expose independent responsive canvas boundaries', () => {

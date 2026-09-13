@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="machine-title machine-description">
+    <title id="machine-title">Vibracijska žaga Proxxon DSH – tehnična skica</title>
+    <desc id="machine-description">PROXXON DSH · št. 28092 · poenostavljeni obrisi, vse mere v mm. Zunanje mere: navodila PROXXON, rev. 4/2015-06, str. 14. Shema ni načrt za izdelavo.</desc>
+    <metadata>{&quot;basis&quot;:[&quot;https://s3-eu-west-1.amazonaws.com/plentymarkets-public-94/rzc8p33vcg85/propertyItems/10335/Bedienungsanleitung_28092-Dekupiers%C3%A4ge_aktuell.pdf&quot;,&quot;https://www.proxxon.com/en/micromot/28092.php&quot;,&quot;PROXXON DSH 28092: navodila rev. 4/2015-06, str. 14: D × Š × V = 53 × 27 × 33 cm.&quot;,&quot;Delovna miza: 360 × 180 mm; potrjeno tudi na uradni produktni strani proizvajalca.&quot;,&quot;Obris stroja je poenostavljena vektorska shema, ne risba sestavnih delov ali prikaz dejanskih barv.&quot;],&quot;schematic&quot;:true}</metadata>
+    <rect width="1600" height="1200" fill="#f5f2ea"/>
+    <g font-family="Arial, Helvetica, sans-serif" fill="#253238" stroke-linecap="round" stroke-linejoin="round">
+      <text x="100" y="68" font-size="22" fill="#137f84" letter-spacing="3" font-weight="600">TEHNIČNA SKICA</text>
+    <text x="100" y="133" font-size="42" font-weight="600" letter-spacing="-0.5">Vibracijska žaga Proxxon DSH</text>
+    <text x="100" y="178" font-size="25" fill="#65706e">PROXXON DSH · št. 28092 · poenostavljeni obrisi, vse mere v mm</text>
+    <line x1="100" y1="222" x2="1500" y2="222"  stroke-width="1.6" stroke="#c9c8bf"/>
+      
+    <text x="220" y="290" font-size="23" fill="#65706e" letter-spacing="1.5">STRANSKI POGLED</text>
+    <line x1="1010" y1="282" x2="1010" y2="1014"  stroke-width="1.6" stroke="#c9c8bf"/>
+    <g stroke="#253238" stroke-width="2.8" fill="#e8e3d7">
+      <path d="M 293 418 Q 278 402 300 392 L 756 375 Q 827 373 852 426 L 880 735 L 815 735 L 795 471 Q 792 446 758 442 L 313 460 Q 293 460 293 438 Z"/>
+      <path d="M 320 375 L 320 370 M 338 375 L 338 370" fill="none"/>
+      <rect x="300" y="350" width="58" height="20" rx="7" fill="#dad8ce"/>
+      <circle cx="805" cy="673" r="57" fill="#dedbd0"/>
+      <circle cx="805" cy="673" r="31" fill="none" opacity="0.35"/>
+      <path d="M 285 735 L 299 657 L 412 657 L 429 735 Z"/>
+      <path d="M 245 624 L 640 624 L 640 640 L 245 640 Z" fill="#eeece3"/>
+      <path d="M 220 749 L 240 735 L 889 735 L 909 753 L 909 779 L 220 779 Z"/>
+      <line x1="330" y1="459" x2="330" y2="655" stroke="#137f84" stroke-width="3"/>
+      <path d="M 313 464 L 350 464 L 350 532 L 340 544 L 313 544 Z" fill="none" stroke-width="1.5" opacity="0.7"/>
+      <line x1="269" y1="760" x2="855" y2="760" stroke-width="1.2" opacity="0.4"/>
+    </g>
+    <g class="dimension"><line x1="220" y1="779" x2="220" y2="862" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="909" y1="779" x2="909" y2="862" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="220" y1="850" x2="909" y2="850" stroke="#253238" stroke-width="1.6" /><line x1="214" y1="857" x2="226" y2="843"  stroke-width="1.6" stroke="#137f84"/><line x1="903" y1="857" x2="915" y2="843"  stroke-width="1.6" stroke="#137f84"/><text x="564.5" y="889" font-size="30" text-anchor="middle" fill="#137f84">530 mm</text></g>
+    <g class="dimension"><line x1="300" y1="350" x2="148" y2="350" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="300" y1="779" x2="148" y2="779" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="160" y1="350" x2="160" y2="779" stroke="#253238" stroke-width="1.6" /><line x1="154" y1="357" x2="166" y2="343"  stroke-width="1.6" stroke="#137f84"/><line x1="154" y1="786" x2="166" y2="772"  stroke-width="1.6" stroke="#137f84"/><text x="132" y="564.5" font-size="30" text-anchor="middle" fill="#137f84" transform="rotate(-90 132 564.5)">330 mm</text></g>
+    <text x="220" y="951" font-size="22" fill="#65706e" letter-spacing="1.1">ZUNANJE MERE · D × Š × V</text>
+    <text x="220" y="998" font-size="34" fill="#137f84" font-weight="600">530 × 270 × 330 mm</text>
+    <text x="1090" y="290" font-size="23" fill="#65706e" letter-spacing="1.2">DELOVNA MIZA</text>
+    <text x="1090" y="328" font-size="23" >Pogled od zgoraj</text>
+    <rect x="1110" y="417" width="306" height="153" rx="10" fill="#ebe7dc" stroke="#253238" stroke-width="2.5"/>
+    <g class="dimension"><line x1="1110" y1="417" x2="1110" y2="368" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1416" y1="417" x2="1416" y2="368" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1110" y1="380" x2="1416" y2="380" stroke="#253238" stroke-width="1.6" /><line x1="1104" y1="387" x2="1116" y2="373"  stroke-width="1.6" stroke="#137f84"/><line x1="1410" y1="387" x2="1422" y2="373"  stroke-width="1.6" stroke="#137f84"/><text x="1263" y="362" font-size="30" text-anchor="middle" fill="#137f84">360 mm</text></g>
+    <g class="dimension"><line x1="1416" y1="417" x2="1479" y2="417" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1416" y1="570" x2="1479" y2="570" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1467" y1="417" x2="1467" y2="570" stroke="#253238" stroke-width="1.6" /><line x1="1461" y1="424" x2="1473" y2="410"  stroke-width="1.6" stroke="#137f84"/><line x1="1461" y1="577" x2="1473" y2="563"  stroke-width="1.6" stroke="#137f84"/><text x="1505" y="493.5" font-size="30" text-anchor="middle" fill="#137f84" transform="rotate(-90 1505 493.5)">180 mm</text></g>
+    <text x="1090" y="647" font-size="23" fill="#65706e" letter-spacing="1.2">ŠIRINA STROJA</text>
+    <g stroke="#253238" stroke-width="2.5" fill="#e8e3d7">
+      <path d="M 1206 873 L 1235 720 Q 1240 699 1278 699 Q 1316 699 1321 720 L 1350 873 Z"/>
+      <rect x="1256" y="682" width="44" height="17" rx="6" fill="#dad8ce"/>
+      <rect x="1201" y="790" width="154" height="13" fill="#eeece3"/>
+      <line x1="1278" y1="742" x2="1278" y2="811" stroke="#137f84" stroke-width="2.5"/>
+      <rect x="1170" y="873" width="216" height="29" rx="3"/>
+    </g>
+    <g class="dimension"><line x1="1170" y1="902" x2="1170" y2="959" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1386" y1="902" x2="1386" y2="959" stroke="#253238" stroke-width="1.6" opacity="0.45"/><line x1="1170" y1="947" x2="1386" y2="947" stroke="#253238" stroke-width="1.6" /><line x1="1164" y1="954" x2="1176" y2="940"  stroke-width="1.6" stroke="#137f84"/><line x1="1380" y1="954" x2="1392" y2="940"  stroke-width="1.6" stroke="#137f84"/><text x="1278" y="986" font-size="30" text-anchor="middle" fill="#137f84">270 mm</text></g>
+      <line x1="100" y1="1063" x2="1500" y2="1063"  stroke-width="1.6" stroke="#c9c8bf"/>
+      <text x="100" y="1111" font-size="24" >Zunanje mere: navodila PROXXON, rev. 4/2015-06, str. 14. Shema ni načrt za izdelavo.</text>
+      <text x="100" y="1153" font-size="22" fill="#65706e">Vir: PROXXON DSH 28092 — navodila za uporabo; delovna miza: proxxon.com.</text>
+    </g>
+  </svg>

@@ -1,13 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { catalogCategoryHref, catalogSubcategoryHref } from '../../src/commercial/catalog/catalogRoutes';
 import {
-  getHomepagePreviewDeviceForViewport,
-  resolveHomepageCategoryCardHeight,
-  resolveHomepageSharedCategoryTitleCanvasSettings,
-  type HomepageCanvasSettings,
-  type HomepageCategoriesSettings
-} from '../../src/shared/domain/landing/landingPage';
-import {
   normalizeCategoryShowcaseMediaSettings,
   type CategoryShowcaseMediaSettings
 } from '../../src/shared/features/category-showcase/categoryShowcaseSchema';
@@ -123,21 +116,6 @@ async function readCatalogPreviewPayload(request: APIRequestContext): Promise<Ca
   const response = await request.get('/api/admin/categories');
   expect(response.ok()).toBeTruthy();
   return await response.json() as CatalogPreviewPayload;
-}
-
-async function readLandingCategorySettings(request: APIRequestContext): Promise<{
-  categories: HomepageCategoriesSettings;
-  canvas: HomepageCanvasSettings;
-}> {
-  const response = await request.get('/api/admin/landing-page');
-  expect(response.ok()).toBeTruthy();
-  const payload = await response.json() as {
-    config: {
-      categories: HomepageCategoriesSettings;
-      canvas: HomepageCanvasSettings;
-    };
-  };
-  return payload.config;
 }
 
 function isActive(statuses: CatalogPreviewPayload['statuses'], key: string) {
@@ -267,26 +245,6 @@ function expectVisualToUsePresentation(
   expect(Number.parseFloat(actual.cropTop)).toBeCloseTo(-(presentation.crop.y / presentation.crop.height) * 100, 3);
   expect(Number.parseFloat(actual.cropWidth)).toBeCloseTo((1 / presentation.crop.width) * 100, 3);
   expect(Number.parseFloat(actual.cropHeight)).toBeCloseTo((1 / presentation.crop.height) * 100, 3);
-}
-
-function presentationVisual(actual: SharedCategoryVisual) {
-  return {
-    surface: actual.surface,
-    hoverSurface: actual.hoverSurface,
-    titleToken: actual.titleToken,
-    titleHoverToken: actual.titleHoverToken,
-    ordinalToken: actual.ordinalToken,
-    ordinalHoverToken: actual.ordinalHoverToken,
-    presentationTransform: actual.presentationTransform,
-    presentationTransformOrigin: actual.presentationTransformOrigin,
-    cropLeft: actual.cropLeft,
-    cropTop: actual.cropTop,
-    cropWidth: actual.cropWidth,
-    cropHeight: actual.cropHeight,
-    ordinalFontSize: actual.ordinalFontSize,
-    ordinalWidth: actual.ordinalWidth,
-    ordinalHeight: actual.ordinalHeight
-  };
 }
 
 async function readSharedCategoryVisuals(
@@ -605,17 +563,13 @@ test('category showcase geometry stays aligned across public and admin previews'
   }
 });
 
-test('nested category showcases keep admin editor and storefront landing-card parity', async ({ page, request }) => {
+test('nested category previews retain editor parity while public categories render a browsable tree', async ({ page, request }) => {
   test.setTimeout(60_000);
   const viewportWidth = 1440;
   await page.setViewportSize({ width: viewportWidth, height: 1000 });
   await assertAuthenticatedAdmin(request);
 
-  const [catalog, landingSettings] = await Promise.all([
-    readCatalogPreviewPayload(request),
-    readLandingCategorySettings(request)
-  ]);
-  const landingCategorySettings = landingSettings.categories;
+  const catalog = await readCatalogPreviewPayload(request);
   const publicBranch = findPublicCategoryWithSubcategories(catalog);
   if (!publicBranch) {
     throw new Error('An active root category with at least one active direct subcategory is required.');
@@ -623,15 +577,6 @@ test('nested category showcases keep admin editor and storefront landing-card pa
   const { category, publicSubcategories } = publicBranch;
   const subcategory = publicSubcategories[0];
   const normalizedPresentation = normalizeCategoryShowcaseMediaSettings(subcategory.presentation);
-  const device = getHomepagePreviewDeviceForViewport(viewportWidth);
-  const effectiveLandingSettings = {
-    ...landingCategorySettings,
-    ...landingCategorySettings.responsive[device]
-  };
-  const sharedTitleSettings = resolveHomepageSharedCategoryTitleCanvasSettings(
-    landingSettings.canvas,
-    device
-  );
 
   await page.goto('/');
   const landingTiles = page.locator('[data-homepage-category-card]');
@@ -679,6 +624,9 @@ test('nested category showcases keep admin editor and storefront landing-card pa
     subcategory.slug
   );
   expectSharedShowcaseStructure(nestedAdminStructure, rootStructure);
+  expectSharedShowcaseStructure(nestedAdminStructure, landingStructure, {
+    compareHeight: false, compareTypography: false
+  });
 
   const nestedAdminVisuals = await readSharedCategoryVisuals(
     page,
@@ -702,159 +650,65 @@ test('nested category showcases keep admin editor and storefront landing-card pa
   ).toHaveValue(normalizedPresentation.titleColor);
 
   await page.goto(catalogCategoryHref(category.slug));
-  const storefrontScopeSelector =
-    `[data-storefront-subcategory-showcase=${JSON.stringify(category.slug)}]`;
-  const storefrontScope = page.locator(storefrontScopeSelector);
-  const storefrontTiles = storefrontScope.locator('[data-storefront-subcategory-card]');
-  await expect(storefrontTiles.first()).toBeVisible({ timeout: 15_000 });
-  await expect(storefrontTiles).toHaveCount(publicSubcategories.length);
-  expect(await storefrontTiles.evaluateAll((tiles) => tiles.map((tile) => (
-    (tile as HTMLElement).dataset.categorySlug
-  )))).toEqual(publicSubcategories.map((entry) => entry.slug));
+  await expect(page.getByRole('heading', { level: 1, name: category.title, exact: true }))
+    .toBeVisible({ timeout: 15_000 });
+  const storefrontScope = page.getByRole('region', { name: 'Katalog izdelkov', exact: true });
+  const rootGroup = storefrontScope.locator(
+    `section[aria-labelledby=${JSON.stringify('catalog-heading-' + category.id)}]`
+  );
+  const directBranches = rootGroup.locator(':scope > div[id] > section[aria-labelledby]');
+  await expect(directBranches).toHaveCount(publicSubcategories.length);
+  expect(await directBranches.evaluateAll((branches) => branches.map((branch) => (
+    branch.querySelector('h3 a')?.getAttribute('aria-label')
+  )))).toEqual(publicSubcategories.map((entry) => entry.title));
 
-  const storefrontStructure = await readShowcaseStructure(
-    page,
-    storefrontScopeSelector,
-    '[data-storefront-subcategory-card]',
-    subcategory.slug
+  const subcategoryGroup = storefrontScope.locator(
+    `section[aria-labelledby=${JSON.stringify('catalog-heading-' + subcategory.id)}]`
   );
-  const expectedCardHeight = resolveHomepageCategoryCardHeight(
-    effectiveLandingSettings,
-    publicSubcategories
+  const subcategoryHeading = subcategoryGroup.locator('[id=' + JSON.stringify('catalog-heading-' + subcategory.id) + ']');
+  const subcategoryHeader = subcategoryHeading.locator('..');
+  const subcategoryControl = subcategoryHeader.locator('button[aria-controls^="catalog-children-"]');
+  const subcategoryLink = subcategoryHeading.getByRole('link', { name: subcategory.title, exact: true });
+  await expect(subcategoryControl).toHaveCount(1);
+  await expect(subcategoryControl).toHaveAccessibleName('Strni kategorijo ' + subcategory.title);
+  await expect(subcategoryHeader.getByRole('link')).toHaveCount(1);
+  await expect(subcategoryLink).toHaveAttribute('href', catalogSubcategoryHref(category.slug, subcategory.slug));
+  const subcategoryContent = subcategoryGroup.locator(
+    `[id=${JSON.stringify('catalog-children-' + subcategory.id)}]`
   );
-  expect(storefrontStructure.inlineTileHeight).toBe(`${expectedCardHeight}px`);
-  expect(storefrontStructure.desktopColumns).toBe(String(effectiveLandingSettings.columns));
-  expect(storefrontStructure.tabletColumns).toBe(String(Math.min(2, effectiveLandingSettings.columns)));
-  expect(storefrontStructure.mobileColumns).toBe('1');
-  expect(storefrontStructure.gap).toBeCloseTo(effectiveLandingSettings.gap, 1);
-  expect(storefrontStructure.hasDirectionIndicator).toBe(effectiveLandingSettings.showCardArrow);
-  expectSharedShowcaseStructure(storefrontStructure, landingStructure, {
-    compareHeight: false,
-    compareTypography: false
-  });
+  await expect(subcategoryControl).toHaveAttribute('aria-expanded', 'true');
+  await subcategoryControl.click();
+  await expect(subcategoryControl).toHaveAttribute('aria-expanded', 'false');
+  await expect(subcategoryControl).toHaveAccessibleName('Razširi kategorijo ' + subcategory.title);
+  await expect(subcategoryContent).toBeHidden();
+  await expect(subcategoryLink).toBeVisible();
+  await expect(page).toHaveURL(catalogCategoryHref(category.slug));
+  await subcategoryControl.click();
+  await expect(subcategoryControl).toHaveAccessibleName('Strni kategorijo ' + subcategory.title);
+  await expect(subcategoryContent).toBeVisible();
+  await expect(page).toHaveURL(catalogCategoryHref(category.slug));
+  const descendantProductIds = await subcategoryContent.locator('[data-catalog-product]')
+    .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-catalog-product')));
 
-  const sharedStorefrontTitles = storefrontScope.locator(
-    '[data-storefront-shared-category-title]'
-  );
-  if (!sharedTitleSettings.visible) {
-    await expect(sharedStorefrontTitles).toHaveCount(0);
-  } else {
-    await expect(sharedStorefrontTitles).toHaveCount(publicSubcategories.length);
-    const titleLayout = await sharedStorefrontTitles.first().evaluate((element) => {
-      const wrapper = element as HTMLElement;
-      const heading = wrapper.querySelector<HTMLElement>('h3');
-      if (!heading) throw new Error('The shared storefront category title is missing its heading.');
-      const headingStyle = getComputedStyle(heading);
-      const letterSpacing = Number.parseFloat(headingStyle.letterSpacing);
-      return {
-        fontSize: Number.parseFloat(headingStyle.fontSize),
-        lineHeight: Number.parseFloat(headingStyle.lineHeight),
-        fontWeight: headingStyle.fontWeight,
-        fontStyle: headingStyle.fontStyle,
-        letterSpacing: Number.isFinite(letterSpacing) ? letterSpacing : 0,
-        textAlign: headingStyle.textAlign,
-        textDecorationLine: headingStyle.textDecorationLine,
-        color: wrapper.style.color,
-        headingColor: heading.style.color,
-        left: wrapper.style.left,
-        transform: wrapper.style.transform,
-        width: wrapper.style.width,
-        maxWidth: wrapper.style.maxWidth,
-        height: wrapper.style.height,
-        overflow: wrapper.style.overflow,
-        padding: [
-          wrapper.style.paddingTop,
-          wrapper.style.paddingRight,
-          wrapper.style.paddingBottom,
-          wrapper.style.paddingLeft
-        ],
-        margin: [
-          wrapper.style.marginTop,
-          wrapper.style.marginRight,
-          wrapper.style.marginBottom,
-          wrapper.style.marginLeft
-        ]
-      };
-    });
-    const expectedHorizontalTranslate = sharedTitleSettings.horizontalAlign === 'center'
-      ? `calc(-50% + ${sharedTitleSettings.offsetXPx}px)`
-      : sharedTitleSettings.horizontalAlign === 'right'
-        ? `calc(-100% + ${sharedTitleSettings.offsetXPx}px)`
-        : `${sharedTitleSettings.offsetXPx}px`;
-    expect(titleLayout.fontSize).toBeCloseTo(sharedTitleSettings.fontSizePx, 2);
-    expect(titleLayout.lineHeight).toBeCloseTo(
-      sharedTitleSettings.fontSizePx * sharedTitleSettings.lineHeight,
-      2
-    );
-    expect(titleLayout.fontWeight).toBe(String(sharedTitleSettings.fontWeight));
-    expect(titleLayout.fontStyle).toBe(sharedTitleSettings.italic ? 'italic' : 'normal');
-    expect(titleLayout.letterSpacing).toBeCloseTo(sharedTitleSettings.letterSpacingPx, 2);
-    expect(titleLayout.textAlign).toBe(sharedTitleSettings.textAlign);
-    expect(titleLayout.textDecorationLine).toBe(
-      sharedTitleSettings.underline ? 'underline' : 'none'
-    );
-    expect(titleLayout.color).toBe('inherit');
-    expect(titleLayout.headingColor).toBe('inherit');
-    expect(titleLayout.left).toBe(
-      sharedTitleSettings.horizontalAlign === 'left'
-        ? '0px'
-        : sharedTitleSettings.horizontalAlign === 'center'
-          ? '50%'
-          : '100%'
-    );
-    expect(titleLayout.transform).toContain('translate3d(');
-    if (sharedTitleSettings.horizontalAlign === 'left') {
-      expect(titleLayout.transform).toContain(`translate3d(${expectedHorizontalTranslate}`);
-    } else if (sharedTitleSettings.offsetXPx !== 0) {
-      expect(titleLayout.transform).toContain(`${sharedTitleSettings.offsetXPx}px`);
-    }
-    expect(titleLayout.transform).toContain(`${sharedTitleSettings.offsetYPx}px`);
-    expect(titleLayout.width).toBe(
-      sharedTitleSettings.widthPx > 0 ? `${sharedTitleSettings.widthPx}px` : 'fit-content'
-    );
-    expect(titleLayout.maxWidth).toBe(sharedTitleSettings.widthPx === 0 ? '20rem' : '');
-    expect(titleLayout.height).toBe(
-      sharedTitleSettings.heightPx > 0 ? `${sharedTitleSettings.heightPx}px` : ''
-    );
-    expect(titleLayout.overflow).toBe(
-      sharedTitleSettings.widthPx > 0 || sharedTitleSettings.heightPx > 0 ? 'hidden' : ''
-    );
-    expect(titleLayout.padding).toEqual([
-      `${sharedTitleSettings.paddingTopPx}px`,
-      `${sharedTitleSettings.paddingRightPx}px`,
-      `${sharedTitleSettings.paddingBottomPx}px`,
-      `${sharedTitleSettings.paddingLeftPx}px`
-    ]);
-    expect(titleLayout.margin).toEqual([
-      `${sharedTitleSettings.marginTopPx}px`,
-      `${sharedTitleSettings.marginRightPx}px`,
-      `${sharedTitleSettings.marginBottomPx}px`,
-      `${sharedTitleSettings.marginLeftPx}px`
-    ]);
-  }
-
-  const storefrontVisuals = await readSharedCategoryVisuals(
-    page,
-    storefrontScopeSelector,
-    '[data-storefront-subcategory-card]'
-  );
-  const storefrontVisual = storefrontVisuals[subcategory.slug];
-  expect(storefrontVisual).toBeDefined();
-  expectVisualToUsePresentation(storefrontVisual, subcategory.presentation);
-  expect(presentationVisual(storefrontVisual)).toEqual(
-    presentationVisual(nestedAdminVisual)
-  );
-  if (effectiveLandingSettings.cardStyle === 'title-only') {
-    expect(storefrontVisual.imageSource).toBe('');
-  } else {
-    expect(storefrontVisual.objectFit).toBe(nestedAdminVisual.objectFit);
-    expect(storefrontVisual.objectPosition).toBe(nestedAdminVisual.objectPosition);
-    expect(storefrontVisual.imageSource).toBe(nestedAdminVisual.imageSource);
-  }
-
-  await expect(
-    storefrontScope.locator(
-      `[data-storefront-subcategory-card=${JSON.stringify(subcategory.slug)}]`
-    ).getByRole('link', { name: subcategory.title, exact: true })
-  ).toHaveAttribute('href', catalogSubcategoryHref(category.slug, subcategory.slug));
+  await subcategoryLink.click();
+  await expect(page).toHaveURL(catalogSubcategoryHref(category.slug, subcategory.slug));
+  await expect(page.getByRole('heading', { level: 1, name: subcategory.title, exact: true }))
+    .toBeVisible({ timeout: 15_000 });
+  const breadcrumbs = page.getByRole('navigation', { name: 'Drobtinice', exact: true });
+  await expect(breadcrumbs.getByRole('link', { name: category.title, exact: true }))
+    .toHaveAttribute('href', catalogCategoryHref(category.slug));
+  await expect(page.getByRole('navigation', { name: 'Kategorije', exact: true })
+    .locator(`a[href=${JSON.stringify(catalogCategoryHref(category.slug))}]`))
+    .toHaveAttribute('aria-current', 'location');
+  await expect(page.getByRole('spinbutton', { name: 'Najnižja cena v evrih', exact: true })).toBeVisible();
+  await expect(page.getByRole('spinbutton', { name: 'Najvišja cena v evrih', exact: true })).toBeVisible();
+  const nestedCatalog = page.getByRole('region', { name: 'Katalog izdelkov', exact: true });
+  expect(await nestedCatalog.locator('[data-catalog-product]')
+    .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-catalog-product'))))
+    .toEqual(descendantProductIds);
+  const productLinks = nestedCatalog.locator('[data-catalog-product]').getByRole('link');
+  await expect(productLinks).toHaveCount(descendantProductIds.length);
+  expect(await productLinks.evaluateAll((links, categoryHref) => links.every((link) => (
+    link.getAttribute('href')?.startsWith(categoryHref + '/items/')
+  )), catalogCategoryHref(category.slug))).toBeTruthy();
 });

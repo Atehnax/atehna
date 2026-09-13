@@ -18,6 +18,7 @@ export type StorefrontProductMedia = {
   altText: string;
   filename?: string;
   mimeType?: string;
+  imageType?: string;
   variantIds: string[];
 };
 
@@ -447,6 +448,7 @@ const normalizeMedia = (item: UnknownRecord, itemName: string): StorefrontProduc
         );
       const filename = asOptionalString(row.filename);
       const mimeType = asOptionalString(row.mimeType);
+      const imageType = asOptionalString(row.imageType);
       result.push({
         id: asIdentifier(row.id, `media-${index}`),
         kind,
@@ -458,6 +460,7 @@ const normalizeMedia = (item: UnknownRecord, itemName: string): StorefrontProduc
         altText: asString(row.altText, itemName),
         ...(filename ? { filename } : {}),
         ...(mimeType ? { mimeType } : {}),
+        ...(imageType ? { imageType } : {}),
         variantIds
       });
       return result;

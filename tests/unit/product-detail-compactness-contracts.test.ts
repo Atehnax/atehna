@@ -26,19 +26,19 @@ test('keeps the compact defaults separate from the approved image and content ge
   // or related-product cards.
   expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.gallery).toMatchObject({
     sizePercent: 100,
-    imageRatio: '4:3',
-    thumbnailSizePx: 70,
-    thumbnailGapPx: 16
+    imageRatio: '1:1',
+    thumbnailSizePx: 60,
+    thumbnailGapPx: 10
   });
   expect(
     DEFAULT_PRODUCT_APPEARANCE_CONFIG.information.longDescriptionMaxWidthPx
   ).toBe(880);
   expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts).toMatchObject({
-    cardWidthPx: 360,
-    imageHeightPx: 144,
+    cardWidthPx: 640,
+    imageHeightPx: 112,
     textScalePercent: 100
   });
   expect(variables['--product-description-max-width']).toBe('880px');
-  expect(variables['--product-related-card-width']).toBe('360px');
-  expect(variables['--product-related-image-height']).toBe('144px');
+  expect(variables['--product-related-card-width']).toBe('640px');
+  expect(variables['--product-related-image-height']).toBe('112px');
 });

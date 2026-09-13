@@ -21,7 +21,7 @@ test('order page loads', async ({ page }) => {
 test('catalogue and empty cart states load', async ({ page }) => {
   await page.goto('/products');
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Izdelki in program' })
+    page.getByRole('heading', { level: 1, name: 'Katalog izdelkov' })
   ).toBeVisible({ timeout: 15000 });
 
   await page.goto('/cart');

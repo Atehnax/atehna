@@ -151,7 +151,7 @@ function MediaViewer({
             : null
       )}
       style={{
-        objectFit: isDimensionDiagram(media) ? 'contain' : undefined,
+        objectFit: 'contain',
         ...(zoomOnHover ? {
           transform: hoverZoomActive ? 'scale(2)' : 'scale(1)',
           transformOrigin:
@@ -312,10 +312,10 @@ export default function ProductGallery({
     return (
       <div
         className={classNames(
-          'site-panel flex items-center justify-center bg-[color:var(--site-color-surface-muted)]',
+          'site-panel flex items-center justify-center bg-white',
           className
         )}
-        style={{ aspectRatio: 'var(--product-gallery-ratio, 4 / 3)' }}
+        style={{ aspectRatio: 1 }}
       >
         <div className="px-6 text-center text-sm text-[color:var(--site-color-text-muted)]">
           <svg
@@ -376,7 +376,7 @@ export default function ProductGallery({
             key={entry.id}
             type="button"
             onClick={() => setSelectedMedia(entry)}
-            className={`storefront-gallery-thumbnail site-radius-sm relative shrink-0 overflow-hidden border bg-[color:var(--site-color-surface)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)] ${
+            className={`storefront-gallery-thumbnail site-radius-sm relative shrink-0 overflow-hidden border bg-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)] ${
               selected.id === entry.id
                 ? 'border-[color:var(--site-color-primary)]'
                 : 'border-[color:var(--site-border-color)] hover:border-[color:var(--site-color-primary)]'
@@ -400,8 +400,7 @@ export default function ProductGallery({
                 alt=""
                 fill
                 sizes="96px"
-                className="object-cover"
-                style={isDimensionDiagram(entry) ? { objectFit: 'contain' } : undefined}
+                className="object-contain"
               />
             ) : entry.kind === 'video' ? (
               <span className="flex h-full w-full items-center justify-center text-[color:var(--site-color-primary)]">
@@ -468,9 +467,9 @@ export default function ProductGallery({
           <div className="h-full min-w-0">
           <div
             ref={mainImageSurfaceRef}
-            className="site-panel group relative min-h-px overflow-hidden bg-[color:var(--site-color-surface-muted)]"
+            className="site-panel group relative min-h-px overflow-hidden bg-white"
             data-storefront-gallery-main-image
-            style={{ aspectRatio: 'var(--product-gallery-ratio, 1 / 1)' }}
+            style={{ aspectRatio: 1 }}
           >
             <MediaViewer
               media={selected}

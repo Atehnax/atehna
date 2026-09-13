@@ -73,7 +73,7 @@
 .relatedCard > :is(.relatedPriceSlot, .relatedPrice) { grid-column: 1; grid-row: 3; align-self: center; }
 .relatedCard > :is(.relatedActionSlot, .relatedAction) { grid-column: 2; grid-row: 3; align-self: center; }
 .relatedImageSlot { align-self: center; }
-.relatedImage { display: block; position: relative; width: 100%; height: auto; aspect-ratio: 1; border-radius: calc(3 * var(--showcase-px)); overflow: hidden; background: var(--site-color-surface-muted); }
+.relatedImage { display: block; position: relative; width: 100%; height: auto; aspect-ratio: 1; border-radius: calc(3 * var(--showcase-px)); overflow: hidden; background: #fff; }
 .relatedImage img { object-fit: contain; }
 .relatedImage span { display: block; padding: 10px; font-size: calc(11 * var(--showcase-px)); color: var(--site-color-text-muted); }
 .relatedContent { min-width: 0; }

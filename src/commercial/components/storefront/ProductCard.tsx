@@ -195,14 +195,8 @@ export default function ProductCard({
         <Link
           href={product.href}
           prefetch={false}
-          className={`storefront-product-card-media storefront-product-card-image-frame relative block overflow-hidden ${
-            isRelated
-              ? 'bg-[color:var(--site-card-bg)]'
-              : 'bg-[color:var(--site-color-surface-muted)]'
-          }`}
-          style={isRelated
-            ? undefined
-            : { aspectRatio: 'var(--product-card-image-ratio, 1 / 1)' }}
+          className="storefront-product-card-media storefront-product-card-image-frame relative block overflow-hidden bg-white"
+          style={{ aspectRatio: 1 }}
           aria-label={product.name}
         >
           {product.image ? (
@@ -211,9 +205,7 @@ export default function ProductCard({
               alt={product.image.altText || product.name}
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
-              className={`storefront-product-card-image transition duration-300 group-hover:scale-[1.03] ${
-                isRelated ? 'p-3' : ''
-              }`}
+              className="storefront-product-card-image"
             />
           ) : (
             <div className="flex h-full items-center justify-center px-5 text-center text-xs text-[color:var(--site-color-text-muted)]">

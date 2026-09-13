@@ -22,7 +22,7 @@
 }
 :global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-image) {
   object-fit: contain;
-  padding: calc(8px / var(--commercial-storefront-scale));
+  padding: 0;
 }
 :global([data-storefront-theme]) .responsiveRelated :global(.storefront-product-card-content) {
   padding: calc(12px / var(--commercial-storefront-scale));

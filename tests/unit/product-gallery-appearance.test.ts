@@ -107,7 +107,10 @@ describe('product gallery appearance contracts', () => {
     expect(gallerySource).toContain('data-thumbnail-position-mobile');
     expect(gallerySource).toContain('data-thumbnail-position-preview');
     expect(gallerySource).toContain('hideThumbnailsWhenSingle');
-    expect(gallerySource).toContain('className="object-cover"');
+    expect(gallerySource).toContain('className="object-contain"');
+    expect(gallerySource).toContain('style={{ aspectRatio: 1 }}');
+    expect(gallerySource).toContain("objectFit: 'contain'");
+    expect(gallerySource).not.toContain('--product-gallery-ratio');
     expect(gallerySource).not.toContain('object-contain p-1.5');
     expect(gallerySource).toContain('storefront-gallery-control');
     expect(gallerySource).toContain('storefront-gallery-control-visual');

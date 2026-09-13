@@ -153,10 +153,15 @@ test.describe('admin podoba redesign', () => {
     }));
     const stylesBeforeReorder = await heroTextStyles();
     const handle = primaryRow.getByRole('button', { name: /^Izberi ali premakni plast:/u });
+    const dragStatus = layers.getByRole('status');
     await handle.focus();
     await handle.press('Space');
-    await handle.press('ArrowUp');
-    await handle.press('Space');
+    await expect(dragStatus).toContainText('Draggable item hero:primaryButton was moved over droppable area hero:primaryButton.');
+    await page.keyboard.press('ArrowUp');
+    // Wait for collision detection to reach the target before releasing the layer.
+    await expect(dragStatus).toContainText('Draggable item hero:primaryButton was moved over droppable area hero:secondaryButton.');
+    await page.keyboard.press('Space');
+    await expect(dragStatus).toContainText('Draggable item hero:primaryButton was dropped over droppable area hero:secondaryButton');
     await expect.poll(() => layers.locator('[data-homepage-appearance-layer-parent="section:hero"]').evaluateAll(elements => elements.map(element => element.getAttribute('data-homepage-appearance-layer')))).toEqual(['hero:primaryButton', 'hero:secondaryButton', 'hero:description', 'hero:title']);
     expect(await heroTextStyles()).toEqual(stylesBeforeReorder);
 

@@ -1243,6 +1243,8 @@ textarea[readonly] {
 [data-storefront-theme]
   .storefront-related-product-card
   .storefront-related-product-quick-add {
+  /* Keep absolute screen-reader labels inside the horizontally scrolling card. */
+  position: relative;
   inline-size: 100%;
   justify-content: flex-end;
 }

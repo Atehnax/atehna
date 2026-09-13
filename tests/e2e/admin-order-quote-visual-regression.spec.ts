@@ -1132,6 +1132,10 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         await date.click();
         await expect(page.getByRole('dialog', { name: 'Izbira datuma' })).toBeVisible();
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Izbira datuma' })).toHaveCount(0);
+        // Escape restores trigger focus on the next frame; finish that transition before editing.
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+        await expect(date).toBeFocused();
         const message = card.getByRole('textbox', { name: 'Sporočilo stranke', exact: true });
         const originalMessage = await message.inputValue();
         await message.fill(originalMessage + ' sprememba');

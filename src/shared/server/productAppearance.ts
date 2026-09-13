@@ -1,3 +1,4 @@
+import { preventCachingPublicFallback } from '@/shared/server/publicCacheFallback';
 import 'server-only';
 import { mergeExistingArticleNoteTags } from '@/shared/domain/catalog/articleNotes';
 import { cacheDatabaseRead } from '@/shared/server/databaseCache';
@@ -85,6 +86,7 @@ export async function getProductAppearanceConfig(): Promise<ProductAppearanceCon
   try {
     return await getCachedProductAppearanceConfigFromDatabase();
   } catch (error) {
+    preventCachingPublicFallback();
     if (!isDatabaseUnavailableError(error)) {
       console.error('Failed to load product appearance config', error);
     }

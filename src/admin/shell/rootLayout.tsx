@@ -10,8 +10,10 @@ export default async function AdminRootLayout({
 }: {
   children: ReactNode;
 }) {
-  const siteLogo = await getPublishedSiteLogos();
-  const siteNavigation = await getSiteNavigationConfig();
+  const [siteLogo, siteNavigation] = await Promise.all([
+    getPublishedSiteLogos(),
+    getSiteNavigationConfig()
+  ]);
   const { siteLayout } = siteNavigation;
   const style = {
     '--site-content-max-width': siteLayout.siteContentMaxWidthPx + 'px',

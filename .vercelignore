@@ -20,3 +20,8 @@
 /debug.log
 /playwright.config.ts
 /tsconfig.tsbuildinfo
+
+# Local performance traces, screenshots and isolated test environments.
+/artifacts/
+/output/
+/tmp/

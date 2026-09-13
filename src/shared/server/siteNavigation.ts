@@ -1,3 +1,4 @@
+import { preventCachingPublicFallback } from '@/shared/server/publicCacheFallback';
 import 'server-only';
 import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 import { ensureLogoLibrary } from '@/shared/server/logoLibrary';
@@ -924,6 +925,7 @@ export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
   try {
     return normalizeSiteNavigationConfig(await getCachedSiteNavigationConfigFromDatabase());
   } catch (error) {
+    preventCachingPublicFallback();
     if (!isDatabaseUnavailableError(error)) {
       console.error('Failed to load site navigation config', error);
     }

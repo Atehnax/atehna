@@ -22,8 +22,6 @@ import '@fontsource/barlow/900.css';
 import '@/shared/styles/globals.css';
 import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
   title: {

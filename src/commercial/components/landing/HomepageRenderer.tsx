@@ -59,6 +59,7 @@ import CategoryShowcase from '@/shared/features/category-showcase/CategoryShowca
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import CanvasHiddenElementFlag from '@/shared/ui/product-canvas/CanvasHiddenElementFlag';
 import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/tokens';
+import { canOptimizeHomepageImage } from './heroImage';
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
@@ -2238,8 +2239,22 @@ function HomepageHero({
           className="absolute top-0 h-full object-cover"
           role="img"
           aria-label={activeSlide.alt || activeSlide.title || undefined}
-          style={{ ...mediaFrameStyle, backgroundImage: `url("${activeSlide.src}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-        />
+          style={{ ...mediaFrameStyle, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        >
+          <Image
+            src={activeSlide.src}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes={`${hero.mediaWidthPercent}vw`}
+            quality={90}
+            loading="eager"
+            fetchPriority="high"
+            unoptimized={!canOptimizeHomepageImage(activeSlide.src)}
+            draggable={false}
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+          />
+        </div>
       ) : (
         <div className="absolute inset-0 bg-[#10151d]" />
       )}

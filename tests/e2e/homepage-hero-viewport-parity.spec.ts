@@ -98,14 +98,15 @@ async function readHeroViewportMetrics({
     };
 
     const media = requiredElement('[data-homepage-hero-carousel-media]');
-    const mediaStyle = getComputedStyle(media);
+    const imageMedia = media.querySelector('img');
+    const mediaStyle = getComputedStyle(imageMedia ?? media);
     const primaryAction = requiredElement('[data-homepage-hero-actions] a');
     const primaryActionStyle = getComputedStyle(primaryAction);
     const optionalBox = (selector: string) => {
       const element = root.querySelector<HTMLElement>(selector);
       return element ? relativeBox(element) : null;
     };
-    const videoMedia = media instanceof HTMLVideoElement;
+    const replacedMedia = media instanceof HTMLVideoElement || imageMedia instanceof HTMLImageElement;
 
     return {
       viewportWidth: viewportRect.width / scale,
@@ -119,8 +120,8 @@ async function readHeroViewportMetrics({
       previousArrow: optionalBox('[data-homepage-hero-carousel-arrow="previous"]'),
       firstDot: optionalBox('[data-homepage-hero-carousel-dot="0"]'),
       mediaTagName: media.tagName.toLowerCase(),
-      mediaFit: videoMedia ? mediaStyle.objectFit : mediaStyle.backgroundSize,
-      mediaPosition: videoMedia ? mediaStyle.objectPosition : mediaStyle.backgroundPosition,
+      mediaFit: replacedMedia ? mediaStyle.objectFit : mediaStyle.backgroundSize,
+      mediaPosition: replacedMedia ? mediaStyle.objectPosition : mediaStyle.backgroundPosition,
       primaryActionBackground: primaryActionStyle.backgroundColor,
       primaryActionColor: primaryActionStyle.color,
       primaryActionFontFamily: primaryActionStyle.fontFamily

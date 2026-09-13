@@ -1,4 +1,5 @@
 import { Pool, type PoolConfig } from 'pg';
+import { createTimedPool } from '@/shared/server/diagnostics/databaseTiming';
 import {
   resolveDatabasePoolRuntimeConfig as resolveDatabasePoolRuntimeConfigCore,
   resolveDatabaseSslConfig as resolveDatabaseSslConfigCore,
@@ -80,6 +81,6 @@ export async function getPool(): Promise<Pool> {
     lock_timeout: runtimeConfig.lockTimeoutMillis
   } satisfies PoolConfig;
 
-  pool = new Pool(poolConfig);
+  pool = process.env.ATEHNA_PERFORMANCE_DIAGNOSTICS === '1' ? createTimedPool(poolConfig) : new Pool(poolConfig);
   return pool;
 }

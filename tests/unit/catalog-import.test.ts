@@ -226,3 +226,57 @@ test('existing products without a delivery estimate do not acquire local placeho
   assert.equal(plan.payload.variants[0].contentOverride?.deliveryEstimate, undefined);
   assert.deepEqual(planCatalogImportProduct(incoming, null).payload.typeSpecificData, incoming.typeSpecificData, 'New drafts retain their own manifest settings.');
 });
+
+
+test('reviewed media aliases preserve published immutable URL, row ID, order, and assignments across imports', () => {
+  const incoming = product();
+  incoming.hideUnlistedGalleryImages = true;
+  incoming.variants[0].imageAssignments = [0];
+  const alias = {
+    localBlobUrl: incoming.media[0].blobUrl!,
+    hostedBlobUrl: 'https://catalog.public.blob.vercel-storage.com/catalog-items/aluminium/images/original.webp',
+    hostedBlobPathname: 'catalog-items/aluminium/images/original.webp'
+  };
+  incoming.mediaSourceAliases = [alias];
+  const before = existing();
+  before.media[0] = { ...before.media[0], blobUrl: alias.hostedBlobUrl, blobPathname: alias.hostedBlobPathname, hidden: false };
+  const plan = planCatalogImportProduct(incoming, before);
+  assert.equal(plan.payload.media.length, 1, 'the hosted image must not be appended as an unlisted duplicate');
+  assert.equal(plan.payload.media[0].id, before.media[0].id);
+  assert.equal(plan.payload.media[0].blobUrl, alias.hostedBlobUrl);
+  assert.equal(plan.payload.media[0].blobPathname, alias.hostedBlobPathname);
+  assert.equal(plan.payload.media[0].hidden, false);
+  assert.deepEqual(plan.payload.variants[0].imageAssignments, [0]);
+  assert.equal(Object.hasOwn(plan.payload, 'mediaSourceAliases'), false);
+  const after = { ...before, ...plan.payload } as CatalogItemEditorHydration;
+  assert.deepEqual(planCatalogImportProduct(incoming, after).payload.media, plan.payload.media);
+  const newLocal = planCatalogImportProduct(incoming, null);
+  assert.equal(newLocal.payload.media[0].blobUrl, alias.localBlobUrl, 'a fresh local import uses its reviewed repository original');
+  assert.equal(Object.hasOwn(newLocal.payload, 'mediaSourceAliases'), false);
+});
+
+test('media aliases reject unreviewed destinations, path mismatch, duplicates and ambiguous existing copies', () => {
+  const incoming = product();
+  const alias = {
+    localBlobUrl: incoming.media[0].blobUrl!,
+    hostedBlobUrl: 'https://catalog.public.blob.vercel-storage.com/catalog-items/aluminium/images/original.webp',
+    hostedBlobPathname: 'catalog-items/aluminium/images/original.webp'
+  };
+  for (const aliases of [
+    [{ ...alias, localBlobUrl: '/catalog/unlisted.webp' }],
+    [{ ...alias, hostedBlobUrl: 'https://supplier.example/original.webp' }],
+    [{ ...alias, hostedBlobPathname: 'catalog-items/other/images/original.webp' }],
+    [alias, alias]
+  ]) {
+    assert.throws(() => validateCatalogImportManifest({ version: 1, products: [{ ...incoming, mediaSourceAliases: aliases }] }), /alias|duplicate/u);
+  }
+  incoming.mediaSourceAliases = [alias];
+  const before = existing();
+  before.media = [
+    { ...before.media[0], blobUrl: alias.localBlobUrl },
+    { ...before.media[0], id: 202, blobUrl: alias.hostedBlobUrl, blobPathname: alias.hostedBlobPathname }
+  ];
+  assert.throws(() => planCatalogImportProduct(incoming, before), /ambiguous existing media alias/u);
+  before.media = [{ ...before.media[1], blobPathname: 'different/path.webp' }];
+  assert.throws(() => planCatalogImportProduct(incoming, before), /identity differs/u);
+});

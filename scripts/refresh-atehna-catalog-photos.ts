@@ -153,7 +153,8 @@ export function parsePhotoFramingArgs(args: string[]) {
 export async function runPhotoFraming(args = process.argv.slice(2)) {
   const options = parsePhotoFramingArgs(args);
   const target = resolveCatalogTypeTarget(options.target, process.env.DATABASE_URL);
-  const manifest = JSON.parse(await readFile(MANIFEST, 'utf8')) as { products: PhotoFramingProduct[]; promotedExistingPhotos?: Array<{ slug: string; photo: FramingPhoto }> };
+  const manifest = JSON.parse(await readFile(MANIFEST, 'utf8')) as { supersededBy?: string[]; products: PhotoFramingProduct[]; promotedExistingPhotos?: Array<{ slug: string; photo: FramingPhoto }> };
+  ensure(!manifest.supersededBy?.length, 'Historical framing manifest superseded. Use scripts/remediate-catalog-product-images.ts.');
   const history = JSON.parse(await readFile('data/catalog/image-upgrades-2026-09.json', 'utf8')) as { products: HistoricalPhotoProduct[] };
   validatePhotoFramingManifest(manifest.products, history.products);
   const promoted = manifest.promotedExistingPhotos ?? [];

@@ -1085,5 +1085,8 @@
       "source": "https://www.tm-kovine.si/Portals/0/EasyDNNnews/401/1rag.jpg",
       "reason": "500x268 family comparison composite with four models and unspecified lengths; not a higher-quality exact40cm product photograph."
     }
+  ],
+  "supersededBy": [
+    "product-image-remediation-2026-09.json"
   ]
 }

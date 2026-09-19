@@ -1,0 +1,402 @@
+{
+  "version": 12,
+  "reviewedAt": "2026-09-14T16:18:54.751Z",
+  "status": "bounded-source-pass-complete-no-qualifying-tool-additions",
+  "scope": "Five exact tool families, eleven remaining variants; source research only.",
+  "policy": "Native originals1024minimum on both axes plus useful real sharp detail; no humans, AI, local enlargement/padding, wrong numeric grade, substituted model or wrong cut. Retain all schematics and existing approved photographs.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v7-2026-09.json",
+    "data/catalog/replacement-sources-tools-v8-2026-09.json",
+    "data/catalog/replacement-sources-tools-v9-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "kladivo",
+      "name": "Kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "identityEvidence": "Original ATEHNA source SKUs 32113 and 32114 (300 g single and ten in stand) use 343066-02-x1.jpg. SKUs 32211 and 32210 (200 g) use an Unior stock photograph visibly marked 812-300; that inconsistent family photograph does not establish the exact 200 g model.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "hammer-leroy",
+          "url": "https://www.leroymerlin.es/productos/unior-601799-martillo-para-mecanico-con-mango-de-madera-200-gr-serie-812-86346314.html",
+          "sourcePage": "https://www.leroymerlin.es/productos/unior-601799-martillo-para-mecanico-con-mango-de-madera-200-gr-serie-812-86346314.html",
+          "status": 403,
+          "file": "tmp/tools-v12/hammer-leroy.html",
+          "bytes": 774,
+          "sha256": "a4a48b42c700f5b8ef448ecdd784dcbca00ca077767943d93a247b389ca0c463",
+          "result": "Public HTTP403; no access bypass."
+        },
+        {
+          "id": "hammer-rodavigo",
+          "url": "https://rodavigo.net/en/p/mechanical-hammer-200-g-ref-unior-601799/543601799",
+          "sourcePage": "https://rodavigo.net/en/p/mechanical-hammer-200-g-ref-unior-601799/543601799",
+          "status": 403,
+          "file": "tmp/tools-v12/hammer-rodavigo.html",
+          "bytes": 5632,
+          "sha256": "1196eade6a16b58aead81142d8fdb82651ef5ab63a7b075adb7b75c5d7257e87",
+          "result": "Public HTTP403; no access bypass."
+        },
+        {
+          "id": "hammer-uniorusa",
+          "url": "https://uniorusa.com/products/locksmiths-hammer-200-813.js",
+          "sourcePage": "https://uniorusa.com/products/locksmiths-hammer-200-813.js",
+          "status": 200,
+          "file": "tmp/tools-v12/hammer-uniorusa.html",
+          "bytes": 8116,
+          "sha256": "32caebad5e69893e7c9e92d7a996bc95fbb7cc80c14f86f0b3fda6ce208571fe",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        },
+        {
+          "id": "hammer-gsk",
+          "url": "https://www.gsk-baumaschinen.de/Werkzeuge/",
+          "sourcePage": "https://www.gsk-baumaschinen.de/Werkzeuge/",
+          "status": 200,
+          "file": "tmp/tools-v12/hammer-gsk.html",
+          "bytes": 129171,
+          "sha256": "114130fd3210d313b7a96e3d70bfbab734e2f94dfc8833de24b8139819ecc3af",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        },
+        {
+          "id": "hammer-gsk-75331",
+          "url": "https://www.gsk-baumaschinen.de/Baubedarf/Werkzeuge/Allgemeines-Handwerkzeug/MMXX-Schlosserhammer-mit-Holzstiel-TUeV/GS-geprueft-300-g/",
+          "sourcePage": "https://www.gsk-baumaschinen.de/Baubedarf/Werkzeuge/Allgemeines-Handwerkzeug/MMXX-Schlosserhammer-mit-Holzstiel-TUeV/GS-geprueft-300-g/",
+          "status": 200,
+          "file": "tmp/tools-v12/hammer-gsk-75331.html",
+          "bytes": 60901,
+          "sha256": "6e739089594d82331f277af3c94c1576b3ec069b5d203df488e69d3e1e5332ab",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        }
+      ],
+      "findings": [
+        "New Unior USA200g Shopify data explicitly captions the photo as catalog812-300 and identifies this listing as200g. No incorrect300g photo redownloaded or assigned.",
+        "New exact200g Rodavigo and Leroy Merlin product pages publicly indexed; direct requests403 yielded no native source.",
+        "New Profibau/MMXX75331 /4016092753317 dealer source has70%beige and30%black handle finish, not historical burgundy/red ATEHNA hammer. Same300g weight and TÜV statement do not prove exact revision. No substitution or broad catalog inference."
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ],
+      "status": "bounded-fresh-pass-complete-with-gaps"
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "name": "Žagice za rezanje kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "identityEvidence": "ATEHNA source 32460 fine, 32461 medium and 32462 coarse: hardened 130 mm, 12-blade packs. Historical Pebaro package evidence maps 135-0 fine, 135-3 medium and 135-7 coarse; current 134-series is spiral wood/soft-metal and must not be substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "metal-warberger-native",
+          "url": "https://warberger.com/media/image/product/6106/lg/12-stk-laubsaegeblaetter-wera-z0.jpg",
+          "sourcePage": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-warberger-native.jpg",
+          "bytes": 17760,
+          "sha256": "cbacc385122d70c6f919f02359d36ad5090a98f81a6d07a889634834c997f998",
+          "width": 600,
+          "height": 600,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native600×600 fails minimum1024 on both axes. No enlargement or padding."
+        },
+        {
+          "id": "metal-toolchest-native",
+          "url": "https://www.toolchest.de/media/image/product/14218/lg/12-x-laubsaegeblaetter-fuer-metall-staerke-0.jpg",
+          "sourcePage": "https://www.toolchest.de/12-x-Laubsaegeblaetter-fuer-Metall-Staerke-0",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-toolchest-native.jpg",
+          "bytes": 23975,
+          "sha256": "dbdc708b78848e67d48eef29ac35893fb0d1b5bb53b20e71ac0cc5a9148d1fd9",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native800×800 fails minimum1024 on both axes. No enlargement or padding."
+        },
+        {
+          "id": "metal-shoepping-3",
+          "url": "https://cdn.shoepping.at/medias/sys_master/cloud-images-1621-21208957/images/1621-21208957/hbd/hd1/9251407888414/laubsaegeblaetter-wera-fuer-metall-groesse-1-12-stueck-1493359315307-42.jpg",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-shoepping-3.jpg",
+          "bytes": 22286,
+          "sha256": "5a6f138e50a5b82426277e069e7823600d02aceaa6ba1af1c6ac39ce758ed893",
+          "width": 1200,
+          "height": 1200,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": true,
+          "reason": "Fresh Schiessel/Shoepping medium listing exposes1200×1200 original, but native pack label reads WERA75 /Nr.1 /barcode4012121505712 while sold medium page claims EAN4006094135303. It is a different numeric blade grade/package, and the small horizontally placed pack leaves excessive white area. Lower100/300/600-square images are derivatives of the same capture, not independent views."
+        },
+        {
+          "id": "metal-shoepping-0",
+          "url": "https://cdn.shoepping.at/medias/sys_master/cloud-images-1621-21208957/images/1621-21208957/h59/h2d/9251408347166/laubsaegeblaetter-wera-fuer-metall-groesse-1-12-stueck-1493359315315-407.jpg",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-shoepping-0.jpg",
+          "bytes": 2405,
+          "sha256": "7f1b4f457fd539dde5c98f290e419949c5cad0b6a314c8a8224e6a4faa83d556",
+          "width": 300,
+          "height": 300,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native300×300 fails minimum1024 on both axes. No enlargement or padding."
+        },
+        {
+          "id": "metal-shoepping-2",
+          "url": "https://cdn.shoepping.at/medias/sys_master/cloud-images-1621-21208957/images/1621-21208957/h46/he0/9251408150558/laubsaegeblaetter-wera-fuer-metall-groesse-1-12-stueck-1493359315309-939.jpg",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-shoepping-2.jpg",
+          "bytes": 6948,
+          "sha256": "feb11da7f2cb9c708c237718bc7e6f53f3494371a8e2f6203302e6ebeb7aa8cd",
+          "width": 600,
+          "height": 600,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native600×600 fails minimum1024 on both axes. No enlargement or padding."
+        },
+        {
+          "id": "metal-shoepping-1",
+          "url": "https://cdn.shoepping.at/medias/sys_master/cloud-images-1621-21208957/images/1621-21208957/h89/h8b/9251408674846/laubsaegeblaetter-wera-fuer-metall-groesse-1-12-stueck-1493359315323-494.jpg",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-shoepping-1.jpg",
+          "bytes": 705,
+          "sha256": "5d7c1f3266384aa15f30070788a975b6ac266616d1dbf15a6c0e2c2f0eb0d0cd",
+          "width": 100,
+          "height": 100,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native100×100 fails minimum1024 on both axes. No enlargement or padding."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "metal-toolchest",
+          "url": "https://www.toolchest.de/12-x-Laubsaegeblaetter-fuer-Metall-Staerke-0",
+          "sourcePage": "https://www.toolchest.de/12-x-Laubsaegeblaetter-fuer-Metall-Staerke-0",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-toolchest.html",
+          "bytes": 877378,
+          "sha256": "eb1e788421d0cd0a9ac1f5a55c3a70da73a28fa16c4f5ad0cfcdd99982cacfc1",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        },
+        {
+          "id": "metal-warberger",
+          "url": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "sourcePage": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-warberger.html",
+          "bytes": 972697,
+          "sha256": "a817f6e80ba2fa3ea6c8d2d073c1ea48be6f9f6727dd6fc14033259722067ba7",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        },
+        {
+          "id": "metal-shoepping",
+          "url": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RJSX",
+          "status": 200,
+          "file": "tmp/tools-v12/metal-shoepping.html",
+          "bytes": 1520376,
+          "sha256": "a41fff1c3ab1dc4f24aa753454f02f92f310374cf058f8b0034e567503c7dc63",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        }
+      ],
+      "findings": [
+        "Fresh Toolchest exact135-0 original800×800 and Warberger/Wera0 original600×600 fail native minimum.",
+        "Fresh Schiessel/Shoepping medium listing exposes1200×1200 original, but native pack label reads WERA75 /Nr.1 /barcode4012121505712 while sold medium page claims EAN4006094135303. It is a different numeric blade grade/package, and the small horizontally placed pack leaves excessive white area. Lower100/300/600-square images are derivatives of the same capture, not independent views.",
+        "Fresh VanOmmen2025 manufacturer catalog has only tiny native blade/package objects on p17: max352×247 among all objects; product packs35–41×192–203. No rasterized page or enlarged extraction used."
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ],
+      "status": "bounded-fresh-pass-complete-with-gaps"
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "name": "Spiralne žagice za les in mehke kovine",
+      "variantSkus": [
+        "DOD-SPI-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Grobi robovi"
+      ],
+      "identityEvidence": "Only coarse source SKU 32473 remains in this scope. Fine 134-1 and historical medium 134-3 were accepted in v5 with converging ATEHNA filenames and readable real package labels; those approvals remain unchanged. Coarse original reuses medium photograph and does not establish a different numbered grade.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "spiral-vanommen-catalog",
+          "url": "https://www.vanommentrading.nl/catalogus/pebaro/Pebaro_figuurzaag_producten_gereedschap_en_zagen_2025.pdf",
+          "sourcePage": "https://www.vanommentrading.nl/catalogus/pebaro/Pebaro_figuurzaag_producten_gereedschap_en_zagen_2025.pdf",
+          "status": 200,
+          "file": "tmp/tools-v12/spiral-vanommen-catalog.pdf",
+          "bytes": 22669811,
+          "sha256": "757c808bb8f1d015bb71aa3fdb8ea2c87b20f23bc25515541564dcf7c9f219ce",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        }
+      ],
+      "findings": [
+        "Fresh VanOmmen2025 catalog page17 explicitly lists134-1..3 fine and134-4..6 medium, with no coarse134series. This does not resolve ATEHNA32473 coarse using mediumphoto or the oldno-7family slug.",
+        "Fresh public manufacturer134-6 listing and CoolBox134-5 corroborate numeric grades, not a genuine old coarse match. Existing accepted historical134-1/fine and134-3/medium remain unchanged. Do not infer current134-5/6 as coarse."
+      ],
+      "missingViews": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ],
+      "status": "bounded-fresh-pass-complete-with-gaps"
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "name": "Aluminijasto ravnilo z ročajem (40 cm)",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "identityEvidence": "Exact 40 cm handled TM Kovine RAGR040S1, EAN 3838853200080, 60×4.4 mm profile. Do not substitute other lengths or handle geometry.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "alu-tm-native",
+          "url": "https://www.tm-kovine.si/Portals/0/EasyDNNnews/401/1rag.jpg",
+          "sourcePage": "https://www.tm-kovine.si/Izdelki/Kovinska-ravnila/category/kovinska-ravnila/rag-ragr-ravnila-alu",
+          "status": 200,
+          "file": "tmp/tools-v12/alu-tm-native.jpg",
+          "bytes": 58816,
+          "sha256": "6764a70a292d5d94471349e7dee2a9025d56d9a683e89f6cfc1487a65b2df1a9",
+          "width": 500,
+          "height": 268,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Actual native500×268 fails minimum1024 on both axes. No enlargement or padding."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "alu-tm-current",
+          "url": "https://www.tm-kovine.si/Izdelki/Kovinska-ravnila/category/kovinska-ravnila/rag-ragr-ravnila-alu",
+          "sourcePage": "https://www.tm-kovine.si/Izdelki/Kovinska-ravnila/category/kovinska-ravnila/rag-ragr-ravnila-alu",
+          "status": 200,
+          "file": "tmp/tools-v12/alu-tm-current.html",
+          "bytes": 54471,
+          "sha256": "f3e286d03db8eb711cfea5d361e34f79f57e179daaeea7991273dc7f238fe4ca",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        }
+      ],
+      "findings": [
+        "Manufacturer current RAG/RAGR HTML exposes500×268 shared family original and names independent gallery photographs50cmRAGR050S1 and60cmRAGR060S2, not missing40cm. No wrong-length image downloaded or substituted.",
+        "Exact40cm RAGR040S1 /3838853200080 searches converge on prior INSTAL/Merkur and low-height historical catalog sources. No repeated original download."
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "status": "bounded-fresh-pass-complete-with-gaps"
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "name": "Ravnila za tablo",
+      "variantSkus": [
+        "MER-RAV-100-CM",
+        "MER-RAV-100-CM-MAGNETNO"
+      ],
+      "variantNames": [
+        "100 cm",
+        "100 cm, magnetno"
+      ],
+      "identityEvidence": "Plain centimetre-scale 100 cm ruler and magnetic equivalent. Source option SKUs 010400 and 01040m. Different decimetre/profi scales are not replacements for these variants.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "ruler-karl-native",
+          "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/s2071f04994970792/image/i03c8ad9691c65972/version/1392296278/image.jpg",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichengeraete-blackboard-drawing-instruments/lineale-rulers/",
+          "status": 200,
+          "file": "tmp/tools-v12/ruler-karl-native.jpg",
+          "bytes": 82013,
+          "sha256": "86a58d92b98c283d864fdf84e380de6eb6cf3aa8e11ec2806e76714d8a546c49",
+          "width": 1280,
+          "height": 850,
+          "format": "jpeg",
+          "decision": "rejected",
+          "visuallyReviewed": false,
+          "reason": "Fresh original Karl Wissner ruler page exposes native1280×850, which fails minimumheight. Its0100centimetre model belongs to a separate KarlWissner range and has not been proved identical to missing010400/01040m."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "ruler-karlwissner",
+          "url": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "status": 200,
+          "file": "tmp/tools-v12/ruler-karlwissner.html",
+          "bytes": 47630,
+          "sha256": "7b8adb94aef0235b71cf5cd91f006b349731a0068aced934f6d6ed27c0412c86",
+          "result": "Public source retrieved and exact model/gallery/embedded object evidence inspected."
+        }
+      ],
+      "findings": [
+        "Fresh original Karl Wissner ruler page exposes native1280×850, which fails minimumheight. Its0100centimetre model belongs to a separate KarlWissner range and has not been proved identical to missing010400/01040m.",
+        "Bekius newly found magnetic listing is cm+dm /EAN4260414064586, corresponding010300.M20 rather than missing plain-centimetre variant. No transfer from already covered decimetre scale."
+      ],
+      "missingViews": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ],
+      "status": "bounded-fresh-pass-complete-with-gaps"
+    }
+  ],
+  "summary": {
+    "families": 5,
+    "remainingVariants": 11,
+    "sourceRecords": 19,
+    "downloadedImages": 8,
+    "acceptedOriginals": 0,
+    "stagedPublicAssets": 0
+  },
+  "additionalEvidence": [
+    "tmp/tools-v12/spiral-metal-catalog-evidence.json"
+  ],
+  "independentPeerReview": {
+    "file": "tmp/tools-v12/artloco-peer-review.json",
+    "verdict": "root-owned aluminium200×300×0.5mm whole-main accepted; not counted in this tool ledger"
+  },
+  "integration": "No database, canonical, runtime, commerce, stored-file or product association mutations."
+}

@@ -1,0 +1,3767 @@
+{
+  "version": 3,
+  "reviewedAt": "2026-09-13T20:38:23.980Z",
+  "status": "applied-and-verified",
+  "policy": "Actually delete rejected product-photo records and their variant associations, including historical hidden/generated originals and photos below 1024 pixels on either native axis. Preserve ALL technical schematics, including hidden records, metadata, IDs, positions and associations. Install reviewed native replacement originals at their anchor positions before removing the old sources. Files remain available in source/recovery storage; physical deletion is deferred to reference-aware storage lifecycle.",
+  "inventorySnapshot": "tmp/product-image-audit/production/inventory-before-actual-v3.json",
+  "sourceLedgers": [
+    "data/catalog/product-image-remediation-2026-09.json",
+    "data/catalog/product-image-replacements-v3-2026-09.json",
+    "data/catalog/replacement-sources-tools-2026-09.json",
+    "data/catalog/replacement-sources-materials-2026-09.json",
+    "data/catalog/replacement-sources-supplemental-2026-09.json"
+  ],
+  "expectedProduction": {
+    "photographsBefore": 292,
+    "technicalSchematicsPreserved": 151,
+    "mediaDeletes": 268,
+    "hiddenPhotographDeletes": 195,
+    "visiblePhotographDeletes": 73,
+    "nativeReplacementInserts": 7,
+    "photographsAfter": 31
+  },
+  "removals": [
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-v-roki.jpg",
+      "sha256": "55edd064e26c33beccd43c1169c1692ab1960ae7ef08cf918fa474fc20124641",
+      "reason": "human-body-present",
+      "reviewNotes": "Human hand visible; also supplier grade and cut are not established for delivered stock.",
+      "inventoryMediaId": "282",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 2000,
+        "height": 2000
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "226",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 6720,
+        "height": 4480
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "114",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 6720,
+        "height": 4480
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+      "sha256": "5c646c91b2257a2de3407338881ad4ec78ed8a36ccf74ad1877e80dc281823e9",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "137",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 6094,
+        "height": 4160
+      }
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "259",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 6720,
+        "height": 4480
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-real-uporaba-unior.jpg",
+      "sha256": "3a25ef9622c9498c8429414d86b8faf3cc8736c5af4cbd4b3732e351e1239d3b",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "inventoryMediaId": "273",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-rezanje-plocevine.jpg",
+      "sha256": "1cdccd20439bbb5d1ab005fa72fb5785a22b0af0e91f5af1eede4148a7010652",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "inventoryMediaId": "275",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1200,
+        "height": 821
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-v-ucilnici.jpg",
+      "sha256": "ae10fff37244b32fc636e4e45e9f72430dfb86dedb99c3d7f916e65fad299fc5",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "inventoryMediaId": "185",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1000,
+        "height": 679
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-real-primer-nosenja.jpg",
+      "sha256": "6b6bf76c6259de7fc285c84d36118157edc074dc1312d87fbb8b48bcf5e6a136",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "inventoryMediaId": "279",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 800,
+        "height": 1200
+      }
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-ustvarjanje.jpg",
+      "sha256": "7d4d8cb6cdd2e81000b1e625fd8a94ac2bcd6977c32d73a937709b9ec06d368e",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "203",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1943,
+        "height": 2560
+      }
+    },
+    {
+      "slug": "ploscata-baterija",
+      "blobUrl": "/images/catalog/2026-09/baterija-ploscata-ucilnica.jpg",
+      "sha256": "c5945642f60b6da19bb6ad9f1b459cb1b5592f877e0c593469e4ed4344f0e5c9",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "215",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1748,
+        "height": 2560
+      }
+    },
+    {
+      "slug": "ploscata-baterija",
+      "blobUrl": "/images/catalog/2026-09/baterija-ploscata-elektricni-krog.jpg",
+      "sha256": "dde93256f5c86807f83303c28c5f956198fe0009a59054e9ef12cf60fcdca2fe",
+      "reason": "human-body-present",
+      "reviewNotes": "People and human body parts are visible.",
+      "inventoryMediaId": "216",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 2103,
+        "height": 2560
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-pogled.jpg",
+      "sha256": "323b008b0f0aa80ca5d3cfdfb7ecf7bbb2126a56bc5cd62695a50df14383cf5c",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Authentic supplier studio photograph, three fully visible plain aluminium sheets; clean edges and neutral silver surface. Source product explicitly 0.5 mm. Generic material view, not proof of one exact selected cut size or package count. No generated texture, no new edits. Also serves the existing local 300 × 200 × 1 mm test/legacy variant as a general aluminium material photograph only, without asserting pictured sheet thickness. This selector neither creates a format nor changes catalog measurements.",
+      "inventoryMediaId": "281",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1000,
+        "height": 1000
+      }
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-na-podlagi.jpg",
+      "sha256": "66ca41e3ae62de70b41baf86abd63a14d7ff8f2b6a5b7a2e57423d0e3d895bad",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Sharp real photograph: copper sheets fanned on a used green cutting mat; natural scratches, fine edges and copper colour visible. Supplier page explicitly 0.5 mm, source cuts 200 × 400 mm. Framing is a source detail, not a complete plate; do not claim source cut dimensions equal the offered variant. Native 900 × 837 photograph has stronger true detail than the old 600px RCM source. No edits.",
+      "inventoryMediaId": "283",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 900,
+        "height": 837
+      }
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-povrsina.png",
+      "sha256": "70a570dd72da98fda43573763ff6fe15e480d3ec1aed48c897ba82899b773af3",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Supplier photograph is a 495 × 195 mm sheet, different from the sold cuts.",
+      "inventoryMediaId": "284",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1920,
+        "height": 2400
+      }
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-rob.webp",
+      "sha256": "c802d093a4a735e5e1bc600fbc2e2041e292b89f2090faa61ff1ff70236affa4",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Generic DX51 galvanized-sheet material corner; delivered grade, finish and cut are not proven.",
+      "inventoryMediaId": "285",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-pogled.jpg",
+      "sha256": "f7b70f5a8d142b2733b5c30a2634545fee5feb514abf9a98b650db467601eb0a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Authentic retailer photograph of galvanized steel sheet. Family material view, not exact selected dimensions; source offers0.5mm thickness but photograph is reused across formats.768px native delivery; no upscale or edits.",
+      "inventoryMediaId": "286",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 768,
+        "height": 768
+      }
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-rob.webp",
+      "sha256": "f3d947f692b59980e38849b36b336cc94802945968f3d2269978004ee53aa4ed",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Generic brass-sheet detail used across cut sizes; delivered stock and exact cut are not proven.",
+      "inventoryMediaId": "287",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-povrsina.jpg",
+      "sha256": "fba8da908ded30136f3337c97a3fdf1220855fc2378e04d07dded61f4ed7397f",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real close-up of brass sheet surface from supplier offering0.5mm thickness. Natural marks retained; material detail without size claims. Original JPEG, no edits.",
+      "inventoryMediaId": "288",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1152,
+        "height": 784
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
+      "sha256": "fba6a5efdc3ea98603a6157c2f8849374a9b5ffb23cf1421f3748765bf3dcbe6",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged supplier material detail used on its 3 mm listing. Image filename says 5 mm; do not infer measured thickness from photo. Catalog dimensions remain authoritative.",
+      "inventoryMediaId": "221",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 671,
+        "height": 574
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-beli-akril.webp",
+      "sha256": "10b221de64aa7b0d99233c6e41e897de88828519153abd3c0ab51bdbdd2bcfcf",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real white 3mm acrylic supplier photograph; generic material representation, no claim of matching delivered cut dimensions or brand.",
+      "inventoryMediaId": "222",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-barvni-vzorci.jpg",
+      "sha256": "e8c375511f129f7984af9af5b10e286125fa2d016d637792aa506e2bd4963c39",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual 3mm acrylic sample selection; not a supplied set. For variants 4 and 6 this is only a family material selection because exact color is unspecified (source4 allows clear/colored). Rounded sample corners do not describe delivered sheet shape.",
+      "inventoryMediaId": "223",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1000,
+        "height": 1000
+      }
+    },
+    {
+      "slug": "stiropor",
+      "blobUrl": "/images/catalog/2026-09/stiropor-real-eps-plosce.webp",
+      "sha256": "084add128e4776d55f8942e30615d3b911b4f0e7bf6505b5cb9afc18fabc7b52",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Supplier photograph depicts a 600 × 400 × 10 mm EPS stack, different from the sold cuts.",
+      "inventoryMediaId": "224",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1500,
+        "height": 1500
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-listi-v2.jpg",
+      "sha256": "87b1578895e1aa9ebc72bed49454b5ea12994e4762ef435e358201598cb53b1f",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph from the Muflon A4 white 200 g paper listing. Representative white 200 g material view across the catalog formats, not evidence of the supplied brand, exact sheet dimensions or stack quantity. Native 658 x 606 pixels. The complete stack, bent top sheet and visible edge shadows are clearer at card size than the earlier flat format collage. Retain the original format image and older files for rollback.",
+      "inventoryMediaId": "441",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 658,
+        "height": 606
+      }
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-real-belo-siv-material-v2.jpg",
+      "sha256": "e4a0543970b879bf74f577d3be6ed90a84bc2c1701ea5ea71c92304b666e0b56",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph of white-coated, gray-backed GD2 card samples. Generic material representation: the supplier listing is approximately 400 g Igepa card, whereas the catalog Grafopak is 350 g; do not infer exact brand, weight, thickness or cut size from the photo. Two complete samples show the white front, gray reverse and natural shadows. Actual downloaded dimensions are 800 x 600 pixels despite the 1920 URL label; no upscaling or local image edits. Retain the original Grafopak-specific Velpapir detail and older files for rollback.",
+      "inventoryMediaId": "439",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-real-primer-uporabe.jpg",
+      "sha256": "a6507d86015b82eda9e14f59c60ad53d9b25758e63af545877e9d4d3a26896fa",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph from the Grafopak product page, showing a folded gray board tray with strawberries on a wooden surface. Application example only: not the sold A3/A4 format, not an included tray or food, and not evidence of food-contact certification. Native 450×390 resolution retained without upscaling; independent view from the existing material photograph.",
+      "inventoryMediaId": "254",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 450,
+        "height": 390
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-real-izbor-barv.png",
+      "sha256": "eb19b360f87dc3f9313c733e0ba6dfd8cd73a76ce81a01d5799b0c3086b459f5",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real Antus photograph of300g B2 cardstock color assortment. Used honestly as family selection, not a calibrated proof of individual shade or a delivered assortment. Native705×675px. Exact tiny ATEHNA color chips are research references only, not gallery heroes.",
+      "inventoryMediaId": "255",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 705,
+        "height": 675
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-real-zlati-srebrni-karton.jpg",
+      "sha256": "ee31ed4252cb8282b8794a569af206546c285d9f8fcf5bd370bc2471ef9e63c7",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Generic paired gold and silver metallic cardstock photograph; exact material, shades and delivered cuts are unproven.",
+      "inventoryMediaId": "256",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
+      "sha256": "86855307681dfd495a07a50706a5cc19a4f73a3864dfe673508c46b393d6a978",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real unbranded white board material photograph; only explicitly white variants assigned. Supplier board thickness1.25mm is not applied to catalog, whose white thickness is unknown.",
+      "inventoryMediaId": "257",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 640,
+        "height": 640
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+      "sha256": "710fbbb6206acf5262b01fd5320fb184b2da6f43f56933fe7ae2e1496f068061",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Second actual white board detail; representative material photo, not proof of exact thickness or format.",
+      "inventoryMediaId": "258",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 640,
+        "height": 640
+      }
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg",
+      "sha256": "c73793227d9c3d30e5535dbd441aa56b68a70784aa8f5e25e1cf503ed5c41e4d",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Artway 170 g drawing-stock photograph; this weight and manufacturer are not established for the sold ATEHNA stock.",
+      "inventoryMediaId": "440",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1500,
+        "height": 1500
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-bukev-povrsina.jpg",
+      "sha256": "dd3fd23a81d795cd5c436d198dca1dad27781c21f7f5a9b058f3d5d6d909990c",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual beech plywood supplier photo. Species matched; image is a material reference, not a claim of displayed cut dimensions.",
+      "inventoryMediaId": "260",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-povrsina.jpg",
+      "sha256": "746c3f54308f6aef69af311166e4c1386054faa7d6c65759fc7b77dd60455267",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual poplar plywood closeup on textile, preserved unchanged. Species matched; representative material rather than exact thickness/format.",
+      "inventoryMediaId": "261",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-rob.jpg",
+      "sha256": "9c6ad461cdb7e2c8a88f989cee16df45a3b965e99de38772d821cc9d4731ae87",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Distinct actual closeup from same poplar supplier, no edits.",
+      "inventoryMediaId": "262",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "blobUrl": "/images/catalog/2026-09/krivilnik-real-primer-akrilnega-izdelka.jpg",
+      "sha256": "34e408ef3448ea017fa31f245680937f7772945ace28a0352cae74004cb6daea",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real completed classroom project photograph. Winkler101377 description explicitly specifies drilling and heat-bending clear3mm acrylic using a thermo-bender. It illustrates a suitable application outcome, not proof that the pictured project was made on this exactTHERMOFORM400 machine. Exact original machine photo remains first. Native600×600; pens and paper are example context only.",
+      "inventoryMediaId": "269",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-1.jpg",
+      "sha256": "6a8948ecc822536800be6dc792ceead2e9be20c2baf9bd99af235692ba0d64cd",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Representative BGS 200 g hammer; model and brand are not established for the sold ATEHNA hammer.",
+      "inventoryMediaId": "270",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 2560,
+        "height": 1839
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-2.jpg",
+      "sha256": "d1aaf8bda790de0d3e94f64186abe7e0b25f857a2b06601defa9122a61af7f2a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Representative BGS 200 g hammer; model and brand are not established for the sold ATEHNA hammer.",
+      "inventoryMediaId": "271",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 2560,
+        "height": 1597
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-lux-180.jpg",
+      "sha256": "2fb54ac4f401d381053b3def76ae2c65a6289878658855d4ed880e84839afb9a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native 1200×821 real retailer photograph of LUX Comfort 180mm, EAN4007875388307 matching the existing OBI representative individual tool. Higher-resolution replacement for the existing415px view; not counted as a separate capture from that old hero. Intended ten-piece stand is not pictured and its brand is not inferred.",
+      "inventoryMediaId": "274",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1200,
+        "height": 821
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-real-kolut-detajl.jpg",
+      "sha256": "fdfaa64329fe6c7797291a0043613ed452e56d87886434cfdff18a62c2cfedcc",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "OPITEC solder spool with a different documented alloy and construction from the original sold spool.",
+      "inventoryMediaId": "276",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 2560,
+        "height": 1981
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/zagice-za-kovine-real-detajl-zob.jpg",
+      "sha256": "3ecd518bca9e0216b166a5100e3e488641ebe89f806184a1957c9042972ca927",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native600×600 close-up from the Pebaro metal-blade supplier page, showing real dark blade edge and natural shadow. The source is No5; exact numeric grade mapping to the catalog fine/medium/coarse labels is not verified, so this is a qualified family detail only. Existing grade-neutral genuine pack photo remains the shared variant hero. No tooth counts or package quantity are transferred.",
+      "inventoryMediaId": "278",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-celoten-pogled.jpg",
+      "sha256": "4caf19cf1bf546d3a4e9530fa0ff666af4be258aae83fd03fca8cc809d4b9006",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native900px genuine TTS product family1032927 gallery photo (035049). Matches the planned TTS catalog family; supplier sourcing remains unconfirmed against historical ATEHNA45002. No certification inferred.",
+      "inventoryMediaId": "194",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 900,
+        "height": 900
+      }
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-detajl-rocice.jpg",
+      "sha256": "339c18bbe2b0cfe571b327744602a8c83fc39b33933a9840492a252d883d61fe",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native900px genuine TTS product family1032927 gallery photo (035049). Matches the planned TTS catalog family; supplier sourcing remains unconfirmed against historical ATEHNA45002. No certification inferred.",
+      "inventoryMediaId": "195",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 900,
+        "height": 900
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-2.png",
+      "sha256": "7eb60a9c1b1aea774c511ad49645410080e150566474419d2c1eea3e503ed0e9",
+      "reason": "byte-identical-duplicate",
+      "reviewNotes": "Exact SHA-256 duplicate of retained vezana-plosca.png; does not add a new view.",
+      "inventoryMediaId": "20",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminij-200-100-delavnica.png",
+      "sha256": "0eedf6b98773840f6f50c8c45c481d2123b1543bcdec5c6944c5a9d97628b78f",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance.",
+      "inventoryMediaId": "75",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminij-300-100-delavnica.png",
+      "sha256": "901019ffbecae3ef0939ccd2f60a2543fa899668f1add6de2afd359a285f4dae",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance.",
+      "inventoryMediaId": "76",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-kvadrat.png",
+      "sha256": "827e7bc7e46330b94b4a3edb135d755528f7e449ea74b6d74941216566c33983",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance.",
+      "inventoryMediaId": "3",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-pravokotnik.png",
+      "sha256": "ac05d534a98c6a35e2196337c2c90dd2e9f973267a798170bfdea8025e6b66a2",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance.",
+      "inventoryMediaId": "4",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/categories/materiali.png",
+      "sha256": "3460a20f3aa8cc681171ea94af677f927a80bdab6ca4faf6505cc2d18d05526a",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/categories/materiali.webp",
+      "sha256": "bfbf1d45b1a6339c7b47f91ede915b77a0110a20ee41dfa33c2096498879d2dd",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    },
+    {
+      "slug": "jeklena-merilna-letvica",
+      "blobUrl": "/images/categories/materiali.png",
+      "sha256": "3460a20f3aa8cc681171ea94af677f927a80bdab6ca4faf6505cc2d18d05526a",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/8ea2adae-a1ea-4bc7-ac17-de046087e0a0-aluminij_200_200_05.png",
+      "sha256": "827e7bc7e46330b94b4a3edb135d755528f7e449ea74b6d74941216566c33983",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "1",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/6e4e9b4d-4fa2-46dd-ba34-594d86c7bd0d-aluminij_300_200_05.png",
+      "sha256": "ac05d534a98c6a35e2196337c2c90dd2e9f973267a798170bfdea8025e6b66a2",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "2",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-pravokotnik-studio.png",
+      "sha256": "e7827b7b7964223ba4399c5cd2c350b84595ebe10aa8492eaa91f2ee541aac52",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "77",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-kvadrat.png",
+      "sha256": "58511918c8f255a543644a395ad4139c1bff13d6fb2a0489fa6fabad58a85166",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "5",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-kvadrat.png",
+      "sha256": "deaa9fa5ef92cfaae74b8def6eb129f5e7411889c4932fcbb12b22b9502e962f",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "6",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-pravokotnik.png",
+      "sha256": "625b588153f268774c2de53f9182ef542ae3b2cc2ae24e9b6d7d3bee8f18939b",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "7",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-kvadrat.png",
+      "sha256": "dd60e8b8c5a07cfe85061693dd9d874128815eed723863d179b3af766b1f9d92",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "8",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-pravokotnik.png",
+      "sha256": "56a14a203d0eb5abae448d215257d40f44c980040afe64b8547d6a05f320e39d",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "9",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks.png",
+      "sha256": "700347f73dcd460d8f1b7ee76439acc0662f6070b43417c94de575b59eeda7da",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 312 × 312; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "10",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 312,
+        "height": 312
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "blobUrl": "/images/catalog/2026-09/pvc-penjeni-pravokotnik-studio.png",
+      "sha256": "f02a7f186dfc40e91cf86e7a263f41af8ba684ac38ba16e2b6a82232ba329198",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "78",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "blobUrl": "/images/catalog/2026-09/pvc-penjeni-kvadrat-studio.png",
+      "sha256": "53fc9f6f7d674b42557cdb3ce18c446cd4c63a93b8e403a57e1529974e46511c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "79",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-steklo.jpg",
+      "sha256": "f75a0d472b1fa972059692c919c3cacfbb3cbc5b59d83b2bf4f0457eba9e4373",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 800 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "11",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-prozorno-studio.png",
+      "sha256": "15d6138c6e79a35d9c2726d98468a42bb66487914f17f3908db9e96e6997112b",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "80",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-belo-studio.png",
+      "sha256": "4eca562e90ea596582ad318596651bdbc3e2d3acb9d28f939e667b619b0daf26",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "81",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-barvno-studio.png",
+      "sha256": "7c05e101d36558c147b43c59ba9417232fb6ab6f9951d7df6ba4b9a09289b6ef",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "82",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-izvedbe-studio.png",
+      "sha256": "3425003f88ff124ee34d90c74aa911943206b669ef1405718aa10cb6c39cffc3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "83",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "stiropor",
+      "blobUrl": "/images/catalog/2026-09/stiropor.png",
+      "sha256": "ea7569946dbabfbfa3accc9f635335dc7cc276345e8b78a31dfaf23ef1777d9a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 625 × 625; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "12",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 625,
+        "height": 625
+      }
+    },
+    {
+      "slug": "stiropor",
+      "blobUrl": "/images/catalog/2026-09/stiropor-10mm-studio.png",
+      "sha256": "39e9351c748048c987d44196a6ee535442e97aaefc11798407ab41fd2f7ddb53",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "84",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "stiropor",
+      "blobUrl": "/images/catalog/2026-09/stiropor-20mm-studio.png",
+      "sha256": "570af82e4f8346e0ce90f5c7576b9dd49603809c50a255b7c99fc2dd6e3ab543",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "85",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-formati.jpg",
+      "sha256": "514ef509f23aef5056f268da47e35f3ff5d8163e049b4f57582d89a4f50028c6",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1427 × 925; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "225",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1427,
+        "height": 925
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer-studio-2.png",
+      "sha256": "b1e8d385f9a43c1b4efb32106288fb484562628a5b43f63f6d189ac61bb31233",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "86",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer-kontekst.png",
+      "sha256": "90bf022451e70590615e1bdf14b0d20eccd459bd9def2bebbba3acfa07d347e7",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "87",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer.jpg",
+      "sha256": "19bf5424f9409178a4747260da80d5de4af97b25cd9a172ea969bc046e429297",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Historical override explicitly described this as a representative photograph of A4 200 g white paper from Kopija Nova, with no established identity for the sold ATEHNA stock. Source image is soft and does not provide useful zoom detail.",
+      "inventoryMediaId": "13",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1080,
+        "height": 1080
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-pregled-barv-v2.png",
+      "sha256": "a8c4f08dc7f80c85c985a3cd072a2892a7987181dc5b5c8e627054b81bae9542",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 300 × 300; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "438",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-strukturno-bela.jpg",
+      "sha256": "4b80487cddbc183fda56e55066b597f794ad5535d3ab2417c2e75db5d370c7a8",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 481 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "227",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 481,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-rjava.jpg",
+      "sha256": "9035e0fe71319b5d89af8545cde30a3c4afe57e41a369aeb15e1ef891c84a585",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 485 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "228",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 485,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rjava.jpg",
+      "sha256": "9efa473d7f50c3875c1a8ce275149c28d93cba4b2842151044492f0846d89801",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "229",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rjava.jpg",
+      "sha256": "acedd7c1f07959baf01bfb2f80a871460903d43ffbb84ab74f4dbd5f207d65ac",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 474 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "230",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 474,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-lila.jpg",
+      "sha256": "c023d6c66b28aa3ecf5f0d7d8bbbebd0f719ed3adcdf5c34fb231fa4bbdd2510",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 473 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "231",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 473,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vijolicasta.png",
+      "sha256": "8b3957ebe6dc20dfcb765fea224f999398dd1f996e5b54f6df55bb0f32266398",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "232",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-crna.jpg",
+      "sha256": "2f575fd016621c4d2f2f5ed95e18b4f1aac96c8dda54e9ad50b406d89b4f4508",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 472 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "233",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 472,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-siva.jpg",
+      "sha256": "5c49fb06b318bfbd4ba6f030f6c37641ac3afd68a91550192bc0f6cf3957b8ae",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 480 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "234",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 480,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-roza.jpg",
+      "sha256": "48e467590eaaef5608c1584b36bbdaf29268fb62632dcf4371128ef0de035ffb",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 484; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "235",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 500,
+        "height": 484
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-lila.jpg",
+      "sha256": "7f5a4c6f45a440960c3e54ba3bff251e6abafc935e673c06dbc1f05f3cf7e362",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "236",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-travno-zelena.png",
+      "sha256": "43414d59711d1e0578ac19fdf35ca50276bd5e0302b8df0a0eea3104be4c4e26",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "237",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-zelena.jpg",
+      "sha256": "7cd04295fcc4ebdc8438b8805a7ff9e2af73e4f0e3b0c80df15ba6cc31bac131",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 478 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "238",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 478,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-zelena.png",
+      "sha256": "2ce519b59fb9441f04d53a8693f58051bd66fac5fefe8a573720fa26b13e45e5",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "239",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-zelena.jpg",
+      "sha256": "20d01c82d114917fd35b9b5bd353959340cc74e925a1386fa38dd9280ea7ad3d",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 469 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "240",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 469,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-oranzna.png",
+      "sha256": "b559dbcaaabe2c12a538ac8da37278c1575b3488e3de8ddefca9dce0886f7871",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "241",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-modra.jpg",
+      "sha256": "fe1c5230e316539687b38d98ad53f438041d15492f1196f7c2a038e6e14f08f2",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 484 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "242",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 484,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-nebesno-modra.jpg",
+      "sha256": "2be247c4474516f6f9ef4e7df2225fae201e91a15e9323961630eb612ce8a42e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 490 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "243",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 490,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-kalifornijsko-modra.jpg",
+      "sha256": "956fbb35d78fac655596f0529a7fa5dd4a8bdefd200c5a1740a931ee5dde966f",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 494 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "244",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 494,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-svetlo-modra.png",
+      "sha256": "c0f9b8bf308a9005c24eba5c9e36c66e1f5a93e68ee305cfd2100f43c06b871b",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "245",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-temno-rdeca.jpg",
+      "sha256": "97e27a9d5b787d7ed691a3f3bf70cb14ccc453088c9eea940ba6776b72327b35",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 491 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "246",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 491,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-vinsko-rdeca.png",
+      "sha256": "000ce4884e7d8a48341932e45f55338bdac2d014e3c85b92f6cf68922b88e70e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "247",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-karmin-rdeca.jpg",
+      "sha256": "67c31bc3dddaaa397d32b7722b2aa3a958035741921ff074ece3c2a947a7e1a3",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 465 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "248",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 465,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rdeca.jpg",
+      "sha256": "b7afe4186efc9dc0774177d69a7dcb4968228f0c81c9442dff7334b9319a810e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 474 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "249",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 474,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-koruzno-rumena.jpg",
+      "sha256": "425019afbfa238768f537ece0313d9584d0b831bed1e52f7499af8ccd2f06fdd",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 474 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "250",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 474,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-marelicna.jpg",
+      "sha256": "897b76a647bbd737e05830d5d83ba129d4169553ccfc878ea750cb4372ffe66f",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 496 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "251",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 496,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-intenzivno-rumena.jpg",
+      "sha256": "8068c2d2820fdfc44237b45763d8b138904025709712203707dd7be17656a02c",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 477 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "252",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 477,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-real-rumena.png",
+      "sha256": "c7dafd782efcfc2d65c75d0708997665658921973f185439d08231b0abc8751a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 483 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "253",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 483,
+        "height": 500
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-strukturno-bela-ilustracija-v2.png",
+      "sha256": "79db9009d882d3b88b1174ed592be413324977efbd92ee2d5cf486bb97d6feb5",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "88",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-rjava-ilustracija-v2.png",
+      "sha256": "29df82bcc7638d68962442ec69803c4179caa7fe5a99e73351099926daf70cb0",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "89",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-rjava-ilustracija-v2.png",
+      "sha256": "3939b54c82b2afc2629502b8f6112b3c6723e6eb0192e629584da0b11330cb2e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "90",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-rjava-ilustracija-v2.png",
+      "sha256": "61fd3b72e599d620199b85fdd5ff334b04b9df9bdb60f9433caa28d5269a439c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "91",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-lila-ilustracija-v2.png",
+      "sha256": "e0526952a0066ca6f48dc8a1264b680d51f8661e948d3d75a9f1323c6eb1b319",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "92",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-vijolicasta-ilustracija-v2.png",
+      "sha256": "8214c6d37a27ef0dc8a91c31b48239450d8167f23c8bfbcbf42fc9c2b7da91a4",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "93",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+      "sha256": "8e459a1cb6997d20d0bb1b8bdabd0247119b53ae9a3ab2fee3a96d7f632530b3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "94",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-siva-ilustracija-v2.png",
+      "sha256": "9c04944f1742b54b26fdef49a64ad1029be96a8d56a66a310570876cfa00b83e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "95",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-roza-ilustracija-v2.png",
+      "sha256": "ca8583d7da1d0fa1e2a570a59b7aff92c1add78b421b1e69067d6a716e900c82",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "96",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-lila-ilustracija-v2.png",
+      "sha256": "324b1f471e9d5d554f73acb4f0578921317474024e3eb2742a99f93b121cb8af",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "97",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-travno-zelena-ilustracija-v2.png",
+      "sha256": "e9731face3bef472ca3701eb6943969328b2a7bc8c307233efc2bdd434e93c42",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "98",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-zelena-ilustracija-v2.png",
+      "sha256": "f64131f0ab99453612398567ea3920fb3570b25f6bc98804bec7030fa4fc87b6",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "99",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-zelena-ilustracija-v2.png",
+      "sha256": "72ee25e10e8848f46695bb29a69bd8d3ec9e91f7b98672cdd8594b8291e3ad25",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "100",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-zelena-ilustracija-v2.png",
+      "sha256": "a17d48636b1763d47d4dedb0178c6b1c6176cf124a8d3af816994d56aba2386c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "101",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-oranzna-ilustracija-v2.png",
+      "sha256": "2bd11003e20e056061e3c17d373508aa82db62e28405d132e09e73bee34ac4e1",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "102",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-modra-ilustracija-v2.png",
+      "sha256": "1d193378176ae81d3dd71438244c859247e537f782212891d80ae953bd718fd5",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "103",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-nebesno-modra-ilustracija-v2.png",
+      "sha256": "d71ae92c4ba6e5333f99207f7df68ac1d4ab1966e238a3a0c1113bb727f79d2f",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "104",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-modra-ilustracija-v2.png",
+      "sha256": "829ee092e45ad2d281b1a4349b80f6c93c6bd120b0d47e44d5a77b7a02891315",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "105",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-temno-rdeca-ilustracija-v2.png",
+      "sha256": "eb62bea51ada62d84e10ee1d5935c34aab53c583913fd61323a697f92aba24b8",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "106",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-vinsko-rdeca-ilustracija-v2.png",
+      "sha256": "854caa0bedb1649f5355e72dfe14863e13a3556ddbac9469801f3d226762da0c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "107",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-karmin-rdeca-ilustracija-v2.png",
+      "sha256": "e94c50aef69c5af444f1e3d61cecd81ebc0daf8f965e47ccaa3a8a3b4e44d56b",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "108",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-rdeca-ilustracija-v2.png",
+      "sha256": "aa3e28ec7bd10b637f192e058980f859c0984f5476945dea4b6b3063c75eaf77",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "109",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-koruzno-rumena-ilustracija-v2.png",
+      "sha256": "b7d22accb85122d802c0c9c13024b450681112127d90f20611e1675b207208f7",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "110",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-marelicna-ilustracija-v2.png",
+      "sha256": "42c6892cc0428f7a5381d750793c34f5e20adebd2ec75d44aba85dda67eed154",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "111",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-intenzivno-rumena-ilustracija-v2.png",
+      "sha256": "975c53c887b1587e2f1f28aeec37192e0c2cce896f75c07fac9abcce85003d44",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "112",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-rumena-ilustracija-v2.png",
+      "sha256": "c6fb146b7b839e769a18bbe552e5ef5dc10f889c7cbdcc1b6b76622a693b508c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "113",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir.png",
+      "sha256": "a8c4f08dc7f80c85c985a3cd072a2892a7987181dc5b5c8e627054b81bae9542",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 300 × 300; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "14",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-studio-1.png",
+      "sha256": "33271ee80174cdc61332525d0d0db130db455808aa9be2bc9110a8bf4baf36b6",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "115",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-studio-2.png",
+      "sha256": "ec257f4d5e19142ed45440802037b4f69d456d1001b1273d112ae8c2421401c3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "116",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-crna-ilustracija-v2.png",
+      "sha256": "8e459a1cb6997d20d0bb1b8bdabd0247119b53ae9a3ab2fee3a96d7f632530b3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "117",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-srebrna-ilustracija-v2.png",
+      "sha256": "c38394f92b1a0784bb4f430b88124d58642779b4c421021feb902cf625c2d087",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "118",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-siva-ilustracija-v2.png",
+      "sha256": "eeb2c7919b3886361bf11c8bbde89e1c3f8f7abed162b8c668d3ee9801096929",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "119",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-zlata-ilustracija-v2.png",
+      "sha256": "14c6b9f607ffecaae0f00a4c576e19e7370c50d3ff8f45113b5f85f7a724d487",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "120",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-svetlo-rjava-ilustracija-v2.png",
+      "sha256": "e6526c73e6f99ca058e7a60c4b5dc01ad03a7a87ff140dab1f2b70ed3663d8e9",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "121",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-rjava-ilustracija-v2.png",
+      "sha256": "c665520c648df326663427a3fa97242b53b2cfbdf6da95e64cbfe0b3fbb5f729",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "122",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-vijolicasta-ilustracija-v2.png",
+      "sha256": "173680f95b6364214f6b86b4dc07b8fd1364057d1dc11faafb253bc480623605",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "123",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-lila-ilustracija-v2.png",
+      "sha256": "91553929072f84df0e7e30cb5d473622d0211f04c0391253ebe9ee9c07f41ee2",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "124",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-temno-zelena-ilustracija-v2.png",
+      "sha256": "bb88dbd42d31f94187bb80bbf0630addbe0cc173f27b2d365b3db038cdfd9693",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "125",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-zelena-ilustracija-v2.png",
+      "sha256": "a0aae630cb36feaabb36df4b38970e06b2efa19d3a5b9b0ea0d590c873661549",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "126",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-oranzna-ilustracija-v2.png",
+      "sha256": "db1bf5fea4db730627aa1b929f86e6347357440087eb5676f6807437496d077e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "127",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-kraljevsko-modra-ilustracija-v2.png",
+      "sha256": "c0aca3186179892b207c54a6a9357b5c9b52f4569518260f50ce921113df88be",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "128",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-modra-ilustracija-v2.png",
+      "sha256": "656f73998542b2f2bbe98dc014fe46f7b17c0c341b4e972a6d4ca41292c52c58",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "129",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-temno-modra-ilustracija-v2.png",
+      "sha256": "911086c833797d9cc95c3616aa56bf61c28f90e69788177a35312f34230a2ae5",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "130",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-temno-rdeca-ilustracija-v2.png",
+      "sha256": "5d6c810c9446bfff9deb6b506bffcc77fe03c03a195d2e80d63b81e9bc682693",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "131",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-rdeca-ilustracija-v2.png",
+      "sha256": "433acf668b50ae3871ecbc1c246b0d04aa36cd6631a427986a82e8c9efed6e2a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "132",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-koruzno-rumena-ilustracija-v2.png",
+      "sha256": "d0b99878b927e141aa8b3007520725d4c7ecfbca5a053f0e7647c5f1528fc232",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "133",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-marelicna-ilustracija-v2.png",
+      "sha256": "2e26bd01ec8fb00939a5d59b9642335dfb5c6da3d6e5619e5a6ce60e2e9ad765",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "134",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-rumena-ilustracija-v2.png",
+      "sha256": "864dab8e3f49dddca8542142e571de51f5155735a7a5c08fc7faf45909622799",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "135",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-bela-ilustracija-v2.png",
+      "sha256": "980222e08319a78047cb0fce461fb1dfd8e365d407869649936ee6bf329bad9a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "136",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton.png",
+      "sha256": "33ea728c867ae8b47463a5ac7ea1455a965552d58b67dd7a5cfdaa3dc686037d",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "16",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka.png",
+      "sha256": "d466ef9e823688fb974515215de35fb1cdd8bee1df900fde575fa3cfe655c4fc",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 586 × 586; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "17",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 586,
+        "height": 586
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-siva-studio.png",
+      "sha256": "693efadfc389d7f0c5ec8ca0db5dd61752975cad67e531263d3f6802eddea95e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "138",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-bela-ilustracija-v2.png",
+      "sha256": "266027814b59428c0f37dd8d579e56ba3472fa9c48582803ff23bb78b02d4bd9",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "139",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-izvedbe-delavnica.png",
+      "sha256": "9a0c1cfcec22f3d2007dd68bfdd0377683a8e22162b5a9ee9c23a0fcbd88d5b6",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "140",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list.png",
+      "sha256": "265441b6a248c66d0b4ef9561ef2e5fcf2bd2bd603d0e508710990373bc1210d",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 670 × 670; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "18",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 670,
+        "height": 670
+      }
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list-studio-1.png",
+      "sha256": "a136b8283a144f4ee496082b1db9cb0bad5ee33b156c364f9fe77f2bfdf3ef7a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "141",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list-studio-2.png",
+      "sha256": "c7efbadee8fc9d90dc112f21e436f8a91073f8ef8e12ff157e3e82a519213a0a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "142",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca.png",
+      "sha256": "7eb60a9c1b1aea774c511ad49645410080e150566474419d2c1eea3e503ed0e9",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 800 × 800; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "19",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-bukev-pravokotnik-studio.png",
+      "sha256": "6fa8c66d5cc907d506104a47ff28985669f232193e778e18c19bff40b81dcd29",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "143",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-bukev-kvadrat-studio.png",
+      "sha256": "d7014cd987ba82fb1b94fbd3d5a295f1dccf1214090f9b7742f88a02a6286581",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "144",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-topol-pravokotnik-studio.png",
+      "sha256": "44511ecfa8153c34657e8c96a058308bca6a7f83fecc09b982f92439ee86de9a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "145",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-pravokotnik-studio.png",
+      "sha256": "f142cdb350811e65b11526189bbb47932f5a46895555f1ce1cb0c1a0251f06f3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "146",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-kvadrat-studio.png",
+      "sha256": "9d668340fef0f51eef6843e3d6e39e94fe37e159ee361c0c5fd2196a871b428a",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "147",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-3.png",
+      "sha256": "91109aa30dc5fa9e3a23e9e1677f6b59765ab496377661cf1fa66f3f4363b48a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "21",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-4.png",
+      "sha256": "91109aa30dc5fa9e3a23e9e1677f6b59765ab496377661cf1fa66f3f4363b48a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "22",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motor-r23-ilustracija.png",
+      "sha256": "992114e72991d85647c300a956b95f8a7a818ef327b573a1bf1a0d3d50415e2c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "148",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motor-r21-ilustracija.png",
+      "sha256": "7e0f982e1656d8186121e50b5f7f6d450f5815fe6548ad9faa17dc2a8ad8fbc3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "150",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motorcek.png",
+      "sha256": "16589934c4d4442821259eb54ad607b5b456861492582421866b76f5bcd0962f",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "23",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motorcek-2.png",
+      "sha256": "f869aa2f396917e316e2c2ebaf3b89b3bb4b43494767dc5174c3c8c909be4453",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "24",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motorcek-3.png",
+      "sha256": "4e566af23a7dd61b98543d1b334e481b7f7b592ad19164ba305cc29609909be9",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "25",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "blobUrl": "/images/catalog/2026-09/geo60-navaden-ilustracija.png",
+      "sha256": "7bc447fde5c6566e3b633eec6dea4ba88e16968f1057d0494a8328deaba50f4e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "153",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "blobUrl": "/images/catalog/2026-09/geo80-navaden-ilustracija.png",
+      "sha256": "73d5f7535e62ab2ea90fc59c501519771636a0e8c3e10ce18c88a2ebe01cce8c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "154",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "blobUrl": "/images/catalog/2026-09/geo60-magneten-ilustracija.png",
+      "sha256": "e23b8694d6b015b6107800b331d14fe115d2f1b50c7fa78462e18e9109164687",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "155",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "blobUrl": "/images/catalog/2026-09/geo80-magneten-ilustracija.png",
+      "sha256": "8968bad013ebf59a4f3fe3800aabe6354f51711637179f951dd435f608644dc8",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "156",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "geotrikotnik",
+      "blobUrl": "/images/catalog/2026-09/geotrikotnik-2.jpg",
+      "sha256": "f081eac91a9063d253355a2f322807b8e93a44ef9354af0bc0b0d285cc2d8582",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "27",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/trikotnik45-60-ilustracija.png",
+      "sha256": "110c49e265c9b49c30dbb7d36fbbaabdd432bbbe5c0f2db3d791db5ab0f95954",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "158",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/trikotnik60-50-popravljen-ilustracija.png",
+      "sha256": "d16a5080fc84b55b95142ef5ff7c761c220d5a42f6e3c5f2479424393153ba4c",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "159",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/trikotniki-za-tablo-2.jpg",
+      "sha256": "b6fbec36c70396d7e9657226f87183f0c2249a37d0c6092fe2de7c123fc5ad9e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "29",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/trikotniki-za-tablo-3.jpg",
+      "sha256": "638aa9040ef828e3140f12a8677c76ef7d98ee91ffb2f57b0ef78e781e5896dd",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "30",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/ravnila-za-tablo-2.jpg",
+      "sha256": "93791d63fc0004aea86495c87a4dff7a08fe6b1e3600b394483e7c8bd32c4d1b",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "32",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/ravnila-za-tablo-3.jpg",
+      "sha256": "e6b8338607b4e285e1c61e54e61dd8e5cd71b03246444a88ae937820c2ff1f4c",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "33",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "magnetni-trinog",
+      "blobUrl": "/images/catalog/2026-09/magnetni-trinog-real-wissner.jpg",
+      "sha256": "658e2c0a1ffcbacf6b42c2027d5435ad133d82232d7891cc5c967f824c01db53",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1485 × 915; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "267",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1485,
+        "height": 915
+      }
+    },
+    {
+      "slug": "magnetni-trinog",
+      "blobUrl": "/images/catalog/2026-09/geometrija-kroznica-ilustracija.png",
+      "sha256": "7601bd52565107bf20143258aab527796f781274485108e3079b9df323a5b7c2",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "163",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "tracni-meter",
+      "blobUrl": "/images/catalog/2026-09/tracni-meter-real-rubber-tape-5m.jpg",
+      "sha256": "9a7b354e49242115aaf2616f94e20fe024c31f0d80ef57428eedba58021d8161",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 800 × 800; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "268",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "slug": "tracni-meter",
+      "blobUrl": "/images/catalog/2026-09/tracni-meter-delavnica.png",
+      "sha256": "f0393197615d3599d181488785157fa397de3637fe1410169223c72868edbe36",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "164",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "sestilo",
+      "blobUrl": "/images/catalog/2026-09/sestilo-2.jpg",
+      "sha256": "b8c68b292aa99288da24725b9d374a7db5380ffb29de1513ca789855b159ac90",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "38",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "sestilo",
+      "blobUrl": "/images/catalog/2026-09/sestilo-3.jpg",
+      "sha256": "526fe4dc2738756f3d5ef15b37e0342dd2ba1a0ade7ee732ececa6522971e46c",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "39",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "blobUrl": "/images/catalog/2026-09/thermoform-400-izvirnik.jpg",
+      "sha256": "d2e035b8764fb32c23eac8bf45a8ff8a313b6ceb473f09be6078c33ce98f7b54",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1200 × 489; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "166",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1200,
+        "height": 489
+      }
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "blobUrl": "/images/catalog/2026-09/thermoform-primer-izdelka.png",
+      "sha256": "d9fcac76f537c84891f152adad8e85047977bb4afb8fe12f9e0b1edb7f384eab",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "167",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "blobUrl": "/images/catalog/2026-09/krivilnik-za-plasticne-mase.jpg",
+      "sha256": "cbf142f60f4e0aa511d83c4db26644a49c7d7b2a359377ff1d0fddc4a67f23ad",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 300 × 169; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "40",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 300,
+        "height": 169
+      }
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-proizvajalec.png",
+      "sha256": "ef218e0c5afed1af6f85d2dce988bd44234947ab76fef9b279c99eb32820966c",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1024 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "168",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1024,
+        "height": 600
+      }
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "blobUrl": "/images/catalog/2026-09/vibracijska-zaga-proxxon-dsh.jpg",
+      "sha256": "6998153833836d8678316f320b2be2d4a4c5079b4941680afe9ecc56f10ed4d5",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 428; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "41",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 428
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-posamezno-ilustracija.png",
+      "sha256": "0c8b616a4b6fb1e17ac6e5d299dc15d9be2bbed37c43028d5eb53d2bf661acca",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "170",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-komplet-ilustracija.png",
+      "sha256": "67cd3968741e72317180aa303890cef75ae0fda902615abdf35ed2c641cf60ac",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "171",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo.jpg",
+      "sha256": "d694e9a0bbfc3139765ecd885f8dd755bc585fd5a9bd435345bbce14a7da2be0",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 322 × 417; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "42",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 322,
+        "height": 417
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-2.jpg",
+      "sha256": "0b055c5a10d2f68c13e50b8cee64ad4868a9d4a296510d0fc6ec820a5be3d952",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 175 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "43",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 175,
+        "height": 500
+      }
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "blobUrl": "/images/catalog/2026-09/klesce-za-izolacijo-10-drugi-pogled.jpg",
+      "sha256": "8d5d40e2aa58fa387f1c43f0e24f4231887883bd4d30490781c467348e0142d3",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 496 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "174",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 496,
+        "height": 500
+      }
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "blobUrl": "/images/catalog/2026-09/klesce-snemanje-izolacije-uporaba.png",
+      "sha256": "d463f5d82c5f28e923d156c192665395ebdc18868a3b6a57f7ac8349e2a02d35",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "173",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "blobUrl": "/images/catalog/2026-09/elektricarske-klesce-za-snemanje-izolacije.jpg",
+      "sha256": "a0f35d4e5cc1920e61f3eeaff04c74710e170c834e3fcb38c075321fefa22a10",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 483; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "44",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 483
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-komplet-studio-ilustracija.png",
+      "sha256": "220cafbb13e156a0b7c14629d93caf9b68cefdbd05df2c071dc9044025e3b84b",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "175",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1312,
+        "height": 1199
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-detajl-ilustracija.png",
+      "sha256": "2583efc3b9362fa3df478d4cb8050422e5da8b36c6b2b736b887daacb789ad23",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "176",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino.jpg",
+      "sha256": "acd9c0d1bdba9a0c4f7fc316dba388ea0c5ed93df006943d7b9f1fca8d77f37c",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 415 × 415; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "45",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 415,
+        "height": 415
+      }
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo-izvirnik.jpg",
+      "sha256": "12472392721f86fb1ebd82d0cbaa6fbebc951b0f90225b1cbc626c1b68196d2e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 2560 × 857; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "177",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 2560,
+        "height": 857
+      }
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo.jpg",
+      "sha256": "48efbd460dc4419f1c98e777ddb94554cad2db924e5c37098005fe339dcfedf8",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 167; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "46",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 167
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "blobUrl": "/images/catalog/2026-09/zica-za-lotanje.jpg",
+      "sha256": "25c9b73e03b2f17eb40d93b6e866197ebff2c43bff8227af13e9134e00c547b4",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 350 × 400; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "47",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 350,
+        "height": 400
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-ilustracija.png",
+      "sha256": "437835b8bedfdc6b50039837eca007f68f6fbe3fcf1c961c91d76e9fd9f98865",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "179",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-delovna-miza.png",
+      "sha256": "27d25034cbaf7603dbce44d1f297c8d990447d080114fc3f97ff170209f431fd",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "180",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-zaprta.jpg",
+      "sha256": "e733e2cc0410ec0c64dcd95583562517ebd9d69d3971637cf6bdb0eed6a2d3ea",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1000 × 1001; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "182",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1000,
+        "height": 1001
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-detajl-utezi.jpg",
+      "sha256": "ae2043622f33d66a8b23dcc040e6da9cfa2ed8591a89849af2b749ce2e59e1fa",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1000 × 1000; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "184",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1000,
+        "height": 1000
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica.jpg",
+      "sha256": "02fe3b4d8c65b23790533b0a781716924491337c32b50ca41db64a641e78c7c9",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 450 × 450; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "48",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 450,
+        "height": 450
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-2.jpg",
+      "sha256": "8812b61dd705843ce82ce391590591c26353d06f7661c2d221f22be6e6dce10e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 708; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "49",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 708
+      }
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-3.jpg",
+      "sha256": "0e0f5c9ff1d8e28ec440980fd8c17ca5da8cc7f50f8bc8fcbc2135f9b019b8af",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 450 × 450; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "50",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 450,
+        "height": 450
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine.jpg",
+      "sha256": "e93805ad1512ff9cc8393f286d1ae97a0a69a4b127db450a128fe315801417c8",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "51",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-real-detajl.jpg",
+      "sha256": "80c0122b2d3b2df0d7c9dbe70eef7fb14d34a653723ade8a61aeebfaf9200cc7",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "277",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-tanke-studio-ilustracija.png",
+      "sha256": "ba27b13f5f78a8194855a8134c6db1888ee9dc248c488fc7a0a67104c61ffa48",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "186",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-tanke-uporaba-ilustracija.png",
+      "sha256": "b6235fe03ac10c0575de1de9413eb62000a1e45c2549bafd07df38c871eefb0f",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "187",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine-2.jpg",
+      "sha256": "9df03fa7bf7cb8d18f853c065ba8e2f31c9f146239ace4495b5c6d5de00aa709",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "52",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 600
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-za-les-in-mehke-kovine-3.jpg",
+      "sha256": "925e1d66cfce34ede5574b9b6875bf5957be047a4bc9ee4cc935299565709db1",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "53",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 600
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin.jpg",
+      "sha256": "1c1031eca2a54e99ff4b425c421a600d68f5d00b5e73fd7ddea95e66a7ff0b0d",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "54",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/kovine-tanke-studio-ilustracija.png",
+      "sha256": "26e2d9b330e159f8733099e759c7a05cc936ef39e26116f04eb70c6ac19af184",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "188",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/kovine-tanke-uporaba-ilustracija.png",
+      "sha256": "f696742720a9e1f5a86ef48eff381ae1cd9d397e02b632b3e3125dd6423ebb13",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "189",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin-2.jpg",
+      "sha256": "26a42d19b7b3674535b56303bd0f23b658abd9cba9b0658995b7c1c784eaa0ce",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "55",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 600
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/zagice-za-rezanje-kovin-3.jpg",
+      "sha256": "962c60fc53953266f67ede80e95f0c597080ef1eb4f60111d59dc24a418bbdbb",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 570 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "56",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 570,
+        "height": 600
+      }
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "blobUrl": "/images/catalog/2026-09/aluminijasto-ravnilo-z-rocajem.jpg",
+      "sha256": "97ba5111e8db7497b19030f8a9a05187353cb1992bf46c46b1fd9d007fe9a5cb",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 342 × 342; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "57",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 342,
+        "height": 342
+      }
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "blobUrl": "/images/catalog/2026-09/ravnilo-40-cm-ilustracija.png",
+      "sha256": "c6892608039376dcd5fa606bb12324f128f1c6e330b5cbc20295dcd48439e97b",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "190",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "blobUrl": "/images/catalog/2026-09/ravnilo-z-rocajem-uporaba.png",
+      "sha256": "2bdfa1661e121c48fa04352336d0795bc44c74ea060a3ebe23511f942898542e",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "191",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik.jpg",
+      "sha256": "2443ea34cf49828b19916649bffe78d6ae2ec026ef63086ebc137c8b7bddaf73",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "58",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-ilustracija.png",
+      "sha256": "521cb734d2cd64618c0aaee614f136911b06bee511af92a79dbc3811348fa752",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "192",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-ucilnica.png",
+      "sha256": "d9b9ca3e95dddbec78d66697b1f1effb611b12db76e83a61f4eaf6d6cf7fd382",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "193",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/otroska-ocala-za-zascito-oci.jpg",
+      "sha256": "ebeeff3b07b2ef5b446dc6c915f5ea2dd53d3fa32c90379d0cc58c84e1986b1b",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 900 × 900; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "59",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 900,
+        "height": 900
+      }
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/ocala-koestier-pogled-1.webp",
+      "sha256": "92cceae5b3bb39943975ff9aac3c787fcdf23c28e9050fffd72b2c43b1fcebc5",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 790 × 509; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "196",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 790,
+        "height": 509
+      }
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/ocala-koestier-pogled-2.webp",
+      "sha256": "0799189262139f1f413fedbad273b32cc74ff92db91f17adab0ed458f1e3842e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 790 × 490; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "197",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 790,
+        "height": 490
+      }
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/ocala-za-zascito-oci.jpg",
+      "sha256": "5fe313d9179abef0cd090cc839b1f7b86de9d5a9c2e857374238e5fd0009a836",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 535 × 431; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "60",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 535,
+        "height": 431
+      }
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje.jpg",
+      "sha256": "9114a5b980942c8ef8592e043e8a6cbc1450d863a870b1522f89ae9c93aa5454",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 260; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "61",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 260
+      }
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-2.jpg",
+      "sha256": "a837b338961ae0f63fdd0f7cca403e4bd65059aa8d1deab01647dc3c9d55fd79",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 274; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "62",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 274
+      }
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-3.jpg",
+      "sha256": "bf55fd5b2ba5a14808acb76f5c569b767710177623cee54febdcb4ebdaabc1d9",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 274; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "63",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 274
+      }
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-4.jpg",
+      "sha256": "a837b338961ae0f63fdd0f7cca403e4bd65059aa8d1deab01647dc3c9d55fd79",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 274; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "64",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 274
+      }
+    },
+    {
+      "slug": "uhu-kraft",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png",
+      "sha256": "cdd4795a68419ec9de23b88d0fa2abad090f8898d35e04e81d0d056255b4c15a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 957 × 1280; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "204",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 957,
+        "height": 1280
+      }
+    },
+    {
+      "slug": "uhu-kraft",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-real-drugi-pogled.jpg",
+      "sha256": "afd8d0763d52345a6704697eedf24900d162fef068b91c69688db99cb91a5293",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 720 × 356; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "280",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 720,
+        "height": 356
+      }
+    },
+    {
+      "slug": "uhu-kraft",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-primer-uporabe.png",
+      "sha256": "7e2b822795c0ac1ab9582516a5c0e42db4197a19e8742694275f9c68d0dd9813",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "205",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "uhu-kraft",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft.png",
+      "sha256": "4491cd38b8c2b47ae22d8ce6e6f4cbbc890f6c12b73f44b7db47d1ea021643c3",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 300 × 300; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "65",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "slug": "uhu-super-glue",
+      "blobUrl": "/images/catalog/2026-09/uhu-super-glue-3ml-izvirnik.jpg",
+      "sha256": "d8cff4388c8eeba39570769c2c891122f532a49210cceaccc2a542f864b7fce1",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 1200 × 675; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "206",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1200,
+        "height": 675
+      }
+    },
+    {
+      "slug": "uhu-super-glue",
+      "blobUrl": "/images/catalog/2026-09/uhu-super-glue-delavnica.png",
+      "sha256": "11d1280ac8dfc17f0c0abe2c448f5b81964c4eacf3aead5ac6455edab63834a3",
+      "reason": "generated-product-depiction",
+      "reviewNotes": "Historical generated product photograph: actual record removal requested; existing technical schematics are excluded.",
+      "inventoryMediaId": "207",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      }
+    },
+    {
+      "slug": "uhu-super-glue",
+      "blobUrl": "/images/catalog/2026-09/uhu-super-glue.png",
+      "sha256": "10e828d0ae95bf17759fea4d418648c8abb56bc57ac015bf4ef22c8bca4aca29",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 400 × 400; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "66",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 400,
+        "height": 400
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-500g.jpg",
+      "sha256": "4bf0b908fdf0c7b9db97bab62ef1240149f14454da5d471b8930bfe835915c9e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 975 × 731; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "208",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 975,
+        "height": 731
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-uporaba-les.jpg",
+      "sha256": "6ca73b1c91f0e6cd883d2d0e83585852a9b4a149c91b0cd6b25aec7667c688d3",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 975 × 731; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "213",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 975,
+        "height": 731
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol.png",
+      "sha256": "0543077b76d4d50c80ef123c0cd23054d14daa4390367e0d135df1b1019037fc",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "67",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-2.png",
+      "sha256": "698b25aac225649e5c3ab72a3e3be229a6b572bd234ad688f942fa7711283dcb",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 700 × 700; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "68",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 700,
+        "height": 700
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-3.png",
+      "sha256": "cc033d971946b3965670fbf1623abd470cfd26a2a3dbae9f4fbb1f91a37d1d4e",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "69",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-4.png",
+      "sha256": "aaa4dcd65fab9e907e28274db2883bfb55ef287e2c489216f3c096fcb8fdbcc7",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 600 × 600; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "70",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "slug": "mekol",
+      "blobUrl": "/images/catalog/2026-09/mekol-5.png",
+      "sha256": "ecc39a3bf6295b67db57b731dafb761fa0feaa9e21b42dcda74bf605be134210",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 510 × 510; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "71",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 510,
+        "height": 510
+      }
+    },
+    {
+      "slug": "ploscata-baterija",
+      "blobUrl": "/images/catalog/2026-09/ploscata-baterija.jpg",
+      "sha256": "affd0264e21c5495b265f95dac3326e62f70a7af45601cd7ddbb269924603314",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "72",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-izvirnik.jpg",
+      "sha256": "ce14c1471ad0dffc2c4b39d8aa9784e0af30144dbd115431987a211577833642",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 800 × 800; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "217",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-montazna-matica.jpg",
+      "sha256": "36437eb5aa106f7d33f07764168e483ca22dbdb0b97f037aa3b75dc2692d905a",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 800 × 800; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "218",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo.jpg",
+      "sha256": "4aea23cf90521fad6821f8ab43ae4d9648dbd9e325b722c00f9aa058aad0e8a4",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 500 × 500; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "73",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "slug": "objemka-za-motorcek-re260",
+      "blobUrl": "/images/catalog/2026-09/objemka-za-motorcek-re260.png",
+      "sha256": "9dc2f963858debf3637926c1b513c434190376cdb6bb9fe24880428e1a860b18",
+      "reason": "below-native-1024-minimum",
+      "reviewNotes": "Decoded original is 298 × 298; both axes must reach 1024 without upscaling or padding.",
+      "inventoryMediaId": "74",
+      "inventoryHidden": true,
+      "dimensions": {
+        "width": 298,
+        "height": 298
+      }
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak.jpg",
+      "sha256": "5ec3f3de84c1e830b0d47d01873ccd0a7940c61104fc3ba2b986eabbf7c79240",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Materials review confirms representative Velpapir GD image; exact 350 g A3/A4 stock identity is not established.",
+      "inventoryMediaId": "15",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 2048,
+        "height": 1365
+      }
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/ravnila-za-tablo.jpg",
+      "sha256": "1fc1be013fbc1d158f151c5425b8c35c4f0734ef720df41adad5db5ea42a1318",
+      "reason": "excessive-empty-space-and-soft-detail",
+      "reviewNotes": "Peer visual review: nominal 1200 square file shows a tiny soft ruler band with excessive empty space; unsuitable for useful product zoom.",
+      "inventoryMediaId": "31",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1200,
+        "height": 1200
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg",
+      "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
+      "reason": "compression-and-colour-noise",
+      "reviewNotes": "Peer original-pixel review: severe chroma noise/compression and smeared housing details prevent useful zoom despite nominal native dimensions above 2560.",
+      "inventoryMediaId": "151",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 2560,
+        "height": 1637
+      }
+    },
+    {
+      "slug": "motorcek",
+      "blobUrl": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg",
+      "sha256": "a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351",
+      "reason": "compression-and-colour-noise",
+      "reviewNotes": "Peer original-pixel review: severe chroma noise/compression and smeared housing details prevent useful zoom despite nominal native dimensions above 2560.",
+      "inventoryMediaId": "152",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 2560,
+        "height": 1863
+      }
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-300-real-unior.jpg",
+      "sha256": "2b963f0b717fa123cc72bc915cfbffb1aef7f527feacd1b405d5622fe37f644e",
+      "reason": "wrong-model-for-assigned-variants",
+      "reviewNotes": "Fresh original WooCommerce variation evidence assigns a red-bottom wooden handle / GS hammer343066-02-x1.jpg to300g32113/32114. Earlier Unior812-300 source was incorrectly matched at family level from image328516.jpg used on200g variations. Independent second review confirms contradictory handle colour/model. Remove actual association and photo row; do not hide or substitute modern blueBGS. Source evidence tmp/product-image-audit/root-v5/atehna-hammer-variants.json.",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "addedInReview": "v5-2026-09"
+    }
+  ],
+  "replacements": [
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-ekspres-500g.jpg",
+      "fromSha256": "4bf0b908fdf0c7b9db97bab62ef1240149f14454da5d471b8930bfe835915c9e",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-500g-v2.jpg",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200
+      },
+      "sha256": "7500aca4199ec52c76d25fe1a0b878625c411d23e30d50f3aa50aff0ba7bff05",
+      "sourcePage": "https://www.lionpic.co.uk/p/40961/Mekol-Ekspres-PVA-Wood-Glue-500g",
+      "sourceUrl": "https://lionpic-cdn.b-cdn.net/products/10155/Mekol-EKSPRES-PVA-Wood-Glue-10155-001.jpg",
+      "altText": "Mekol Ekspres 500 g – izvirna fotografija steklenice.",
+      "imageType": "product",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "distinctViewGroup": "mekol-ekspres-bottle",
+      "notes": "Native original1600x1200 downloaded directly without CDN size transform, replacing975x731 delivery of the same capture. Sharp label/nozzle, same500g variant. No upscaling, padding, recoloring, or AI edits. Bottle hero retains original wide white side margins; framing is not claimed perfect.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/7500aca4199ec52c-mekol-ekspres-500g-v2.jpg",
+      "hostedBlobPathname": "catalog-items/mekol/images/7500aca4199ec52c-mekol-ekspres-500g-v2.jpg"
+    },
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-ekspres-uporaba-les.jpg",
+      "fromSha256": "6ca73b1c91f0e6cd883d2d0e83585852a9b4a149c91b0cd6b25aec7667c688d3",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-nanos-v2.jpg",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200
+      },
+      "sha256": "152716f7bc02ee2aded33431fda69c25d2bd228316a322dad43ba3bdd85387d9",
+      "sourcePage": "https://www.lionpic.co.uk/p/40961/Mekol-Ekspres-PVA-Wood-Glue-500g",
+      "sourceUrl": "https://lionpic-cdn.b-cdn.net/products/10155/Mekol-EKSPRES-PVA-Wood-Glue-10155-Insitu.jpg",
+      "altText": "Primer uporabe lepila Mekol Ekspres 500 g na lesenem spoju. Les in podlaga nista vključena.",
+      "imageType": "context",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "distinctViewGroup": "mekol-ekspres-nozzle-application",
+      "notes": "Native original1600x1200 downloaded directly without CDN size transform, replacing975x731 delivery of the same capture. Sharp label/nozzle, same500g variant. No upscaling, padding, recoloring, or AI edits. Bottle hero retains original wide white side margins; framing is not claimed perfect.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/152716f7bc02ee2a-mekol-ekspres-nanos-v2.jpg",
+      "hostedBlobPathname": "catalog-items/mekol/images/152716f7bc02ee2a-mekol-ekspres-nanos-v2.jpg"
+    },
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-1001-1kg.jpg",
+      "fromSha256": "236c79b6cd8cb3ad56587e11c7332b480c25859c20770247822994c055d27194",
+      "blobUrl": "/images/catalog/2026-09/mekol-1001-1kg-izvirnik-v3.jpg",
+      "sha256": "1ec2a726f6187ab01d35086e686000d153fcd518b1124a387e6ab2e025d03e97",
+      "dimensions": {
+        "width": 3024,
+        "height": 3024
+      },
+      "sourcePage": "https://www.trgopromet.si/products/lepilo-za-les-mekol-1001-1kg",
+      "sourceUrl": "https://www.trgopromet.si/cdn/shop/files/FC17BCF3-8347-4494-AD5E-4BA327733D75.jpg?v=1692779998",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Mekol 1001, 1 kg — celotna embalaža in oznake izdelka",
+      "notes": "Native 3024 square supplier photograph of MEKOL1001 1kg, same model/formula and size. Real older packaging, readable label and full tub with red lid, neutral white background. Visually inspected original; no people or body parts. Source Shopify metadata confirms 3024x3024. Replaces an image whose nominal 1200 square dimensions were padded from an 800x1200 original.",
+      "reviewedVariantNames": [
+        "Mekol 1001 - 1 kg"
+      ],
+      "reviewedSourceMediaId": "209",
+      "reviewedSourcePosition": -5,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/1ec2a726f6187ab0-mekol-1001-1kg-izvirnik-v3.jpg",
+      "hostedBlobPathname": "catalog-items/mekol/images/1ec2a726f6187ab0-mekol-1001-1kg-izvirnik-v3.jpg"
+    },
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-d3-500g.png",
+      "fromSha256": "98183b524a6ef03ae1db2bfa71facd7b8b7827f009bdf5a45c1ff6c672384b45",
+      "blobUrl": "/images/catalog/2026-09/mekol-d3-500g-izvirnik-v3.png",
+      "sha256": "4b8a5fece63b7c3550fda0eb22da9294521ebfc88717edcca6c0147ebefca68f",
+      "dimensions": {
+        "width": 2582,
+        "height": 2965
+      },
+      "sourcePage": "https://sijalka.com/artikli/disperzijsko-enokomponentno-vodoodporno-lepilo-za-les-mitol-mekol-d3-500-g/",
+      "sourceUrl": "https://sijalka.com/wp-content/uploads/2024/12/Disperzijsko-enokomponentno-vodoodporno-lepilo-za-lepljenje-lesa-Mitol-nekol-D3-500-g.png",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Mekol D3, 500 g — izvirni posnetek embalaže in oznak",
+      "notes": "Native 2582x2965 supplier original, replacing the WordPress scaled 2229x2560 version of this same photograph. Same exact D3 500g label, red cap and full bottle. Visually inspected full frame; no humans. Native detail upgrade only, not an extra viewing angle.",
+      "reviewedVariantNames": [
+        "Mekol lepilo za les 500 g"
+      ],
+      "reviewedSourceMediaId": "210",
+      "reviewedSourcePosition": -4,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/4b8a5fece63b7c35-mekol-d3-500g-izvirnik-v3.png",
+      "hostedBlobPathname": "catalog-items/mekol/images/4b8a5fece63b7c35-mekol-d3-500g-izvirnik-v3.png"
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "fromBlobUrl": "/images/catalog/2026-09/ravnilo-za-tablo-decimetrsko-izvirnik.jpg",
+      "fromSha256": "b9c10fffcaaf532ca582d56cc823f431c2875c51e4d7092440bce72b16888870",
+      "blobUrl": "/images/catalog/2026-09/ravnilo-decimetrsko-100cm-izvirnik-v3.png",
+      "sha256": "09445513513cf84c0d3f6c60d829d93a09c56f89883bbdc1e1a0c1dc326c2bd2",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600
+      },
+      "sourcePage": "https://wissner-aktiv-lernen.com/Lineal-100-cm/010300.000",
+      "sourceUrl": "https://wissner-aktiv-lernen.com/media/f6/f6/c3/1735909579/Wissner_010300.000.png?ts=1761747367",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Wissner decimetrsko ravnilo za tablo, 100 cm — celotno ravnilo in merilna skala",
+      "notes": "Native manufacturer 2400x1600 original, same100cm decimetre ruler with black ribbed handle, alternating top centimetre blocks and numbered lower decimetres/red alternate bars. Full product visible, readable scales, neutral grey background. Replaces soft ATEHNA1200 square red-background photo. Supplier white-background rendition is the same capture and is not added as another view.",
+      "reviewedVariantNames": [
+        "100 cm, decimetrska skala",
+        "100 cm, decimetrska skala, magnetno"
+      ],
+      "reviewedSourceMediaId": "160",
+      "reviewedSourcePosition": -1,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/ravnila-za-tablo/images/09445513513cf84c-ravnilo-decimetrsko-100cm-izvirnik-v3.png",
+      "hostedBlobPathname": "catalog-items/ravnila-za-tablo/images/09445513513cf84c-ravnilo-decimetrsko-100cm-izvirnik-v3.png"
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "fromBlobUrl": "/images/catalog/2026-09/trikotniki-za-tablo.jpg",
+      "fromSha256": "d15d8adf85a3f7ecd280c645c1722cad185e11d6943e49374f4f77c7a8aab035",
+      "blobUrl": "/images/catalog/2026-09/trikotnik-45-50cm-izvirnik-v3.png",
+      "sha256": "cbef3167c23c57ab7653bc6b5892990593a254c6079fc787436b91f5bf157ce6",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600
+      },
+      "sourcePage": "https://www.wissner-aktiv-lernen.com/Rechter-Winkel-450-50-cm/010700.000",
+      "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/b8/62/5d/1736251295/Wissner_010700.000.png?ts=1761748120",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Wissner trikotnik za tablo, 45° / 50 cm — celoten izdelek, ročaj in merilna skala",
+      "notes": "Native manufacturer2400x1600 photograph of exact older Wissner black ribbed handle model010700.000,45degree with50cm base. Matched scale markings, body cutouts, handle and overall geometry to original ATEHNA photo. Entire product visible, neutralgrey background, readable scales. Visual review at1200x800 and native metadata; no humans, no edits. White-background manufacturer copy is same capture, excluded.",
+      "reviewedVariantNames": [
+        "45° / 50 cm"
+      ],
+      "reviewedSourceMediaId": "28",
+      "reviewedSourcePosition": -6,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trikotniki-za-tablo/images/cbef3167c23c57ab-trikotnik-45-50cm-izvirnik-v3.png",
+      "hostedBlobPathname": "catalog-items/trikotniki-za-tablo/images/cbef3167c23c57ab-trikotnik-45-50cm-izvirnik-v3.png"
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "fromBlobUrl": "/images/catalog/2026-09/trikotnik-60-stopinj-60cm-izvirnik.jpg",
+      "fromSha256": "3773c2ca4f5b34a76b354950b58ddeedd68ac752bf9dc7a4f5dfb36922be7a3f",
+      "blobUrl": "/images/catalog/2026-09/trikotnik-60-60cm-izvirnik-v3.png",
+      "sha256": "b6b603d3c4678b6788567632dc803401fb37018fd70d0a858cd21d48ec3cd0b6",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600
+      },
+      "sourcePage": "https://www.wissner-aktiv-lernen.com/Spitzer-Winkel-600-60-cm/010810.000",
+      "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/22/42/20/1736317906/Wissner_010810.000.png?ts=1761748200",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Wissner trikotnik za tablo, 60° / 60 cm — celoten izdelek, ročaj in merilna skala",
+      "notes": "Native manufacturer2400x1600 photograph of exact older Wissner black ribbed handle model010810.000,60degree with60cm long leg. Matched scale markings, body cutouts, handle and overall geometry to original ATEHNA photo. Entire product visible, neutralgrey background, readable scales. Visual review at1200x800 and native metadata; no humans, no edits. White-background manufacturer copy is same capture, excluded.",
+      "reviewedVariantNames": [
+        "60° / 60 cm"
+      ],
+      "reviewedSourceMediaId": "157",
+      "reviewedSourcePosition": -3,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trikotniki-za-tablo/images/b6b603d3c4678b67-trikotnik-60-60cm-izvirnik-v3.png",
+      "hostedBlobPathname": "catalog-items/trikotniki-za-tablo/images/b6b603d3c4678b67-trikotnik-60-60cm-izvirnik-v3.png"
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "fromBlobUrl": "/images/catalog/2026-09/proxxon-dsh-proizvajalec.png",
+      "fromSha256": "ef218e0c5afed1af6f85d2dce988bd44234947ab76fef9b279c99eb32820966c",
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+      "sha256": "110637498f77a2ab6be9766e63e7c67bd6f33d4d7b183bc147a4dcb994409ac0",
+      "dimensions": {
+        "width": 2560,
+        "height": 2192
+      },
+      "sourcePage": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+      "sourceUrl": "https://www.opitec.com/media/0d/96/1e/1764713131/309975-000-000-VO-05_v_9.jpg?ts=1764713131",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Proxxon DSH 28092 — celoten pogled s standardnim prozornim varovalom žaginega lista",
+      "notes": {
+        "exactIdentity": "OPITEC product309975 explicitly names ProxxonDSH, pictured plate reads28092. Same yellow upper arm, green cast base, table tilt bracket, speed/on-off controls and blade garage as current original reference. No product geometry, colour, markings or components changed.",
+        "quality": "Full machine visible with modest neutral white margins; useful visible table surface, adjustment scale, cast texture and controls. Native source2560×2192, visually inspected full frame and detailed preview.",
+        "accessories": "Transparent blade guard is standard supplied equipment per ProxxonDSH28092 manual §6.5; manufacturer explains guard can be absent in explanatory illustrations. No optional vacuum included in photo.",
+        "accessoryEvidence": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf"
+      },
+      "reviewedVariantNames": [
+        "Osnovna izvedba"
+      ],
+      "reviewedSourceMediaId": "168",
+      "reviewedSourcePosition": -2,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/110637498f77a2ab-proxxon-dsh-celoten-pogled-v3.jpg",
+      "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/110637498f77a2ab-proxxon-dsh-celoten-pogled-v3.jpg"
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "fromBlobUrl": "/images/catalog/2026-09/proxxon-dsh-sprednji-pogled.jpg",
+      "fromSha256": "25f7285f050f82ff06187faa3658392669901f47d77421dd15620332f6c4cfbe",
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+      "sha256": "110637498f77a2ab6be9766e63e7c67bd6f33d4d7b183bc147a4dcb994409ac0",
+      "dimensions": {
+        "width": 2560,
+        "height": 2192
+      },
+      "sourcePage": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+      "sourceUrl": "https://www.opitec.com/media/0d/96/1e/1764713131/309975-000-000-VO-05_v_9.jpg?ts=1764713131",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "Proxxon DSH 28092 — celoten pogled s standardnim prozornim varovalom žaginega lista",
+      "notes": {
+        "exactIdentity": "OPITEC product309975 explicitly names ProxxonDSH, pictured plate reads28092. Same yellow upper arm, green cast base, table tilt bracket, speed/on-off controls and blade garage as current original reference. No product geometry, colour, markings or components changed.",
+        "quality": "Full machine visible with modest neutral white margins; useful visible table surface, adjustment scale, cast texture and controls. Native source2560×2192, visually inspected full frame and detailed preview.",
+        "accessories": "Transparent blade guard is standard supplied equipment per ProxxonDSH28092 manual §6.5; manufacturer explains guard can be absent in explanatory illustrations. No optional vacuum included in photo.",
+        "accessoryEvidence": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf"
+      },
+      "reviewedVariantNames": [
+        "Osnovna izvedba"
+      ],
+      "reviewedSourceMediaId": "169",
+      "reviewedSourcePosition": -1,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/110637498f77a2ab-proxxon-dsh-celoten-pogled-v3.jpg",
+      "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/110637498f77a2ab-proxxon-dsh-celoten-pogled-v3.jpg"
+    },
+    {
+      "slug": "uhu-kraft",
+      "fromBlobUrl": "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png",
+      "fromSha256": "cdd4795a68419ec9de23b88d0fa2abad090f8898d35e04e81d0d056255b4c15a",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "sha256": "56de812574c2ed2b21f59c8d04712b08ef7e6c8ae0e6a3f74e275175ebfa7f0a",
+      "dimensions": {
+        "width": 2000,
+        "height": 2000
+      },
+      "sourcePage": "https://toom.de/p/alleskleber-kraft-flex-tube-42-g/8150308",
+      "sourceUrl": "https://static.toom.de/produkte/bilder/8150308/8150308.png",
+      "sourceIdentityEvidence": "TOOM product 8150308 identifies UHU Kraft FlexTube 42 g; linked manufacturer SDS explicitly identifies UHU 45040. Label/model/volume match the current official photo.",
+      "sourceIdentityDocument": "https://static.toom.de/produkte/bilder/8150308/sicherheitsdatenblatt_8150308.pdf",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "imageType": "product",
+      "altText": "UHU Kraft FlexTube, 42 g — celotna tuba in oznake izdelka",
+      "notes": "Unchanged native 2000 × 2000 retailer original PNG. Sharp exact UHU Kraft 42 g FlexTube label, cap and tube surface at original pixel scale; complete product on neutral white background, no humans. Product itself spans 1160 × 1192 pixels (threshold 180 bounds), with natural framing. Higher detail version of the authenticated official front capture; counts as one front photograph, not an additional viewing angle. Root independently visually reviewed and accepted.",
+      "reviewedVariantNames": [
+        "UHU Kraft alleskleber - 42g"
+      ],
+      "reviewedSourceMediaId": "204",
+      "reviewedSourcePosition": -3,
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/uhu-kraft/images/56de812574c2ed2b-uhu-kraft-42g-front-toom-v3.png",
+      "hostedBlobPathname": "catalog-items/uhu-kraft/images/56de812574c2ed2b-uhu-kraft-42g-front-toom-v3.png"
+    }
+  ],
+  "restores": [],
+  "captions": [],
+  "partialUnassignments": [],
+  "finalInventory": "data/catalog/product-image-audit-v3-2026-09.json",
+  "appliedAt": "2026-09-13T20:42:21.323Z",
+  "completedPhases": [
+    "production",
+    "local",
+    "canonical"
+  ],
+  "readmissions": [
+    {
+      "slug": "trigonir",
+      "blobUrl": "/images/catalog/2026-09/trigonir-triso-prednja-stran.png",
+      "sha256": "a72312af7781ffb170546194049846013270f5035bef6881248f35d0f9354a01",
+      "reason": "unverified-wrong-product-model",
+      "reviewNotes": "Final exact-model review: sold item/variant explicitly specifies model216; these photos show TRISO12496, EAN3830056490558. No equivalence to model216 has been established. Remove both photo records and variant links; retain trigonir.jpg classified dimension-diagram.",
+      "inventoryMediaId": "161",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1026,
+        "height": 1026
+      },
+      "resolvedAt": "2026-09-14T10:09:35.946Z",
+      "resolution": "Original ATEHNA physical photograph visibly identifies TRISO and matches this exact product; identity-only rejection superseded after direct comparison. Native size/quality/no-human requirements remain enforced.",
+      "evidenceUrl": "https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg",
+      "acceptedInManifest": "data/catalog/product-image-additions-v4-2026-09.json"
+    },
+    {
+      "slug": "trigonir",
+      "blobUrl": "/images/catalog/2026-09/trigonir-triso-navodila.png",
+      "sha256": "4f3756d5b3e5e3e5ed717038d20330aeb1c5a17f0a5a996dc32a9ceb82aa4d8c",
+      "reason": "unverified-wrong-product-model",
+      "reviewNotes": "Final exact-model review: sold item/variant explicitly specifies model216; these photos show TRISO12496, EAN3830056490558. No equivalence to model216 has been established. Remove both photo records and variant links; retain trigonir.jpg classified dimension-diagram.",
+      "inventoryMediaId": "162",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1026,
+        "height": 1026
+      },
+      "resolvedAt": "2026-09-14T10:09:35.946Z",
+      "resolution": "Original ATEHNA physical photograph visibly identifies TRISO and matches this exact product; identity-only rejection superseded after direct comparison. Native size/quality/no-human requirements remain enforced.",
+      "evidenceUrl": "https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg",
+      "acceptedInManifest": "data/catalog/product-image-additions-v4-2026-09.json"
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-siva-wissner-070110.png",
+      "sha256": "62b76faa4eb1c2047cfb5f7697dcd0ebede0ce83a04ddeb3e090c72377d24705",
+      "reason": "unverified-wrong-material-model",
+      "reviewNotes": "Reviewed manufacturer Wissner 070110 plastic scale conflicts with the catalog metal scale. Exact delivered-stock identity is unproven; product specifications are preserved.",
+      "inventoryMediaId": "181",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 2400,
+        "height": 1600
+      },
+      "resolvedAt": "2026-09-14T10:24:03.608Z",
+      "resolution": "Original ATEHNA item SKU070110 and published380×130×130mm dimensions identify the Wissner070110 model. Manufacturer native2400×1600 image was independently visually reviewed. Original plastic-versus-metal wording is an existing catalog inconsistency, not evidence for a different product. Product labels/specifications remain unchanged; pictured cube weights explicitly marked not included.",
+      "evidenceUrls": [
+        "https://atehna.si/product/solska-tehtnica/",
+        "https://www.wissner-aktiv-lernen.com/en/Balance/070110.000"
+      ],
+      "acceptedInManifest": "data/catalog/product-image-additions-v4-2026-09.json"
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-z-utezmi.jpg",
+      "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+      "reason": "unverified-wrong-manufacturer-model",
+      "reviewNotes": "Reviewed Learning Resources LER2420 scale is not established as equivalent to catalog Wissner 65108. Product specifications are preserved pending stock proof.",
+      "inventoryMediaId": "183",
+      "inventoryHidden": false,
+      "dimensions": {
+        "width": 1800,
+        "height": 1800
+      },
+      "resolvedAt": "2026-09-14T10:32:23.841Z",
+      "resolution": "Original ATEHNA65108 gallery uses the same red/gray scale, open weight drawer and included metal weights photograph. The untransformed1800×1800 source has been independently visually inspected; moderate photographic grain remains, with useful construction and pointer detail. Existing Wissner/LearningResources brand discrepancy documented separately; image scoped only to65108, never070110 or070112. Visible caption excludes coloured cube props.",
+      "evidenceUrls": [
+        "https://atehna.si/product/solska-tehtnica/"
+      ],
+      "acceptedInManifest": "data/catalog/product-image-additions-v4-2026-09.json"
+    }
+  ]
+}

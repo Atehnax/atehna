@@ -83,7 +83,13 @@ export type CatalogMediaKind = 'image' | 'video' | 'document';
 export type CatalogMediaImportKind = CatalogMediaKind;
 export type CatalogMediaRole = 'gallery' | 'technical_sheet';
 export type CatalogMediaSourceKind = 'upload' | 'youtube';
-export type CatalogImageDimensions = { width?: number; height?: number };
+export type CatalogImageDimensions = {
+  width?: number;
+  height?: number;
+  originalUrl?: string;
+  originalWidth?: number;
+  originalHeight?: number;
+};
 
 export type CatalogItemMediaPayload = {
   id?: number;

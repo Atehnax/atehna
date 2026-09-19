@@ -1,4 +1,6 @@
 import { formatDecimalForDisplay } from './decimalFormat';
+import type { CatalogImageDimensions } from '@/shared/domain/catalog/catalogAdminTypes';
+import { normalizeCatalogImageOriginal } from '@/shared/domain/catalog/catalogImageOriginal';
 
 const mimeTypeToImageFormat: Readonly<Record<string, string>> = {
   'image/jpeg': 'JPG',
@@ -25,7 +27,7 @@ const imageExtensionToFormat: Readonly<Record<string, string>> = {
   tiff: 'TIFF'
 };
 
-export type ImagePixelMetadata = {
+export type ImagePixelMetadata = CatalogImageDimensions & {
   width: number;
   height: number;
 };
@@ -60,12 +62,12 @@ export function formatImagePixelDimensions(metadata: ImagePixelMetadata | null |
 }
 
 export function normalizeImagePixelDimensions(
-  metadata: { width?: number; height?: number } | null | undefined
+  metadata: CatalogImageDimensions | null | undefined
 ): ImagePixelMetadata | null {
   const width = Number(metadata?.width);
   const height = Number(metadata?.height);
   if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) return null;
-  return { width, height };
+  return { width, height, ...normalizeCatalogImageOriginal(metadata) };
 }
 
 export function formatImageVariantAssignmentLabel(

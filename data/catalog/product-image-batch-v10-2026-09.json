@@ -1,0 +1,354 @@
+{
+  "version": 10,
+  "reviewedAt": "2026-09-14T16:06:23.488Z",
+  "status": "Saved partial improvements; overall goal remains active",
+  "summary": {
+    "items": 43,
+    "activeItems": 40,
+    "variants": 185,
+    "imageRows": 224,
+    "photographRows": 73,
+    "visiblePhotographRows": 73,
+    "visibleUniquePhotographs": 73,
+    "visibleRowsBelowMinimum": 0,
+    "hiddenPhotographRows": 0,
+    "dimensionDiagrams": 151,
+    "unreadableVisible": 0,
+    "familiesWithoutPhotos": 12,
+    "variantsWithoutPhotos": 120,
+    "variantsWithPhotos": 65,
+    "newPhotographs": 8,
+    "newVariantAssociations": 8,
+    "improvedFamilies": 4,
+    "improvedVariants": 7,
+    "newlyCoveredVariants": 5,
+    "batchFamilies": 20,
+    "batchVariantsWithoutPhotosAtStart": 70,
+    "batchVariantsStillWithoutPhotos": 65
+  },
+  "scope": [
+    {
+      "slug": "seleshamer",
+      "name": "Šeleshamer",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-paper-v10-2026-09.json"
+      ],
+      "decisions": [
+        "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+      ]
+    },
+    {
+      "slug": "grafopak",
+      "name": "Grafopak",
+      "allFamilyVariants": 2,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-paper-v10-2026-09.json"
+      ],
+      "decisions": [
+        "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+      ]
+    },
+    {
+      "slug": "barvni-papir",
+      "name": "Barvni papir",
+      "allFamilyVariants": 27,
+      "variantsWithoutPhotosAtStart": 24,
+      "remainingVariantsWithoutPhotos": 24,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-paper-v10-2026-09.json"
+      ],
+      "decisions": [
+        "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+      ]
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "name": "Vibracijska žaga Proxxon DSH",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [
+        "STR-VIB-OSNOVNA-IZVEDBA"
+      ],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Rear motor/connections",
+          "Table tilt adjustment",
+          "Blade holder close-up or top view"
+        ]
+      ]
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "name": "Digitalno pomično merilo",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Whole isolated exact caliper meeting both-axis minimum",
+          "Internal/external jaw detail",
+          "Display/control/rear/depth rod independent views"
+        ]
+      ]
+    },
+    {
+      "slug": "solska-tehtnica",
+      "name": "Šolska tehtnica",
+      "allFamilyVariants": 3,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Independent beam/zero adjustment detail",
+          "Weight compartment and underside",
+          "Rear view of each exact body"
+        ]
+      ]
+    },
+    {
+      "slug": "mekol",
+      "name": "Mekol",
+      "allFamilyVariants": 5,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Readable rear label for each exact formula/pack",
+          "Open nozzle/cap detail",
+          "No-human exact current-product use views"
+        ]
+      ]
+    },
+    {
+      "slug": "uhu-kraft",
+      "name": "UHU Kraft",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Rear42g label",
+          "Cap/nozzle detail",
+          "No-human exact42g use photograph"
+        ]
+      ]
+    },
+    {
+      "slug": "ploscata-baterija",
+      "name": "Ploščata baterija 4,5 V",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Rear label and side profile",
+          "Clean top terminal view"
+        ]
+      ]
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "name": "Vgradno stikalo",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Exact underside or rear construction view beyond existing three"
+        ]
+      ]
+    },
+    {
+      "slug": "objemka-za-motorcek-re260",
+      "name": "Objemka za motorček RE260",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-known-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        [
+          "Independent24mm-only side/top/underside",
+          "Exact mounted24mm clip with clearly excluded motor"
+        ]
+      ]
+    },
+    {
+      "slug": "pleksi-steklo",
+      "name": "Pleksi steklo",
+      "allFamilyVariants": 7,
+      "variantsWithoutPhotosAtStart": 6,
+      "remainingVariantsWithoutPhotos": 6,
+      "improvedVariantSkus": [
+        "MAT-UME-PLE-3x300x200-BELO"
+      ],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "name": "Penjeni PVC (komateks)",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 3,
+      "remainingVariantsWithoutPhotos": 3,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "stiropor",
+      "name": "Stiropor",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "geotrikotnik",
+      "name": "Geotrikotnik za tablo",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "name": "Trikotniki za tablo",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 0,
+      "remainingVariantsWithoutPhotos": 0,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "name": "Ravnila za tablo",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review."
+      ]
+    },
+    {
+      "slug": "fotokarton",
+      "name": "Fotokarton",
+      "allFamilyVariants": 20,
+      "variantsWithoutPhotosAtStart": 18,
+      "remainingVariantsWithoutPhotos": 14,
+      "improvedVariantSkus": [
+        "MAT-PAP-FOT-RDECA",
+        "MAT-PAP-FOT-SREBRNA",
+        "MAT-PAP-FOT-ZLATA",
+        "MAT-PAP-FOT-RUMENA"
+      ],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json",
+        "data/catalog/replacement-sources-root-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review.",
+        "Accept four matching colours; other fourteen uncovered colours still have shade conflicts or no verified native source."
+      ]
+    },
+    {
+      "slug": "risalni-list",
+      "name": "Risalni list",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [
+        "MAT-PAP-RIS-210x148-A5"
+      ],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-white-products-v10-2026-09.json",
+        "data/catalog/replacement-sources-root-v10-2026-09.json"
+      ],
+      "decisions": [
+        "See source ledger for source measurements and contrast review.",
+        "Accept natural-context complete A5. A4 rear sheet is occluded and is not assigned as a main. Brustro sources rejected: human face on packaging and unsupported brand/package."
+      ]
+    },
+    {
+      "slug": "lepenka",
+      "name": "Lepenka",
+      "allFamilyVariants": 6,
+      "variantsWithoutPhotosAtStart": 5,
+      "remainingVariantsWithoutPhotos": 5,
+      "improvedVariantSkus": [],
+      "sourceLedgers": [
+        "data/catalog/replacement-sources-root-v10-2026-09.json"
+      ],
+      "decisions": [
+        "New A3 board suppliers advertise 0.6, 0.75 or 1 mm rather than sold 0.8 mm; do not substitute thickness. No verified matching source for five remaining cuts."
+      ]
+    }
+  ]
+}

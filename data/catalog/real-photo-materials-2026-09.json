@@ -1204,5 +1204,8 @@
       ],
       "gaps": []
     }
+  ],
+  "supersededBy": [
+    "product-image-remediation-2026-09.json"
   ]
 }

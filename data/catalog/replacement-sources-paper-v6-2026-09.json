@@ -1,0 +1,844 @@
+{
+  "version": 6,
+  "reviewedAt": "2026-09-14T12:50:44.324Z",
+  "status": "researched-no-new-accepted-images",
+  "scope": [
+    "barvni-papir",
+    "fotokarton"
+  ],
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "exactColourOnly": true,
+    "unchangedOriginalsOnly": true,
+    "noDataMutations": true
+  },
+  "summary": {
+    "productFamilies": 2,
+    "remainingVariantsInScope": 45,
+    "newAcceptedImages": 0,
+    "newCoveredVariants": 0,
+    "candidateImageFilesMeasured": 21,
+    "originalReferenceFilesMeasured": 1,
+    "failedOriginalProbes": 1,
+    "sourcePagesFetched": 19,
+    "qualityApprovedButIdentityUnresolvedCandidates": 1
+  },
+  "products": [
+    {
+      "slug": "barvni-papir",
+      "itemName": "Barvni papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-STRUKTURNO-BELA",
+        "MAT-PAP-BAR-SVETLO-RJAVA",
+        "MAT-PAP-BAR-TEMNO-RJAVA",
+        "MAT-PAP-BAR-RJAVA",
+        "MAT-PAP-BAR-LILA",
+        "MAT-PAP-BAR-VIJOLICASTA",
+        "MAT-PAP-BAR-CRNA",
+        "MAT-PAP-BAR-SIVA",
+        "MAT-PAP-BAR-ROZA",
+        "MAT-PAP-BAR-TEMNO-LILA",
+        "MAT-PAP-BAR-TRAVNO-ZELENA",
+        "MAT-PAP-BAR-TEMNO-ZELENA",
+        "MAT-PAP-BAR-ZELENA",
+        "MAT-PAP-BAR-SVETLO-ZELENA",
+        "MAT-PAP-BAR-ORANZNA",
+        "MAT-PAP-BAR-MODRA",
+        "MAT-PAP-BAR-NEBESNO-MODRA",
+        "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+        "MAT-PAP-BAR-SVETLO-MODRA",
+        "MAT-PAP-BAR-TEMNO-RDECA",
+        "MAT-PAP-BAR-VINSKO-RDECA",
+        "MAT-PAP-BAR-KARMIN-RDECA",
+        "MAT-PAP-BAR-RDECA",
+        "MAT-PAP-BAR-KORUZNO-RUMENA",
+        "MAT-PAP-BAR-MARELICNA",
+        "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+        "MAT-PAP-BAR-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "variantName": "svetlo rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-CRNA",
+          "variantName": "črna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RDECA",
+          "variantName": "rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "labbe-blue130-native",
+          "sourcePage": "https://www.labbe.de/tonpapier-50-x-70-cm-10er-pack",
+          "sourceImageUrl": "https://www.labbe.de/media/8d/9e/61/1714036999/02d84060347dc5734f2f0b8a89569bc3_P_1011-36-tonpapier-einzeln-blaua972ca7d3c215d35494317dffdb7cb57.jpg",
+          "name": "labbe-blue130-native",
+          "url": "https://www.labbe.de/media/8d/9e/61/1714036999/02d84060347dc5734f2f0b8a89569bc3_P_1011-36-tonpapier-einzeln-blaua972ca7d3c215d35494317dffdb7cb57.jpg",
+          "path": "tmp/product-image-audit/paper-v6/labbe-blue130-native.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 34708,
+          "sha256": "4f3195ebcdc3bcf09e92c8fcecad921ee613e2cf9f623c0c59f2f24bc387a659",
+          "reasonCode": "native-resolution",
+          "reason": "Untransformed supplier original is 800×800; both native axes must be at least1024. Folia blue stock is also not proven to match a sold ATEHNA blue shade.",
+          "accepted": false
+        },
+        {
+          "id": "highdefinition-california-original",
+          "sourcePage": "https://www.highdefinition.ch/product/Ursus-2232235-Tonzeichenpapier-50x70cm-130g-calif.blau/1265861.html",
+          "sourceImageUrl": "https://www.highdefinition.ch/imagescaler/15632653.jpeg",
+          "name": "highdefinition-california-original",
+          "url": "https://www.highdefinition.ch/imagescaler/15632653.jpeg",
+          "path": "tmp/product-image-audit/paper-v6/highdefinition-california-original.jpg",
+          "width": 1200,
+          "height": 900,
+          "bytes": 19967,
+          "sha256": "ffb01ee91f0ea25e18d348f17d5a502f29259e7a51f8411a43e6373e977f58f2",
+          "reasonCode": "offered-resolution",
+          "reason": "Image URL without a requested scaling size returns1200×900; height fails the requirement. No larger native image was established.",
+          "accepted": false
+        },
+        {
+          "id": "knipping-green-zoom",
+          "sourcePage": "https://shop.knipping.net/ursus-tonpapier-prdE4PB3Hz6C2tijEpm3AS7XedkGG",
+          "sourceImageUrl": "https://bilddaten.privatepilot.de/Soennecken/2000/Y001/352/Y001352X.jpg",
+          "name": "knipping-green-zoom",
+          "url": "https://bilddaten.privatepilot.de/Soennecken/2000/Y001/352/Y001352X.jpg",
+          "path": "tmp/product-image-audit/paper-v6/knipping-green-zoom.jpg",
+          "width": 2000,
+          "height": 2000,
+          "bytes": 362623,
+          "sha256": "d55c802e175296d9d6c37e5b8b4ae4b1b58f5003229044f393b8635e288c2478",
+          "reasonCode": "crop-and-soft-detail",
+          "reason": "2000×2000 offered zoom has wide empty horizontal bands and a soft colour/texture sample cropped at left/right; it is not a whole-sheet main photograph. A native original beyond the offered2000 endpoint was not established.",
+          "accepted": false
+        },
+        {
+          "id": "kleinanzeigen-darkgreen-seller-original",
+          "sourcePage": "https://www.kleinanzeigen.de/s-anzeige/tonpapier-70-x-50-dunkelgruen-130-g-m2-50-blatt-weniger-moeglich/3490265030-282-6433",
+          "sourceImageUrl": "https://img.kleinanzeigen.de/api/v1/prod-ads/images/c0/c034bc58-5c11-41bb-91be-e2bc5dffd96f",
+          "name": "kleinanzeigen-darkgreen-seller-original",
+          "url": "https://img.kleinanzeigen.de/api/v1/prod-ads/images/c0/c034bc58-5c11-41bb-91be-e2bc5dffd96f",
+          "error": "HTTP 400",
+          "reasonCode": "original-unavailable",
+          "reason": "URL with transform rule removed returnsHTTP400; not a verified native original. The largest actually offered image is separately measured960×540.",
+          "accepted": false
+        },
+        {
+          "id": "kleinanzeigen-darkgreen-offered-large",
+          "sourcePage": "https://www.kleinanzeigen.de/s-anzeige/tonpapier-70-x-50-dunkelgruen-130-g-m2-50-blatt-weniger-moeglich/3490265030-282-6433",
+          "sourceImageUrl": "https://img.kleinanzeigen.de/api/v1/prod-ads/images/c0/c034bc58-5c11-41bb-91be-e2bc5dffd96f?rule=$_59.JPG",
+          "name": "kleinanzeigen-darkgreen-offered-large",
+          "url": "https://img.kleinanzeigen.de/api/v1/prod-ads/images/c0/c034bc58-5c11-41bb-91be-e2bc5dffd96f?rule=$_59.JPG",
+          "path": "tmp/product-image-audit/paper-v6/kleinanzeigen-darkgreen-offered-large.jpg",
+          "width": 960,
+          "height": 540,
+          "bytes": 91683,
+          "sha256": "74aba85fd83e86e6e3dd1251fd8626752182e5f7be4dc1847df9e831b32569ed",
+          "reasonCode": "offered-resolution",
+          "reason": "Actual public seller photograph in the largest offered $_59 image is960×540. No contact or purchase was made, and no larger source is established.",
+          "accepted": false
+        },
+        {
+          "id": "archidelis-darkgreen-native",
+          "sourcePage": "https://www.archidelis.at/en/Materials/Paper/Tinted-Drawing-Paper-Coloured-White/Tinted-drawing-paper-dark-green.html",
+          "sourceImageUrl": "https://www.archidelis.at/out/pictures/master/product/1/1402192255.png",
+          "name": "archidelis-darkgreen-native",
+          "url": "https://www.archidelis.at/out/pictures/master/product/1/1402192255.png",
+          "path": "tmp/product-image-audit/paper-v6/archidelis-darkgreen-native.png",
+          "width": 800,
+          "height": 571,
+          "bytes": 69212,
+          "sha256": "7d531c54d6eb0a517d608db13e06cb9106b50b06b5ab8cfafde46c42b2d1bfc6",
+          "reasonCode": "native-resolution",
+          "reason": "Master original for dark-green130 gsm500×700 stock is800×571. Source product number1402192255 supports URSUS colour55 identification, but image resolution fails.",
+          "accepted": false
+        }
+      ],
+      "evidence": [
+        {
+          "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+          "priorEvidence": "tmp/product-image-audit/materials-v4/antus-paper.html",
+          "finding": "Original colour-specific ATEHNA references and Antus URSUS/Baehr suffixes are the colour identity baseline. Prior Brack recoloured geometry templates remain rejected; no new cross-brand colour equivalence has been inferred."
+        }
+      ],
+      "candidates": [],
+      "missingViews": [
+        "Complete real photograph of each exact sold colour, native width and height at least1024, sharp enough for texture/edge inspection.",
+        "Distinct useful sheet-edge/surface view where a real independently photographed source exists."
+      ]
+    },
+    {
+      "slug": "fotokarton",
+      "itemName": "Fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-SREBRNA",
+        "MAT-PAP-FOT-SIVA",
+        "MAT-PAP-FOT-ZLATA",
+        "MAT-PAP-FOT-SVETLO-RJAVA",
+        "MAT-PAP-FOT-RJAVA",
+        "MAT-PAP-FOT-VIJOLICASTA",
+        "MAT-PAP-FOT-LILA",
+        "MAT-PAP-FOT-TEMNO-ZELENA",
+        "MAT-PAP-FOT-ZELENA",
+        "MAT-PAP-FOT-ORANZNA",
+        "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+        "MAT-PAP-FOT-MODRA",
+        "MAT-PAP-FOT-TEMNO-MODRA",
+        "MAT-PAP-FOT-TEMNO-RDECA",
+        "MAT-PAP-FOT-RDECA",
+        "MAT-PAP-FOT-KORUZNO-RUMENA",
+        "MAT-PAP-FOT-MARELICNA",
+        "MAT-PAP-FOT-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-FOT-SREBRNA",
+          "variantName": "srebrna"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ZLATA",
+          "variantName": "zlata"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-SVETLO-RJAVA",
+          "variantName": "svetlo rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+          "variantName": "kraljevsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-MODRA",
+          "variantName": "temno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RDECA",
+          "variantName": "rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "lupus-red300-second",
+          "sourcePage": "https://www.lupus-produkte.de/fotokarton-300-g-m2-hochrot-50x70-cm/61.020",
+          "sourceImageUrl": "https://www.lupus-produkte.de/media/51/54/g0/1706799760/c22d1652b40afbac779b11b65d45cae4c651c53e.jpeg?ts=1706799760",
+          "name": "lupus-red300-second",
+          "url": "https://www.lupus-produkte.de/media/51/54/g0/1706799760/c22d1652b40afbac779b11b65d45cae4c651c53e.jpeg?ts=1706799760",
+          "path": "tmp/product-image-audit/paper-v6/lupus-red300-second.jpg",
+          "width": 787,
+          "height": 787,
+          "bytes": 11264,
+          "sha256": "ec08baaaab581b8d2c86e6c2bbee4e9255d4d86bf81c9fd6fc59599b853144c3",
+          "reasonCode": "native-resolution",
+          "reason": "787×787 original is below both required axes.",
+          "accepted": false
+        },
+        {
+          "id": "thueringen-red300-thickbox",
+          "sourcePage": "https://www.buero-bedarf-thueringen.de/staufen-fotokarton-1109622-rubinrot-50x70cm-300g-4008525133063-1109622",
+          "sourceImageUrl": "https://www.buero-bedarf-thueringen.de/2700659-thickbox_default/staufen-fotokarton-1109622-rubinrot-50x70cm-300g-4008525133063-1109622.jpg",
+          "name": "thueringen-red300-thickbox",
+          "url": "https://www.buero-bedarf-thueringen.de/2700659-thickbox_default/staufen-fotokarton-1109622-rubinrot-50x70cm-300g-4008525133063-1109622.jpg",
+          "path": "tmp/product-image-audit/paper-v6/thueringen-red300-thickbox.jpg",
+          "width": 600,
+          "height": 600,
+          "bytes": 49291,
+          "sha256": "8decd7596ca6da03d012d799296c048c83382bec53082459d197070c68c04229",
+          "reasonCode": "offered-resolution",
+          "reason": "Largest offered zoom inspected is600×600. This is an offered Prestashop image derivative; no larger native original was established.",
+          "accepted": false
+        },
+        {
+          "id": "lupus-red300-native",
+          "sourcePage": "https://www.lupus-produkte.de/fotokarton-300-g-m2-hochrot-50x70-cm/61.020",
+          "sourceImageUrl": "https://www.lupus-produkte.de/media/07/95/f3/1745576488/029c92dc9e6975131bc9ca10bd3ed35026c6d513.jpeg?ts=1745576488",
+          "name": "lupus-red300-native",
+          "url": "https://www.lupus-produkte.de/media/07/95/f3/1745576488/029c92dc9e6975131bc9ca10bd3ed35026c6d513.jpeg?ts=1745576488",
+          "path": "tmp/product-image-audit/paper-v6/lupus-red300-native.jpg",
+          "width": 1080,
+          "height": 1350,
+          "bytes": 165895,
+          "sha256": "b5080d759ca8afb8c36fb6e55fe0e7f67f85d36359e08f81cf3b57a6c0d2ff34",
+          "reasonCode": "quality-and-exact-colour",
+          "reason": "Although1080×1350, the image has large empty top/bottom areas and a flat, block-like assembled fan with insufficient fine sheet detail. Folia hochrot20 is not proven equivalent to ATEHNA red/Antus URSUS22.",
+          "accepted": false
+        },
+        {
+          "id": "lupus-red300-third",
+          "sourcePage": "https://www.lupus-produkte.de/fotokarton-300-g-m2-hochrot-50x70-cm/61.020",
+          "sourceImageUrl": "https://www.lupus-produkte.de/media/ff/4d/d6/1753085189/c4ef8362d9857b368ac707f6b1d0d521add1a469.jpeg?ts=1753085189",
+          "name": "lupus-red300-third",
+          "url": "https://www.lupus-produkte.de/media/ff/4d/d6/1753085189/c4ef8362d9857b368ac707f6b1d0d521add1a469.jpeg?ts=1753085189",
+          "path": "tmp/product-image-audit/paper-v6/lupus-red300-third.jpg",
+          "width": 2719,
+          "height": 1806,
+          "bytes": 4197556,
+          "sha256": "76b890722c254e878ac07157c2cf1c19d945c56de85cc6c207bb48b3fbe46ca7",
+          "reasonCode": "wrong-view-and-variant",
+          "reason": "Large multicolour fan is a general assortment illustration, not a useful accurate photograph of the selected single-colour sheet. It cannot count as an additional view for every colour.",
+          "accepted": false
+        },
+        {
+          "id": "papirkompaniet-silver300-native",
+          "sourcePage": "https://papirkompaniet.no/produkter/varemerker/folia/fotokartong-300g-50x70-soelv",
+          "sourceImageUrl": "https://papirkompaniet.no/Files/Images/Ecom/48-6160.jpg",
+          "name": "papirkompaniet-silver300-native",
+          "url": "https://papirkompaniet.no/Files/Images/Ecom/48-6160.jpg",
+          "path": "tmp/product-image-audit/paper-v6/papirkompaniet-silver300-native.jpg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 13399,
+          "sha256": "d9b0878a200ae154eebc6ecb2422d4e241d6f0154d261f60a4f2fdd864944a71",
+          "reasonCode": "native-resolution",
+          "reason": "Untransformed silver300 source is1000×1000, below both minimum axes.",
+          "accepted": false
+        },
+        {
+          "id": "interoffice-gold300-native",
+          "sourcePage": "https://www.interoffice24.nl/fotokarton-folia-300gr-50x70cm-65-goud/",
+          "sourceImageUrl": "https://www.interoffice24.nl/media/5e/28/55/1777401518/141681p1-IO.jpg?ts=1777401518",
+          "name": "interoffice-gold300-native",
+          "url": "https://www.interoffice24.nl/media/5e/28/55/1777401518/141681p1-IO.jpg?ts=1777401518",
+          "path": "tmp/product-image-audit/paper-v6/interoffice-gold300-native.jpg",
+          "width": 457,
+          "height": 640,
+          "bytes": 62570,
+          "sha256": "973a38d1f88eed7b7aa470e9d1fce0520f7b04ce003136bb1c491b345514b6b1",
+          "reasonCode": "native-resolution",
+          "reason": "Untransformed gold300 source is457×640, below both minimum axes.",
+          "accepted": false
+        },
+        {
+          "id": "akvarel-orange300-first",
+          "sourcePage": "https://akvarel.com/catalog/product/226252",
+          "sourceImageUrl": "https://akvarel.com/storage/products/2024_01_06/products_other_226252_1_1704570815.jpeg",
+          "name": "akvarel-orange300-first",
+          "url": "https://akvarel.com/storage/products/2024_01_06/products_other_226252_1_1704570815.jpeg",
+          "path": "tmp/product-image-audit/paper-v6/akvarel-orange300-first.jpg",
+          "width": 900,
+          "height": 675,
+          "bytes": 40807,
+          "sha256": "fcb4b661d0ca0b7e39e302e825f9ccda3760d98d1cd6dc113770af198d7e6424",
+          "reasonCode": "native-resolution",
+          "reason": "Storage original is900×675. Folia light-orange stock is not an established exact match to the sold orange shade.",
+          "accepted": false
+        },
+        {
+          "id": "cria-green-native",
+          "sourcePage": "https://cria.se/sv/categories/kartong",
+          "sourceImageUrl": "https://nycdn.nyehandel.se/store_76a60e75-02bc-4e87-a11a-458849c0c1dd/images/50oGf2qil59iZSsltEkD22TMFVkmC9JpatvVwt7r.jpg",
+          "name": "cria-green-native",
+          "url": "https://nycdn.nyehandel.se/store_76a60e75-02bc-4e87-a11a-458849c0c1dd/images/50oGf2qil59iZSsltEkD22TMFVkmC9JpatvVwt7r.jpg",
+          "path": "tmp/product-image-audit/paper-v6/cria-green-native.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 20606,
+          "sha256": "4afdd644469ba4429902097a903e2bcc3861eac3b4e1e145e719255a7e7f02d8",
+          "reasonCode": "graphic-not-photograph",
+          "reason": "1080×1080 file depicts a uniform colour rectangle with a graphic folded corner/shadow; it does not provide real sheet texture or construction photography. Exact sold shade is unproven.",
+          "accepted": false
+        },
+        {
+          "id": "akvarel-orange300-second",
+          "sourcePage": "https://akvarel.com/catalog/product/226252",
+          "sourceImageUrl": "https://akvarel.com/storage/products/2024_01_06/products_other_226252_1_1704570819.jpeg",
+          "name": "akvarel-orange300-second",
+          "url": "https://akvarel.com/storage/products/2024_01_06/products_other_226252_1_1704570819.jpeg",
+          "path": "tmp/product-image-audit/paper-v6/akvarel-orange300-second.jpg",
+          "width": 552,
+          "height": 900,
+          "bytes": 52786,
+          "sha256": "be76ff9f9cfbce62ffe9e1df513d96e25cdceb1a1bbb128b46b17baa479bb236",
+          "reasonCode": "native-resolution",
+          "reason": "Second storage original is552×900; this cannot satisfy the1024×1024 native minimum.",
+          "accepted": false
+        },
+        {
+          "id": "lyreco-rubin-native",
+          "sourcePage": "https://www.lyreco.com/webshop/DEDE/baehr-buntkarton-1109622-300g-50x70cm-rubinrot-20-stueck-product-000000000004867706.html",
+          "sourceImageUrl": "https://webassets.lyreco.com/products/496/744/5496744.jpg",
+          "name": "lyreco-rubin-native",
+          "url": "https://webassets.lyreco.com/products/496/744/5496744.jpg",
+          "path": "tmp/product-image-audit/paper-v6/lyreco-rubin-native.jpg",
+          "width": 2000,
+          "height": 2000,
+          "bytes": 81894,
+          "sha256": "f8e33796dcc1a518e1761e9309512ad45356247b1dc97d686a63b9c47eb64b28",
+          "reasonCode": "blur-and-crop",
+          "reason": "2000×2000 server original is a soft, blocky red swatch with left/right edges cropped and wide empty bands. Fine detail does not support useful zoom; pixel dimensions alone do not qualify it.",
+          "accepted": false
+        },
+        {
+          "id": "lyreco-hellblau-native",
+          "sourcePage": "https://www.lyreco.com/webshop/DEDE/baehr-buntkarton-1109622-300g-50x70cm-rubinrot-20-stueck-product-000000000004867706.html",
+          "sourceImageUrl": "https://webassets.lyreco.com/products/578/937/16578937.jpg",
+          "name": "lyreco-hellblau-native",
+          "url": "https://webassets.lyreco.com/products/578/937/16578937.jpg",
+          "path": "tmp/product-image-audit/paper-v6/lyreco-hellblau-native.jpg",
+          "width": 2000,
+          "height": 2000,
+          "bytes": 67497,
+          "sha256": "6dae1c8b205dca37492d49bcd182d1032366b70a772978694e268af13c157dc4",
+          "reasonCode": "padding-and-blur",
+          "reason": "Despite the probe filename, visual inspection shows a lime-green rectangle, not light blue. The2000×2000 file has excessive white padding and smeared texture; exact variant was not assigned. It is a related colour swatch from the Lyreco product gallery.",
+          "accepted": false
+        },
+        {
+          "id": "partner-fotokarton-original",
+          "sourcePage": "https://trgovina.partner.si/kategorija/hoby-hobby-program-izdelovanje-nakita-akrilne-barve-copici-platna-kalupi-barve/papirji-slikarska-platna-okvirji/barvni-papir/",
+          "sourceImageUrl": "https://trgovina.partner.si/wp-content/uploads/2020/05/4008525187851-1.jpg",
+          "name": "partner-fotokarton-original",
+          "url": "https://trgovina.partner.si/wp-content/uploads/2020/05/4008525187851-1.jpg",
+          "path": "tmp/product-image-audit/paper-v6/partner-fotokarton-original.jpg",
+          "width": 660,
+          "height": 660,
+          "bytes": 21477,
+          "sha256": "061344aa2b4415496544b2b27aebc2d5ec0ac3e8cc571ecf17e573e056376ba2",
+          "reasonCode": "native-resolution",
+          "reason": "Slovenian retailer storage original for Fotokarton B2 is660×660.",
+          "accepted": false
+        },
+        {
+          "id": "schlup-orange-offered-large",
+          "sourcePage": "https://schlup.swiss/produkt/ursus-fotokarton-50x70cm-3882241-300g-orange/",
+          "sourceImageUrl": "https://media.offix.ch/images/big/URSUS-3882241-4008525185208.jpg",
+          "name": "schlup-orange-offered-large",
+          "url": "https://media.offix.ch/images/big/URSUS-3882241-4008525185208.jpg",
+          "path": "tmp/product-image-audit/paper-v6/schlup-orange-offered-large.jpg",
+          "width": 600,
+          "height": 400,
+          "bytes": 72836,
+          "sha256": "7d47266a316df51d644d6602a738f68ee9e38ce5bc37af1f42a6fcc11fa68fd2",
+          "reasonCode": "offered-resolution",
+          "reason": "Offered big source for exact URSUS3882241 orange is600×400, below both required axes.",
+          "accepted": false
+        },
+        {
+          "id": "opitec-green300-third",
+          "sourcePage": "https://www.opitec.com/it-it/cartoncino-300g-50x70-cm-10-fogli-verde-bosco/410195",
+          "sourceImageUrl": "https://www.opitec.com/media/f9/c9/37/1764705210/410195-000-000-VO-01a02_v_9.jpg?ts=1764705210",
+          "name": "opitec-green300-third",
+          "url": "https://www.opitec.com/media/f9/c9/37/1764705210/410195-000-000-VO-01a02_v_9.jpg?ts=1764705210",
+          "path": "tmp/product-image-audit/paper-v6/opitec-green300-third.jpg",
+          "width": 1931,
+          "height": 2560,
+          "bytes": 779173,
+          "sha256": "0f7492e7ef609ffe255ed400a627aa42fbc3b574990cd382e04bef4a7b38ac7c",
+          "reasonCode": "no-matched-main-and-context",
+          "reason": "Separate room/display photograph contains craft plants, pots, frames and other materials. Its precise sheet stock cannot be established from the image; no exact matched main is available.",
+          "accepted": false
+        },
+        {
+          "id": "opitec-green300-main",
+          "sourcePage": "https://www.opitec.com/it-it/cartoncino-300g-50x70-cm-10-fogli-verde-bosco/410195",
+          "sourceImageUrl": "https://www.opitec.com/media/0f/e2/ac/1764705208/410195-000-000-VO-01_v_9.jpg?ts=1764705208",
+          "name": "opitec-green300-main",
+          "url": "https://www.opitec.com/media/0f/e2/ac/1764705208/410195-000-000-VO-01_v_9.jpg?ts=1764705208",
+          "path": "tmp/product-image-audit/paper-v6/opitec-green300-main.jpg",
+          "width": 2449,
+          "height": 2560,
+          "bytes": 769852,
+          "sha256": "8807e1d695310fb9441a56877bf133c1cf95bc87545d51a48a3dad6c83ccee7c",
+          "reasonCode": "exact-colour-unresolved",
+          "reason": "Physical photograph passes quality and framing review, but source is Folia6158 tannengruen; exact shade equivalence to the sold dark-green sheet is unproven. The original ATEHNA flat colour strip appears cooler/lighter. Different illumination prevents a calibrated comparison, so neither a mismatch nor an exact match is claimed. Keep withheld pending actual stock/colour evidence.",
+          "accepted": false
+        },
+        {
+          "id": "opitec-green300-second",
+          "sourcePage": "https://www.opitec.com/it-it/cartoncino-300g-50x70-cm-10-fogli-verde-bosco/410195",
+          "sourceImageUrl": "https://www.opitec.com/media/30/d6/d2/1764705211/410195-000-000-VO-01a03_v_9.jpg?ts=1764705211",
+          "name": "opitec-green300-second",
+          "url": "https://www.opitec.com/media/30/d6/d2/1764705211/410195-000-000-VO-01a03_v_9.jpg?ts=1764705211",
+          "path": "tmp/product-image-audit/paper-v6/opitec-green300-second.jpg",
+          "width": 1871,
+          "height": 2560,
+          "bytes": 1839655,
+          "sha256": "2250639112e4c21edba5365cfe860ebcde7b7a2a01766ed6e87e1e45c3771045",
+          "reasonCode": "no-matched-main-and-context",
+          "reason": "Separate large photograph of craft leaves and insects uses multiple papers/components. It cannot substitute for a whole-sheet main or establish exact shade/model. Opitec main stock identity remains unresolved.",
+          "accepted": false
+        }
+      ],
+      "evidence": [
+        {
+          "sourcePage": "https://www.antus.si/assets/Katalogi_antus/202311-katalog-nl-2024-mp.pdf",
+          "printedPage": 96,
+          "corroboratingSource": "https://www.antus.si/assets/katalog-likovnih-materialov-0.pdf",
+          "corroboratingPrintedPage": 79,
+          "finding": "Slovenian distributor identifies Fotokarton300g B2(50×70cm), B38822.., sold per sheet. Suffixes below map named colours within URSUS/Baehr stock; they are not cross-brand shade equivalence.",
+          "codes": {
+            "13": "rumen",
+            "16": "marelicen",
+            "19": "koruzno rumen",
+            "22": "rdec",
+            "25": "temno rdec",
+            "34": "temno moder",
+            "35": "moder",
+            "39": "kraljevsko moder",
+            "41": "oranzen",
+            "52": "zelen",
+            "55": "temno zelen",
+            "61": "lila",
+            "63": "vijolicast",
+            "72": "rjav",
+            "75": "svetlo rjav",
+            "79": "zlat",
+            "81": "srednje siv",
+            "89": "srebrn"
+          }
+        },
+        {
+          "originalSource": "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/",
+          "finding": "Original ATEHNA names nominal B2. Imported707mm is derived by tmp/catalog-import/research-audit.mjs from its B2[500,707] format map, not a measured original stock claim. Suppliers may state tradeB2/50×70cm; this does not authorize changing customer-visible dimensions or claiming a photographed sheet measures707mm.",
+          "priorLedger": "data/catalog/replacement-sources-paper-v5-2026-09.json"
+        }
+      ],
+      "candidates": [
+        {
+          "probeId": "opitec-green300-main",
+          "candidateVariantSkus": [
+            "MAT-PAP-FOT-TEMNO-ZELENA"
+          ],
+          "accepted": false,
+          "sourceGtin": "4001868061581",
+          "sourceMaker": "Folia / Max Bringmann",
+          "sourceColourCode": "6158 tannengruen",
+          "sourceMaterial": "300g/m2 dyed-through cardboard,50×70cm",
+          "originalReference": {
+            "name": "atehna-original-fotokarton-darkgreen",
+            "url": "https://atehna.si/wp-content/uploads/2015/04/temnozelena.png",
+            "path": "tmp/product-image-audit/paper-v6/atehna-original-fotokarton-darkgreen.png",
+            "width": 50,
+            "height": 20,
+            "bytes": 1551,
+            "sha256": "d5d1c3a7a2c781fa8686adbe9f2f84800e56ea1647d3408e16f2248eee7e06cc"
+          },
+          "review": {
+            "quality": "Parent independently reviewed and passed complete top-sheet framing, all corners, subtle natural fibres, fine irregular edges, no humans, and no excess padding.",
+            "identity": "Canonical and original ATEHNA make no manufacturer claim. Name, nominal size and grammmage match. Tiny original colour strip does not prove exact shade; no cross-brand colour-code substitution is authorized."
+          },
+          "colourComparison": {
+            "method": "Uncalibrated comparison of source pixels; indicative only, not proof of measured material colour.",
+            "atehnaStripMeanRGB": [
+              94.135,
+              153.607,
+              123.557
+            ],
+            "opitecSheetCrop": {
+              "left": 1000,
+              "top": 650,
+              "width": 300,
+              "height": 300,
+              "meanRGB": [
+                46.4114,
+                101.3147,
+                63.2809
+              ]
+            }
+          },
+          "quantityDisclosureIfLaterAccepted": "Prodaja po listih; dodatni prikazani listi niso vključeni."
+        }
+      ],
+      "missingViews": [
+        "Complete real photograph of each exact sold colour, native width and height at least1024, sharp enough for texture/edge inspection.",
+        "Distinct useful sheet-edge/surface view where a real independently photographed source exists."
+      ]
+    }
+  ],
+  "sourcePageChecks": [
+    {
+      "name": "labbe-tonpapier-blue",
+      "url": "https://www.labbe.de/tonpapier-50-x-70-cm-10er-pack",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/labbe-tonpapier-blue.html"
+    },
+    {
+      "name": "lupus-foto-red",
+      "url": "https://www.lupus-produkte.de/fotokarton-300-g-m2-hochrot-50x70-cm/61.020",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/lupus-foto-red.html"
+    },
+    {
+      "name": "thueringen-ursus-red",
+      "url": "https://www.buero-bedarf-thueringen.de/staufen-fotokarton-1109622-rubinrot-50x70cm-300g-4008525133063-1109622",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/thueringen-ursus-red.html"
+    },
+    {
+      "name": "papirkompaniet-silver300",
+      "url": "https://papirkompaniet.no/produkter/varemerker/folia/fotokartong-300g-50x70-soelv",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/papirkompaniet-silver300.html"
+    },
+    {
+      "name": "interoffice-gold300",
+      "url": "https://www.interoffice24.nl/fotokarton-folia-300gr-50x70cm-65-goud/",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/interoffice-gold300.html"
+    },
+    {
+      "name": "akvarel-orange300",
+      "url": "https://akvarel.com/catalog/product/226252",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/akvarel-orange300.html"
+    },
+    {
+      "name": "cria-kartong",
+      "url": "https://cria.se/sv/categories/kartong",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/cria-kartong.html"
+    },
+    {
+      "name": "kleinanzeigen-new",
+      "url": "https://www.kleinanzeigen.de/s-tonpapier/k0",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/kleinanzeigen-new.html"
+    },
+    {
+      "name": "galaxus-rubin",
+      "url": "https://www.galaxus.ch/de/s12/product/ursus-fotokarton-50-x-70-cm-300-gm-10x-bastelpapier-8564772",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/galaxus-rubin.html"
+    },
+    {
+      "name": "ursus-fotokarton-official",
+      "url": "https://www.ursus-basteln.de/fotokarton-uni/",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/ursus-fotokarton-official.html"
+    },
+    {
+      "name": "lyreco-rubin",
+      "url": "https://www.lyreco.com/webshop/DEDE/baehr-buntkarton-1109622-300g-50x70cm-rubinrot-20-stueck-product-000000000004867706.html",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/lyreco-rubin.html"
+    },
+    {
+      "name": "partner-paper",
+      "url": "https://trgovina.partner.si/kategorija/hoby-hobby-program-izdelovanje-nakita-akrilne-barve-copici-platna-kalupi-barve/papirji-slikarska-platna-okvirji/barvni-papir/",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/partner-paper.html"
+    },
+    {
+      "name": "highdefinition-130-california",
+      "url": "https://www.highdefinition.ch/product/Ursus-2232235-Tonzeichenpapier-50x70cm-130g-calif.blau/1265861.html",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/highdefinition-130-california.html"
+    },
+    {
+      "name": "kleinanzeigen-darkgreen",
+      "url": "https://www.kleinanzeigen.de/s-tonpapier-dunkelgr%C3%BCn/k0",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/kleinanzeigen-darkgreen.html"
+    },
+    {
+      "name": "knipping-130-green",
+      "url": "https://shop.knipping.net/ursus-tonpapier-prdE4PB3Hz6C2tijEpm3AS7XedkGG",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/knipping-130-green.html"
+    },
+    {
+      "name": "kleinanzeigen-physical-darkgreen",
+      "url": "https://www.kleinanzeigen.de/s-anzeige/tonpapier-70-x-50-dunkelgruen-130-g-m2-50-blatt-weniger-moeglich/3490265030-282-6433",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/kleinanzeigen-physical-darkgreen.html"
+    },
+    {
+      "name": "archidelis-green130",
+      "url": "https://www.archidelis.at/en/Materials/Paper/Tinted-Drawing-Paper-Coloured-White/Tinted-drawing-paper-dark-green.html",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/archidelis-green130.html"
+    },
+    {
+      "name": "schlup-orange300",
+      "url": "https://schlup.swiss/produkt/ursus-fotokarton-50x70cm-3882241-300g-orange/",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/schlup-orange300.html"
+    },
+    {
+      "name": "opitec-green300",
+      "url": "https://www.opitec.com/it-it/cartoncino-300g-50x70-cm-10-fogli-verde-bosco/410195",
+      "status": 200,
+      "localEvidence": "tmp/product-image-audit/paper-v6/opitec-green300.html"
+    }
+  ],
+  "accessOrScopeLimitations": [
+    {
+      "sourcePage": "https://www.galaxus.ch/de/s12/product/ursus-fotokarton-50-x-70-cm-300-gm-10x-bastelpapier-8564772",
+      "reason": "GET returned a client shell without original product image data; supplier browser attempt returned HTTP2 protocol failure. No invisible gallery content was guessed."
+    },
+    {
+      "sourcePage": "https://www.ursus-basteln.de/fotokarton-uni/",
+      "reason": "Available official uncoloured-card photo page describes DIN A4 packs. Those images were excluded at source-format screening; no A4 product substituted for B2."
+    }
+  ],
+  "priorEvidenceLedgers": [
+    "data/catalog/replacement-sources-paper-v5-2026-09.json",
+    "data/catalog/replacement-sources-root-v5-2026-09.json"
+  ],
+  "evidenceFiles": [
+    "tmp/product-image-audit/paper-v6/pages.json",
+    "tmp/product-image-audit/paper-v6/probes.json",
+    "tmp/product-image-audit/paper-v6/source-colour-evidence.json"
+  ],
+  "mutationSummary": {
+    "databaseWrites": 0,
+    "canonicalWrites": 0,
+    "runtimeWrites": 0,
+    "publicAssetsAdded": 0,
+    "v5AcceptedEntriesChanged": 0
+  }
+}

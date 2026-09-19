@@ -1,0 +1,1345 @@
+{
+  "version": 8,
+  "reviewedAt": "2026-09-14T14:09:50.114Z",
+  "status": "researched-no-new-accepted-images",
+  "scope": [
+    "seleshamer",
+    "grafopak",
+    "barvni-papir"
+  ],
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "unchangedOriginalBytes": true,
+    "exactStockAndColourOnly": true
+  },
+  "summary": {
+    "productFamilies": 3,
+    "variantsInScope": 33,
+    "newAcceptedImages": 0,
+    "newCoveredVariants": 0,
+    "measuredSourceFiles": 42,
+    "failedOriginalProbes": 3,
+    "publicPageProbes": 46,
+    "remainingVariants": 33,
+    "nativeGalleryEntriesInspected": 50,
+    "nativeGalleryEvidence": "Racher public product JSON contains 49 variant swatch entries plus one range illustration; four representative files were downloaded and decoded."
+  },
+  "products": [
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "mega-quill-a3-original",
+          "name": "mega-quill-a3-original",
+          "url": "https://cdn.shopify.com/s/files/1/0963/2795/8891/files/2026-08-07_17-02-58.png?v=1786086927",
+          "path": "tmp/product-image-audit/paper-v8/mega-quill-a3-original.png",
+          "width": 1022,
+          "height": 1023,
+          "bytes": 50148,
+          "sha256": "67f75902b57be50484a1a91cfa3f4bea6053d2752bc18bbc47a35731ebb3c0df",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 1022×1023; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "ypo-white-a3-original",
+          "name": "ypo-white-a3-original",
+          "url": "https://dl.ypo.co.uk/website_product_images/1/118285_01_2023.jpg",
+          "error": "HTTP 403",
+          "decision": "not-accepted",
+          "reason": "Public original fetch failed: HTTP 403; no suitable source bytes verified."
+        },
+        {
+          "id": "peterkin-lake-white200-original",
+          "sourcePage": "https://www.peterkin.com.au/Lakepaper-Extra-Matt-A3-Card-200gsm-White_p_47955.html",
+          "name": "peterkin-lake-white200-original",
+          "url": "https://www.peterkin.com.au/assets/images/gmund/lpm003whi.jpg",
+          "path": "tmp/product-image-audit/paper-v8/peterkin-lake-white200-original.jpg",
+          "width": 567,
+          "height": 567,
+          "bytes": 25425,
+          "sha256": "3c36ce5009821021f6080871d466f642d93e790d32b739d34fdb162951c3831e",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 567×567; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "faltkarten-a3-200-native",
+          "sourcePage": "https://www.faltkarten.com/de/papier-karton/papiere-karton/aquarellpapier-2068/aquarellpapier-200g-dina3-17414.html",
+          "name": "faltkarten-a3-200-native",
+          "url": "https://www.faltkarten.com/images/product_images/original_images/9972-Aquarellpapier-weiss1.jpg",
+          "path": "tmp/product-image-audit/paper-v8/faltkarten-a3-200-native.jpg",
+          "width": 1512,
+          "height": 1512,
+          "bytes": 616329,
+          "sha256": "d67ba6969d89a3b5f6e3ab301457ad214af13b990df6a8de7484ada330edd19c",
+          "decision": "not-accepted",
+          "reason": "1512² genuine photograph only shows cropped corners of sheets and decorative dried grasses. No complete sheet main; paper is specifically lightly textured watercolor paper and its warm/cream appearance cannot safely stand in for the smooth white stock."
+        },
+        {
+          "id": "lightbox-fabriano200-native",
+          "sourcePage": "https://lightboxnz.com/products/fabriano-start-drawing-papers-loose-in-ream",
+          "name": "lightbox-fabriano200-native",
+          "url": "https://lightboxnz.com/cdn/shop/files/0076940slide3web-res_e66e3a27-1b82-48c8-8285-773c8df7c673.webp?v=1787787226",
+          "path": "tmp/product-image-audit/paper-v8/lightbox-fabriano200-native.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 98677,
+          "sha256": "c6f7b42d85c49cc9b1811fd12435244a021eaf97889dac95d16b15ab527feb05",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 800×800; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "quill-a3-200-manufacturer",
+          "sourcePage": "https://www.quillpaper.com.au/ourproducts/quill-pasteboard-200gsm-a3-pack-25-white-2/",
+          "name": "quill-a3-200-manufacturer",
+          "url": "https://www.quillpaper.com.au/wp-content/uploads/2023/09/100850596_1100.jpg",
+          "path": "tmp/product-image-audit/paper-v8/quill-a3-200-manufacturer.jpg",
+          "width": 650,
+          "height": 650,
+          "bytes": 12061,
+          "sha256": "671341c508d6f4244e9a245a52a8e7af787e7a9b513117cff445aa62fb1b441a",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 650×650; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "cleverpatch-a3-200-native",
+          "sourcePage": "https://www.cleverpatch.com.au/products/by-product/paper-and-card/multiboard/quill-multiboard-white-a3-pack-of-25",
+          "name": "cleverpatch-a3-200-native",
+          "url": "https://www.cleverpatch.com.au/Images/ProductImages/18138.jpg",
+          "path": "tmp/product-image-audit/paper-v8/cleverpatch-a3-200-native.jpg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 39132,
+          "sha256": "499fdb11504d7a9e17cb21ef08ce59a6b8ebcf8aa70c2ba142eb14073ad06884",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 1000×1000; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "winc-white-a3-200-native",
+          "name": "winc-white-a3-200-native",
+          "url": "https://static.winc.com.au/pi/c3/539a8b00a4c0a05bbc9e12a30eedb8a1925ad2-765299/large.jpg",
+          "path": "tmp/product-image-audit/paper-v8/winc-white-a3-200-native.jpg",
+          "width": 960,
+          "height": 960,
+          "bytes": 24980,
+          "sha256": "1504551eeb3545586077603085770fd088e41599866a0854ba67872fdc4ce032",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 960×960; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "prilevcku-a3-200-native",
+          "sourcePage": "https://www.prilevcku.si/productquestion/index/index/product/5652/",
+          "name": "prilevcku-a3-200-native",
+          "url": "https://www.prilevcku.si/media/catalog/product/7/4/745031_papir_eleshamer_a3_200_gm2_200_kosov.png",
+          "path": "tmp/product-image-audit/paper-v8/prilevcku-a3-200-native.png",
+          "width": 681,
+          "height": 600,
+          "bytes": 368913,
+          "sha256": "067a742490d62f62d05fd0ae515e1941ed1f7a7445d05c455dcd149e77b5f562",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 681×600; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "satko-b1-200-native",
+          "sourcePage": "https://www.satko.org/spletnatrgovina/params/category/151524/item/830302/",
+          "name": "satko-b1-200-native",
+          "url": "https://www.satko.org/files/317310/catitems/11_PAPIR_SELESHAMER_200g_B1_BEL_100X70-154931471a57f702e29ec63e9aa9a63e.jpg",
+          "path": "tmp/product-image-audit/paper-v8/satko-b1-200-native.jpg",
+          "width": 360,
+          "height": 360,
+          "bytes": 4631,
+          "sha256": "e30830f7b9d7dbaa9bfe6020cf6ccb28a0b94c1e73fa0614204014ac69016864",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 360×360; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "folia-a3-200-bulk-native",
+          "sourcePage": "https://www.folia.de/zeichenkarton-din-a4-200-g-m2-25-blatt-1-pack/8600-25",
+          "name": "folia-a3-200-bulk-native",
+          "url": "https://www.folia.de/media/39/27/77/1775092589/8700-250_P_1.webp?ts=1788465117",
+          "path": "tmp/product-image-audit/paper-v8/folia-a3-200-bulk-native.webp",
+          "width": 1755,
+          "height": 2500,
+          "bytes": 387068,
+          "sha256": "07f002749d4c5172ba1b94b8add33532967360ba16d409458a1f8f86566667a1",
+          "decision": "not-accepted",
+          "reason": "1755×2500 source is a straight front label/pack image with the sheet boundary at the canvas edge. It does not provide an informative whole loose-sheet view or establish this packaged Folia brand as the sold unbranded sheet."
+        },
+        {
+          "id": "folia-a4-200-detail-native",
+          "sourcePage": "https://www.folia.de/zeichenkarton-din-a4-200-g-m2-25-blatt-1-pack/8600-25",
+          "name": "folia-a4-200-detail-native",
+          "url": "https://www.folia.de/media/90/ba/df/1775092566/8600-25_D_1.webp?ts=1788465101",
+          "path": "tmp/product-image-audit/paper-v8/folia-a4-200-detail-native.webp",
+          "width": 2000,
+          "height": 2500,
+          "bytes": 315192,
+          "sha256": "497245df33183b917f679bebe8800c3a548dd2e80ccd8b3b5a3aa680992c1ed5",
+          "decision": "not-accepted",
+          "reason": "2000×2500 source has a tightly cropped white stack corner; no complete sheet. Uniform modeled-looking surfaces and edges do not provide enough natural texture to support source-photo provenance. Held out of accepted assets."
+        },
+        {
+          "id": "folia-a4-200-whole-native",
+          "sourcePage": "https://www.folia.de/zeichenkarton-din-a4-200-g-m2-25-blatt-1-pack/8600-25",
+          "name": "folia-a4-200-whole-native",
+          "url": "https://www.folia.de/media/4f/29/47/1775092586/8600-25_P_1.webp?ts=1788465116",
+          "path": "tmp/product-image-audit/paper-v8/folia-a4-200-whole-native.webp",
+          "width": 1768,
+          "height": 2500,
+          "bytes": 1151552,
+          "sha256": "88014bf27d8a06eec8f08480cb4d9841c91083a4ce9513a7393fd26f9ba83581",
+          "decision": "not-accepted",
+          "reason": "1768×2500 source is the branded printed retail pack cover, not the blank loose-sheet model being sold; no alternate complete blank-sheet main supplied."
+        },
+        {
+          "id": "buystarget-white200-original-1",
+          "name": "buystarget-white200-original-1",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/B3239F6D9B4A5AB331FC8D84560AB61E_5842c0d8-4220-4084-b6e7-96efacb09c69.jpg?v=1739295686",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-1.jpg",
+          "width": 1040,
+          "height": 1040,
+          "bytes": 35199,
+          "sha256": "00b3c9eccc9de7b6d80a274f81b4903f7367dac443d770443a732a29077bcd56",
+          "decision": "not-accepted",
+          "reason": "1040² sheet fan is cropped by left/right canvas edges and lacks fine photographic surface detail. Cannot be a complete main."
+        },
+        {
+          "id": "buystarget-white200-original-6",
+          "name": "buystarget-white200-original-6",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/50bd5e04-5529-4a26-8ef2-a2a0790df2df.jpg?v=1739295692",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-6.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 18444,
+          "sha256": "63f566015f0c15b960610368f8fd0415fa9c164182922fe51800d89b76fbda9d",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 800×800; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "buystarget-white200-original-5",
+          "name": "buystarget-white200-original-5",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/DCAA732A4C5A5E4F198F19240DA8ACDA.jpg?v=1739295689",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-5.jpg",
+          "width": 1200,
+          "height": 1200,
+          "bytes": 50662,
+          "sha256": "aa6c521ec4fbdf5f1bb48bcd2c0d44e5ab71b08429124a79a4dd14ac85535e68",
+          "decision": "not-accepted",
+          "reason": "1200² source shows a soft branded20-sheet retail package; the gallery listing says15 sheets. It does not supply a sharp complete blank-sheet main."
+        },
+        {
+          "id": "buystarget-white200-original-3",
+          "name": "buystarget-white200-original-3",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/D6D1D946C67F2EF6644512916106F6E5.jpg?v=1739295688",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-3.jpg",
+          "width": 1400,
+          "height": 1400,
+          "bytes": 68822,
+          "sha256": "ce70473a332e88c3fd3dec42ed44db98f88520ac17e33864846e3fa479131b1b",
+          "decision": "not-accepted",
+          "reason": "1400² sheets are folded into cards, overlapping and clipped; strong purple cast obscures the white tone. Not an accurate clear main for unfolded white A4 sheets."
+        },
+        {
+          "id": "buystarget-white200-original-4",
+          "name": "buystarget-white200-original-4",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/AF214D4835B5EF1BA0FEDE257B9DAF13.jpg?v=1739295690",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-4.jpg",
+          "width": 1400,
+          "height": 1400,
+          "bytes": 61942,
+          "sha256": "987d80d22877d4b1e4def0ac28c672e43fe999bb971d7a4ef919a98ad8997fde",
+          "decision": "not-accepted",
+          "reason": "1400² composition shows folded card among a partly clipped sheet stack, with strong purple lighting. It cannot serve as a clear whole main for the unfolded white sheet variant."
+        },
+        {
+          "id": "buystarget-white200-original-2",
+          "name": "buystarget-white200-original-2",
+          "url": "https://cdn.shopify.com/s/files/1/0276/5183/3955/products/02E0E87E71F855F90591B0FDBA45DCBB.jpg?v=1739295687",
+          "path": "tmp/product-image-audit/paper-v8/buystarget-white200-original-2.jpg",
+          "width": 1600,
+          "height": 1066,
+          "bytes": 91446,
+          "sha256": "176c9290e7b37c6e646fee20ced835bb57b887c0ed4f96c304be275fa0435ccc",
+          "decision": "not-accepted",
+          "reason": "1600×1066 useful-looking stack detail, but stack/complete top sheet is clipped at left. No complete main in this gallery; retained as source evidence only."
+        },
+        {
+          "id": "creative",
+          "sourcePage": "https://www.creative-activity.com/a3-white-card-200gsm-50-sheet-pack.html",
+          "url": "https://www.creative-activity.com/media/catalog/product/c/d/cdw4sa-fan_1000x1000_2.webp",
+          "path": "tmp/product-image-audit/paper-root-v8/creative-native.webp",
+          "width": 1000,
+          "height": 1000,
+          "decision": "not-accepted",
+          "reason": "Independently checked by root: decoded untransformed source 1000×1000, below1024 on at least one axis.",
+          "sha256": "60ecca6e979882ba0dccc842d1b634bb874128186b85f1523a2fe743156ea56c"
+        },
+        {
+          "id": "milton",
+          "sourcePage": "https://miltonmart.co.uk/product/a3-white-card-12-sheets/",
+          "url": "https://miltonmart.co.uk/wp-content/uploads/2022/02/p2011.jpg",
+          "path": "tmp/product-image-audit/paper-root-v8/milton-native.jpeg",
+          "width": 419,
+          "height": 600,
+          "decision": "not-accepted",
+          "reason": "Independently checked by root: decoded untransformed source 419×600, below1024 on at least one axis.",
+          "sha256": "c691e5a5b3cdaef2c501bcd54cad8c598cfb0bea634dc4c3118dcd6649d2c030"
+        },
+        {
+          "id": "active",
+          "sourcePage": "https://www.active-paper.co.uk/product/a3-range-of-white-card-200-350gsm-25-sheets",
+          "url": "https://www.active-paper.co.uk/pictures/prod_1335_0.jpg",
+          "path": "tmp/product-image-audit/paper-root-v8/active-native.jpg",
+          "width": 1280,
+          "height": 720,
+          "decision": "not-accepted",
+          "reason": "Independently checked by root: decoded untransformed source 1280×720, below1024 on at least one axis.",
+          "sha256": "18a25469b2d8b6407677ee9316caa0dd85dafd6b3d06ea15dc5fab2885aa9513"
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "missingViews": "All 4 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing.",
+      "sourceDetailsRetained": [
+        {
+          "id": "prior-acco-a3-native-detail",
+          "sourcePage": "https://au.accopartner.com/p/paper-products/other-paper-products/cardboard-and-coloured-paper/colourful-days-pasteboard-200gsm-a3-297-x-420mm-white-pack-50/",
+          "path": "tmp/product-image-audit/paper-v7/acco-a3-hires.jpg",
+          "width": 2500,
+          "height": 2500,
+          "status": "Useful sharp A3/200 g/m² detail retained as evidence; no complete main was obtained, so it remains unpublished."
+        }
+      ],
+      "gapSummary": "Four white 200 g/m² variants (A4, A3, A2 and B1) remain without a qualifying complete main. New actual-source files from Quill, Seawhite/Creative Activity, CleverPatch, Peterkin, Winc, Pri Levčku, Satko, Milton and Active Paper fail the native size minimum. Large Folia sources show branded packaging or tightly cropped stack detail. Faltkarten shows cropped watercolor paper rather than the verified sold stock. Buystarget shows clipped stacks, folded cards with a purple cast, or a soft retail pack."
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "perego-gd2-native",
+          "name": "perego-gd2-native",
+          "url": "https://storage.googleapis.com/cdn-peregocartaweb-eu/_versions/nomi_commerciali/cartoncino_biancogrigio-_large.jpg",
+          "path": "tmp/product-image-audit/paper-v8/perego-gd2-native.jpg",
+          "width": 460,
+          "height": 460,
+          "bytes": 14490,
+          "sha256": "bfc9f3c4226132e58bdeccb91edc1f592f60b0c8b81fcc8d653d00a571a19236",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 460×460; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "radin-gd2-native",
+          "sourcePage": "https://mail.radin.hr/hr/grafika/ambalazni-papiri-kartoni-i-ljepenke/reciklirani-kartoni-gd-i-gt-kvaliteta",
+          "name": "radin-gd2-native",
+          "url": "https://mail.radin.hr/images/virtuemart/product/Reciklirani%20slika-01.png",
+          "path": "tmp/product-image-audit/paper-v8/radin-gd2-native.png",
+          "width": 801,
+          "height": 600,
+          "bytes": 505770,
+          "sha256": "d571b59fa41799624758ff3e1f3806045e8a70a9a9222f2f0d3a26dd02802e71",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 801×600; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "europapier-si-grafopak-original",
+          "sourcePage": "https://www.europapier.si/si/spletna-trgovina/kartoni-lepenka-in-embalazni-papirji/kartoni/reciklirani-kartoni/grafopak-gd2-~p145939",
+          "name": "europapier-si-grafopak-original",
+          "url": "https://www.europapier.si/si_images/2023%20Arhiv/04%20Packaging/MM/MM_WLC_GD-300-Grafopak.jpg",
+          "path": "tmp/product-image-audit/paper-v8/europapier-si-grafopak-original.jpg",
+          "width": 4960,
+          "height": 3507,
+          "bytes": 1638210,
+          "sha256": "202dcfe5279dc0353c0d22cb41856787906bff980def1434f4ccc70347a642d9",
+          "decision": "not-accepted",
+          "reason": "Source is explicitly MM_WLC_GD-300-Grafopak, and its matching page lists GPB300/1020X720Q: 300 g/m², 1020 × 720 mm. This differs from the sold 350 g/m² A3/A4 cuts. No grade or cut substitution was made."
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "missingViews": "All 2 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing.",
+      "gapSummary": "Both Grafopak 350 g/m² A3/A4 cuts remain without a qualifying photo. Perego and Radin originals are 460 × 460 and 801 × 600. New Slovenian Europapier original is explicitly 300 g/m² industrial stock. Manufacturer/supplier evidence identifies true Grafopak GRA/GD2 white/grey construction, but no exact 350 g/m² A3/A4 source photograph was found. Similar GD2, Kraft GT4, plain greyboard and different gram weights were not substituted."
+    },
+    {
+      "slug": "barvni-papir",
+      "itemName": "Barvni papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-STRUKTURNO-BELA",
+        "MAT-PAP-BAR-SVETLO-RJAVA",
+        "MAT-PAP-BAR-TEMNO-RJAVA",
+        "MAT-PAP-BAR-RJAVA",
+        "MAT-PAP-BAR-LILA",
+        "MAT-PAP-BAR-VIJOLICASTA",
+        "MAT-PAP-BAR-CRNA",
+        "MAT-PAP-BAR-SIVA",
+        "MAT-PAP-BAR-ROZA",
+        "MAT-PAP-BAR-TEMNO-LILA",
+        "MAT-PAP-BAR-TRAVNO-ZELENA",
+        "MAT-PAP-BAR-TEMNO-ZELENA",
+        "MAT-PAP-BAR-ZELENA",
+        "MAT-PAP-BAR-SVETLO-ZELENA",
+        "MAT-PAP-BAR-ORANZNA",
+        "MAT-PAP-BAR-MODRA",
+        "MAT-PAP-BAR-NEBESNO-MODRA",
+        "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+        "MAT-PAP-BAR-SVETLO-MODRA",
+        "MAT-PAP-BAR-TEMNO-RDECA",
+        "MAT-PAP-BAR-VINSKO-RDECA",
+        "MAT-PAP-BAR-KARMIN-RDECA",
+        "MAT-PAP-BAR-RDECA",
+        "MAT-PAP-BAR-KORUZNO-RUMENA",
+        "MAT-PAP-BAR-MARELICNA",
+        "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+        "MAT-PAP-BAR-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "variantName": "svetlo rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-CRNA",
+          "variantName": "črna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RDECA",
+          "variantName": "rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "timetex-orange130-main",
+          "sourcePage": "https://www.timetex.com/de-de/p/tonpapier-130g/m2-50x70-cm-10-bogen-95002/",
+          "name": "timetex-orange130-main",
+          "url": "https://www.timetex.com/media/df/b0/34/1772153576/95002-_4D38D92E77B349DCB93EDE71DAFF542D.jpg?ts=1772153578",
+          "path": "tmp/product-image-audit/paper-v8/timetex-orange130-main.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 343657,
+          "sha256": "04434046eb115510a73ec296aa7181e75574235fe33641aa9744d76286892555",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 800×800; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "timetex-orange130-second",
+          "sourcePage": "https://www.timetex.com/de-de/p/tonpapier-130g/m2-50x70-cm-10-bogen-95002/",
+          "name": "timetex-orange130-second",
+          "url": "https://www.timetex.com/media/f2/ee/93/1772153575/95002-2_ED431F36914C44649E01C91CFE902739.webp",
+          "path": "tmp/product-image-audit/paper-v8/timetex-orange130-second.webp",
+          "width": 800,
+          "height": 800,
+          "bytes": 33698,
+          "sha256": "3b6bc80a582b73552b528ce0f1a50a47f00c57df1b2e8deb974c5746c1cb6b31",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 800×800; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "lms-black130-original",
+          "sourcePage": "https://www.lms.de/kunst-basteln/papier/tonpapier/21310001/tonpapier-50x70-cm",
+          "name": "lms-black130-original",
+          "url": "https://www.lms.de/media/image/7e/e3/74/21310001_21311001_21315001_21316001_a.jpg",
+          "path": "tmp/product-image-audit/paper-v8/lms-black130-original.jpg",
+          "width": 2000,
+          "height": 1251,
+          "bytes": 446734,
+          "sha256": "d89e05fedd952565ff0490e826f84f5efae7b3f30ed73772a90eed2019a01099",
+          "decision": "not-accepted",
+          "reason": "This 2000×1251 image is a labelled colour chart, not a photograph of complete paper sheets."
+        },
+        {
+          "id": "creativ-orange130-original",
+          "sourcePage": "https://www.creativ-discount.de/Tonpapier-10-Bogen-130-g%2Fqm-50x70-cm-Orange",
+          "name": "creativ-orange130-original",
+          "url": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/CFO6740_Tonpapier_50x70cm_Orange.jpg",
+          "path": "tmp/product-image-audit/paper-v8/creativ-orange130-original.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 68760,
+          "sha256": "1bfe737c8f23ed6fcaf721225e139a5c9eb8927fc9fe6a2b8724012996727a3b",
+          "decision": "not-accepted",
+          "reason": "1500² file shows a uniformly filled orange rectangle with package label and uniform drop shadow; no useful natural paper surface or edge detail. Exact Folia40 is not evidence for all orange shades."
+        },
+        {
+          "id": "ursus-130-ten-native",
+          "sourcePage": "https://www.buntpapierwelt.de/tonzeichenpapier-130-g-qm-50-x-70-cm-10-bogen.html",
+          "name": "ursus-130-ten-native",
+          "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-10-bogen_22322xx.jpg",
+          "path": "tmp/product-image-audit/paper-v8/ursus-130-ten-native.jpg",
+          "width": 669,
+          "height": 622,
+          "bytes": 301413,
+          "sha256": "f52499ce144339d2171c1c71b0e16303e5d23ff020dec88220a0d6416c7d56a2",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 669×622; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "ursus-130-ten-detail-native",
+          "sourcePage": "https://www.buntpapierwelt.de/tonzeichenpapier-130-g-qm-50-x-70-cm-10-bogen.html",
+          "name": "ursus-130-ten-detail-native",
+          "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-10-bogen-01_22322xx.jpg",
+          "path": "tmp/product-image-audit/paper-v8/ursus-130-ten-detail-native.jpg",
+          "width": 1200,
+          "height": 1200,
+          "bytes": 520077,
+          "sha256": "c98f81a03dea4c127978b3ef2e8930fb757bdaf307e03f039e21ad13ff8c9874",
+          "decision": "not-accepted",
+          "reason": "1200² image shows finished gift boxes, cut flower decorations and a hanging mobile made with multiple materials. It is not a whole-sheet main and does not establish exact individual colour associations."
+        },
+        {
+          "id": "schuller-orange130-native",
+          "sourcePage": "https://schueller.cc/de/tonpapier-orange-p298/",
+          "name": "schuller-orange130-native",
+          "url": "https://schueller.cc/userdata/dcshop/images/normal/514565_40.jpg",
+          "path": "tmp/product-image-audit/paper-v8/schuller-orange130-native.jpg",
+          "width": 1920,
+          "height": 1178,
+          "bytes": 52194,
+          "sha256": "6fb01ff3f244193b5067cf11c5bc9f889988c6cbb6b14e2464369e19b9d850dc",
+          "decision": "not-accepted",
+          "reason": "1920×1178 file is an enlarged labelled orange colour swatch, not a product photograph."
+        },
+        {
+          "id": "maru-orange130-native",
+          "sourcePage": "https://maru-versand.de/Tonzeichenpapier-50x70-130g-10Bg-orange",
+          "name": "maru-orange130-native",
+          "url": "https://maru-versand.de/media/image/product/6040/lg/tonzeichenpapier-50x70-130g-10bg-orange.jpg",
+          "path": "tmp/product-image-audit/paper-v8/maru-orange130-native.jpg",
+          "width": 1024,
+          "height": 768,
+          "bytes": 52332,
+          "sha256": "8f17ab091d521d49d5f68b1e77a22f39754048ca77a92fe20ba511739c016015",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 1024×768; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "buttinette-orange130-native",
+          "name": "buttinette-orange130-native",
+          "url": "https://static.prod.buttinette.com/drop-in/product/51412",
+          "error": "HTTP 404",
+          "decision": "not-accepted",
+          "reason": "Public original fetch failed: HTTP 404; no suitable source bytes verified."
+        },
+        {
+          "id": "wl-colours130-original",
+          "sourcePage": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/tonpapier-50x70",
+          "name": "wl-colours130-original",
+          "url": "https://www.wl-versand.de/shop/media/images/org/92988_Tonkarton.jpg",
+          "path": "tmp/product-image-audit/paper-v8/wl-colours130-original.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 26427,
+          "sha256": "187240b42ff401f07b7d3ba2045569b4c26485d14de62c2790e2c05043245c92",
+          "decision": "not-accepted",
+          "reason": "1024² source is a small soft multicolour fan with no sharp natural surface detail or exact individual colour identity. A range illustration cannot establish all 27 sold shades."
+        },
+        {
+          "id": "buttinette-orange130-content",
+          "name": "buttinette-orange130-content",
+          "url": "https://buttinette.scene7.com/is/content/Buttinette/51412",
+          "error": "HTTP 404",
+          "decision": "not-accepted",
+          "reason": "Public original fetch failed: HTTP 404; no suitable source bytes verified."
+        },
+        {
+          "id": "buttinette-orange130-zoom",
+          "name": "buttinette-orange130-zoom",
+          "url": "https://static.prod.buttinette.com/drop-in/product/51412?$1500$",
+          "path": "tmp/product-image-audit/paper-v8/buttinette-orange130-zoom.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 257678,
+          "sha256": "69de3086ba2e2d6f72affd4646e05e6f3fb89999b7720e343b17043907637f6e",
+          "decision": "not-accepted",
+          "reason": "Native Scene7 imageprops confirms 1321×1500 for orange, but orange/black/yellow images repeat exactly the same sheet offsets, irregular corners and surface marks with different colours. Recoloured photo template cannot establish the actual sold colour. All three withheld."
+        },
+        {
+          "id": "mcbuero-california130-native",
+          "name": "mcbuero-california130-native",
+          "url": "https://cdn.mcbuero.de/images/itemsbig/ursu2192235.jpg",
+          "path": "tmp/product-image-audit/paper-v8/mcbuero-california130-native.jpg",
+          "width": 600,
+          "height": 600,
+          "bytes": 8389,
+          "sha256": "96acb7b079697f607b1dca91266c3afc3842af2da38f5d0a9f0cd753fd45ff64",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 600×600; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "buttinette-black130-zoom",
+          "name": "buttinette-black130-zoom",
+          "url": "https://static.prod.buttinette.com/drop-in/product/39669?$1500$",
+          "path": "tmp/product-image-audit/paper-v8/buttinette-black130-zoom.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 727202,
+          "sha256": "e5b239074b188b477121b9c632cb0b5a4fa229448dc4cd56932614b1d9df92ec",
+          "decision": "not-accepted",
+          "reason": "Native Scene7 imageprops confirms 1321×1500 for orange, but orange/black/yellow images repeat exactly the same sheet offsets, irregular corners and surface marks with different colours. Recoloured photo template cannot establish the actual sold colour. All three withheld.",
+          "sourcePage": "https://basteln-de.buttinette.com/shop/a/tonzeichenpapier-schwarz-50-x-70-cm-10-blatt-39669"
+        },
+        {
+          "id": "buttinette-yellow130-zoom",
+          "name": "buttinette-yellow130-zoom",
+          "url": "https://static.prod.buttinette.com/drop-in/product/39675?$1500$",
+          "path": "tmp/product-image-audit/paper-v8/buttinette-yellow130-zoom.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 1199036,
+          "sha256": "c3a3448c3e846b3d54a9947af97ca10c0f5eec3edbf025478547d8f849ca8b79",
+          "decision": "not-accepted",
+          "reason": "Native Scene7 imageprops confirms 1321×1500 for orange, but orange/black/yellow images repeat exactly the same sheet offsets, irregular corners and surface marks with different colours. Recoloured photo template cannot establish the actual sold colour. All three withheld.",
+          "sourcePage": "https://basteln-de.buttinette.com/shop/a/tonzeichenpapier-gelb-50-x-70-cm-10-blatt-39675"
+        },
+        {
+          "id": "10doigts-colours130-native",
+          "name": "10doigts-colours130-native",
+          "url": "https://static.10doigts.fr/assets/generics/papier-fin-colore-130grm2-50-x-70-cm-10-feuilles.jpg",
+          "path": "tmp/product-image-audit/paper-v8/10doigts-colours130-native.jpg",
+          "width": 1500,
+          "height": 1000,
+          "bytes": 52151,
+          "sha256": "294f8649e37072ebc03b22db5e6d94676f133714138f2875262843398017f109",
+          "decision": "not-accepted",
+          "reason": "Native decoded file is 1500×1000; both axes must be at least 1024. No resizing or padding was used."
+        },
+        {
+          "id": "racher-130-orange-native",
+          "sourcePage": "https://racher.ch/products/marpa-jansen-tonzeichenpapier-a4-100-blatt-130g-m2-kopie-1",
+          "name": "racher-130-orange-native",
+          "url": "https://cdn.shopify.com/s/files/1/0838/2021/6660/files/Marpa-Jansen-Tonzeichenpapier-50cm-x-70cm-10-x-130g-m-Racher-57655778312532.jpg?v=1771507977",
+          "path": "tmp/product-image-audit/paper-v8/racher-130-orange-native.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 28726,
+          "sha256": "7198a3fecd7df45f28e125d72708f248a14db5871434eff46a29dcf1c79aad1b",
+          "decision": "not-accepted",
+          "reason": "Large 2491 × 1853 range illustration shows two multicolour fans, with flat uniformly rendered surfaces; it does not establish the exact individual ATEHNA colours or natural surface detail."
+        },
+        {
+          "id": "racher-130-rotorange-native",
+          "sourcePage": "https://racher.ch/products/marpa-jansen-tonzeichenpapier-a4-100-blatt-130g-m2-kopie-1",
+          "name": "racher-130-rotorange-native",
+          "url": "https://cdn.shopify.com/s/files/1/0838/2021/6660/files/Marpa-Jansen-Tonzeichenpapier-50cm-x-70cm-10-x-130g-m-Racher-57655780901204.jpg?v=1771507977",
+          "path": "tmp/product-image-audit/paper-v8/racher-130-rotorange-native.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 32995,
+          "sha256": "4ef00f139f89909676f3fe6cb7c12567161fdb7b7f85f6da33d1da6074e15797",
+          "decision": "not-accepted",
+          "reason": "Large 2491 × 1853 range illustration shows two multicolour fans, with flat uniformly rendered surfaces; it does not establish the exact individual ATEHNA colours or natural surface detail."
+        },
+        {
+          "id": "racher-130-schwarz-native",
+          "sourcePage": "https://racher.ch/products/marpa-jansen-tonzeichenpapier-a4-100-blatt-130g-m2-kopie-1",
+          "name": "racher-130-schwarz-native",
+          "url": "https://cdn.shopify.com/s/files/1/0838/2021/6660/files/300.282-90_fabfa624-1823-4db6-8e59-2d950e24d7de.jpg?v=1748355063",
+          "path": "tmp/product-image-audit/paper-v8/racher-130-schwarz-native.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 46480,
+          "sha256": "6e4edeb554e015120035216b344afd5d097b336c0f472cd8fbe8f7d72049b4a8",
+          "decision": "not-accepted",
+          "reason": "Native 1080 × 1080 file is a rounded-square labelled colour swatch, not a full paper sheet. Black texture appears magnified and soft. No untransformed real sheet photographs are supplied for these variants."
+        },
+        {
+          "id": "racher-130-range-native",
+          "sourcePage": "https://racher.ch/products/marpa-jansen-tonzeichenpapier-a4-100-blatt-130g-m2-kopie-1",
+          "name": "racher-130-range-native",
+          "url": "https://cdn.shopify.com/s/files/1/0838/2021/6660/files/Marpa-Jansen-Tonzeichenpapier-50cm-x-70cm-10-x-130g-m-Racher-49510338756948.png?v=1771507971",
+          "path": "tmp/product-image-audit/paper-v8/racher-130-range-native.png",
+          "width": 2491,
+          "height": 1853,
+          "bytes": 1975704,
+          "sha256": "93d6b9509534f17c2329cab363d9a7c057611bd9a3ca3c073243294b14a12e2c",
+          "decision": "not-accepted",
+          "reason": "Large 2491 × 1853 range illustration shows two multicolour fans, with flat uniformly rendered surfaces; it does not establish the exact individual ATEHNA colours or natural surface detail."
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "variantName": "svetlo rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-CRNA",
+          "variantName": "črna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RDECA",
+          "variantName": "rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "missingViews": "All 27 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing.",
+      "gapSummary": "All 27 exact 130 g/m² B2 colours remain without qualifying photos. URSUS, Antus and McBuero confirm colour references, but native range/colour images are small, swatches or applications. Buttinette offers native 1321 × 1500 imagery, yet the same irregular edges and marks recur identically in orange, black and yellow with digital colour changes. Racher/Marpa Jansen supplies 49 colour swatches and one range illustration. No accepted colour substitutions or template recolours were made."
+    }
+  ],
+  "evidence": [
+    {
+      "source": "https://www.antus.si/assets/katalog-likovnih-materialov-0.pdf",
+      "finding": "Original Antus130gsm B2 palette maps suffix01 white,13yellow,17intenseyellow,19cornyellow,40orange,23carmine,25darkred,31lightblue,33blue,35California,37skyblue,51lightgreen,53green,55darkgreen,58grassgreen,61darklilac,63violet,72brown,74darkbrown,75lightbrown,81grey,90black. No cross-brand code mapping inferred."
+    },
+    {
+      "source": "https://www.europapier.hr/_default_upload_bucket/Product_8_42134_GRA_en.pdf",
+      "finding": "Grafopak GRA/GD2 code42134 has grey reverse and coated white front;350gsm listed450μm caliper. KraftGT4, plain greyboard and generic white cardstock cannot stand in for this named grade."
+    },
+    {
+      "source": "https://www.grafotisak.com/wp-content/uploads/2017/06/Grafotisak_Graficki_katalog.compressed.pdf",
+      "finding": "Manufacturer-linked Grafopak supplier lists350gsm but original industrial sheets71×101/72×102cm, with custom cuts. No photo of verified soldA3/A4 found."
+    },
+    {
+      "source": "tmp/product-image-audit/paper-v8/buttinette-orange-imageprops.txt",
+      "finding": "Scene7 req=imageprops establishes native1321×1500. req=props instead reports rendered response size and must not be mistaken for native dimensions."
+    },
+    {
+      "source": "tmp/product-image-audit/paper-root-v8/natives.json",
+      "finding": "Root independently decoded three new white A3/200 g/m² source files: Creative Activity 1000 × 1000; Milton 419 × 600; Active Paper 1280 × 720. All fail at least one native axis."
+    }
+  ],
+  "sourcePages": [
+    {
+      "name": "trendmarkt-brown130",
+      "url": "https://www.trendmarkt24.de/tonpapier-hellbraun-50x70cm-10-boegen-130-g/m2",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/trendmarkt-brown130.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "mega-quill-a3-200",
+      "url": "https://megaofficesupplies.com.au/products/quill-cartridge-paper-200gsm-a3-white-pack-200",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/mega-quill-a3-200.html",
+      "offeredImageCount": 25
+    },
+    {
+      "name": "timetex-orange130",
+      "url": "https://www.timetex.com/de-de/p/tonpapier-130g/m2-50x70-cm-10-bogen-95002/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/timetex-orange130.html",
+      "offeredImageCount": 30
+    },
+    {
+      "name": "lms-colour130",
+      "url": "https://www.lms.de/kunst-basteln/papier/tonpapier/21310001/tonpapier-50x70-cm",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/lms-colour130.html",
+      "offeredImageCount": 13
+    },
+    {
+      "name": "ypo-white-a3",
+      "url": "https://www.ypo.co.uk/product/detail/white-copier-card-a3-250-pack/118285",
+      "error": "HTTP 403",
+      "evidencePath": "tmp/product-image-audit/paper-v8/ypo-white-a3.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "creativ-orange130",
+      "url": "https://www.creativ-discount.de/Tonpapier-10-Bogen-130-g%2Fqm-50x70-cm-Orange",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/creativ-orange130.html",
+      "offeredImageCount": 134
+    },
+    {
+      "name": "peterkin-lake-white200",
+      "url": "https://www.peterkin.com.au/Lakepaper-Extra-Matt-A3-Card-200gsm-White_p_47955.html",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/peterkin-lake-white200.html",
+      "offeredImageCount": 6
+    },
+    {
+      "name": "winc-white-a3-200",
+      "url": "https://www.winc.com.au/main-catalogue-productdetail/winc-premium-coloured-cover-paper-a3-200gsm-white-pack-100/25191810",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/winc-white-a3-200.html",
+      "offeredImageCount": 29
+    },
+    {
+      "name": "folia-white-a3-200",
+      "url": "https://www.bueroplus.de/folia-zeichenkarton-tonpapier-963138",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/folia-white-a3-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "ursus-buntpapier130",
+      "url": "https://www.buntpapierwelt.de/tonzeichenpapier-130-g-qm-50-x-70-cm-10-bogen.html",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/ursus-buntpapier130.html",
+      "offeredImageCount": 137
+    },
+    {
+      "name": "faltkarten-white-a3-200",
+      "url": "https://www.faltkarten.com/de/papier-karton/papiere-karton/aquarellpapier-2068/aquarellpapier-200g-dina3-17414.html",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/faltkarten-white-a3-200.html",
+      "offeredImageCount": 140
+    },
+    {
+      "name": "perego-duplex",
+      "url": "https://www.peregocarta.it/prodotto/188037/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/perego-duplex.html",
+      "offeredImageCount": 18
+    },
+    {
+      "name": "maru-folia-orange130",
+      "url": "https://maru-versand.de/Tonzeichenpapier-50x70-130g-10Bg-orange",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/maru-folia-orange130.html",
+      "offeredImageCount": 38
+    },
+    {
+      "name": "schuller-orange130",
+      "url": "https://schueller.cc/de/tonpapier-orange-p298/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/schuller-orange130.html",
+      "offeredImageCount": 75
+    },
+    {
+      "name": "cleverpatch-a3-white200",
+      "url": "https://www.cleverpatch.com.au/products/by-product/paper-and-card/multiboard/quill-multiboard-white-a3-pack-of-25",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/cleverpatch-a3-white200.html",
+      "offeredImageCount": 11
+    },
+    {
+      "name": "quill-a3-manufacturer",
+      "url": "https://www.quillpaper.com.au/ourproducts/quill-pasteboard-200gsm-a3-pack-25-white-2/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/quill-a3-manufacturer.html",
+      "offeredImageCount": 20
+    },
+    {
+      "name": "mango-anupam-a4-200",
+      "url": "https://www.mangostationery.com/products/anupam-scholex-duriamatte-cartridge-drawing-paper-20-loose-sheets-200gsm-a4",
+      "error": "HTTP 402",
+      "evidencePath": "tmp/product-image-audit/paper-v8/mango-anupam-a4-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "bigamart-clairefontaine-a4-200",
+      "url": "https://bigamart.com/product/clairefontaine-white-drawing-sketch-paper-200-g-a4-pack-250-sheets/",
+      "error": "HTTP 403",
+      "evidencePath": "tmp/product-image-audit/paper-v8/bigamart-clairefontaine-a4-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "jacksons-fabriano-a4-200",
+      "url": "https://www.jacksonsart.com/en-us/fabriano-accademia-drawing-paper-200gsm-a4-100-sheets",
+      "error": "HTTP 403",
+      "evidencePath": "tmp/product-image-audit/paper-v8/jacksons-fabriano-a4-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "lightbox-fabriano-200",
+      "url": "https://lightboxnz.com/products/fabriano-start-drawing-papers-loose-in-ream",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/lightbox-fabriano-200.html",
+      "offeredImageCount": 10
+    },
+    {
+      "name": "buttinette-orange130",
+      "url": "https://basteln-de.buttinette.com/shop/a/tonzeichenpapier-orange-50-x-70-cm-10-blatt-51412",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/buttinette-orange130.html",
+      "offeredImageCount": 3
+    },
+    {
+      "name": "vbs-paper130",
+      "url": "https://www.vbs-hobby.com/tonpapier-50-x-70-cm-130-gm2-a65864/",
+      "error": "HTTP 404",
+      "evidencePath": "tmp/product-image-audit/paper-v8/vbs-paper130.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "wl-colours130",
+      "url": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/tonpapier-50x70",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/wl-colours130.html",
+      "offeredImageCount": 25
+    },
+    {
+      "name": "mcbuero-colour-index",
+      "url": "https://mcbuero.de/mcb/Produkte/Index/t.html",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/mcbuero-colour-index.html",
+      "offeredImageCount": 7
+    },
+    {
+      "name": "prilevcku-a3-200",
+      "url": "https://www.prilevcku.si/productquestion/index/index/product/5652/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/prilevcku-a3-200.html",
+      "offeredImageCount": 4
+    },
+    {
+      "name": "satko-b1-200",
+      "url": "https://www.satko.org/spletnatrgovina/params/category/151524/item/830302/",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/satko-b1-200.html",
+      "offeredImageCount": 3
+    },
+    {
+      "name": "mcbuero-california130",
+      "url": "https://mcbuero.de/mcb/URSU2192235.html",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/mcbuero-california130.html",
+      "offeredImageCount": 7
+    },
+    {
+      "name": "accademia-clairefontaine-a4",
+      "url": "https://www.clairefontaine.com/gb/drawing-sketching/3754-ramette-250f-a4-papier-dessin-blanc-200g-3329680016863.html",
+      "error": "HTTP 404",
+      "evidencePath": "tmp/product-image-audit/paper-v8/accademia-clairefontaine-a4.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "buttinette-black130",
+      "url": "https://basteln-de.buttinette.com/shop/a/tonzeichenpapier-schwarz-50-x-70-cm-10-blatt-39669",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/buttinette-black130.html",
+      "offeredImageCount": 3
+    },
+    {
+      "name": "buttinette-yellow130",
+      "url": "https://basteln-de.buttinette.com/shop/a/tonzeichenpapier-gelb-50-x-70-cm-10-blatt-39675",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/buttinette-yellow130.html",
+      "offeredImageCount": 3
+    },
+    {
+      "name": "folia-native-paper130",
+      "url": "https://www.folia.de/tonpapier-50-x-70-cm-130-g-m2-10-bogen-1-pack/67-40",
+      "error": "HTTP 404",
+      "evidencePath": "tmp/product-image-audit/paper-v8/folia-native-paper130.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "10doigts-colours130",
+      "url": "https://www.10doigts.fr/papier-leger-multicolore-50-x-70-cm-10-feuilles-gp10571.aspx",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/10doigts-colours130.html",
+      "offeredImageCount": 76
+    },
+    {
+      "name": "folia-native-white200",
+      "url": "https://www.folia.de/zeichenkarton-din-a4-200-g-m2-25-blatt-1-pack/8600-25",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/folia-native-white200.html",
+      "offeredImageCount": 19
+    },
+    {
+      "name": "hobbycraft-white-a4-200",
+      "url": "https://tv.hobbycraft.co.uk/product/514301/lynda-chapman-s-paper-emporium-essential-white-card-200-x-a4-sheets-200gsm",
+      "error": "fetch failed",
+      "evidencePath": "tmp/product-image-audit/paper-v8/hobbycraft-white-a4-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "buystarget-white-a4-200",
+      "url": "https://www.buystarget.co.uk/products/a4-white-card-200gsm-thick-paper-cardboard-sheet-art-craft-print-smooth-copier",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/buystarget-white-a4-200.html",
+      "offeredImageCount": 31
+    },
+    {
+      "name": "woolworth-white-a4-200",
+      "url": "https://www.woolworths.com.au/shop/productdetails/1126028407/white-card-paper-set-100pcs-a4-size-blank-hand-painted-drawing-craft-sheets",
+      "error": "The operation was aborted due to timeout",
+      "evidencePath": "tmp/product-image-audit/paper-v8/woolworth-white-a4-200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "ebay-lynda-white200",
+      "url": "https://www.ebay.co.uk/itm/316610833177",
+      "error": "HTTP 403",
+      "evidencePath": "tmp/product-image-audit/paper-v8/ebay-lynda-white200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "ebay-aimall-white200",
+      "url": "https://www.ebay.com.au/itm/388793829272",
+      "error": "HTTP 403",
+      "evidencePath": "tmp/product-image-audit/paper-v8/ebay-aimall-white200.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "vbs-paper-search",
+      "url": "https://www.vbs-hobby.com/tonpapier-50-x-70-cm-130-g/m2-a65864/",
+      "error": "HTTP 404",
+      "evidencePath": "tmp/product-image-audit/paper-v8/vbs-paper-search.html",
+      "offeredImageCount": 0
+    },
+    {
+      "name": "racher-colour130",
+      "url": "https://racher.ch/collections/tonzeichenpapier",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/racher-colour130.html",
+      "offeredImageCount": 15
+    },
+    {
+      "name": "radin-grafopak",
+      "url": "https://mail.radin.hr/hr/grafika/ambalazni-papiri-kartoni-i-ljepenke/reciklirani-kartoni-gd-i-gt-kvaliteta",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/radin-grafopak.html",
+      "offeredImageCount": 55
+    },
+    {
+      "name": "europapier-si-grafopak-list",
+      "url": "https://www.europapier.si/si/spletna-trgovina/kartoni-lepenka-in-embalazni-papirji/kartoni/reciklirani-kartoni~c3078557",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/europapier-si-grafopak-list.html",
+      "offeredImageCount": 83
+    },
+    {
+      "name": "europapier-si-grafopak",
+      "url": "https://www.europapier.si/si/spletna-trgovina/kartoni-lepenka-in-embalazni-papirji/kartoni/reciklirani-kartoni/grafopak-gd2-~p145939",
+      "status": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v8/europapier-si-grafopak.html",
+      "offeredImageCount": 83
+    }
+  ],
+  "priorLedgers": [
+    "data/catalog/replacement-sources-paper-v5-2026-09.json",
+    "data/catalog/replacement-sources-paper-v6-2026-09.json",
+    "data/catalog/replacement-sources-paper-v7-2026-09.json",
+    "data/catalog/replacement-sources-colour-paper-v7-2026-09.json"
+  ],
+  "mutationSummary": "Research only. No DB, canonical, runtime, or public product asset changes."
+}

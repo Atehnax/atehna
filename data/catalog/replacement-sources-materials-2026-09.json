@@ -1,0 +1,2124 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-13T20:10:25.592Z",
+  "scope": "Fresh independent exact-source research for 14 material/paper families; no database/canonical/runtime changes.",
+  "acceptedReplacementCount": 0,
+  "sourceInventory": {
+    "primaryWordPressMediaRecords": 950,
+    "pages": 10,
+    "path": "tmp/product-image-audit/materials-v3/atehna-media-full.json"
+  },
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "productionItemId": "1",
+      "variants": [
+        {
+          "id": "5",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x200"
+        },
+        {
+          "id": "6",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x300"
+        },
+        {
+          "id": "3",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x200"
+        },
+        {
+          "id": "1",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x100x100"
+        },
+        {
+          "id": "2",
+          "name": "0,5 × 200 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x100"
+        },
+        {
+          "id": "4",
+          "name": "0,5 × 300 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x100"
+        },
+        {
+          "id": "191",
+          "name": "0,3 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P3x200x200"
+        }
+      ],
+      "primarySourcePages": [],
+      "freshResearchPages": [
+        "https://atehna.si/oznaka/aluminijasta/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2410,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/Aluminij.png",
+          "nativeDimensions": {
+            "width": 333,
+            "height": 333
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2410"
+        }
+      ],
+      "finding": "Primary full original is only 333×333. The current family includes newly added custom cuts not all present in the old source catalog. No verified maker/grade/finish and exact-cut photograph was found; generic metal supplier stock is not sufficient.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "bakrena-plosca",
+      "productionItemId": "2",
+      "variants": [
+        {
+          "id": "7",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x200"
+        },
+        {
+          "id": "8",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x300"
+        },
+        {
+          "id": "9",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x200x200"
+        },
+        {
+          "id": "10",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-BAK-0P5x100x100"
+        }
+      ],
+      "primarySourcePages": [],
+      "freshResearchPages": [
+        "https://atehna.si/oznaka/plocevina/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2414,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/baker.png",
+          "nativeDimensions": {
+            "width": 581,
+            "height": 581
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2414"
+        }
+      ],
+      "finding": "Primary full original is 581×581. Supplier lists multiple actual cuts including 300×200×0.5 and 200×200×0.5; no upstream mill/model identifier. Images of 200×400 or 495×195 sheets remain rejected.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "productionItemId": "3",
+      "variants": [
+        {
+          "id": "11",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x200"
+        },
+        {
+          "id": "12",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x300"
+        },
+        {
+          "id": "13",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x200x200"
+        },
+        {
+          "id": "14",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x100x100"
+        }
+      ],
+      "primarySourcePages": [],
+      "freshResearchPages": [
+        "https://atehna.si/kategoija/tehnika-in-tehnologija/materiali/kovine-materiali/?orderby=price"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2406,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/belaplocevina.png",
+          "nativeDimensions": {
+            "width": 266,
+            "height": 244
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2406"
+        }
+      ],
+      "finding": "Primary metal sheet image is 266×244, named belaplocevina; exact galvanized finish/source identity is not proven by the filename. No native exact-cut photo found.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "productionItemId": "4",
+      "variants": [
+        {
+          "id": "15",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x200"
+        },
+        {
+          "id": "16",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x300"
+        },
+        {
+          "id": "17",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x200x200"
+        },
+        {
+          "id": "18",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x100x100"
+        }
+      ],
+      "primarySourcePages": [],
+      "freshResearchPages": [
+        "https://atehna.si/oznaka/plocevina/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2403,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/medenina.png",
+          "nativeDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2403"
+        }
+      ],
+      "finding": "Primary full original is 500×500. Original supplier currently names 100×200×0.5 brass, while current catalog has other cuts. Grade, finish and actual-cut photography need supply confirmation; no generic brass substitution accepted.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "productionItemId": "5",
+      "variants": [
+        {
+          "id": "19",
+          "name": "300 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x300"
+        },
+        {
+          "id": "20",
+          "name": "150 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x150"
+        },
+        {
+          "id": "21",
+          "name": "400 x 300 x 3 mm",
+          "sku": "MAT-UME-PEN-3x300x400"
+        },
+        {
+          "id": "22",
+          "name": "500 x 500 x 3 mm",
+          "sku": "MAT-UME-PEN-3x500x500"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+        "https://atehna.si/product/penjeni-pvc-komateks-150-x-200-x-3-mm/",
+        "https://atehna.si/product/penjeni-pvc-komateks-400-x-300-x-3-mm-copy/",
+        "https://atehna.si/product/penjeni-pvc-komateks-500-x-500-x-3-mm/"
+      ],
+      "freshResearchPages": [
+        "https://foamcore.com/products/custom-cut-sizes-of-komatex-pvc-board",
+        "https://www.cartarius.it/prodotti/modellismo/forex/komatex-new/",
+        "https://www.aanetdruzstvo.cz/product/penene-pvc-desky-komatex-velikost-2440-x-1220-x-3-mm-barva-bila/334138/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2393,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+          "nativeDimensions": {
+            "width": 312,
+            "height": 312
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2393"
+        }
+      ],
+      "finding": "Primary 312×312 fan is the complete original, no original_image metadata. Fresh brand-matching 3 mm suppliers show imperial cuts,500×1000 mm, or 2440×1220 mm. These do not establish the four actual ATEHNA cuts or their finish. Need native actual-cut and edge photos.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "pleksi-steklo",
+      "productionItemId": "6",
+      "variants": [
+        {
+          "id": "23",
+          "name": "150 x 200 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x200x150-BELO"
+        },
+        {
+          "id": "24",
+          "name": "150 x 200 x 3 mm, barvno",
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO"
+        },
+        {
+          "id": "25",
+          "name": "150 x 200 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO"
+        },
+        {
+          "id": "26",
+          "name": "200 x 300 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x300x200-BELO"
+        },
+        {
+          "id": "27",
+          "name": "200 x 300 x 3 mm",
+          "sku": "MAT-UME-PLE-3x300x200"
+        },
+        {
+          "id": "28",
+          "name": "400 x 300 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO"
+        },
+        {
+          "id": "29",
+          "name": "300 x 400 x 3 mm",
+          "sku": "MAT-UME-PLE-3x400x300"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/pleksi-steklo-150-x-200-x-3-mm-belo/",
+        "https://atehna.si/product/pleksi-steklo-150-x-200-x-3-mm-barvno/",
+        "https://atehna.si/product/pleksi-steklo-150-x-200-x-3-mm-prozorno/",
+        "https://atehna.si/product/pleksi-steklo-200-x-300-x-3-mm-belo-copy/",
+        "https://atehna.si/product/pleksi-steklo-200-x-300-x-3-mm/",
+        "https://atehna.si/product/pleksi-steklo-400-x-300-x-3-mm-prozorno/",
+        "https://atehna.si/product/pleksi-steklo-300-x-400-x-3-mm/"
+      ],
+      "freshResearchPages": [
+        "https://www.pos-plastika.hr/pleksi-steklo3",
+        "https://atehna.si/oznaka/steklo/"
+      ],
+      "primaryOriginalMetadata": [],
+      "finding": "POS Plastika exposes original prozoren pleksi (640 x 480)_r.jpg and sells 500×500 mm to 1000×2000 mm, with custom cutting. This provides neither a higher-resolution original nor exact ATEHNA cuts or white/coloured variants. Colour codes of the barvno variant remain unspecified.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "stiropor",
+      "productionItemId": "7",
+      "variants": [
+        {
+          "id": "30",
+          "name": "200 x 300 x 10 mm",
+          "sku": "MAT-UME-STI-10x300x200"
+        },
+        {
+          "id": "31",
+          "name": "A5",
+          "sku": "MAT-UME-STI-210x148-A5"
+        },
+        {
+          "id": "32",
+          "name": "300 x 400 x 10 mm",
+          "sku": "MAT-UME-STI-10x400x300"
+        },
+        {
+          "id": "33",
+          "name": "16 x 33 x 2 cm",
+          "sku": "MAT-UME-STI-20x330x160-CM"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/stiropor-200-x-300-x-10-mm/",
+        "https://atehna.si/product/stiropor-a5/",
+        "https://atehna.si/product/stiropor-300-x-400-x-10-mm/",
+        "https://atehna.si/product/stiropor-16-x-33-x-2-cm/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/stiropor-16-x-33-x-2-cm/",
+        "https://atehna.si/product/stiropor-a5/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2372,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/stiropor.png",
+          "nativeDimensions": {
+            "width": 625,
+            "height": 625
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2372"
+        }
+      ],
+      "finding": "Complete primary EPS texture is 625×625. Source offers 10 mm/20 mm cuts but A5 density/thickness is unspecified. Different-density or differently cut construction panels cannot replace it.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "seleshamer",
+      "productionItemId": "8",
+      "variants": [
+        {
+          "id": "34",
+          "name": "Papir šeleshamer 200 g, A4",
+          "sku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4"
+        },
+        {
+          "id": "35",
+          "name": "Papir šeleshamer 200 g, A2",
+          "sku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2"
+        },
+        {
+          "id": "36",
+          "name": "Papir šeleshamer 200 g, A3",
+          "sku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3"
+        },
+        {
+          "id": "37",
+          "name": "Papir šeleshamer 200 g, B1",
+          "sku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/papir-seleshamer-200-g-a4/",
+        "https://atehna.si/product/papir-seleshamer-200-g-a2/",
+        "https://atehna.si/product/papir-seleshamer-200-g-a3/",
+        "https://atehna.si/product/papir-seleshamer-200-g-b1/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/papir-seleshamer-200-g-a4/",
+        "https://www.art-lj.si/art-materiali/umetniski-papir-in-bloki/papir-v-polah/risalni-papir/p,7431,seleshamer-200-g,muflon.html",
+        "https://www.hartis.si/sl/p/20371/risalni-list-bel-200-g-muflon-seleshamer-papir-en-kos.html",
+        "https://www.redoljub.si/akcijska-prodaja-zalog/listi-risalni-gladki-seleshamer-a4-200g-200-1-775112"
+      ],
+      "primaryOriginalMetadata": [],
+      "finding": "ATEHNA primary page has a WooCommerce placeholder and no source photo/maker. Fresh Muflon 200 g matching-format offers exist, but manufacturer identity is not established for the sold ATEHNA stock and some products are whole 200-sheet packs. No assumed Muflon substitution accepted.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "barvni-papir",
+      "productionItemId": "9",
+      "variants": [
+        {
+          "id": "38",
+          "name": "strukturno bela",
+          "sku": "MAT-PAP-BAR-STRUKTURNO-BELA"
+        },
+        {
+          "id": "39",
+          "name": "svetlo rjava",
+          "sku": "MAT-PAP-BAR-SVETLO-RJAVA"
+        },
+        {
+          "id": "40",
+          "name": "temno rjava",
+          "sku": "MAT-PAP-BAR-TEMNO-RJAVA"
+        },
+        {
+          "id": "41",
+          "name": "rjava",
+          "sku": "MAT-PAP-BAR-RJAVA"
+        },
+        {
+          "id": "42",
+          "name": "lila",
+          "sku": "MAT-PAP-BAR-LILA"
+        },
+        {
+          "id": "43",
+          "name": "vijoličasta",
+          "sku": "MAT-PAP-BAR-VIJOLICASTA"
+        },
+        {
+          "id": "44",
+          "name": "črna",
+          "sku": "MAT-PAP-BAR-CRNA"
+        },
+        {
+          "id": "45",
+          "name": "siva",
+          "sku": "MAT-PAP-BAR-SIVA"
+        },
+        {
+          "id": "46",
+          "name": "roza",
+          "sku": "MAT-PAP-BAR-ROZA"
+        },
+        {
+          "id": "47",
+          "name": "temno lila",
+          "sku": "MAT-PAP-BAR-TEMNO-LILA"
+        },
+        {
+          "id": "48",
+          "name": "travno zelena",
+          "sku": "MAT-PAP-BAR-TRAVNO-ZELENA"
+        },
+        {
+          "id": "49",
+          "name": "temno zelena",
+          "sku": "MAT-PAP-BAR-TEMNO-ZELENA"
+        },
+        {
+          "id": "50",
+          "name": "zelena",
+          "sku": "MAT-PAP-BAR-ZELENA"
+        },
+        {
+          "id": "51",
+          "name": "svetlo zelena",
+          "sku": "MAT-PAP-BAR-SVETLO-ZELENA"
+        },
+        {
+          "id": "52",
+          "name": "oranžna",
+          "sku": "MAT-PAP-BAR-ORANZNA"
+        },
+        {
+          "id": "53",
+          "name": "modra",
+          "sku": "MAT-PAP-BAR-MODRA"
+        },
+        {
+          "id": "54",
+          "name": "nebesno modra",
+          "sku": "MAT-PAP-BAR-NEBESNO-MODRA"
+        },
+        {
+          "id": "55",
+          "name": "kalifornijsko modra",
+          "sku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA"
+        },
+        {
+          "id": "56",
+          "name": "svetlo modra",
+          "sku": "MAT-PAP-BAR-SVETLO-MODRA"
+        },
+        {
+          "id": "57",
+          "name": "temno rdeča",
+          "sku": "MAT-PAP-BAR-TEMNO-RDECA"
+        },
+        {
+          "id": "58",
+          "name": "vinsko rdeča",
+          "sku": "MAT-PAP-BAR-VINSKO-RDECA"
+        },
+        {
+          "id": "59",
+          "name": "karmin rdeča",
+          "sku": "MAT-PAP-BAR-KARMIN-RDECA"
+        },
+        {
+          "id": "60",
+          "name": "rdeča",
+          "sku": "MAT-PAP-BAR-RDECA"
+        },
+        {
+          "id": "61",
+          "name": "koruzno rumena",
+          "sku": "MAT-PAP-BAR-KORUZNO-RUMENA"
+        },
+        {
+          "id": "62",
+          "name": "marelična",
+          "sku": "MAT-PAP-BAR-MARELICNA"
+        },
+        {
+          "id": "63",
+          "name": "intenzivno rumena",
+          "sku": "MAT-PAP-BAR-INTENZIVNO-RUMENA"
+        },
+        {
+          "id": "64",
+          "name": "rumena",
+          "sku": "MAT-PAP-BAR-RUMENA"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/barvni-papir-b2-razlicne-barve/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/barvni-papir-b2-razlicne-barve/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2262,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/barvnipapir.png",
+          "nativeDimensions": {
+            "width": 300,
+            "height": 300
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2262"
+        },
+        {
+          "id": 779,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-rjava.jpg",
+          "nativeDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/779"
+        },
+        {
+          "id": 777,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/rjavo-rdeča1.jpg",
+          "nativeDimensions": {
+            "width": 402,
+            "height": 189
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/777"
+        },
+        {
+          "id": 774,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/vinsko-rdeča.jpg",
+          "nativeDimensions": {
+            "width": 300,
+            "height": 148
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/774"
+        },
+        {
+          "id": 773,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/tranviško-zelena.jpg",
+          "nativeDimensions": {
+            "width": 300,
+            "height": 148
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/773"
+        },
+        {
+          "id": 772,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-zelena.jpg",
+          "nativeDimensions": {
+            "width": 478,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/772"
+        },
+        {
+          "id": 771,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/temno-rdeča.jpg",
+          "nativeDimensions": {
+            "width": 491,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/771"
+        },
+        {
+          "id": 770,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/temna-lila.jpg",
+          "nativeDimensions": {
+            "width": 483,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/770"
+        },
+        {
+          "id": 769,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/svetlo-zelena.jpg",
+          "nativeDimensions": {
+            "width": 469,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/769"
+        },
+        {
+          "id": 768,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/svetlo-rjava.jpg",
+          "nativeDimensions": {
+            "width": 485,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/768"
+        },
+        {
+          "id": 767,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/siva.jpg",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/767"
+        },
+        {
+          "id": 766,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/roza.jpg",
+          "nativeDimensions": {
+            "width": 500,
+            "height": 484
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/766"
+        },
+        {
+          "id": 765,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/rjavo-rdeča.jpg",
+          "nativeDimensions": {
+            "width": 491,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/765"
+        },
+        {
+          "id": 764,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/rjava.jpg",
+          "nativeDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/764"
+        },
+        {
+          "id": 763,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/rdeča.jpg",
+          "nativeDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/763"
+        },
+        {
+          "id": 762,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/nebesno-modra.jpg",
+          "nativeDimensions": {
+            "width": 490,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/762"
+        },
+        {
+          "id": 761,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/modra.jpg",
+          "nativeDimensions": {
+            "width": 484,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/761"
+        },
+        {
+          "id": 759,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/lila.jpg",
+          "nativeDimensions": {
+            "width": 473,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/759"
+        },
+        {
+          "id": 758,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/koruzno-rumena.jpg",
+          "nativeDimensions": {
+            "width": 474,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/758"
+        },
+        {
+          "id": 757,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/karminasto-rdeče.jpg",
+          "nativeDimensions": {
+            "width": 465,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/757"
+        },
+        {
+          "id": 756,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/kalifornijsko-modre-barve.jpg",
+          "nativeDimensions": {
+            "width": 494,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/756"
+        },
+        {
+          "id": 754,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/intenzivno-rumena.jpg",
+          "nativeDimensions": {
+            "width": 477,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/754"
+        },
+        {
+          "id": 753,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/črna.jpg",
+          "nativeDimensions": {
+            "width": 472,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/753"
+        },
+        {
+          "id": 752,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2014/08/bela.jpg",
+          "nativeDimensions": {
+            "width": 481,
+            "height": 500
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/752"
+        }
+      ],
+      "finding": "Fresh primary page includes explicit variation images; complete originals max 500 px and overview 300×300. Full 950-attachment scan found no larger original versions. 27 colour names have no manufacturer paper/colour codes, so visually similar Folia/Ursus/Cartiere Fedrigoni colours cannot be assigned.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "grafopak",
+      "productionItemId": "10",
+      "variants": [
+        {
+          "id": "65",
+          "name": "polkarton A3",
+          "sku": "MAT-PAP-GRA-420x297-POLKARTON-A3"
+        },
+        {
+          "id": "66",
+          "name": "polkarton A4",
+          "sku": "MAT-PAP-GRA-297x210-POLKARTON-A4"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/grafopak-polkarton-a3/",
+        "https://atehna.si/product/grafopak-polkarton-a4/"
+      ],
+      "freshResearchPages": [
+        "https://velpapir.hr/ambalazni-kartoni/",
+        "https://www.europapier.hr/_default_upload_bucket/Product_8_42134_GRA_en.pdf",
+        "https://digi.mm-karton.com/static/MM_Qualitaetenuebersicht_240619.pdf",
+        "https://ferpaper.pt/en/produtos/gt4-grafopak-kraft/"
+      ],
+      "primaryOriginalMetadata": [],
+      "finding": "Fresh manufacturer data distinguishes GD2 Grafopak 42134 from GT4 Grafopak Kraft 34101, which has a different reverse. Velpapir presents several brands/grammages under shared material photos. Existing 2048×1365 generic GD view is not proof of actual 350 g stock. No new verified actual A3/A4 capture found.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "fotokarton",
+      "productionItemId": "11",
+      "variants": [
+        {
+          "id": "67",
+          "name": "črna",
+          "sku": "MAT-PAP-FOT-CRNA"
+        },
+        {
+          "id": "68",
+          "name": "srebrna",
+          "sku": "MAT-PAP-FOT-SREBRNA"
+        },
+        {
+          "id": "69",
+          "name": "siva",
+          "sku": "MAT-PAP-FOT-SIVA"
+        },
+        {
+          "id": "70",
+          "name": "zlata",
+          "sku": "MAT-PAP-FOT-ZLATA"
+        },
+        {
+          "id": "71",
+          "name": "svetlo rjava",
+          "sku": "MAT-PAP-FOT-SVETLO-RJAVA"
+        },
+        {
+          "id": "72",
+          "name": "rjava",
+          "sku": "MAT-PAP-FOT-RJAVA"
+        },
+        {
+          "id": "73",
+          "name": "vijoličasta",
+          "sku": "MAT-PAP-FOT-VIJOLICASTA"
+        },
+        {
+          "id": "74",
+          "name": "lila",
+          "sku": "MAT-PAP-FOT-LILA"
+        },
+        {
+          "id": "75",
+          "name": "temno zelena",
+          "sku": "MAT-PAP-FOT-TEMNO-ZELENA"
+        },
+        {
+          "id": "76",
+          "name": "zelena",
+          "sku": "MAT-PAP-FOT-ZELENA"
+        },
+        {
+          "id": "77",
+          "name": "oranžna",
+          "sku": "MAT-PAP-FOT-ORANZNA"
+        },
+        {
+          "id": "78",
+          "name": "kraljevsko modra",
+          "sku": "MAT-PAP-FOT-KRALJEVSKO-MODRA"
+        },
+        {
+          "id": "79",
+          "name": "modra",
+          "sku": "MAT-PAP-FOT-MODRA"
+        },
+        {
+          "id": "80",
+          "name": "temno modra",
+          "sku": "MAT-PAP-FOT-TEMNO-MODRA"
+        },
+        {
+          "id": "81",
+          "name": "temno rdeča",
+          "sku": "MAT-PAP-FOT-TEMNO-RDECA"
+        },
+        {
+          "id": "82",
+          "name": "rdeča",
+          "sku": "MAT-PAP-FOT-RDECA"
+        },
+        {
+          "id": "83",
+          "name": "koruzno rumena",
+          "sku": "MAT-PAP-FOT-KORUZNO-RUMENA"
+        },
+        {
+          "id": "84",
+          "name": "marelična",
+          "sku": "MAT-PAP-FOT-MARELICNA"
+        },
+        {
+          "id": "85",
+          "name": "rumena",
+          "sku": "MAT-PAP-FOT-RUMENA"
+        },
+        {
+          "id": "86",
+          "name": "bela",
+          "sku": "MAT-PAP-FOT-BELA"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/"
+      ],
+      "freshResearchPages": [
+        "https://www.folia.de/fotokarton-dunkelrot-50-x-70-cm-300-g-m2-10-blatt-ja/61-22-11111",
+        "https://www.folia.de/fotokarton-sonderedition-basic-50-farben-50-x-70-cm-300-g-m2-50-blatt/61-50-99",
+        "https://www.winklerschulbedarf.com/de/i/fotokarton-300-g-m2-50-x-70-cm-folia-10-blatt-pkg-401477xx",
+        "https://weststrate.nl/fotokarton-folia-300gr-50x70cm-37-violetblauw-141687",
+        "https://www.gerstaecker.de/folia-fotokarton.html"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2257,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/fotokarton.png",
+          "nativeDimensions": {
+            "width": 600,
+            "height": 600
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2257"
+        }
+      ],
+      "finding": "Traced the primary 600 px fan to Folia retailer imagery. Downloaded current manufacturer 2500 px images and unresized retailer original 800 px, plus 720/900 px fan copies. Current manufacturer captures show different assortments/packaging;20 ATEHNA colours lack manufacturer codes. No exact verified higher-detail version of the original capture found.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "lepenka",
+      "productionItemId": "12",
+      "variants": [
+        {
+          "id": "87",
+          "name": "Bela lepenka A3",
+          "sku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3"
+        },
+        {
+          "id": "88",
+          "name": "Siva lepenka A2",
+          "sku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2"
+        },
+        {
+          "id": "89",
+          "name": "Papir lepenka A4",
+          "sku": "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+        },
+        {
+          "id": "90",
+          "name": "Bela lepenka A4",
+          "sku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4"
+        },
+        {
+          "id": "91",
+          "name": "1,2 mm B1",
+          "sku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1"
+        },
+        {
+          "id": "92",
+          "name": "Papir lepenka A3",
+          "sku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/bela-lepenka-a3/",
+        "https://atehna.si/product/siva-lepenka-a2/",
+        "https://atehna.si/product/papir-lepenka-a4/",
+        "https://atehna.si/product/bela-lepenka-a4/",
+        "https://atehna.si/product/lepenka-12-mm-b1/",
+        "https://atehna.si/product/papir-lepenka-a3/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/bela-lepenka-a3/",
+        "https://atehna.si/product/siva-lepenka-a2/",
+        "https://paperconcept.pl/pl/pankadisc/41697-tektura-introligatorska-115-mm-pankadisc-biala-a3-40-ark.html"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2350,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/sivalepenka.png",
+          "nativeDimensions": {
+            "width": 586,
+            "height": 586
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2350"
+        }
+      ],
+      "finding": "Primary grey board full original 586×586. Fresh white PankaDisc A3 offer is 1.15 mm, not the sold unspecified white stock/0.7–1.2 mm grey variants. Need exact grade/thickness proof and photographed fronts/edges; no differently thick substitute accepted.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "risalni-list",
+      "productionItemId": "13",
+      "variants": [
+        {
+          "id": "93",
+          "name": "A2",
+          "sku": "MAT-PAP-RIS-594x420-A2"
+        },
+        {
+          "id": "94",
+          "name": "A4",
+          "sku": "MAT-PAP-RIS-297x210-A4"
+        },
+        {
+          "id": "95",
+          "name": "A5",
+          "sku": "MAT-PAP-RIS-210x148-A5"
+        },
+        {
+          "id": "96",
+          "name": "A3",
+          "sku": "MAT-PAP-RIS-420x297-A3"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/risalni-list-a2/",
+        "https://atehna.si/product/risalni-list-a3/",
+        "https://atehna.si/product/risalni-list-a5/",
+        "https://atehna.si/product/risalni-list-a3-2/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/risalni-list-a2/",
+        "https://www.prilevcku.si/risalni-list-a3-150-kosov.html",
+        "https://www.office-partner.de/zeichenkart-200g-dina3-25st-wss-n1000148163"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2360,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/risalnilist.png",
+          "nativeDimensions": {
+            "width": 670,
+            "height": 670
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2360"
+        }
+      ],
+      "finding": "Primary 670×670 single sheet is the complete original. Fresh Muflon 140 g hrapav and Folia 200 g stock have specific grammage/texture/pack differences unconfirmed for ATEHNA. No new source photograph can be safely associated until delivered stock is identified.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    },
+    {
+      "slug": "vezana-plosca",
+      "productionItemId": "14",
+      "variants": [
+        {
+          "id": "97",
+          "name": "Bukev / 6 x 300 x 400",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV"
+        },
+        {
+          "id": "98",
+          "name": "Bukev / 4 x 500 x 500",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV"
+        },
+        {
+          "id": "99",
+          "name": "Bukev / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV"
+        },
+        {
+          "id": "100",
+          "name": "Topol / 6 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL"
+        },
+        {
+          "id": "101",
+          "name": "Topol / 4 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL"
+        },
+        {
+          "id": "102",
+          "name": "Topol / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL"
+        },
+        {
+          "id": "103",
+          "name": "Topol / 3 x 250 x 500",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL"
+        },
+        {
+          "id": "104",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "105",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "106",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "107",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "108",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "109",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "110",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "111",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "112",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "113",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "114",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "115",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "116",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "117",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "118",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "119",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "120",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "121",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "122",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "123",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "124",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "125",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "126",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA"
+        },
+        {
+          "id": "127",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA"
+        }
+      ],
+      "primarySourcePages": [
+        "https://atehna.si/product/vezana-plosca-bukev-razlicne-dimenzije/",
+        "https://atehna.si/product/vezana-plosca-topol-razlicne-dimenzije/",
+        "https://atehna.si/product/vezana-plosca-razlicne-dimenzije/"
+      ],
+      "freshResearchPages": [
+        "https://atehna.si/product/vezana-plosca-bukev-razlicne-dimenzije/",
+        "https://www.obi.si/p/dyas-vezana-plosca-3-slojna-bukev-2-500-mm-x-1-250-mm-x-4-mm-136548",
+        "https://furnir.hr/proizvod/sperploca-bukva-06-mm-2000-1250-mr/917/"
+      ],
+      "primaryOriginalMetadata": [
+        {
+          "id": 2454,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca1.png",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2454"
+        },
+        {
+          "id": 2429,
+          "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca.png",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "originalImageMetadata": null,
+          "endpoint": "https://atehna.si/wp-json/wp/v2/media/2429"
+        }
+      ],
+      "finding": "Both full primary plywood originals are 800×800 and the same composition. Fresh Dyas 4mm 2500×1250 and Furnir 6mm 2000×1250 do not establish supplied ATEHNA cut, grade or manufacturer. 24 current variants also lack wood species. Need actual cut/species/edge originals.",
+      "acceptedReplacements": [],
+      "requiredEvidence": [
+        "Actual supplier/model/material grade and variant/colour/cut mapping",
+        "Unchanged native real photographs, both dimensions at least 1024 pixels, showing delivered goods",
+        "Whole-product and useful reverse/edge/material-detail views without people"
+      ],
+      "complete": false
+    }
+  ],
+  "candidates": [
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://www.folia.de/fotokarton-dunkelrot-50-x-70-cm-300-g-m2-10-blatt-ja/61-22-11111",
+      "sourceImageUrl": "https://www.folia.de/media/c3/8b/83/1770231394/6122_FP_1.webp?ts=1788459543",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/fotokarton-folia-native.webp",
+      "bytes": 108090,
+      "sha256": "a8cf8a95474ac9287850904f83ba043b4f62e8664e6b1dc82d117a644015ac28",
+      "width": 1999,
+      "height": 2500,
+      "nativeDimensionsPass": true,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Not visually approved because failed source identity or minimum size.",
+        "rejectReason": "Manufacturer dark-red 61/22 paper/pack is not established as ATEHNA selected dark-red variant."
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://www.folia.de/fotokarton-sonderedition-basic-50-farben-50-x-70-cm-300-g-m2-50-blatt/61-50-99",
+      "sourceImageUrl": "https://www.folia.de/media/59/69/75/1785714574/61-50-99_I_1.webp?ts=1788445058",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/folia-pack50-1.webp",
+      "bytes": 422528,
+      "sha256": "33a63a683eb08df3a667ee0536caeedd910fa911dbb3b7cff319ace957186b12",
+      "width": 2000,
+      "height": 2500,
+      "nativeDimensionsPass": true,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Reviewed: no humans, outer sheets cropped, different arrangement.",
+        "rejectReason": "Visually inspected. Different 50-colour fan composition, outer sheets cropped; identity of 20 offered shades not proven."
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://www.folia.de/fotokarton-sonderedition-basic-50-farben-50-x-70-cm-300-g-m2-50-blatt/61-50-99",
+      "sourceImageUrl": "https://www.folia.de/media/92/59/29/1785714586/61-50-99_P_1.webp?ts=1788445065",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/folia-pack50-0.webp",
+      "bytes": 531114,
+      "sha256": "3e9348058914f9dee53a835bf8591fd1fb6d78c6b538009f4ffebf64c293330f",
+      "width": 2500,
+      "height": 1768,
+      "nativeDimensionsPass": true,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Not visually approved because failed source identity or minimum size.",
+        "rejectReason": "50-sheet retail pack is not the individual selected-colour stock being sold."
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://weststrate.nl/fotokarton-folia-300gr-50x70cm-37-violetblauw-141687",
+      "sourceImageUrl": "https://weststrate.nl/media/media_cached/1x1_white/d/0/e/a/fotokarton-folia-300gr-50x70cm-37-violetblauw-1.jpg",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/fotokarton-weststrate-fan.jpeg",
+      "bytes": 208278,
+      "sha256": "b2a3c051717083344c763f393d423bf11745d1795b8d6481f54d264d032803c1",
+      "width": 720,
+      "height": 720,
+      "nativeDimensionsPass": false,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Not visually approved because failed source identity or minimum size.",
+        "rejectReason": "Native returned image 720×720 does not meet 1024minimum."
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://www.winklerschulbedarf.com/de/i/fotokarton-300-g-m2-50-x-70-cm-folia-10-blatt-pkg-401477xx",
+      "sourceImageUrl": "https://www.winklerschulbedarf.com/images/items/raw/1_Produkt/2xxx/2025xx_1_Fotokarton_300g.jpg",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/fotokarton-winkler-native.jpg",
+      "bytes": 37854,
+      "sha256": "12f27fc709d32e04cb579bd064919ff4eb7748ab53189c5f6e8fbc76a42150c3",
+      "width": 800,
+      "height": 800,
+      "nativeDimensionsPass": false,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Not visually approved because failed source identity or minimum size.",
+        "rejectReason": "Explicit raw upstream original is 800×800; no source enlargement permitted."
+      }
+    },
+    {
+      "slug": "fotokarton",
+      "sourcePageUrl": "https://www.borgione.it/creativita/carta-e-cartoncino/cartoncini-e-carta-colorati/cartoncino-50-colori-cm-50x70-300g",
+      "sourceImageUrl": "https://borgione.kleecks-cdn.com/media/catalog/product/1/7/175129_1_1.jpg",
+      "localResearchPath": "tmp/product-image-audit/materials-v3/fotokarton-borgione.jpeg",
+      "bytes": 34819,
+      "sha256": "6fc08ef158598eeb20795a10a8feb815600f064cde0381525093495baa2688da",
+      "width": 900,
+      "height": 900,
+      "nativeDimensionsPass": false,
+      "imageType": "product",
+      "accepted": false,
+      "originalBytes": true,
+      "variantIds": [],
+      "qualityReview": {
+        "visualReview": "Not visually approved because failed source identity or minimum size.",
+        "rejectReason": "Native non-cache product URL returns 900×900; belowminimum."
+      }
+    }
+  ],
+  "complete": false,
+  "hiddenNativePhotoReview": {
+    "inventorySnapshot": "tmp/product-image-audit/production/inventory.json",
+    "criteria": "Photographs hidden in the inventory snapshot, both decoded dimensions at least 1024 pixels, excluding known generated assets.",
+    "contactSheets": [
+      "tmp/product-image-audit/hidden-native-contact-1.jpg",
+      "tmp/product-image-audit/hidden-native-contact-2.jpg"
+    ],
+    "reviewedCount": 18,
+    "eligibleReplacementCount": 0,
+    "images": [
+      {
+        "slug": "aluminijasta-plosca",
+        "id": "282",
+        "url": "/images/catalog/2026-09/aluminijasta-plosca-real-v-roki.jpg",
+        "width": 2000,
+        "height": 2000,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+            "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/0.5mm-aluminium-sheet-metal-hand-image.jpg"
+          },
+          {
+            "manifest": "real-photo-metals-2026-09.json",
+            "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+            "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/0.5mm-aluminium-sheet-metal-hand-image.jpg",
+            "kind": "supplier-photo",
+            "notes": "Distinct real hand-held photograph from same 0.5 mm product gallery. Natural rolled-metal scratches and thin edge visible. Strong material/handling context, not a dimensional representation. No edits.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Human hand visible; also supplier grade and cut are not established for delivered stock."
+      },
+      {
+        "slug": "bakrena-plosca",
+        "id": "284",
+        "url": "/images/catalog/2026-09/bakrena-plosca-real-povrsina.png",
+        "width": 1920,
+        "height": 2400,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.slojd-detaljer.com/fi/puu-metalli/metallilevyt-folio/kuparilevy-495x195-mm?p=2714-2004",
+            "sourceUrl": "https://slojddetaljer.cdn-norce.tech/c9d7a5b8-7bd9-433f-aa54-6a9c28c023e0"
+          },
+          {
+            "manifest": "real-photo-metals-2026-09.json",
+            "sourcePage": "https://www.slojd-detaljer.com/fi/puu-metalli/metallilevyt-folio/kuparilevy-495x195-mm?p=2714-2004",
+            "sourceUrl": "https://slojddetaljer.cdn-norce.tech/c9d7a5b8-7bd9-433f-aa54-6a9c28c023e0",
+            "kind": "supplier-photo",
+            "notes": "Native transparent PNG original of retailer product photograph. The same source render was visually inspected at 1360 × 1700; real copper surface has subtle scratches and tiny natural marks, intact lower corner. Source is a 495 × 195 mm sheet at 0.5 mm; use as material detail only, not exact full-size variant view. PNG original fetched without transformation parameters; no upscale or edits.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Supplier photograph is a 495 × 195 mm sheet, different from the sold cuts."
+      },
+      {
+        "slug": "pocinkana-plocevina",
+        "id": "285",
+        "url": "/images/catalog/2026-09/pocinkana-plocevina-real-rob.webp",
+        "width": 1024,
+        "height": 1024,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.schmiedekult.de/05mm-verzinktes-Stahlblech-DX51-nach-Mass?btgsterne=5",
+            "sourceUrl": "https://www.schmiedekult.de/media/image/product/31876/lg/05mm-verzinktes-stahlblech-dx51-nach-mass~3.webp"
+          },
+          {
+            "manifest": "real-photo-metals-2026-09.json",
+            "sourcePage": "https://www.schmiedekult.de/05mm-verzinktes-Stahlblech-DX51-nach-Mass?btgsterne=5",
+            "sourceUrl": "https://www.schmiedekult.de/media/image/product/31876/lg/05mm-verzinktes-stahlblech-dx51-nach-mass~3.webp",
+            "kind": "supplier-photo",
+            "notes": "Real supplier sheet close-up, visible irregular zinc texture. Source explicitly0.5mm. Material view across cut formats, no size claims. Original1024px WebP, no edits.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Generic DX51 galvanized-sheet material corner; delivered grade, finish and cut are not proven."
+      },
+      {
+        "slug": "medeninasta-plosca",
+        "id": "287",
+        "url": "/images/catalog/2026-09/medeninasta-plosca-real-rob.webp",
+        "width": 1024,
+        "height": 1024,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://bestell-dein-lochblech.de/products/messingblech-t-0-5-mm",
+            "sourceUrl": "https://bestell-dein-lochblech.de/cdn/shop/products/Messingblech_5mm_7mm_1mm_dick.webp?v=1745335158&width=1946"
+          },
+          {
+            "manifest": "real-photo-metals-2026-09.json",
+            "sourcePage": "https://bestell-dein-lochblech.de/products/messingblech-t-0-5-mm",
+            "sourceUrl": "https://bestell-dein-lochblech.de/cdn/shop/products/Messingblech_5mm_7mm_1mm_dick.webp?v=1745335158&width=1946",
+            "kind": "supplier-photo",
+            "notes": "Real supplier close-up on the 0.5 mm product page. Material view shared with cut sizes; does not depict a specified selected format. Native1024px; no edits.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Generic brass-sheet detail used across cut sizes; delivered stock and exact cut are not proven."
+      },
+      {
+        "slug": "stiropor",
+        "id": "224",
+        "url": "/images/catalog/2026-09/stiropor-real-eps-plosce.webp",
+        "width": 1500,
+        "height": 1500,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://schottpackaging.co.uk/product/eps-polystyrene-sheets-600x400x10mm/",
+            "sourceUrl": "https://schottpackaging.co.uk/wp-content/uploads/2025/10/EPS-Sheets.webp"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://schottpackaging.co.uk/product/eps-polystyrene-sheets-600x400x10mm/",
+            "sourceUrl": "https://schottpackaging.co.uk/wp-content/uploads/2025/10/EPS-Sheets.webp",
+            "kind": "source-photo",
+            "notes": "Actual supplier 10mm EPS sheet photo, representative material view; displayed sheet sizes differ from catalog cuts.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1,
+              2
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Supplier photograph depicts a 600 × 400 × 10 mm EPS stack, different from the sold cuts."
+      },
+      {
+        "slug": "seleshamer",
+        "id": "226",
+        "url": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+        "width": 6720,
+        "height": 4480,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "quality": "high-quality-source",
+            "notes": "Real classroom photo; mixed craft materials illustrate use, not the exact supplied color, size or included accessories. Native source retained without edits.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "seleshamer",
+        "id": "13",
+        "url": "/images/catalog/2026-09/seleshamer.jpg",
+        "width": 1080,
+        "height": 1080,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "quality": "best-available-source",
+            "notes": "Retained1080px source is visibly soft around curled sheet edges; generated sharp material view is preferred.",
+            "visuallyVerified": true
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Historical override explicitly described this as a representative photograph of A4 200 g white paper from Kopija Nova, with no established identity for the sold ATEHNA stock. Source image is soft and does not provide useful zoom detail.",
+        "additionalProvenance": {
+          "manifest": "tmp/catalog-import/image-overrides.json",
+          "sourcePage": "https://www.likovni.kopija-nova.si/likovni-material/papirji-in-kartoni/barvni-seleshamer/seleshamer-velikost-a4-200-g-bel-1250",
+          "sourceImageUrl": "https://www.likovni.kopija-nova.si/item_images/kopija_nova/18821.jpg",
+          "historicalSelection": "Representative plain white smooth 200 g paper; no brand inferred."
+        }
+      },
+      {
+        "slug": "barvni-papir",
+        "id": "114",
+        "url": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+        "width": 6720,
+        "height": 4480,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "quality": "high-quality-source",
+            "notes": "Real classroom photo; mixed craft materials illustrate use, not the exact supplied color, size or included accessories. Native source retained without edits.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "fotokarton",
+        "id": "256",
+        "url": "/images/catalog/2026-09/fotokarton-real-zlati-srebrni-karton.jpg",
+        "width": 1024,
+        "height": 1024,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/metallic-fotokarton2",
+            "sourceUrl": "https://www.wl-versand.de/shop/media/images/org/98475M-Metallic-Fotokarton-Gold-Silber.jpg"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/metallic-fotokarton2",
+            "sourceUrl": "https://www.wl-versand.de/shop/media/images/org/98475M-Metallic-Fotokarton-Gold-Silber.jpg",
+            "kind": "source-photo",
+            "notes": "Real supplier metallic300g cardstock photo with both gold and silver. Represents both selected finishes, not a delivered set or exact cut format.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              1,
+              3
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Generic paired gold and silver metallic cardstock photograph; exact material, shades and delivered cuts are unproven."
+      },
+      {
+        "slug": "fotokarton",
+        "id": "137",
+        "url": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+        "width": 6094,
+        "height": 4160,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/children-doing-crafting-7869797/",
+            "sourceUrl": "https://images.pexels.com/photos/7869797/pexels-photo-7869797.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869797.jpg&fm=jpg",
+            "kind": "context-photo",
+            "quality": "high-quality-source",
+            "notes": "Real classroom photo; mixed craft materials illustrate use, not the exact supplied color, size or included accessories. Native source retained without edits.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/children-doing-crafting-7869797/",
+            "sourceUrl": "https://images.pexels.com/photos/7869797/pexels-photo-7869797.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869797.jpg&fm=jpg"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/children-doing-crafting-7869797/",
+            "sourceUrl": "https://images.pexels.com/photos/7869797/pexels-photo-7869797.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869797.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "risalni-list",
+        "id": "440",
+        "url": "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg",
+        "width": 1500,
+        "height": 1500,
+        "sources": [
+          {
+            "manifest": "photo-framing-2026-09.json",
+            "sourcePage": "https://artway.co.uk/artway-studio-170gsm-cartridge-paper-packs-a1-a2-a3/",
+            "sourceUrl": "https://cdn11.bigcommerce.com/s-xoo1uq/images/stencil/original/products/2901/17174/Artway-STUDIO-170gsm-White-Cartridge-Paper-A1-A2-A3_14561__13754.1729768382.jpg?c=2",
+            "kind": "source-photo",
+            "notes": "Unchanged authentic supplier photograph of white uncoated drawing-paper sheets. Three-quarter material detail makes sheet edges and surface legible at card size. General material representation; supplier brand, 170 gsm, pack quantity and cut dimensions are not catalog specifications. ATEHNA sells the selected format per sheet. No bitmap edits, artificial upscaling, added shadows or generated content.",
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://artway.co.uk/artway-studio-170gsm-cartridge-paper-packs-a1-a2-a3/",
+            "sourceUrl": "https://cdn11.bigcommerce.com/s-xoo1uq/images/stencil/original/products/2901/17174/Artway-STUDIO-170gsm-White-Cartridge-Paper-A1-A2-A3_14561__13754.1729768382.jpg?c=2"
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Artway 170 g drawing-stock photograph; this weight and manufacturer are not established for the sold ATEHNA stock."
+      },
+      {
+        "slug": "risalni-list",
+        "id": "259",
+        "url": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+        "width": 6720,
+        "height": 4480,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "quality": "high-quality-source",
+            "notes": "Real classroom photo; mixed craft materials illustrate use, not the exact supplied color, size or included accessories. Native source retained without edits.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          },
+          {
+            "manifest": "real-photo-materials-2026-09.json",
+            "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+            "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg",
+            "kind": "context-photo",
+            "notes": "Unmodified real Vanessa Loring/Pexels classroom photograph. Inspiration/context only; does not establish paper weight, color shade, supplied accessories or specific SKU.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": []
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "kladivo",
+        "id": "270",
+        "url": "/images/catalog/2026-09/kladivo-200-real-opitec-1.jpg",
+        "width": 2560,
+        "height": 1839,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+            "sourceUrl": "https://www.opitec.com/media/1b/21/9d/1776316559/343055-000-000-VO-03_v_5.jpg?ts=1776316559"
+          },
+          {
+            "manifest": "real-photo-tools-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+            "sourceUrl": "https://www.opitec.com/media/1b/21/9d/1776316559/343055-000-000-VO-03_v_5.jpg?ts=1776316559",
+            "kind": "supplier-photo",
+            "quality": "high-quality-source",
+            "notes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Representative BGS 200 g hammer; model and brand are not established for the sold ATEHNA hammer."
+      },
+      {
+        "slug": "kladivo",
+        "id": "271",
+        "url": "/images/catalog/2026-09/kladivo-200-real-opitec-2.jpg",
+        "width": 2560,
+        "height": 1597,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+            "sourceUrl": "https://www.opitec.com/media/d0/00/51/1776316560/343055-000-000-VO-04_v_5.jpg?ts=1776316560"
+          },
+          {
+            "manifest": "real-photo-tools-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+            "sourceUrl": "https://www.opitec.com/media/d0/00/51/1776316560/343055-000-000-VO-04_v_5.jpg?ts=1776316560",
+            "kind": "supplier-photo",
+            "quality": "high-quality-source",
+            "notes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred.",
+            "contextOnly": false,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0,
+              1
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "Representative BGS 200 g hammer; model and brand are not established for the sold ATEHNA hammer."
+      },
+      {
+        "slug": "zica-za-lotanje",
+        "id": "276",
+        "url": "/images/catalog/2026-09/zica-za-lotanje-real-kolut-detajl.jpg",
+        "width": 2560,
+        "height": 1981,
+        "sources": [
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-elektroniklot-sn95-5ag3-8cu0-7-1-mm-100g/328722",
+            "sourceUrl": "https://www.opitec.com/media/81/44/50/1764939613/328722-000-000-VO-01d01_v_9.jpg?ts=1764939613"
+          },
+          {
+            "manifest": "real-photo-tools-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-elektroniklot-sn95-5ag3-8cu0-7-1-mm-100g/328722",
+            "sourceUrl": "https://www.opitec.com/media/81/44/50/1764939613/328722-000-000-VO-01d01_v_9.jpg?ts=1764939613",
+            "kind": "supplier-context-photo",
+            "quality": "high-quality-source",
+            "notes": "Supplementary real representative view of a100g solder spool showing the wire winding. OPITEC alloy/diameter on label is NOT verified for the catalog item and must not become a product specification. Original actual supplier blue-spool photograph remains first and the sole exact product hero.",
+            "contextOnly": true,
+            "visuallyVerified": true,
+            "variantIndices": [
+              0
+            ]
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "OPITEC solder spool with a different documented alloy and construction from the original sold spool."
+      },
+      {
+        "slug": "podlaga-za-rezanje",
+        "id": "203",
+        "url": "/images/catalog/2026-09/podlaga-za-rezanje-ustvarjanje.jpg",
+        "width": 1943,
+        "height": 2560,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+            "sourceUrl": "https://www.opitec.com/media/43/e1/ea/1773741630/375040-000-000-VO-02a02_v_5.jpg?ts=1773741630",
+            "kind": "supplier-application-photo",
+            "quality": "high-quality-source",
+            "notes": "Authentic classroom/crafting context with green cutting mat and children making foam hats. Same photo also appears on600x900 supplier page; use as family application gallery only, not proof of exact450x600 size. Other tools/materials not included. No edits.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+            "sourceUrl": "https://www.opitec.com/media/43/e1/ea/1773741630/375040-000-000-VO-02a02_v_5.jpg?ts=1773741630"
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "ploscata-baterija",
+        "id": "215",
+        "url": "/images/catalog/2026-09/baterija-ploscata-ucilnica.jpg",
+        "width": 1748,
+        "height": 2560,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-4-5v/204019",
+            "sourceUrl": "https://www.opitec.com/media/60/98/68/1764756171/204019-000-000-VO-03a01_v_9.jpg?ts=1764756171",
+            "kind": "supplier-application-photo",
+            "quality": "high-quality-source",
+            "notes": "Genuine OPITEC classroom application photograph. Extra batteries, tools and circuit components are surroundings, not included products.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-4-5v/204019",
+            "sourceUrl": "https://www.opitec.com/media/60/98/68/1764756171/204019-000-000-VO-03a01_v_9.jpg?ts=1764756171"
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      },
+      {
+        "slug": "ploscata-baterija",
+        "id": "216",
+        "url": "/images/catalog/2026-09/baterija-ploscata-elektricni-krog.jpg",
+        "width": 2103,
+        "height": 2560,
+        "sources": [
+          {
+            "manifest": "image-upgrades-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-12-stueck-4-5-v/204112",
+            "sourceUrl": "https://www.opitec.com/media/f1/7a/27/1764707780/204112-000-000-VO-08a01_v_9.jpg?ts=1764707780",
+            "kind": "supplier-application-photo",
+            "quality": "high-quality-source",
+            "notes": "Genuine OPITEC classroom application photograph. Extra batteries, tools and circuit components are surroundings, not included products.",
+            "contextOnly": true,
+            "visuallyVerified": true
+          },
+          {
+            "manifest": "product-image-remediation-2026-09.json",
+            "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-12-stueck-4-5-v/204112",
+            "sourceUrl": "https://www.opitec.com/media/f1/7a/27/1764707780/204112-000-000-VO-08a01_v_9.jpg?ts=1764707780"
+          }
+        ],
+        "visuallyReviewed": true,
+        "accepted": false,
+        "rejectReason": "People and human body parts are visible."
+      }
+    ]
+  }
+}

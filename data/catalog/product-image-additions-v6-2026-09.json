@@ -1,0 +1,64 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T12:52:48.079Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-wood-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-materials-v6-2026-09.json",
+    "data/catalog/replacement-sources-paper-v6-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "aluminijasta-plosca-100x100x05-celoten-pogled-v6",
+      "slug": "aluminijasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-ALU-0P5x100x100"
+      ],
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+      "sha256": "3c9997aef4829be911e87aebfa05c8a2ce554f6dccbb9f3c777d206718edbee8",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.com/itm/356659158673",
+      "sourceUrl": "https://i.ebayimg.com/images/g/cmMAAeSw25Vn0Zcb/s-l1600.jpg",
+      "sourceIdentityEvidence": "Source listing specifies four 100 × 100 × 0.5 mm plain silver aluminium squares, corroborated by its dimension image and Walmart product details. ATEHNA SKU is unbranded aluminium of this exact cut and thickness, with no alloy, temper or coating claim. Natural fine linear grain and thin edges are compatible with the original ATEHNA Aluminij.png. Source 6061 designation is provenance only, not added to catalog specifications.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete square sheet in a four-sheet arrangement, three-quarter view",
+      "altText": "Aluminijasta plošča, 100 × 100 × 0,5 mm — celoten pogled. Prodajna enota je ena plošča; dodatne prikazane plošče niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/3c9997aef4829be9-aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+      "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/3c9997aef4829be9-aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg"
+    },
+    {
+      "id": "aluminijasta-plosca-100x100x05-rob-v6",
+      "slug": "aluminijasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-ALU-0P5x100x100"
+      ],
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-100x100x05-rob-v6.jpg",
+      "sha256": "d93234d7905fa858f8dae05114707e48ec65de8b38b4963cbfb6e9f0444684fa",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.com/itm/356659158673",
+      "sourceUrl": "https://i.ebayimg.com/images/g/eAUAAeSwep9n0Zcb/s-l1600.jpg",
+      "sourceIdentityEvidence": "Source listing specifies four 100 × 100 × 0.5 mm plain silver aluminium squares, corroborated by its dimension image and Walmart product details. ATEHNA SKU is unbranded aluminium of this exact cut and thickness, with no alloy, temper or coating claim. Natural fine linear grain and thin edges are compatible with the original ATEHNA Aluminij.png. Source 6061 designation is provenance only, not added to catalog specifications.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "Independently arranged two-sheet close-up of edge and surface grain",
+      "altText": "Aluminijasta plošča, 100 × 100 × 0,5 mm — podrobnost roba in površine. Prodajna enota je ena plošča; dodatne prikazane plošče niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/d93234d7905fa858-aluminijasta-plosca-100x100x05-rob-v6.jpg",
+      "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/d93234d7905fa858-aluminijasta-plosca-100x100x05-rob-v6.jpg"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": 5,
+  "reviewedAt": "2026-09-14T11:29:03.429Z",
+  "status": "reviewed",
+  "removals": [
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-300-real-unior.jpg",
+      "sha256": "2b963f0b717fa123cc72bc915cfbffb1aef7f527feacd1b405d5622fe37f644e",
+      "reason": "wrong-model-for-assigned-variants",
+      "reviewNotes": "Fresh original WooCommerce variation evidence assigns a red-bottom wooden handle / GS hammer343066-02-x1.jpg to300g32113/32114. Earlier Unior812-300 source was incorrectly matched at family level from image328516.jpg used on200g variations. Independent second review confirms contradictory handle colour/model. Remove actual association and photo row; do not hide or substitute modern blueBGS. Source evidence tmp/product-image-audit/root-v5/atehna-hammer-variants.json.",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    }
+  ],
+  "replacements": [],
+  "restores": [],
+  "captions": [],
+  "partialUnassignments": []
+}

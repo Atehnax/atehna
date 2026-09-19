@@ -1,0 +1,62 @@
+{
+  "version": 7,
+  "reviewedAt": "2026-09-14T13:38:43.552Z",
+  "status": "bounded-source-pass-finished-with-source-gaps",
+  "policy": "Exact bare white EPS, native sharp originals at least 1024 on both axes, no humans, enlargement or added padding. XPS, foamboard and solid polystyrene differ.",
+  "priorLedger": "data/catalog/replacement-sources-eps-v5-2026-09.json",
+  "products": [
+    {
+      "slug": "stiropor",
+      "variantSkus": [
+        "MAT-UME-STI-10x300x200",
+        "MAT-UME-STI-10x400x300",
+        "MAT-UME-STI-20x330x160-CM",
+        "MAT-UME-STI-210x148-A5"
+      ],
+      "dimensions": [
+        "200x300x10 mm",
+        "300x400x10 mm",
+        "160x330x20 mm",
+        "148x210 mm; thickness unspecified"
+      ],
+      "accepted": [],
+      "missingViews": [
+        "Exact full bare EPS sheet photograph for each size",
+        "Useful bead texture and thickness detail"
+      ]
+    }
+  ],
+  "sourcePagesChecked": [
+    {
+      "sourcePage": "https://www.dala.co.za/0-Foamalite-Sheets-233",
+      "result": "Manufacturer gives A5 BAP-FF150 as 150x200x10 mm and A4 BAP-FF210 as 210x300x10 mm. Neither matches canonical 148x210 mm A5 or 200x300x10 mm. No acceptance on nominal A-size alone."
+    },
+    {
+      "id": "eps-crazycrafts-catalogue",
+      "sourcePage": "https://www.crazycrafts.co.za/Downloads/CrazyCraftsCatalogue.pdf",
+      "status": 200,
+      "file": "tmp/tools-v7/eps-crazycrafts-catalogue.pdf",
+      "bytes": 10216944,
+      "sha256": "548844dcd6a02f9c393020693f3df7384873c495047b9804fea24480a02b78f6",
+      "sourceUrl": "https://www.crazycrafts.co.za/Downloads/CrazyCraftsCatalogue.pdf",
+      "result": "146 native full-page image objects; none reaches 1024 on both axes. Product text is not independently extractable, so this check does not establish an exact size listing. Cropping or rendering larger cannot create a qualifying native original.",
+      "evidenceFile": "tmp/tools-v7/eps-pdf-native-evidence.json",
+      "pages": 146,
+      "nativeImageObjects": 146,
+      "objectsMeetingDimensions": 0
+    },
+    {
+      "sourcePage": "https://custompolystyrene.com.au/product/polystyrene-sheet-sl-grade-300x300x10mm",
+      "evidenceLevel": "public-search-result",
+      "result": "Bare EPS listing is explicitly 300x300x10 mm, a different size. No substitute downloaded."
+    }
+  ],
+  "carriedForwardGap": "Earlier Lazada 1080x1080 stack has shared advertising for both 40x60x1 and 40x30x1 cm without identifying the pictured size. Not resolved or accepted here. No new exact 160x330x20 mm source found.",
+  "result": {
+    "acceptedOriginals": 0,
+    "stagedAssets": 0,
+    "databaseChanges": 0,
+    "canonicalChanges": 0,
+    "schematicChanges": 0
+  }
+}

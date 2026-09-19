@@ -1,0 +1,117 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T15:25:35.509Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-materials-v9-2026-09.json",
+    "data/catalog/replacement-sources-paper-v9-2026-09.json",
+    "data/catalog/replacement-sources-tools-v9-2026-09.json",
+    "data/catalog/replacement-sources-root-v9-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "barvni-papir-crni-b2-130-kurth-v9",
+      "slug": "barvni-papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-CRNA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-crni-b2-130-kurth-v9.jpg",
+      "sha256": "33ba064f8e33ab35068f75c9176597dec962b46ca04ae637b2b1578fcb8ed38c",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-schwarz-50-x-70-cm/011390",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+      "sourceIdentityEvidence": "ATEHNA original names unbranded črna, 130 g/m², B2. Supplier identifies black through-coloured Folia6790 130 g/m² DIN B2 approximately50×70cm. Original ATEHNA names only B2; canonical500×707mm is previously traced algorithmic ISO-format normalization, not a measured stock claim. Ordinary black colour, cut and grammage match; no conflicting maker or shade claim. No product specifications changed.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Celoten črn list z naravno ukrivljenostjo",
+      "altText": "Črn barvni papir B2, 130 g/m²; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/33ba064f8e33ab35-barvni-papir-crni-b2-130-kurth-v9.jpg",
+      "hostedBlobPathname": "catalog-items/barvni-papir/images/33ba064f8e33ab35-barvni-papir-crni-b2-130-kurth-v9.jpg"
+    },
+    {
+      "id": "barvni-papir-rdeci-b2-130-kurth-v9",
+      "slug": "barvni-papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-RDECA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-rdeci-b2-130-kurth-v9.jpg",
+      "sha256": "6da34f0a0fbb9c691e9f1c1f1f535d8c878c3f1205a25cf44b15182739024f3b",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-rot-50-x-70-cm/011320",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+      "sourceIdentityEvidence": "ATEHNA original names unbranded through-coloured paper (colour added during manufacture), 130g/m², B2, rdeča. Supplier page independently specifies Tonpapier, 130g/m², DIN B2 approximately50×70cm, rot, Folia/MaxBringmann. No manufacturer is claimed for original ATEHNA stock. This is authorized unbranded commodity matching by material, grammage, named format, colour name and original photograph; no claim of identical manufacturer or cross-brand colour-code equivalence. Root and agent compared original ATEHNA image to source and found no obvious conflicting shade/finish; modest saturation/tone difference is consistent with differing photo lighting. Original ATEHNA only names B2; previously documented canonical500×707 is algorithmic nominal ISO-format normalization, supplier trade50×70 recorded separately. No product specifications or brand imported.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Celoten rdeča list z naravno ukrivljenostjo",
+      "altText": "Barvni papir B2, 130 g/m², rdeča barva; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/6da34f0a0fbb9c69-barvni-papir-rdeci-b2-130-kurth-v9.jpg",
+      "hostedBlobPathname": "catalog-items/barvni-papir/images/6da34f0a0fbb9c69-barvni-papir-rdeci-b2-130-kurth-v9.jpg"
+    },
+    {
+      "id": "barvni-papir-svetlo-rjavi-b2-130-kurth-v9",
+      "slug": "barvni-papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-SVETLO-RJAVA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg",
+      "sha256": "9d770d81bbaaa077be943ff60d6e053391952a5de9fa0765c14db6c78489d468",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-hellbraun-50-x-70-cm/011375",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+      "sourceIdentityEvidence": "ATEHNA original names unbranded through-coloured paper (colour added during manufacture), 130g/m², B2, svetlo rjava. Supplier page independently specifies Tonpapier, 130g/m², DIN B2 approximately50×70cm, hellbraun, Folia/MaxBringmann. No manufacturer is claimed for original ATEHNA stock. This is authorized unbranded commodity matching by material, grammage, named format, colour name and original photograph; no claim of identical manufacturer or cross-brand colour-code equivalence. Root and agent compared original ATEHNA image to source and found no obvious conflicting shade/finish; modest saturation/tone difference is consistent with differing photo lighting. Original ATEHNA only names B2; previously documented canonical500×707 is algorithmic nominal ISO-format normalization, supplier trade50×70 recorded separately. No product specifications or brand imported.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Celoten svetlo rjava list z naravno ukrivljenostjo",
+      "altText": "Barvni papir B2, 130 g/m², svetlo rjava barva; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/9d770d81bbaaa077-barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg",
+      "hostedBlobPathname": "catalog-items/barvni-papir/images/9d770d81bbaaa077-barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg"
+    },
+    {
+      "id": "aluminijasta-plosca-05-povrsina-rob-modulor-v9",
+      "slug": "aluminijasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-ALU-0P5x100x100",
+        "MAT-KOV-ALU-0P5x300x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg",
+      "sha256": "0d64ec2d0f52b1d9a2adffe277c91c311a790aeb4d906ae06c620a1c8d1e41da",
+      "dimensions": {
+        "width": 1920,
+        "height": 1440
+      },
+      "sourcePage": "https://www.modulor.de/aluminiumblech-tafeln-0-5-x-250-x-250-mm-st.html",
+      "sourceUrl": "https://cdn.modulor.de/products/eaaa_0125993/1_1920_1920_r_aluminiumblech_tafeln_0_5_x_250_x_250_mm.jpg",
+      "sourceIdentityEvidence": "Thickness-specific supplier item0125993 and its original filename explicitly identify bare aluminium sheet0.5mm. The supplier offers custom-cut sheet dimensions. This unbranded commodity surface/edge detail shows no full extent, markings or shape that imply a different cut; it supplements existing complete photographs of the matching100×100 and300×300×0.5mm cuts. ATEHNA specifies silver aluminium and0.5mm, without alloy/temper/manufacturer; none of the supplier-only claims are imported. Excludes0.3mm and all variants without an existing whole main. The generic multi-thickness stack is rejected as a main because top-leaf thickness cannot be proved.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "Independent close-up of0.5mm sheet surface, corner and cut edge",
+      "altText": "Aluminijasta plošča debeline 0,5 mm – podrobnost naravne površine, vogala in roba. Celotne mere izbranega kosa so prikazane na dimenzijski skici.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/0d64ec2d0f52b1d9-aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg",
+      "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/0d64ec2d0f52b1d9-aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg"
+    }
+  ]
+}

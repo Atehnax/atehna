@@ -1,0 +1,476 @@
+{
+  "version": 11,
+  "reviewedAt": "2026-09-14T16:09:28.865Z",
+  "status": "bounded-fresh-source-pass-complete-no-qualifying-additions",
+  "scope": "Copper and brass catalog sheets: focus on three variants still lacking a whole-product photograph. Both families have other previously covered variants.",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noEnlargementOrPadding": true,
+    "originalBytesUnchanged": true,
+    "schematicsPreserved": true
+  },
+  "priorLedgers": [
+    "data/catalog/replacement-sources-materials-2026-09.json",
+    "data/catalog/replacement-sources-materials-v4-2026-09.json",
+    "data/catalog/replacement-sources-materials-v5-2026-09.json",
+    "data/catalog/replacement-sources-materials-v6-2026-09.json",
+    "data/catalog/replacement-sources-metals-v7-2026-09.json",
+    "data/catalog/replacement-sources-root-v9-2026-09.json"
+  ],
+  "priorRejectedSourcesNotRepeated": [
+    "Nizpol cropped shallow-focus copper stacks",
+    "Praktiker clipped copper image",
+    "Prom undersized copper originals",
+    "RCM undersized copper/brass originals",
+    "Buko undersized and wrong-cut brass image",
+    "OmegaMix soft generic brass rendering",
+    "Prior DeepSea brass shared mixed-thickness images"
+  ],
+  "products": [
+    {
+      "slug": "bakrena-plosca",
+      "name": "Bakrena plošča",
+      "variantSkus": [
+        "MAT-KOV-BAK-0P5x300x200",
+        "MAT-KOV-BAK-0P5x300x300",
+        "MAT-KOV-BAK-0P5x200x200",
+        "MAT-KOV-BAK-0P5x100x100"
+      ],
+      "variants": [
+        {
+          "sku": "MAT-KOV-BAK-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm",
+          "length": 300,
+          "width": 200,
+          "thickness": 0.5,
+          "existingPhotoUrls": [
+            "/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg"
+          ]
+        },
+        {
+          "sku": "MAT-KOV-BAK-0P5x300x300",
+          "name": "300 × 300 × 0,5 mm",
+          "length": 300,
+          "width": 300,
+          "thickness": 0.5,
+          "existingPhotoUrls": []
+        },
+        {
+          "sku": "MAT-KOV-BAK-0P5x200x200",
+          "name": "200 × 200 × 0,5 mm",
+          "length": 200,
+          "width": 200,
+          "thickness": 0.5,
+          "existingPhotoUrls": [
+            "/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg"
+          ]
+        },
+        {
+          "sku": "MAT-KOV-BAK-0P5x100x100",
+          "name": "100 × 100 × 0,5 mm",
+          "length": 100,
+          "width": 100,
+          "thickness": 0.5,
+          "existingPhotoUrls": [
+            "/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg"
+          ]
+        }
+      ],
+      "exactMatchRules": "Unbranded copper or brass as specified, natural stated colour, exact0.5mm thickness and exact sold cut for a whole main. No supplier alloy, temper or brand claims inferred into catalog. No differently sized sheet silently substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "copper-macc-native",
+          "url": "https://i.ebayimg.com/images/g/jhIAAMXQXTZRfjEY/s-l1600.jpg",
+          "sourcePage": "https://www.ebay.co.uk/itm/360341817821",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-macc-native.jpg",
+          "bytes": 10280,
+          "sha256": "88cff3ce0466851572ffc79c9939d0f78f2c75455c0882183aa18461ab66c8e3",
+          "width": 500,
+          "height": 373,
+          "format": "jpeg",
+          "review": "Exact copper300×300×0.5 listing found, but largest eBay1600 request returns actual500×373 source bytes. Fails both minimum axes; no enlargement performed.",
+          "originalBytes": true,
+          "visuallyReviewed": false,
+          "decision": "not-accepted",
+          "reviewMethod": "Decoded actual native dimensions; rejected before visual quality evaluation because dimensions fail."
+        },
+        {
+          "id": "copper-deepsea-0",
+          "url": "https://cdn.shopify.com/s/files/1/0823/7370/6019/files/IMG_6683.jpg?v=1716435011",
+          "sourcePage": "https://deepseatimber.co.nz/products/copper-sheet-metal",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-deepsea-0.jpg",
+          "bytes": 971026,
+          "sha256": "0887391fcd4c55f56f6e0838393bd42ec0e01b4ceb639cb1805826e0e6e2df80",
+          "width": 3024,
+          "height": 4032,
+          "format": "jpeg",
+          "review": "Real native3024×4032 complete square photograph with natural copper surface, but Shopify source explicitly assigns the same image to0.5mm,1mm,2mm,3mm and200²,300²,500² variants. Pictured0.5mm thickness and exact300² cut are not established. Held for exact-source confirmation, not accepted on appearance alone.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "copper-deepsea-1",
+          "url": "https://cdn.shopify.com/s/files/1/0823/7370/6019/files/IMG_6685.jpg?v=1716435011",
+          "sourcePage": "https://deepseatimber.co.nz/products/copper-sheet-metal",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-deepsea-1.jpg",
+          "bytes": 717128,
+          "sha256": "de5ca49c606d5583172d274be66f27eda8ccdaf7156f18c020b38cb223e6e0dc",
+          "width": 3024,
+          "height": 4032,
+          "format": "jpeg",
+          "review": "Real native3024×4032 photograph crops right-hand sheet boundary; same gallery has no thickness/cut-specific mapping. Not a complete main.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "copper-deepsea-2",
+          "url": "https://cdn.shopify.com/s/files/1/0823/7370/6019/files/IMG_6686.jpg?v=1716435011",
+          "sourcePage": "https://deepseatimber.co.nz/products/copper-sheet-metal",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-deepsea-2.jpg",
+          "bytes": 3276990,
+          "sha256": "e44be4623d972a0449611d252c708f23dce63c931f124da67ce6813a3e6383e4",
+          "width": 3024,
+          "height": 4032,
+          "format": "jpeg",
+          "review": "Real native3024×4032 photograph contains a human hand at the right edge and clipped sheet boundaries. Rejected; no removal/editing of body parts.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "copper-shopee",
+          "url": "https://shopee.co.id/Plat-Tembaga-0.5mm-x-300mm-x-300mm-copper-sheet-i.280106548.18783877987",
+          "sourcePage": "https://shopee.co.id/Plat-Tembaga-0.5mm-x-300mm-x-300mm-copper-sheet-i.280106548.18783877987",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-shopee.html",
+          "bytes": 192524,
+          "sha256": "c496cac992e8404a1f48406afee39031aa722ec683029d0be83de0d037265260",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "copper-macc-ebay",
+          "url": "https://www.ebay.co.uk/itm/360341817821",
+          "sourcePage": "https://www.ebay.co.uk/itm/360341817821",
+          "status": 403,
+          "file": "tmp/metals-v11/copper-macc-ebay.html",
+          "bytes": 1991,
+          "sha256": "e0888c4b8e7b6e4ef2e7f80a8642389cb1660bc925e40cd13b4e154c72157851",
+          "result": "Public source response403; no access bypass or invented image URL."
+        },
+        {
+          "id": "copper-guillotine",
+          "url": "https://www.ebay.co.uk/itm/406180354295",
+          "sourcePage": "https://www.ebay.co.uk/itm/406180354295",
+          "status": 403,
+          "file": "tmp/metals-v11/copper-guillotine.html",
+          "bytes": 1991,
+          "sha256": "297534c33e3a70f890da3fffe7152ee2a46b3f3a7c9240f1ca73c23207befcaf",
+          "result": "Public source response403; no access bypass or invented image URL."
+        },
+        {
+          "id": "copper-offcuts",
+          "url": "https://www.ebay.co.uk/itm/406008924119",
+          "sourcePage": "https://www.ebay.co.uk/itm/406008924119",
+          "status": 403,
+          "file": "tmp/metals-v11/copper-offcuts.html",
+          "bytes": 1991,
+          "sha256": "a7f4e5458fdec6ac6f5f201a24c50dda230526c5cab09adaa59a79f0bb5b5e2b",
+          "result": "Public source response403; no access bypass or invented image URL."
+        },
+        {
+          "id": "copper-deepsea",
+          "url": "https://deepseatimber.co.nz/products/copper-sheet-metal.js",
+          "sourcePage": "https://deepseatimber.co.nz/products/copper-sheet-metal.js",
+          "status": 200,
+          "file": "tmp/metals-v11/copper-deepsea.html",
+          "bytes": 17651,
+          "sha256": "92d6806fb70eec9bf01ac50b5d5867a73e51eed6c4704a3f5a69ec6a9174c176",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        }
+      ],
+      "findings": [
+        "Macc exact300×300×0.5 listing yields500×373 only.",
+        "Shopee exact300×300×0.5 listing discovered through public search; retrieved HTML is a generic client shell with no product image original.",
+        "DeepSea three3024×4032 originals are real photos, but featured-image metadata shares first image across every cut/thickness; no exact0.5mm whole300square identity proof. The other two crop the sheet or contain a hand.",
+        "Fresh guillotine/offcut eBay listings offer the exact cut but public requests returned403; no access bypass."
+      ],
+      "missingMainVariantSkus": [
+        "MAT-KOV-BAK-0P5x300x300"
+      ],
+      "missingViews": [
+        "Whole-product main for listed missing cuts",
+        "Independent exact0.5mm reverse, edge and surface detail photographs where useful"
+      ],
+      "status": "fresh-source-pass-complete-with-gaps"
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "name": "Medeninasta plošča",
+      "variantSkus": [
+        "MAT-KOV-MED-0P5x300x200",
+        "MAT-KOV-MED-0P5x300x300",
+        "MAT-KOV-MED-0P5x200x200",
+        "MAT-KOV-MED-0P5x100x100"
+      ],
+      "variants": [
+        {
+          "sku": "MAT-KOV-MED-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm",
+          "length": 300,
+          "width": 200,
+          "thickness": 0.5,
+          "existingPhotoUrls": []
+        },
+        {
+          "sku": "MAT-KOV-MED-0P5x300x300",
+          "name": "300 × 300 × 0,5 mm",
+          "length": 300,
+          "width": 300,
+          "thickness": 0.5,
+          "existingPhotoUrls": []
+        },
+        {
+          "sku": "MAT-KOV-MED-0P5x200x200",
+          "name": "200 × 200 × 0,5 mm",
+          "length": 200,
+          "width": 200,
+          "thickness": 0.5,
+          "existingPhotoUrls": [
+            "/images/catalog/2026-09/medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg"
+          ]
+        },
+        {
+          "sku": "MAT-KOV-MED-0P5x100x100",
+          "name": "100 × 100 × 0,5 mm",
+          "length": 100,
+          "width": 100,
+          "thickness": 0.5,
+          "existingPhotoUrls": [
+            "/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg"
+          ]
+        }
+      ],
+      "exactMatchRules": "Unbranded copper or brass as specified, natural stated colour, exact0.5mm thickness and exact sold cut for a whole main. No supplier alloy, temper or brand claims inferred into catalog. No differently sized sheet silently substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "brass-evek-8032",
+          "url": "https://evek.one/8032/sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.jpg",
+          "sourcePage": "https://evek.one/brass/2358-298341-sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.html",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-evek-8032.jpg",
+          "bytes": 96212,
+          "sha256": "e29d50c056138d564c463db1116ba74c21d2cffaa5a67afde804df5c35674cfa",
+          "width": 1928,
+          "height": 1286,
+          "format": "jpeg",
+          "review": "Real native1928×1286 alternate close-up of the same mixed-thickness stack. Cropped boundaries and shallow focus; exact0.5mm leaf unproven. No crop treated as another view.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "brass-evek-8031",
+          "url": "https://evek.one/8031/sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.jpg",
+          "sourcePage": "https://evek.one/brass/2358-298341-sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.html",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-evek-8031.jpg",
+          "bytes": 284014,
+          "sha256": "632cd90e582cfd4f03068fd92d09e1cc2b9f88bf888725f1af3e8fc765bb0f83",
+          "width": 2880,
+          "height": 1920,
+          "format": "jpeg",
+          "review": "Real native2880×1920 photo, visually reviewed: cropped mixed-thickness stack. The page uses it across0.3–20mm and many cuts; no individual sheet is established as exact0.5mm. Not a complete main.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "brass-evek-8033",
+          "url": "https://evek.one/8033/sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.jpg",
+          "sourcePage": "https://evek.one/brass/2358-298341-sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.html",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-evek-8033.jpg",
+          "bytes": 302424,
+          "sha256": "44fb6c5663f0434f81264722e6b16272c9ffa5c009b16b70092d6b5c1a802ed1",
+          "width": 2928,
+          "height": 1952,
+          "format": "jpeg",
+          "review": "Real native2928×1952 alternate close-up of mixed-thickness stack. Cropped boundaries; exact0.5mm leaf unproven. Not a complete main.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "brass-macc-native",
+          "url": "https://i.ebayimg.com/images/g/jK8AAOSwrWRc3mmE/s-l1600.jpg",
+          "sourcePage": "https://www.ebay.co.uk/itm/362652293509",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-native.jpg",
+          "bytes": 366897,
+          "sha256": "1d2d5dc39819d92d836d1eb46bc51e6b46db3bc58fffaef87af2cef6920a131d",
+          "width": 1600,
+          "height": 1468,
+          "format": "jpeg",
+          "review": "Rejected after full original visual inspection: the right-hand corner is clipped, strong green/black environmental reflections obscure the golden metal surface, and useful edge/surface clarity is limited. The exact0.5mm listing uses this single rectangular capture across100×300,200²,300×200,300² and300×50 cuts; it does not establish the pictured cut. No colour correction, crop or geometry change performed.",
+          "originalBytes": true,
+          "visuallyReviewed": true,
+          "decision": "not-accepted"
+        },
+        {
+          "id": "brass-jd-native",
+          "url": "https://m.media-amazon.com/images/I/41M4jUNE59L.jpg",
+          "sourcePage": "https://www.desertcart.in/products/516284408-jd-multi-metals-brass-sheet-plate-0-5mm-thick-various-sizes-brass-300mm-x-200mm",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-jd-native.jpg",
+          "bytes": 16875,
+          "sha256": "96fc03b079645612943144399f583d293d971bcab70f2cba27ea62b3ee0c666d",
+          "width": 500,
+          "height": 500,
+          "format": "jpeg",
+          "review": "The untransformed Amazon image master is500×500, despite the reseller link requesting AC_SL3840. Exact300×200×0.5 listing identified, but original pixels fail both minimum axes. No3840 derivative used.",
+          "originalBytes": true,
+          "visuallyReviewed": false,
+          "decision": "not-accepted",
+          "reviewMethod": "Decoded actual native dimensions; rejected before visual quality evaluation because dimensions fail."
+        },
+        {
+          "id": "brass-macc-site-native",
+          "url": "https://maccmodels.co.uk/wp-content/uploads/2019/04/0.5-mm-brass-sheet.jpg",
+          "sourcePage": "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-2/",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-site-native.jpg",
+          "bytes": 24204,
+          "sha256": "362b02fccbe6b195d8c128f0a8a7bfbbcebb425b89e1887c5d5338ec675b974f",
+          "width": 300,
+          "height": 268,
+          "format": "jpeg",
+          "review": "The original supplier website photograph is only300×268. No enlargement performed.",
+          "originalBytes": true,
+          "visuallyReviewed": false,
+          "decision": "not-accepted",
+          "reviewMethod": "Decoded actual native dimensions; rejected before visual quality evaluation because dimensions fail."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "brass-jd",
+          "url": "https://www.desertcart.in/products/516284408-jd-multi-metals-brass-sheet-plate-0-5mm-thick-various-sizes-brass-300mm-x-200mm",
+          "sourcePage": "https://www.desertcart.in/products/516284408-jd-multi-metals-brass-sheet-plate-0-5mm-thick-various-sizes-brass-300mm-x-200mm",
+          "status": 403,
+          "file": "tmp/metals-v11/brass-jd.html",
+          "bytes": 5830,
+          "sha256": "6c7193ccdba02ee0ca9bb617017047d118b2afdaa597a6cb7bec56974690d78a",
+          "result": "Public source response403; no access bypass or invented image URL."
+        },
+        {
+          "id": "brass-natural-ebay",
+          "url": "https://www.ebay.co.uk/itm/355721000744",
+          "sourcePage": "https://www.ebay.co.uk/itm/355721000744",
+          "status": 403,
+          "file": "tmp/metals-v11/brass-natural-ebay.html",
+          "bytes": 1991,
+          "sha256": "d258f158868b252dce32013dfeb598d97fcb3c15e773cc891bcf575a10e7dc16",
+          "result": "Public source response403; no access bypass or invented image URL."
+        },
+        {
+          "id": "brass-macc-ebay",
+          "url": "https://www.ebay.co.uk/itm/362652293509",
+          "sourcePage": "https://www.ebay.co.uk/itm/362652293509",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-ebay.html",
+          "bytes": 626846,
+          "sha256": "e00d1fd1eb4ec32a7e46e5ae78cfad24402ff652a1b2744eeed8c69e113cdb36",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "brass-evek",
+          "url": "https://evek.one/brass/2358-298341-sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.html",
+          "sourcePage": "https://evek.one/brass/2358-298341-sheet-brass-10-20mm-ms63-cuzn37-20321-sheet-metal-cut-to-size-selectable-desired-size-possible-100x100mm.html",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-evek.html",
+          "bytes": 7126889,
+          "sha256": "c7fdf3580fd46ab359b2eb1840ea408938db91be8b32304d03d68e26f9da0e10",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "brass-macc-site",
+          "url": "https://maccmodels.co.uk/product-category/materials/brass-sections/brass-sheet/brass-sheet-cz108/",
+          "sourcePage": "https://maccmodels.co.uk/product-category/materials/brass-sections/brass-sheet/brass-sheet-cz108/",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-site.html",
+          "bytes": 112866,
+          "sha256": "a4e3a693eddbf60d955aee97f4f99407c6ff6dd8cfbb7f5373803cf5fab5f6b2",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "brass-macc-05-film",
+          "url": "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-protective-film-on-one-side-2/",
+          "sourcePage": "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-protective-film-on-one-side-2/",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-05-film.html",
+          "bytes": 128452,
+          "sha256": "8339d78f933857328b5b334b186f873e0b49c35e10dd28e4826f33dab77f2a4b",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "brass-macc-05",
+          "url": "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-2/",
+          "sourcePage": "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-2/",
+          "status": 200,
+          "file": "tmp/metals-v11/brass-macc-05.html",
+          "bytes": 145146,
+          "sha256": "90fae7f331919dc354f07b3720feb8a52a7a5a0fd3b0684a2b7d5635e70bc64c",
+          "result": "Public source page retrieved; native links and variant assignments inspected."
+        },
+        {
+          "id": "brass-fyndiq",
+          "url": "https://fyndiq.se/produkt/brass-sheet-for-cnc-cutting-and-diy-construction-corrosion-resistant-and-solderable-0-5-x-300-x-200-mm-0-5x300x200mm-c8e0bb15f7df415e/",
+          "sourcePage": "https://fyndiq.se/produkt/brass-sheet-for-cnc-cutting-and-diy-construction-corrosion-resistant-and-solderable-0-5-x-300-x-200-mm-0-5x300x200mm-c8e0bb15f7df415e/",
+          "status": 403,
+          "file": "tmp/metals-v11/brass-fyndiq.html",
+          "bytes": 5575,
+          "sha256": "a91fedc92df7a362f17e4cf3b042679389ef3d928dfc68f100883569be4e356b",
+          "result": "Public source response403; no access bypass or invented image URL."
+        }
+      ],
+      "findings": [
+        "JD Multi exactBRSH1016 /300×200×0.5 source reached through indexed reseller. The exposed Amazon master is500², not its nominal3840 derivative.",
+        "Macc single1600×1468 brass photo has clipped corner and strong green/black reflections; the website master is300×268. Its pictured cut is not tied to the selected variant.",
+        "Evek source originals1928–2928px are mixed-thickness cropped stacks, so size threshold alone does not establish a qualifying main.",
+        "Fyndiq exact300×200×0.5 page was discovered but public source403 and web cache miss left original unavailable."
+      ],
+      "missingMainVariantSkus": [
+        "MAT-KOV-MED-0P5x300x200",
+        "MAT-KOV-MED-0P5x300x300"
+      ],
+      "missingViews": [
+        "Whole-product main for listed missing cuts",
+        "Independent exact0.5mm reverse, edge and surface detail photographs where useful"
+      ],
+      "status": "fresh-source-pass-complete-with-gaps"
+    }
+  ],
+  "summary": {
+    "families": 2,
+    "variants": 8,
+    "missingMainVariants": 3,
+    "sourceRequests": 23,
+    "downloadedSourceImages": 10,
+    "acceptedOriginals": 0,
+    "stagedAssets": 0
+  },
+  "integration": "No runtime, database, canonical, stored-file or product association changes. All downloaded candidates remain research evidence only."
+}

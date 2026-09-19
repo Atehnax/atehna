@@ -1,0 +1,1246 @@
+{
+  "version": 7,
+  "reviewedAt": "2026-09-14T13:38:43.551Z",
+  "status": "research-pass-finished-with-source-gaps",
+  "policy": "Untouched real original photographs at least 1024 pixels on both axes, with useful native detail; no humans, AI, enlargement, padding or misleading model/variant substitutions. Native dimension checks alone do not establish clarity or product accuracy. Existing schematics untouched.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-tools-v4-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantSkus": [
+        "STR-KRI-OSNOVNA"
+      ],
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "identityEvidence": "Exact original model THERMOFORM 400; 400 mm heating wire, 440×165 mm working surface, 230 V / 5 V, 160 VA. Replacement THERMOFORM 580S is not the same product.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "weba-2023",
+          "sourcePage": "https://weba-tuwas.de/fileadmin/kataloge/WEBA_Katalog_ab_2023_OP-komprimiert.pdf",
+          "status": 200,
+          "file": "tmp/tools-v7/weba-2023.pdf",
+          "bytes": 15971465,
+          "sha256": "f0b13fa073f0470f2e2be826b736728fe09a3b5bc0b633933f3f09c05464aac5",
+          "sourceUrl": "https://weba-tuwas.de/fileadmin/kataloge/WEBA_Katalog_ab_2023_OP-komprimiert.pdf",
+          "result": "Exact THERMOFORM 400 text-bearing pages inspected. Every embedded native image object on those pages is below 1024 on at least one axis. A larger page render does not supply native product detail.",
+          "nativeObjectEvidence": [
+            {
+              "pdf": "tmp/tools-v7/weba-2023.pdf",
+              "page": 86,
+              "images": [
+                {
+                  "object": "/Im0",
+                  "width": 239,
+                  "height": 39,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im1",
+                  "width": 283,
+                  "height": 399,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im2",
+                  "width": 218,
+                  "height": 39,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im3",
+                  "width": 215,
+                  "height": 143,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im4",
+                  "width": 215,
+                  "height": 127,
+                  "filter": "/DCTDecode"
+                }
+              ]
+            },
+            {
+              "pdf": "tmp/tools-v7/weba-2023.pdf",
+              "page": 289,
+              "images": [
+                {
+                  "object": "/Im0",
+                  "width": 162,
+                  "height": 67,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im1",
+                  "width": 162,
+                  "height": 66,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im2",
+                  "width": 154,
+                  "height": 85,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im3",
+                  "width": 142,
+                  "height": 72,
+                  "filter": "/DCTDecode"
+                },
+                {
+                  "object": "/Im4",
+                  "width": 120,
+                  "height": 97,
+                  "filter": "/DCTDecode"
+                }
+              ]
+            }
+          ],
+          "evidenceFile": "tmp/tools-v7/pdf-native-evidence.json"
+        },
+        {
+          "id": "winkler-thermoform",
+          "sourcePage": "https://www.winklerschulbedarf.com/Themes/Winkler_AT/Content/images/cms_upload/pdf/Werkpackungen.pdf",
+          "status": 200,
+          "file": "tmp/tools-v7/winkler-thermoform.pdf",
+          "bytes": 31397142,
+          "sha256": "2cae9e1de27e3ffc5a5e4a1fc3ce23a1828176313a65c6315072c9009fa4a015",
+          "sourceUrl": "https://www.winklerschulbedarf.com/Themes/Winkler_AT/Content/images/cms_upload/pdf/Werkpackungen.pdf",
+          "result": "Exact THERMOFORM 400 text-bearing pages inspected. Every embedded native image object on those pages is below 1024 on at least one axis. A larger page render does not supply native product detail.",
+          "nativeObjectEvidence": [
+            {
+              "pdf": "tmp/tools-v7/winkler-thermoform.pdf",
+              "page": 62,
+              "images": [
+                {
+                  "object": "/Im0",
+                  "width": 200,
+                  "height": 351,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im1",
+                  "width": 351,
+                  "height": 331,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im10",
+                  "width": 90,
+                  "height": 71,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im11",
+                  "width": 58,
+                  "height": 101,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im12",
+                  "width": 58,
+                  "height": 101,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im13",
+                  "width": 58,
+                  "height": 101,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im14",
+                  "width": 58,
+                  "height": 101,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im15",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im16",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im17",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im18",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im19",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im2",
+                  "width": 235,
+                  "height": 324,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im20",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im21",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im22",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im23",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im24",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im25",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im26",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im27",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im28",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im3",
+                  "width": 192,
+                  "height": 425,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im4",
+                  "width": 301,
+                  "height": 369,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im5",
+                  "width": 321,
+                  "height": 339,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im6",
+                  "width": 227,
+                  "height": 430,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im7",
+                  "width": 465,
+                  "height": 466,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im8",
+                  "width": 366,
+                  "height": 264,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im9",
+                  "width": 127,
+                  "height": 32,
+                  "filter": "/JPXDecode"
+                }
+              ]
+            },
+            {
+              "pdf": "tmp/tools-v7/winkler-thermoform.pdf",
+              "page": 68,
+              "images": [
+                {
+                  "object": "/Im0",
+                  "width": 294,
+                  "height": 428,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im1",
+                  "width": 456,
+                  "height": 315,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im10",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im11",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im12",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im13",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im14",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im15",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im16",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im17",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im18",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im19",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im2",
+                  "width": 520,
+                  "height": 444,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im20",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im21",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im22",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im23",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                },
+                {
+                  "object": "/Im3",
+                  "width": 600,
+                  "height": 522,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im4",
+                  "width": 490,
+                  "height": 261,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im5",
+                  "width": 289,
+                  "height": 208,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im6",
+                  "width": 204,
+                  "height": 193,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im7",
+                  "width": 327,
+                  "height": 292,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im8",
+                  "width": 366,
+                  "height": 264,
+                  "filter": "/JPXDecode"
+                },
+                {
+                  "object": "/Im9",
+                  "width": 104,
+                  "height": 104,
+                  "filter": "/JBIG2Decode"
+                }
+              ]
+            }
+          ],
+          "evidenceFile": "tmp/tools-v7/pdf-native-evidence.json"
+        }
+      ],
+      "missingViews": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ],
+      "researchSearches": [
+        {
+          "query": "Thermoform 400 WEBA Winkler original supplier catalogue",
+          "result": "New catalogues identify the exact machine but contain no qualifying native product image. No THERMOFORM 580 substitution.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "identityEvidence": "Original ATEHNA source SKUs 32113 and 32114 (300 g single and ten in stand) use 343066-02-x1.jpg. SKUs 32211 and 32210 (200 g) use an Unior stock photograph visibly marked 812-300; that inconsistent family photograph does not establish the exact 200 g model.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "hammer-zweirad",
+          "sourcePage": "https://www.zweiradteile-shop.de/p3943-bgs-1852-schlosserhammer-300g",
+          "status": "rejected",
+          "file": "tmp/tools-v7/hammer-zweirad.jpg",
+          "bytes": 257311,
+          "sha256": "95ec781539cd10d71d575293220a8890dbeb0a0b298ff780bd62b52bc912a3b6",
+          "width": 1920,
+          "height": 1440,
+          "format": "jpeg",
+          "sourceUrl": "https://www.zweiradteile-shop.de/images/product_images/popup_images/Schlosserhammer-300g-BGS_0_3943.jpg",
+          "imageUrl": "https://www.zweiradteile-shop.de/images/product_images/popup_images/Schlosserhammer-300g-BGS_0_3943.jpg",
+          "reason": "The blue-grip BGS 1852 revision differs from the historical burgundy/red-grip ATEHNA photograph. Different grip and triangular certification mark are product differences, not optional accessories.",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "visualReview": "Native full photograph inspected: sharp full hammer, different revision, faint dealer watermark.",
+          "noHumans": true
+        },
+        {
+          "id": "hammer-klop",
+          "sourcePage": "https://www.klopagencies.nl/handgereedschap/slaggereedschap/",
+          "status": "rejected",
+          "file": "tmp/tools-v7/hammer-klop.jpg",
+          "bytes": 129065,
+          "sha256": "663d5f173afc6962cf05496b3bb4577a2e9b4dbfa952bb42aa453d5b1c17f9ee",
+          "width": 1000,
+          "height": 1000,
+          "format": "jpeg",
+          "sourceUrl": "https://www.klopagencies.nl/files/901852.jpg",
+          "imageUrl": "https://www.klopagencies.nl/files/901852.jpg",
+          "reason": "1000x1000 native image fails minimum dimensions. No enlargement performed.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        }
+      ],
+      "pendingCandidates": [
+        {
+          "id": "pollin-bgs1852-red300-pending-revision",
+          "status": "pending-exact-historical-revision",
+          "sourcePage": "https://www.pollin.de/p/bgs-technic-schlosserhammer-300-g-500240",
+          "imageUrl": "https://www.pollin.de/media/94/39/d0/1700596051/500240-1-bgs-technic-schlosserhammer-300-g.jpg?ts=1719366284",
+          "file": "tmp/tools-v6/pollin-red300.jpg",
+          "bytes": 82233,
+          "sha256": "9263a683e790b7930696cec37dd631ecdd54debca4e92d67515341e6829e9ab4",
+          "width": 2080,
+          "height": 1200,
+          "format": "jpeg",
+          "reason": "Real original 2080×1200 full photograph, no humans, readable woodgrain and GS marking. OPITEC 343066 currently maps to BGS 1852 / GTIN 4026947018522, matching this dealer model. However ATEHNA original appears to show an octagonal TÜV marking and shorter burgundy grip, whereas Pollin shows a triangular mark and longer bright-red grip. Model number alone does not resolve historical revision. Independent review explicitly withheld acceptance; do not assign to either 300 g variant.",
+          "nativeQualityReview": "Whole product sharp enough for useful detail; moderate native compression. Exact identity, not pixel size, prevents acceptance.",
+          "noHumans": true,
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reviewers": [
+            "quality_validation",
+            "root"
+          ],
+          "originalAtehnaReference": {
+            "imageUrl": "https://atehna.si/wp-content/uploads/2017/10/343066-02-x1.jpg",
+            "file": "tmp/tools-v6/original-red300.jpg",
+            "sourceSkus": [
+              "32113",
+              "32114"
+            ]
+          },
+          "carriedForwardFrom": "data/catalog/replacement-sources-tools-v6-2026-09.json",
+          "newDownloadThisPass": false,
+          "continuedStatus": "Historical certification and grip revision unresolved; no readmission."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "rodavigo-hammer200",
+          "sourcePage": "https://rodavigo.net/en/p/mechanical-hammer-200-g-ref-unior-601799/543601799",
+          "status": 403,
+          "file": "tmp/tools-v7/rodavigo-hammer200.html",
+          "bytes": 5632,
+          "sha256": "beb9cd71df0a5f52da58c848600167ec79f162b223c6de3ed37aa1e7cb76a32c",
+          "sourceUrl": "https://rodavigo.net/en/p/mechanical-hammer-200-g-ref-unior-601799/543601799",
+          "result": "Public HTTP 403; no usable image obtained and no access bypass attempted."
+        }
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ],
+      "researchSearches": [
+        {
+          "query": "Unior 601799 812 200 original dealer photograph",
+          "result": "New Unior USA 200 g listing still identifies the displayed stock photograph as 812-300. A 300 g marking does not establish the sold 200 g variant.",
+          "sourcePages": [
+            "https://uniorusa.com/products/locksmiths-hammer-200-813"
+          ],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "motorcek",
+      "variantSkus": [
+        "ELE-MOT-R23",
+        "ELE-MOT-R21"
+      ],
+      "variantNames": [
+        "Motorček R23",
+        "Motorček R21"
+      ],
+      "identityEvidence": "R21 / RE260: source 22010, 28 g, Ø24×27 mm can, 2 mm shaft. R23 / RE280R: source 22020, 42 g, Ø24×30 mm can, 2 mm shaft, 1.5–4.5 V. Generic RE280 motors with conflicting length or speed are not equivalent.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "fukuyama-r21-original",
+          "sourcePage": "https://fukuyamarccenter.com/product/product-17433/",
+          "status": "rejected",
+          "file": "tmp/tools-v7/fukuyama-r21-original.jpg",
+          "bytes": 65488,
+          "sha256": "5cfe2dc586104dd1abf0c71a68058227f9091f16b196399060ac6b9adb20e952",
+          "width": 1200,
+          "height": 801,
+          "format": "jpeg",
+          "sourceUrl": "https://fukuyamarccenter.com/wp-content/uploads/2024/08/img_motor_mt260.jpg",
+          "imageUrl": "https://fukuyamarccenter.com/wp-content/uploads/2024/08/img_motor_mt260.jpg",
+          "reason": "Native source dimensions recorded here fail 1024 pixels on both axes. No enlargement or padding.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "monotaro-r21-original",
+          "sourcePage": "https://www.monotaro.com/g/07989874/",
+          "status": "rejected",
+          "file": "tmp/tools-v7/monotaro-r21-original.jpg",
+          "bytes": 25388,
+          "sha256": "7bcf964009d2dcd22a4869cf7853a9429e833734f136540498d9c6c3b679f05c",
+          "width": 350,
+          "height": 350,
+          "format": "jpeg",
+          "sourceUrl": "https://jp.images-monotaro.com/Monotaro3/pi/full/mono68636377-251222-02.jpg",
+          "imageUrl": "https://jp.images-monotaro.com/Monotaro3/pi/full/mono68636377-251222-02.jpg",
+          "reason": "Native source dimensions recorded here fail 1024 pixels on both axes. No enlargement or padding.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "plazajapan-r21-native",
+          "sourcePage": "https://www.plazajapan.com/4580265062600/",
+          "status": "rejected",
+          "file": "tmp/tools-v7/plazajapan-r21-native.jpg",
+          "bytes": 37884,
+          "sha256": "281d1ca600fbb2cd1c5b11db99d9703769dbee0122ed32eb81e2d87565803e7f",
+          "width": 500,
+          "height": 500,
+          "format": "jpeg",
+          "sourceUrl": "https://cdn11.bigcommerce.com/s-89ffd/images/stencil/original/products/50183/166860/4580265062600_0007f41fe41a70e04848e3c13bac7358__12593.1541664308.jpg?c=2",
+          "imageUrl": "https://cdn11.bigcommerce.com/s-89ffd/images/stencil/original/products/50183/166860/4580265062600_0007f41fe41a70e04848e3c13bac7358__12593.1541664308.jpg?c=2",
+          "reason": "Native source dimensions recorded here fail 1024 pixels on both axes. No enlargement or padding.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "hlj-r21-native",
+          "sourcePage": "https://www.hlj.co.jp/product/MAB50626",
+          "status": "rejected",
+          "file": "tmp/tools-v7/hlj-r21-native.jpg",
+          "bytes": 79879,
+          "sha256": "7b326e9a68408a97850a0d9807ea8cc2cc3773fa7ec5748a4da625ff7dbcd7f7",
+          "width": 600,
+          "height": 450,
+          "format": "jpeg",
+          "sourceUrl": "https://d2ev13g7cze5ka.cloudfront.net/mab/mab50626_1485107697.jpg?v=1485107697",
+          "imageUrl": "https://d2ev13g7cze5ka.cloudfront.net/mab/mab50626_1485107697.jpg?v=1485107697",
+          "reason": "Native source dimensions recorded here fail 1024 pixels on both axes. No enlargement or padding.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "monotaro-r21-highreso",
+          "sourcePage": "https://www.monotaro.com/p/0526/3974/",
+          "status": "rejected",
+          "file": "tmp/tools-v7/monotaro-r21-highreso.jpg",
+          "bytes": 209766,
+          "sha256": "bca41f3da86682d901ee8beafcf39c0adbd7a1475f08d550c17b49691ff7c6ec",
+          "width": 1149,
+          "height": 1149,
+          "format": "jpeg",
+          "sourceUrl": "https://jp.images-monotaro.com/Monotaro3/pi/highreso/mono05263974-210510-02.jpg",
+          "imageUrl": "https://jp.images-monotaro.com/Monotaro3/pi/highreso/mono05263974-210510-02.jpg",
+          "reason": "Sharp RE260RA candidate has white rear cap, attached wires, body label and long ventilation openings. Original ATEHNA R21 has dark rear cap, bare terminals and different can details. Excluding bracket/pulley accessories cannot resolve the motor-body mismatch.",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "visualReview": "1149x1149 original visually compared to ATEHNA R21; readable package and useful motor detail. Rejected for identity.",
+          "noHumans": true,
+          "originalAtehnaReference": {
+            "file": "tmp/tools-v6/original-r21.img",
+            "imageUrl": "https://atehna.si/wp-content/uploads/2015/04/re21.png"
+          }
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "lee-r21",
+          "sourcePage": "https://leeselectronic.com/en/product/4158-4158MOTOR3VDCRE260RA267091066A.html",
+          "status": 403,
+          "file": "tmp/tools-v7/lee-r21.html",
+          "bytes": 5668,
+          "sha256": "ee26c585f2303e02177494f7ab9f5c35dfe272e6d23f01d2270bb1256643b32a",
+          "sourceUrl": "https://leeselectronic.com/en/product/4158-4158MOTOR3VDCRE260RA267091066A.html",
+          "result": "Public request returned the recorded HTTP 403, 503 or 404 response; no usable image and no access bypass."
+        },
+        {
+          "id": "tsukumo-r21-original",
+          "sourcePage": "https://shop.tsukumo.co.jp/goods/4580265062600/",
+          "status": 503,
+          "file": "tmp/tools-v7/tsukumo-r21-original.html",
+          "bytes": 444,
+          "sha256": "8444a90efb2609f328a235ae3e0cd8bd93c445daac29993ca474264899a63e15",
+          "sourceUrl": "https://cdn.tsukumo.co.jp/image/item/4580265062600_0.jpg",
+          "result": "Public request returned the recorded HTTP 403, 503 or 404 response; no usable image and no access bypass."
+        },
+        {
+          "id": "japanfigure-r21-native",
+          "sourcePage": "https://japan-figure.com/zh-tw/products/mabuchi-motor-small-dc-motor-re-260ra-1box-10-pieces",
+          "status": 404,
+          "file": "tmp/tools-v7/japanfigure-r21-native.html",
+          "bytes": 2770,
+          "sha256": "7cedaf11ec6d02f656855e0aa488b05d6ea853becaffe3b75aaa4acfa87705ce",
+          "sourceUrl": "https://cdn.shopify.com/s/files/1/0568/2298/8958/products/Mabuchi-Motor-Small-Dc-Motor-Re260Ra-1Box-10-Pieces-Japan-Figure-4580265062617-2.jpg?v=1659315817",
+          "result": "Public request returned the recorded HTTP 403, 503 or 404 response; no usable image and no access bypass."
+        },
+        {
+          "id": "fukuyama-r21",
+          "sourcePage": "https://fukuyamarccenter.com/product/product-17433/",
+          "status": 200,
+          "file": "tmp/tools-v7/fukuyama-r21.html",
+          "bytes": 125753,
+          "sha256": "a9257afc8eacbb42f4b46ee5225ca937cbc6c5a45764b7ceb9a451b720455fe4",
+          "sourceUrl": "https://fukuyamarccenter.com/product/product-17433/",
+          "result": "Public dealer gallery inspected; exposed originals separately downloaded and measured."
+        },
+        {
+          "id": "monotaro-r21",
+          "sourcePage": "https://www.monotaro.com/g/07989874/",
+          "status": 200,
+          "file": "tmp/tools-v7/monotaro-r21.html",
+          "bytes": 377512,
+          "sha256": "d35463926944b835e61a392dce7d1fad1312ced15cba71c2d14fedcc0bbb450e",
+          "sourceUrl": "https://www.monotaro.com/g/07989874/",
+          "result": "Public dealer gallery inspected; exposed originals separately downloaded and measured."
+        }
+      ],
+      "missingViews": [
+        "Sharp complete exact R21 and R23 originals",
+        "Rear contacts and shaft mounting detail"
+      ],
+      "researchSearches": [
+        {
+          "query": "RE280R R23 24 30 42g Mabuchi original",
+          "result": "Fresh aliases returned previously rejected OPITEC/Bischoff photos or differently rated RC motors. No new exact R23 original.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "variantSkus": [
+        "MER-RAV-100-CM",
+        "MER-RAV-100-CM-MAGNETNO"
+      ],
+      "variantNames": [
+        "100 cm",
+        "100 cm, magnetno"
+      ],
+      "identityEvidence": "Plain centimetre-scale 100 cm ruler and magnetic equivalent. Source option SKUs 010400 and 01040m. Different decimetre/profi scales are not replacements for these variants.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "lms-ruler",
+          "sourcePage": "https://www.lms.de/moebel-ausstattung/praesentieren/wandtafel-zeichengeraete/52011047/kanten-lineal-100-cm-cm-tlg",
+          "error": "The operation was aborted due to timeout",
+          "sourceUrl": "https://www.lms.de/moebel-ausstattung/praesentieren/wandtafel-zeichengeraete/52011047/kanten-lineal-100-cm-cm-tlg",
+          "result": "Bounded public fetch timed out; no original photograph obtained."
+        }
+      ],
+      "missingViews": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ],
+      "researchSearches": [
+        {
+          "query": "Wissner 010400 01040m 010100 100 cm original ruler",
+          "result": "New indexed dealers predominantly show later PROFI 160300.200 or decimetre 010300 bodies/scales. These do not establish the old plain ruler variants.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "identityEvidence": "Exact 40 cm handled TM Kovine RAGR040S1, EAN 3838853200080, 60×4.4 mm profile. Do not substitute other lengths or handle geometry.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "biro-rulers",
+          "sourcePage": "https://www.likovni-material.si/artikli.php?id=156",
+          "status": 200,
+          "file": "tmp/tools-v7/biro-rulers.html",
+          "bytes": 35604,
+          "sha256": "7bb3421987d589b1198118784f0474698d6f1c5ff74e26c857d0825e1fb16142",
+          "sourceUrl": "https://www.likovni-material.si/artikli.php?id=156",
+          "result": "Catalogue identifies 40 cm SKU 145107 without a stated handle, and 100 cm SKU 145293 explicitly with a handle. Neither confirms the exact sold 40 cm handled ruler. No wrong length/handle assigned."
+        }
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "researchSearches": [
+        {
+          "query": "RAGR040S1 3838853200080 aluminium ruler handle 40 cm",
+          "result": "No fresh native exact-model image beyond prior low-resolution manufacturer sources and this conflicting dealer length/handle listing.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "identityEvidence": "Original ATEHNA source SKU 30151 specifies only 100 g and shows a tall bare blue spool embossed TIN-WIRE / LOT-ZINN. No confirmed alloy, wire diameter or manufacturer. Tentative Felder attribution from earlier photography is not independent proof.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [],
+      "missingViews": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ],
+      "researchSearches": [
+        {
+          "query": "100g blue solder spool TIN-WIRE LOT-ZINN original",
+          "result": "Fresh image results for SMA, Donau, Kemper, Felder and CFH show labelled or differently proportioned spools. Mass and blue colour alone do not establish exact material/variant.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains",
+      "identityReferences": [
+        {
+          "id": "atehna-solder-reference",
+          "sourcePage": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "status": 200,
+          "file": "tmp/tools-v7/atehna-solder-reference.jpg",
+          "bytes": 98008,
+          "sha256": "25c9b73e03b2f17eb40d93b6e866197ebff2c43bff8227af13e9134e00c547b4",
+          "width": 350,
+          "height": 400,
+          "format": "jpeg",
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/zicazalotanje.jpg",
+          "imageUrl": "https://atehna.si/wp-content/uploads/2014/08/zicazalotanje.jpg",
+          "purpose": "Identification reference only, not accepted replacement.",
+          "visualReview": "Original tall blue unlabelled spool inspected. Embossed TIN-WIRE / LOT-ZINN visible; alloy, diameter and brand are not independently established."
+        }
+      ]
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Grobi robovi"
+      ],
+      "identityEvidence": "Only coarse source SKU 32473 remains in this scope. Fine 134-1 and historical medium 134-3 were accepted in v5 with converging ATEHNA filenames and readable real package labels; those approvals remain unchanged. Coarse original reuses medium photograph and does not establish a different numbered grade.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "technikpassage-spiral-original",
+          "sourcePage": "https://www.technik-passage24.de/detail/e8f8496c13a8485a99dfd7e45295d681",
+          "status": "rejected",
+          "file": "tmp/tools-v7/technikpassage-spiral-original.jpg",
+          "bytes": 68686,
+          "sha256": "e67a805a96213782c00bd588ec0b565349eecae7bec51f04b968064c3a4a81a4",
+          "width": 600,
+          "height": 2049,
+          "format": "jpeg",
+          "sourceUrl": "https://app.fuxcdn.de/api/25aa12fa-e781-484b-a761-c8864cd04428/media/3d/12/35/1692624624/pebaro-laubsaegen-spiral-3.jpg",
+          "imageUrl": "https://app.fuxcdn.de/api/25aa12fa-e781-484b-a761-c8864cd04428/media/3d/12/35/1692624624/pebaro-laubsaegen-spiral-3.jpg",
+          "reason": "600x2049 native original fails width. Indexed fine/medium numbered packs also do not independently establish the historical coarse grade.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [],
+      "missingViews": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ],
+      "researchSearches": [
+        {
+          "query": "Pebaro coarse spiral historical 134 12 blades original",
+          "result": "Fresh Coolbox results identify 134-1, 134-3, 134-4 and separate flat series; no exact coarse mapping and qualifying original.",
+          "sourcePages": [
+            "https://www.coolbox.ua/ru/catalog/pilochki"
+          ],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "identityEvidence": "ATEHNA source 32460 fine, 32461 medium and 32462 coarse: hardened 130 mm, 12-blade packs. Historical Pebaro package evidence maps 135-0 fine, 135-3 medium and 135-7 coarse; current 134-series is spiral wood/soft-metal and must not be substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "pebaro-metal7-native",
+          "sourcePage": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "status": "rejected",
+          "file": "tmp/tools-v7/pebaro-metal7-native.jpg",
+          "bytes": 45944,
+          "sha256": "77e6dd5cf6230d4096ac62a41c816dbdd2ce811bb81b6346851af39a5c955f0c",
+          "width": 1500,
+          "height": 1000,
+          "format": "jpeg",
+          "sourceUrl": "https://shop.pebaro.de/out/pictures/master/product/2/135-7.jpg",
+          "imageUrl": "https://shop.pebaro.de/out/pictures/master/product/2/135-7.jpg",
+          "reason": "Official master image dimensions are below 1024 on at least one axis. A larger page render or padding would not qualify.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "pebaro-metal7-pack",
+          "sourcePage": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "status": "rejected",
+          "file": "tmp/tools-v7/pebaro-metal7-pack.jpg",
+          "bytes": 72000,
+          "sha256": "6b196422e81b25d9adcf30cc01ee88239932ba773cb9ce2bf40846c4961e49f9",
+          "width": 212,
+          "height": 620,
+          "format": "jpeg",
+          "sourceUrl": "https://shop.pebaro.de/out/pictures/master/product/1/135_4_Pack.jpg",
+          "imageUrl": "https://shop.pebaro.de/out/pictures/master/product/1/135_4_Pack.jpg",
+          "reason": "Official master image dimensions are below 1024 on at least one axis. A larger page render or padding would not qualify.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "pebaro-metal4-native",
+          "sourcePage": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "status": "rejected",
+          "file": "tmp/tools-v7/pebaro-metal4-native.jpg",
+          "bytes": 1186714,
+          "sha256": "6f99117024c3e0d43af5e2d22b10ab15d02c0d68f757c56a211c21f8609318f6",
+          "width": 1200,
+          "height": 6459,
+          "format": "jpeg",
+          "sourceUrl": "https://shop.pebaro.de/out/pictures/master/product/3/135-4.jpg",
+          "imageUrl": "https://shop.pebaro.de/out/pictures/master/product/3/135-4.jpg",
+          "reason": "Large official master retains visibly coarse, stair-stepped lettering and logo edges, unsuitable for useful zoom. Large pixel dimensions and byte count do not repair the underlying detail.",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "visualReview": "Whole pack and details inspected. Same coarse package detail seen at prior dealers. No artificial sharpening/enlargement accepted."
+        },
+        {
+          "id": "pebaro-metal-detail",
+          "sourcePage": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "status": "rejected",
+          "file": "tmp/tools-v7/pebaro-metal-detail.jpg",
+          "bytes": 369239,
+          "sha256": "2fe89d2b5c41a09c65b7a2f49c7937fa3275c2c7bdd9118c778e1eecbce70553",
+          "width": 10003,
+          "height": 1200,
+          "format": "jpeg",
+          "sourceUrl": "https://shop.pebaro.de/out/pictures/master/product/4/Saegeblatt_Metall.jpg",
+          "imageUrl": "https://shop.pebaro.de/out/pictures/master/product/4/Saegeblatt_Metall.jpg",
+          "reason": "Long black tooth-profile illustration is a diagram, not a new photograph or independent photographic view.",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "visualReview": "Inspected as a silhouette/diagram. Existing schematics unchanged."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "pebaro-metal7",
+          "sourcePage": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "status": 200,
+          "file": "tmp/tools-v7/pebaro-metal7.html",
+          "bytes": 257910,
+          "sha256": "e401d52fe98592328e9bd533566e943bb600d00daf9ceb9816146316772f04a5",
+          "sourceUrl": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Metals/Fretsaw-Blades-for-metal-pb-1.html",
+          "result": "Official manufacturer gallery inspected; newly exposed master-image slots downloaded unchanged."
+        },
+        {
+          "id": "galaxus-metal3",
+          "sourcePage": "https://www.galaxus.it/en/s4/product/pebaro-fretsaw-blades-saw-blades-10876147",
+          "status": 200,
+          "file": "tmp/tools-v7/galaxus-metal3.html",
+          "bytes": 27573,
+          "sha256": "02c1f1f68e236983a8276d93dbce3ed17dd0035686e58da765de494bead24301",
+          "sourceUrl": "https://www.galaxus.it/en/s4/product/pebaro-fretsaw-blades-saw-blades-10876147",
+          "result": "Public app HTML did not expose a full original product image. No arbitrary API or transformed enlargement used."
+        }
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ],
+      "researchSearches": [],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "variantSkus": [
+        "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI"
+      ],
+      "variantNames": [
+        "Zaščitni predpasnik - otroški"
+      ],
+      "identityEvidence": "ATEHNA child apron page names only navy/blue child apron; original filename 6-1038 visually maps to ŠČIT 61038, whose supplier description is adult 100×75 cm. That size contradiction remains unresolved. Do not silently substitute an adult apron.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourceArchive": "tmp/product-image-audit/materials-v3/atehna-media-full.json",
+          "attachmentsReviewed": 796,
+          "evidenceFile": "tmp/tools-v7/original-attachment-identity-audit.json",
+          "result": "Public archive retains 500x500 6-1038 apron photograph; supplier adult-size association still conflicts with child description."
+        }
+      ],
+      "missingViews": [
+        "Exact child-size apron front and rear without a wearer",
+        "Tie, neck strap and fabric details"
+      ],
+      "researchSearches": [
+        {
+          "query": "ATEHNA child navy apron 6-1038 61038 original",
+          "result": "No fresh source resolves adult 100x75 cm versus child-product contradiction.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "variantSkus": [
+        "ZAS-OTR-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "identityEvidence": "Original ATEHNA 45002 page has no product image or exact model description. Earlier tentative brand association is not independent evidence; an arbitrary child safety-goggle image is not exact-product proof.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourceArchive": "tmp/product-image-audit/materials-v3/atehna-media-full.json",
+          "attachmentsReviewed": 796,
+          "evidenceFile": "tmp/tools-v7/original-attachment-identity-audit.json",
+          "result": "Filtered complete saved public ATEHNA attachment archive by product terms, titles, captions, descriptions and paths. No identified image for this goggles variant found. This is not proof that no image exists elsewhere."
+        }
+      ],
+      "missingViews": [
+        "Exact complete child goggles front or three-quarter view",
+        "Side arms or strap, ventilation and lens details"
+      ],
+      "researchSearches": [
+        {
+          "query": "ATEHNA 45002 child safety goggles original",
+          "result": "Modern Univet 511.03.01.00H child goggles have no conclusive ATEHNA visual/model connection. Not substituted.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "variantSkus": [
+        "ZAS-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "identityEvidence": "Original ATEHNA 45001 page has no product image or exact model description. Earlier tentative brand association is not independent evidence; an arbitrary adult safety-goggle image is not exact-product proof.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourceArchive": "tmp/product-image-audit/materials-v3/atehna-media-full.json",
+          "attachmentsReviewed": 796,
+          "evidenceFile": "tmp/tools-v7/original-attachment-identity-audit.json",
+          "result": "Filtered complete saved public ATEHNA attachment archive by product terms, titles, captions, descriptions and paths. No identified image for this goggles variant found. This is not proof that no image exists elsewhere."
+        }
+      ],
+      "missingViews": [
+        "Exact complete adult goggles front or three-quarter view",
+        "Side arms or strap, ventilation and lens details"
+      ],
+      "researchSearches": [
+        {
+          "query": "ATEHNA 45001 safety goggles original",
+          "result": "No new exact model or original photo identified. Generic adult goggles remain unassignable.",
+          "sourcePages": [],
+          "evidenceLevel": "public-search-results"
+        }
+      ],
+      "status": "source-gap-remains"
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "variantNames": [
+        "UHU super glue 3 ml"
+      ],
+      "identityEvidence": "Old ATEHNA 3 ml product photo has yellow/red card, italic white superglue lettering, red tube with tall black cap, English/Arabic print and setting-time chart. Modern 3 g, Ultra Fast or Control packaging is not automatically the same sold variant.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "uhu-wolt-original",
+          "sourcePage": "https://easy.co.il/page/10134334",
+          "status": "rejected",
+          "file": "tmp/tools-v7/uhu-wolt-original.jpg",
+          "bytes": 39594,
+          "sha256": "d8cff4388c8eeba39570769c2c891122f532a49210cceaccc2a542f864b7fce1",
+          "width": 1200,
+          "height": 675,
+          "format": "jpeg",
+          "sourceUrl": "https://wolt-menu-images-cdn.wolt.com/menu-images/66b0b8a784c4c6ec925c846f/49258ca2-5fc6-11ef-97c0-badc92fafc3b_406536.jpg",
+          "imageUrl": "https://wolt-menu-images-cdn.wolt.com/menu-images/66b0b8a784c4c6ec925c846f/49258ca2-5fc6-11ef-97c0-badc92fafc3b_406536.jpg",
+          "reason": "New old-pack dealer original falls below 1024 on at least one axis. No modern 3 g packaging or enlarged small image substituted.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        },
+        {
+          "id": "uhu-nextra-original",
+          "sourcePage": "https://www.nextradianella.com.au/glue-uhu-super-glue-3ml",
+          "status": "rejected",
+          "file": "tmp/tools-v7/uhu-nextra-original.jpg",
+          "bytes": 43418,
+          "sha256": "7c692ee6e09f9fe30f73d3b6ae7abbe31d1a682210f8e35e9c0138556e69fd3d",
+          "width": 230,
+          "height": 250,
+          "format": "jpeg",
+          "sourceUrl": "https://www.nextradianella.com.au/images/thumbs/0026529_glue-uhu-super-glue-3ml.jpeg",
+          "imageUrl": "https://www.nextradianella.com.au/images/thumbs/0026529_glue-uhu-super-glue-3ml.jpeg",
+          "reason": "New old-pack dealer original falls below 1024 on at least one axis. No modern 3 g packaging or enlarged small image substituted.",
+          "unchanged": true,
+          "stagePublicAsset": false
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "uhu-skout",
+          "sourcePage": "https://skout.com.au/item/30001346",
+          "status": 403,
+          "file": "tmp/tools-v7/uhu-skout.html",
+          "bytes": 5485,
+          "sha256": "14101c3677284dd205f767657acb2911c032e509551ee362b924c4b9eb8a3150",
+          "sourceUrl": "https://skout.com.au/item/30001346",
+          "result": "Public HTTP 403; no usable image obtained or access bypass."
+        },
+        {
+          "id": "uhu-officedepot",
+          "sourcePage": "https://www.officedepot.co.il/office-equipment/glue-tape-adhesive/glue-super-glue-3-ml-in-tube-uhu",
+          "status": 403,
+          "file": "tmp/tools-v7/uhu-officedepot.html",
+          "bytes": 5490,
+          "sha256": "ccb96d1d49ca8a3fe6d9ad0bc7d32260bd1c1ac99c389b17cd81b322685fe75a",
+          "sourceUrl": "https://www.officedepot.co.il/office-equipment/glue-tape-adhesive/glue-super-glue-3-ml-in-tube-uhu",
+          "result": "Public HTTP 403; no usable image obtained or access bypass."
+        },
+        {
+          "id": "uhu-officedepot-original",
+          "sourcePage": "https://www.officedepot.co.il/office-equipment/glue-tape-adhesive/glue-super-glue-3-ml-in-tube-uhu",
+          "status": 403,
+          "file": "tmp/tools-v7/uhu-officedepot-original.html",
+          "bytes": 4552,
+          "sha256": "b3c227851c63820b2bf860c70b273fafcf8babbde8effe18bf1c4c96313495d8",
+          "sourceUrl": "https://www.officedepot.co.il/media/catalog/product/2/e/2e256a05ae7c6db7dea100d19e05f1ed_g7jtypiymhra3we7.jpg",
+          "result": "Public HTTP 403; no usable image obtained or access bypass."
+        },
+        {
+          "id": "uhu-nextra",
+          "sourcePage": "https://www.nextradianella.com.au/glue-uhu-super-glue-3ml",
+          "status": 200,
+          "file": "tmp/tools-v7/uhu-nextra.html",
+          "bytes": 29310,
+          "sha256": "82c9f61b856a8274716a1cc38f4e8df397bba87b5ec6db853ba6006121a83a39",
+          "sourceUrl": "https://www.nextradianella.com.au/glue-uhu-super-glue-3ml",
+          "result": "Public old 3 ml dealer page inspected; full linked image measured separately."
+        }
+      ],
+      "missingViews": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ],
+      "researchSearches": [],
+      "status": "source-gap-remains"
+    }
+  ],
+  "result": "No new photograph accepted in this v7 tools pass. Evidence retained for fresh originals and source attempts; scoped exact variants still need suitable real source photographs.",
+  "scope": {
+    "families": 12,
+    "variants": 19,
+    "acceptedOriginals": 0,
+    "stagedAssets": 0,
+    "rejectedDownloadedCandidates": 14,
+    "carriedForwardPendingCandidates": 1,
+    "canonicalChanges": 0,
+    "databaseChanges": 0,
+    "runtimeChanges": 0,
+    "schematicChanges": 0
+  },
+  "evidenceReceipts": [
+    "tmp/tools-v7/downloads.json",
+    "tmp/tools-v7/pdf-native-evidence.json",
+    "tmp/tools-v7/original-attachment-identity-audit.json",
+    "tmp/tools-v7/final-evidence-integrity.json"
+  ]
+}

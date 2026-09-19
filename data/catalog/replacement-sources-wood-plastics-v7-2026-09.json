@@ -1,0 +1,1289 @@
+{
+  "version": 7,
+  "createdAt": "2026-09-14T13:31:29.885Z",
+  "status": "source-research-complete-no-publication-authorized-for-held-candidates",
+  "scope": "Read-only supplier/source research for 31 plywood variants and 9 remaining PVC/acrylic variants. No DB, canonical, runtime or gallery mutations.",
+  "matchingPolicy": "Exact unbranded commodity name/material/dimensions/colour and original appearance can establish identity; internal supplier IDs not required. Do not infer unstated species, coloured acrylic hue or optical subtype.",
+  "constraints": {
+    "minimumWidth": 1024,
+    "minimumHeight": 1024,
+    "unchangedSourceBytes": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "wholeProductMainRequired": true,
+    "distinctViewsOnly": true,
+    "preserveSchematics": true
+  },
+  "priorEvidenceLedgers": [
+    "data/catalog/replacement-sources-wood-v6-2026-09.json",
+    "data/catalog/replacement-sources-materials-v5-2026-09.json",
+    "data/catalog/replacement-sources-materials-v4-2026-09.json"
+  ],
+  "summary": {
+    "familiesReviewed": 3,
+    "productionVariantsInScope": 40,
+    "knownBeechVariants": 3,
+    "knownPoplarVariants": 4,
+    "unspecifiedWoodSpeciesVariants": 24,
+    "remainingPVCVariants": 3,
+    "remainingAcrylicVariants": 6,
+    "sourceGroupsReviewed": 20,
+    "publicFetchRecords": 23,
+    "downloadedCandidateFiles": 18,
+    "distinctCandidateHashes": 16,
+    "filesWithBothAxesAtLeast1024": 5,
+    "acceptedOriginalPhotographs": 0,
+    "acceptedVariants": 0,
+    "priorApprovedDetailHeld": 1,
+    "newPoplarDetailCandidatesHeld": 1
+  },
+  "products": [
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "variants": [
+        {
+          "id": "97",
+          "name": "Bukev / 6 x 300 x 400",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "98",
+          "name": "Bukev / 4 x 500 x 500",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "99",
+          "name": "Bukev / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "100",
+          "name": "Topol / 6 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "101",
+          "name": "Topol / 4 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "102",
+          "name": "Topol / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "103",
+          "name": "Topol / 3 x 250 x 500",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "104",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "105",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "106",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "107",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "108",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "109",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "110",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "111",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "112",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "113",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "114",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "115",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "116",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "117",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "118",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "119",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "120",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "121",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "122",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "123",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "124",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "125",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "126",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "127",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication.",
+          "carriedFromLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+        },
+        {
+          "id": "vezana-plosca-topol-4x1720x2520-detail-candidate-v7",
+          "status": "unpublished-candidate-needs-whole-main-and-native-origin-review",
+          "sourcePage": "https://holzdisselnmeyer.de/4-mm-Pappel-Sperrholzplatten-B-BB-EN-636-1-EN-314-1/0301000187.1",
+          "imageUrl": "https://holzdisselnmeyer.de/products/public/v2/0301000187/images/base/1/2000/4-mm-pappel-sperrholzplatten-bbb---en-636-1-en-314-1-en-314-1-klasse-1---fuer-trockenbereiche-pappel-bbb-laengs-01.webp?ts=1789168282",
+          "sourcePath": "tmp/product-image-audit/wood-plastics-v7/disselnmeyer.webp",
+          "width": 2000,
+          "height": 1476,
+          "sha256": "860f73083f0054464d20cdb824e96d79001523d8ca17721bcb12364e7bba9aec",
+          "bytes": 322316,
+          "variantIds": [
+            "101"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "role": "detail",
+          "view": "Pale poplar grain, knot and thin laminated edge",
+          "noHumans": true,
+          "realPhotograph": true,
+          "untouchedDownloadedBytes": true,
+          "nativeOriginalProven": false,
+          "review": {
+            "exactIdentity": "Exact 4 × 1720 × 2520 mm poplar B/BB listing. Photo shows pale natural wood grain, knot and a thin laminated edge.",
+            "quality": "Observed maximum public gallery response 2000 × 1476 is a cropped corner, not a whole sheet. The PIM size route does not independently prove native capture scale. Do not publish without whole-sheet main and final native-origin/quality approval."
+          },
+          "missing": "Whole 4 × 1720 × 2520 mm poplar main; confirmed source-native capture rather than server enlargement."
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.cistedrevo.cz/bukova-preklizka-4-x-500-x-500-mm/",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x500x500-BUKEV"
+          ],
+          "identity": "Exact beech B/BB 4 × 500 × 500 mm, supplier LA 541. New beech photograph, separate from the earlier AtmoWood poplar file.",
+          "nativeFiles": [
+            {
+              "key": "cisteBeech4-native",
+              "url": "https://cdn.myshoptet.com/usr/www.cistedrevo.cz/user/shop/big/55308_buk-500-500.jpg",
+              "status": 200,
+              "width": 1024,
+              "height": 768,
+              "bytes": 42003,
+              "sha256": "f1b0d84c65e209669d3c47c755fffae7a24a95445d98c7956518696499bc21de",
+              "path": "tmp/product-image-audit/wood-plastics-v7/cisteBeech4-native.jpg"
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "Removing the CDN x/y/quality query still returns only 1024 × 768. No native tall-axis detail sufficient for requirement."
+        },
+        {
+          "sourcePage": "https://www.bricolegnostore.it/compensati-lamellari-listellati-mdf-multistrati-tranciati/compensati/compensato-faggio-4-mm-detail.html",
+          "identity": "4 mm beech-faced plywood listing with size options; description identifies poplar core. No unverified all-beech claim imported.",
+          "nativeFiles": [
+            {
+              "url": "https://www.bricolegnostore.it/images/virtuemart/product/compensato-in-legno-di-faggio-bricolegnostore.jpg",
+              "path": "tmp/product-image-audit/wood-plastics-v7/bricoBeech4-0.jpg",
+              "status": 200,
+              "width": 800,
+              "height": 800,
+              "bytes": 108638,
+              "sha256": "7a46b865c7325bc60a0b0539f7902eeeda63aa4d90879b532f0ff9b7e33f3574"
+            },
+            {
+              "url": "https://www.bricolegnostore.it/images/virtuemart/product/compensato-in-legno-di-faggio-bricolegnostore-1.jpg",
+              "path": "tmp/product-image-audit/wood-plastics-v7/bricoBeech4-1.jpg",
+              "status": 200,
+              "width": 800,
+              "height": 800,
+              "bytes": 98728,
+              "sha256": "21338c70ac2dd4e18b5a80b2c68cd5be662deb53b45f784b6ef3bdffa4c9f060"
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "Both actual full-size gallery originals are 800 × 800; no upscaling used."
+        },
+        {
+          "sourcePage": "https://www.holz-mayrhofer.de/de/platten/sperrholzplatten/pappel-sperrholz-rubric-253.html",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL",
+            "MAT-LES-VEZ-6x1720x2520-TOPOL"
+          ],
+          "identity": "Exact 2520 × 1720 mm poplar,4 mm three-ply and 6 mm five-ply. Bleached AB face described by supplier; no additional grade claim assigned to ATEHNA.",
+          "nativeFiles": [
+            {
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel-.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-0.webp",
+              "width": 800,
+              "height": 600,
+              "bytes": 3942,
+              "sha256": "3f9a4217b1265e90d682fb55867c0841250fddb0fef27f43aea09b5f55844b9a"
+            },
+            {
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003006-david-shopartikelbilder-mayrhofer-pappel-.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-1.webp",
+              "width": 800,
+              "height": 600,
+              "bytes": 3942,
+              "sha256": "3f9a4217b1265e90d682fb55867c0841250fddb0fef27f43aea09b5f55844b9a"
+            },
+            {
+              "key": "mayrhofer-gallery-0",
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel-.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-gallery-0.webp",
+              "status": 200,
+              "width": 800,
+              "height": 600,
+              "bytes": 3942,
+              "sha256": "3f9a4217b1265e90d682fb55867c0841250fddb0fef27f43aea09b5f55844b9a"
+            },
+            {
+              "key": "mayrhofer-gallery-1",
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel--1.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-gallery-1.webp",
+              "status": 200,
+              "width": 120,
+              "height": 90,
+              "bytes": 1350,
+              "sha256": "0e9220cae640fbc6e2207d48a4a7e645f9ce5ff95a6bba8ae00ce55c1213f806"
+            },
+            {
+              "key": "mayrhofer-gallery-2",
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel--2.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-gallery-2.webp",
+              "status": 200,
+              "width": 360,
+              "height": 270,
+              "bytes": 2924,
+              "sha256": "df007302670df9c236057144bc54a4f36a106205ddbd4580298b2ef81842e6ff"
+            },
+            {
+              "key": "mayrhofer-gallery-3",
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel--4.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-gallery-3.webp",
+              "status": 200,
+              "width": 640,
+              "height": 480,
+              "bytes": 5714,
+              "sha256": "b68f33dfd8741502e84e71a2ba096578633a81c293feb882e01c8fa4982b7233"
+            },
+            {
+              "key": "mayrhofer-gallery-4",
+              "url": "https://www.holz-mayrhofer.de/upload/rm/25/00/25003004-david-shopartikelbilder-mayrhofer-pappel--3.webp",
+              "path": "tmp/product-image-audit/wood-plastics-v7/mayrhofer-gallery-4.webp",
+              "status": 200,
+              "width": 768,
+              "height": 576,
+              "bytes": 7448,
+              "sha256": "5de8c6f658ec20229e6b545ec3f98ee00ff43ea4fafd386401bc490c5ca0e79f"
+            }
+          ],
+          "decision": "reject-resolution-and-shared-capture",
+          "reason": "Largest directly linked file 800 × 600. Other responsive paths 120 × 90 through 768 × 576. Main 4 mm/6 mm files share identical bytes; cannot count as different photographs or prove thickness from photo."
+        },
+        {
+          "sourcePage": "https://holzdisselnmeyer.de/4-mm-Pappel-Sperrholzplatten-B-BB-EN-636-1-EN-314-1/0301000187.1",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "identity": "Exact 4 × 1720 × 2520 mm poplar B/BB listing. Photo shows pale natural wood grain, knot and a thin laminated edge.",
+          "nativeFiles": [
+            {
+              "key": "disselnmeyer",
+              "url": "https://holzdisselnmeyer.de/products/public/v2/0301000187/images/base/1/2000/4-mm-pappel-sperrholzplatten-bbb---en-636-1-en-314-1-en-314-1-klasse-1---fuer-trockenbereiche-pappel-bbb-laengs-01.webp?ts=1789168282",
+              "path": "tmp/product-image-audit/wood-plastics-v7/disselnmeyer.webp",
+              "status": 200,
+              "width": 2000,
+              "height": 1476,
+              "bytes": 322316,
+              "sha256": "860f73083f0054464d20cdb824e96d79001523d8ca17721bcb12364e7bba9aec"
+            }
+          ],
+          "decision": "hold-detail-awaiting-main-and-origin-review",
+          "reason": "Observed maximum public gallery response 2000 × 1476 is a cropped corner, not a whole sheet. The PIM size route does not independently prove native capture scale. Do not publish without whole-sheet main and final native-origin/quality approval."
+        },
+        {
+          "sourcePage": "https://shop.becher-holz.de/4-mm-Sperrholz-Pappel-BBB-IF20-verleimt-Format-2520-x-1720-mm/p/1000001609",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "identity": "Exact 4 × 2520 × 1720 mm listed; source explicitly warns image may differ.",
+          "decision": "no-usable-product-photo",
+          "reason": "Fetched product gallery exposes BECHER logo only, no actual product photograph."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/387637163071",
+          "identity": "Creative Deco 3 mm poplar A 3/A 4 sheet set. Target 3 × 300 × 210 unspecified-species variant not assumed to be this branded poplar stock.",
+          "decision": "not-proven-and-unavailable-originals",
+          "reason": "Indexed listing has ten gallery entries, but direct public page requests 403 and browser-source image links fail. No native photo reviewed. A 3/A 4 designation alone does not verify exact 300 × 210 mm cut."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/153915699304",
+          "identity": "Assorted poplar offcuts 3–15 mm, many sizes.",
+          "decision": "no-exact-explicit-poplar-match",
+          "reason": "Indexed size choices do not provide target 500 × 250 × 3/4 mm or 2520 × 1720 × 4/6 mm. Direct source 403; no unverified assortment substitution."
+        }
+      ],
+      "missingViews": "All 31 plywood variants still need a sharp real whole-sheet main; then add genuinely different side/rear and edge views where they reveal construction. The 24 unspecified-species variants must not be silently assigned beech/poplar/birch from an unrelated named source."
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "itemId": "5",
+      "variants": [
+        {
+          "id": "19",
+          "name": "300 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x300",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": false,
+          "missingViews": []
+        },
+        {
+          "id": "20",
+          "name": "150 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x150",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "21",
+          "name": "400 x 300 x 3 mm",
+          "sku": "MAT-UME-PEN-3x300x400",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "500 x 500 x 3 mm",
+          "sku": "MAT-UME-PEN-3x500x500",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.plattenzuschnitt24.de/PVC-Platte-weiss-3mm.html",
+          "identity": "White 3 mm foamedPVC with custom size range 50 × 50 to 3040 × 2040 mm; all three remaining cuts fit service range.",
+          "nativeFiles": [
+            {
+              "key": "plattenPVC",
+              "url": "https://www.plattenzuschnitt24.de/media/10/69/fb/1701855533/pvc-3mm.webp?ts=1726818388",
+              "path": "tmp/product-image-audit/wood-plastics-v7/plattenPVC.webp",
+              "width": 1500,
+              "height": 1500,
+              "bytes": 76766,
+              "sha256": "9552b6ecc040a53e7d63b18470b12811df059f5117d73624b9b72f77e5cf97a0"
+            }
+          ],
+          "decision": "reject-framing-and-photo-quality",
+          "reason": "1500² file shows two cropped boards, no entire sheet; excessively uniform smooth rendering and low surface detail do not demonstrate genuine sharp source photography. Watermarked. No crop/AI cleanup performed."
+        },
+        {
+          "sourcePage": "https://displaypro.co.uk/products/white-pvc-foam-sheet-cut-to-size-3mm",
+          "identity": "White 3 mm PVC stock size 500 × 500 mm, sourceD 412. Supplier photo is shared and filename refers to 5 mm.",
+          "nativeMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0012/9954/6159/products/white-pvc-foam-sheet-cut-to-size-5mm-115954_1ff4eeca-5f99-4224-abae-046b80bc17a2.jpg?v=1743758648",
+              "width": 671,
+              "height": 574,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "Original upload 671 × 574; no large native original. Thickness-specific photo not established."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/358067456285",
+          "identity": "Indexed white foamedPVC listing includes 300 × 400 × 3 mm.",
+          "decision": "original-source-unavailable",
+          "reason": "Public. de/. com. au source requests 403; no native bytes or image identity reviewed. No repeated retries after blocked source."
+        },
+        {
+          "sourcePage": "https://www.promodely.cz/Plastova-deska-3mm-bila-500x500mm-d145.htm",
+          "variantSkus": [
+            "MAT-UME-PEN-3x500x500"
+          ],
+          "identity": "Modelov 11151 explicitlywhitePVC foam 500 × 500 × 3 mm.",
+          "nativeFiles": [
+            {
+              "key": "promodely",
+              "url": "https://www.promodely.cz/fotky36908/fotos/_vyr_145pvc_bile.jpg",
+              "path": "tmp/product-image-audit/wood-plastics-v7/promodely-native.jpg",
+              "status": 200,
+              "width": 828,
+              "height": 768,
+              "bytes": 37228,
+              "sha256": "d2eee65597d970fe0c9fd9f4398ef1effeb1ef1201610c0ac27ffca451d94dca"
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "Actual full product photo 828 × 768."
+        },
+        {
+          "sourcePage": "https://www.electronic-mag.ro/placi-din-plastic/324467-foaie-dim-500x500mm-thk-3mm-alba-toleranta-dimensiuni-0-1mm.html",
+          "corroboratingSourcePages": [
+            "https://www.tme.com/in/en/details/ant484727.05000500/plastic-sheets/antalis/484727-05000500/",
+            "https://www.radioduo.fi/elektroniikka/muovilevy-500x500mm-paks-3mm-valkoinen-0-25m2-484727-05000500/p/ANT484727.05000500/"
+          ],
+          "variantSkus": [
+            "MAT-UME-PEN-3x500x500"
+          ],
+          "identity": "Antalis 484727.05000500 explicitly white foamedPVC 500 × 500 × 3 mm.",
+          "nativeFiles": [
+            {
+              "key": "antalis",
+              "url": "https://electronic-mag.ro/img/p/1/3/1/5/0/0/1/1315001.jpg",
+              "path": "tmp/product-image-audit/wood-plastics-v7/antalis-native.jpg",
+              "status": 200,
+              "width": 1440,
+              "height": 1080,
+              "bytes": 25882,
+              "sha256": "8d39a83cae03e69329bc89f6926e1bb034c3ae04cab30b230de734814675f162"
+            }
+          ],
+          "decision": "reject-clarity-after-independent-review",
+          "reason": "Native 1440 × 1080 real-looking full sheet, but upper/right edges are washed out and visibly smudged, with rough masking/foil artifacts and repeated TME watermarks across the product. Insufficiently sharp for useful zoom. Independent root review agrees. No watermark removal or alteration.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ]
+        },
+        {
+          "sourcePage": "https://www.plasticsheets.com/foam-pvc-3mm/",
+          "identity": "White 3 mm foamedPVC cut-to-size supplier.",
+          "decision": "original-source-unavailable",
+          "reason": "Public fetch 403; no asset reviewed."
+        }
+      ],
+      "missingViews": "White 3 mm 150 × 200,300 × 400 and 500 × 500 mm whole-sheet main and useful rear/edge. Preserve existing reviewed 300 × 200 mm gallery."
+    },
+    {
+      "slug": "pleksi-steklo",
+      "itemId": "6",
+      "variants": [
+        {
+          "id": "23",
+          "name": "150 x 200 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x200x150-BELO",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "24",
+          "name": "150 x 200 x 3 mm, barvno",
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "25",
+          "name": "150 x 200 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "26",
+          "name": "200 x 300 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x300x200-BELO",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": false,
+          "missingViews": []
+        },
+        {
+          "id": "27",
+          "name": "200 x 300 x 3 mm",
+          "sku": "MAT-UME-PLE-3x300x200",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "28",
+          "name": "400 x 300 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        },
+        {
+          "id": "29",
+          "name": "300 x 400 x 3 mm",
+          "sku": "MAT-UME-PLE-3x400x300",
+          "targetScope": "production-existing",
+          "includedInNewSourcePass": true,
+          "missingViews": [
+            "Whole product main photograph matching this exact material, cut, thickness and stated colour/species",
+            "Different rear/side view if useful",
+            "Genuine edge/surface detail"
+          ]
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://in-outdoorshop.de/produkt/acrylglas-pmma-xt-plexiglas-staerke-3-mm-zuschnitte-in-unterschiedlichen-groessen/",
+          "identity": "3 mm PMMA in clear/white and listed 300 × 400 mm among sizes. No unspecified ATEHNA colour assigned.",
+          "nativeFiles": [
+            {
+              "key": "inout-0",
+              "url": "https://in-outdoorshop.de/wp-content/uploads/2021/03/acryl_rectangle_transparent_old_background-e1633427785508.png",
+              "path": "tmp/product-image-audit/wood-plastics-v7/inout-0.png",
+              "width": 650,
+              "height": 650,
+              "bytes": 276533,
+              "sha256": "ea3c130711db4975df2ec0fb89f90f4b13961f0269eb3066296aa0795d73245c"
+            },
+            {
+              "key": "inout-1",
+              "url": "https://in-outdoorshop.de/wp-content/uploads/2021/03/acryl_rectangle_white_new_background-e1633427767734.png",
+              "path": "tmp/product-image-audit/wood-plastics-v7/inout-1.png",
+              "width": 650,
+              "height": 650,
+              "bytes": 278564,
+              "sha256": "9bdfd229b56da53aab49f303abe10b109c3d1df565f13c321dbaccb2ca4f2be9"
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "Query-free clear and white WordPress originals both 650². Public mediaAPI confirms current original 650² despite stale sizes metadata for larger resized variants; do not count padded/enlarged derivatives.",
+          "metadataEndpoint": "https://in-outdoorshop.de/wp-json/wp/v2/media?search=acryl_rectangle_transparent&per_page=20"
+        },
+        {
+          "sourcePage": "https://global.makera.com/products/clear-acrylic-sheet-plate",
+          "variantSkus": [
+            "MAT-UME-PLE-3x200x150-PROZORNO"
+          ],
+          "identity": "Exact clear 150 × 200 × 3 mm exists alongside 4/5/10 mm in same gallery.",
+          "nativeFiles": [
+            {
+              "key": "makeraClear",
+              "url": "https://cdn.shopify.com/s/files/1/0689/0861/3807/files/108-C1-MATERIAL-ACRYLIC-PLATE__1__1_19b28740-30dd-4b9e-a49b-8a9e8ab069a4.jpg?v=1787816699",
+              "path": "tmp/product-image-audit/wood-plastics-v7/makeraClear.jpg",
+              "width": 1920,
+              "height": 1920,
+              "bytes": 40837,
+              "sha256": "c261ecdbeb27cdb482b50b9a7520ed05c027ead71a8fcf77820491b5ec542c4c"
+            }
+          ],
+          "nativeMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0689/0861/3807/files/34_2049fe29-3ab3-41c5-9abd-cbcb4dbfcffa.jpg?v=1787816698",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0689/0861/3807/files/108-C1-MATERIAL-ACRYLIC-PLATE__1__1_19b28740-30dd-4b9e-a49b-8a9e8ab069a4.jpg?v=1787816699",
+              "width": 1920,
+              "height": 1920,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            }
+          ],
+          "decision": "reject-mixed-thickness-and-clarity",
+          "reason": "Main 800²; second 1920² photo shows several clearly different thicknesses in one overlapping stack with soft/coarse product detail and much empty space. No clean exact 3 mm main."
+        },
+        {
+          "sourcePage": "https://www.beeplastic.com/products/clear-acrylic-sheet-pmma-1-20mm-custom-cut-to-size",
+          "variantSkus": [
+            "MAT-UME-PLE-3x200x150-PROZORNO"
+          ],
+          "identity": "Exact 150 × 200 × 3 mm clear PMMA variant.",
+          "nativeMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/clear-acrylic-sheet-pmma-1-20mm-thickness-options.webp?v=1767863468",
+              "width": 1000,
+              "height": 1000,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/acrylic-sheet-standard-sizes-100mm-300mm.webp?v=1767863565",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/high-clarity-transparent-acrylic-92-percent-light-transmission.webp?v=1767863643",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/acrylic-sheet-signage-display-application-example.webp?v=1767863663",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/diy-acrylic-crafts-picture-frame-projects.webp?v=1767863679",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/cnc-precision-cut-acrylic-edge-quality-detail.webp?v=1767863694",
+              "width": 614,
+              "height": 615,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/acrylic-sheet-protective-film-both-sides.webp?v=1767863709",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/acrylic-thickness-comparison-1mm-5mm-10mm-20mm.webp?v=1767863733",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/professional-acrylic-sheet-packaging-safe-shipping.webp?v=1767863761",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            }
+          ],
+          "decision": "reject-resolution",
+          "reason": "All upload originals at most 1000²; most 800² and one 614 × 615."
+        },
+        {
+          "sourcePage": "https://www.beeplastic.com/products/milky-white-acrylic-sheet-led-diffuser",
+          "variantSkus": [
+            "MAT-UME-PLE-3x200x150-BELO"
+          ],
+          "identity": "Exact 150 × 200 × 3 mm size listed, but supplier specifically milky translucent LED diffuser; ATEHNA optical subtype not established.",
+          "nativeMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/milky-white-acrylic-sheet-led-diffuser-beeplastic-main.webp?v=1767862296",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/milky-white-acrylic-led-backlight-diffusion-effect.webp?v=1767862309",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/acrylic-sheet-thickness-options-2mm-3mm-4mm.webp?v=1767862323",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/custom-cut-acrylic-sheet-size-specifications.webp?v=1767862338",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/illuminated-signage-milky-white-acrylic-application.webp?v=1767862353",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/retail-display-lighting-opal-acrylic-showcase.webp?v=1767862368",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/precision-cnc-cut-acrylic-sheet-beeplastic.webp?v=1767862381",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/cast-acrylic-sheet-quality-detail-protective-masking.webp?v=1767862395",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/translucent-white-acrylic-light-transmission-comparison.webp?v=1767862481",
+              "width": 800,
+              "height": 800,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0727/8303/6698/files/custom-acrylic-fabrication-project-examples-beeplastic.webp?v=1767862499",
+              "width": 1000,
+              "height": 1000,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            }
+          ],
+          "decision": "reject-resolution-and-unverified-optical-type",
+          "reason": "All originals 800² except one 1000²; cannot infer exact white subtype from dimensions alone."
+        },
+        {
+          "sourcePage": "https://www.lasercutblanks.com.au/products/copy-of-acrylic-rectangle-200mm-x-100mm",
+          "identity": "3 mm rectangle 200 × 150 mm with assorted colours and optional holes.",
+          "nativeMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0538/3952/8096/products/20230113_112721_0000.png?v=1673569664",
+              "width": 500,
+              "height": 500,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0538/3952/8096/files/rectangleholepositions_8d6335fa-e3fe-4203-a9ac-bbdd19915276.jpg?v=1714968705",
+              "width": 500,
+              "height": 500,
+              "measurementBasis": "Supplier native Shopify upload metadata; not a transformed image request."
+            }
+          ],
+          "decision": "reject-resolution-and-representation",
+          "reason": "Both photos 500²; supplier explicitly says image does not represent size or proportions. Hole illustrations unsuitable."
+        },
+        {
+          "sourcePage": "https://3dmax.co.nz/BB-Acrylic-400x300-BB-ACR-3004003-BLK",
+          "variantSkus": [
+            "MAT-UME-PLE-3x300x400-PROZORNO"
+          ],
+          "identity": "BulkBlanks 3 mm 300 × 400 mm clear option exists, shared gallery withblack option.",
+          "nativeFiles": [
+            {
+              "key": "3dmax",
+              "url": "https://3dmax.co.nz/image/catalog/1-Laser/materials/BB-Acrylic-400300.jpg",
+              "path": "tmp/product-image-audit/wood-plastics-v7/3dmax-native.jpg",
+              "status": 200,
+              "width": 2250,
+              "height": 2250,
+              "bytes": 242710,
+              "sha256": "b21472f457223cadd77b5b46ec04aecba2f0a86f2ff80f5da620940c869241eb"
+            }
+          ],
+          "decision": "reject-wrong-colour-promotional-montage",
+          "reason": "Native 2250² source is branded marketing graphic showing black sheet, not selected clear stock. Do not substitute black or extract altered crop."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/187254253496",
+          "variantSkus": [
+            "MAT-UME-PLE-3x200x150-PROZORNO"
+          ],
+          "identity": "Indexed exact clear 150 × 200 × 3 mm listing and ten gallery entries.",
+          "decision": "original-source-unavailable",
+          "reason": "Direct public. de/. com/. com. au requests 403 and web open unavailable. No native bytes reviewed; indexed dimensions alone insufficient to accept unseen image."
+        }
+      ],
+      "missingViews": "Whole-sheet main plus edge/surface clarity for remaining 6 variants. White 150 × 200 and clear 150 × 200/300 × 400 are stated; coloured 150 × 200 has no known hue and two unqualified 300 × 200/300 × 400 variants lack stated colour. Preserve existing white 300 × 200 gallery."
+    }
+  ],
+  "verification": {
+    "publicFetchEvidence": [
+      {
+        "key": "ebayCreativePoplar",
+        "url": "https://www.ebay.de/itm/387637163071",
+        "status": 403
+      },
+      {
+        "key": "ebayPoplarRests",
+        "url": "https://www.ebay.de/itm/153915699304",
+        "status": 403
+      },
+      {
+        "key": "cisteBeech4",
+        "url": "https://www.cistedrevo.cz/bukova-preklizka-4-x-500-x-500-mm/",
+        "status": 200
+      },
+      {
+        "key": "bricoBeech",
+        "url": "https://www.bricolegnostore.it/acquista-2/compensati-lamellari-listellati-mdf-multistrati-tranciati/compensati/dirDesc.html",
+        "status": 200
+      },
+      {
+        "key": "mayrhofer",
+        "url": "https://www.holz-mayrhofer.de/de/platten/sperrholzplatten/pappel-sperrholz-rubric-253.html",
+        "status": 200
+      },
+      {
+        "key": "disselnmeyer",
+        "url": "https://holzdisselnmeyer.de/4-mm-Pappel-Sperrholzplatten-B-BB-EN-636-1-EN-314-1/0301000187.1",
+        "status": 200
+      },
+      {
+        "key": "becher",
+        "url": "https://shop.becher-holz.de/4-mm-Sperrholz-Pappel-BBB-IF20-verleimt-Format-2520-x-1720-mm/p/1000001609",
+        "status": 200
+      },
+      {
+        "key": "ebayAcrylic",
+        "url": "https://www.ebay.com/itm/187254253496",
+        "status": 403
+      },
+      {
+        "key": "plattenPVC",
+        "url": "https://www.plattenzuschnitt24.de/PVC-Platte-weiss-3mm.html",
+        "status": 200
+      },
+      {
+        "key": "inoutAcrylic",
+        "url": "https://in-outdoorshop.de/produkt/acrylglas-pmma-xt-plexiglas-staerke-3-mm-zuschnitte-in-unterschiedlichen-groessen/",
+        "status": 200
+      },
+      {
+        "key": "makeraClear",
+        "url": "https://global.makera.com/products/clear-acrylic-sheet-plate",
+        "status": 200
+      },
+      {
+        "key": "beeClear",
+        "url": "https://www.beeplastic.com/products/clear-acrylic-sheet-pmma-1-20mm-custom-cut-to-size",
+        "status": 200
+      },
+      {
+        "key": "beeWhite",
+        "url": "https://www.beeplastic.com/products/milky-white-acrylic-sheet-led-diffuser",
+        "status": 200
+      },
+      {
+        "key": "laserBlanks",
+        "url": "https://www.lasercutblanks.com.au/products/copy-of-acrylic-rectangle-200mm-x-100mm",
+        "status": 200
+      },
+      {
+        "key": "displayPVC",
+        "url": "https://displaypro.co.uk/products/white-pvc-foam-sheet-cut-to-size-3mm",
+        "status": 200
+      },
+      {
+        "key": "tmePVC",
+        "url": "https://www.tme.com/in/en/details/ant484727.05000500/plastic-sheets/antalis/484727-05000500/",
+        "status": 403
+      },
+      {
+        "key": "promodelyPVC",
+        "url": "https://www.promodely.cz/Plastova-deska-3mm-bila-500x500mm-d145.htm",
+        "status": 200
+      },
+      {
+        "key": "ebayAcrylicAU",
+        "url": "https://www.ebay.com.au/itm/187254253496",
+        "status": 403
+      },
+      {
+        "key": "ebayPVCAU",
+        "url": "https://www.ebay.com.au/itm/358067456285",
+        "status": 403
+      },
+      {
+        "key": "3dmaxClear",
+        "url": "https://3dmax.co.nz/BB-Acrylic-400x300-BB-ACR-3004003-BLK",
+        "status": 200
+      },
+      {
+        "key": "inoutNativeMedia",
+        "url": "https://in-outdoorshop.de/wp-json/wp/v2/media?search=acryl_rectangle_transparent&per_page=20",
+        "status": 200
+      },
+      {
+        "key": "electronicMagPVC",
+        "url": "https://www.electronic-mag.ro/placi-din-plastic/324467-foaie-dim-500x500mm-thk-3mm-alba-toleranta-dimensiuni-0-1mm.html",
+        "status": 200
+      },
+      {
+        "key": "plasticSheetsPVC",
+        "url": "https://www.plasticsheets.com/foam-pvc-3mm/",
+        "status": 403
+      }
+    ],
+    "nativeEvidenceFiles": [
+      "tmp/product-image-audit/wood-plastics-v7/first-native-results.json",
+      "tmp/product-image-audit/wood-plastics-v7/brico-native-results.json",
+      "tmp/product-image-audit/wood-plastics-v7/second-native-results.json",
+      "tmp/product-image-audit/wood-plastics-v7/third-native-results.json",
+      "tmp/product-image-audit/wood-plastics-v7/plastics-native-results.json",
+      "tmp/product-image-audit/wood-plastics-v7/plastics-more-natives.json",
+      "tmp/product-image-audit/wood-plastics-v7/plastics-final-native.json"
+    ],
+    "visualReview": "All five downloaded images meeting both pixel axes were visually reviewed: Disselnmeyer, PlattenzuschnittPVC, Makera,3DMax, Antalis. Antalis independently reviewed by root and rejected for washed-out edges and poor useful zoom. No accepted new image.",
+    "noPublishedFilesAdded": true,
+    "noDatabaseWrites": true,
+    "noCanonicalOrRuntimeEdits": true,
+    "nativeHashAndDimensionsVerified": 18
+  }
+}

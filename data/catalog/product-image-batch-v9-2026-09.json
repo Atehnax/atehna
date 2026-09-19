@@ -1,0 +1,269 @@
+{
+  "version": 9,
+  "reviewedAt": "2026-09-14T15:32:28.078Z",
+  "status": "Sourcing pass complete with partial saved improvements; original task remains incomplete",
+  "summary": {
+    "items": 43,
+    "activeItems": 40,
+    "variants": 185,
+    "imageRows": 216,
+    "photographRows": 65,
+    "visiblePhotographRows": 65,
+    "visibleUniquePhotographs": 65,
+    "visibleRowsBelowMinimum": 0,
+    "hiddenPhotographRows": 0,
+    "dimensionDiagrams": 151,
+    "unreadableVisible": 0,
+    "familiesWithoutPhotos": 12,
+    "variantsWithoutPhotos": 125,
+    "variantsWithPhotos": 60,
+    "newPhotographs": 4,
+    "newVariantAssociations": 5,
+    "improvedFamilies": 2,
+    "improvedVariants": 5,
+    "newlyCoveredVariants": 3,
+    "batchFamilies": 20,
+    "batchVariantsWithoutPhotosAtStart": 100,
+    "batchVariantsStillWithoutPhotos": 97
+  },
+  "scope": [
+    {
+      "slug": "vezana-plosca",
+      "name": "Vezana plošča",
+      "allFamilyVariants": 31,
+      "variantsWithoutPhotosAtStart": 30,
+      "remainingVariantsWithoutPhotos": 30,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-materials-v9-2026-09.json",
+      "decision": "See detailed source ledger for candidate measurements, identity decisions and missing views."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "name": "Pocinkana pločevina",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-materials-v9-2026-09.json",
+      "decision": "See detailed source ledger for candidate measurements, identity decisions and missing views."
+    },
+    {
+      "slug": "stiropor",
+      "name": "Stiropor",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-materials-v9-2026-09.json",
+      "decision": "See detailed source ledger for candidate measurements, identity decisions and missing views."
+    },
+    {
+      "slug": "seleshamer",
+      "name": "Šeleshamer",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-paper-v9-2026-09.json",
+      "decision": "All 4 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing."
+    },
+    {
+      "slug": "grafopak",
+      "name": "Grafopak",
+      "allFamilyVariants": 2,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-paper-v9-2026-09.json",
+      "decision": "All 2 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing."
+    },
+    {
+      "slug": "barvni-papir",
+      "name": "Barvni papir",
+      "allFamilyVariants": 27,
+      "variantsWithoutPhotosAtStart": 27,
+      "remainingVariantsWithoutPhotos": 24,
+      "improvedVariantSkus": [
+        "MAT-PAP-BAR-CRNA",
+        "MAT-PAP-BAR-RDECA",
+        "MAT-PAP-BAR-SVETLO-RJAVA"
+      ],
+      "sourceLedger": "data/catalog/replacement-sources-paper-v9-2026-09.json",
+      "decision": "24 remaining named colour variants still need a sharp exact-colour whole-sheet main at least1024 pixels on both axes. The3 accepted colours have one complete main each; separate genuinely informative surface/edge photographs are still missing. No crops/rotations counted as additional views."
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "name": "Krivilnik za plastične mase THERMOFORM 400",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ]
+    },
+    {
+      "slug": "kladivo",
+      "name": "Kladivo",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ]
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "name": "Aluminijasto ravnilo z ročajem (40 cm)",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ]
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "name": "Žica za lotanje",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "name": "Žagice za rezanje kovin",
+      "allFamilyVariants": 3,
+      "variantsWithoutPhotosAtStart": 3,
+      "remainingVariantsWithoutPhotos": 3,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ]
+    },
+    {
+      "slug": "uhu-super-glue",
+      "name": "UHU Super glue",
+      "allFamilyVariants": 1,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ]
+    },
+    {
+      "slug": "motorcek",
+      "name": "Motorček",
+      "allFamilyVariants": 3,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Sharp complete exact R21 and R23 originals",
+        "Rear contacts and shaft mounting detail"
+      ]
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "name": "Ravnila za tablo",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ]
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "name": "Spiralne žagice za les in mehke kovine",
+      "allFamilyVariants": 3,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-tools-v9-2026-09.json",
+      "decision": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ]
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "name": "Aluminijasta plošča",
+      "allFamilyVariants": 7,
+      "variantsWithoutPhotosAtStart": 4,
+      "remainingVariantsWithoutPhotos": 4,
+      "improvedVariantSkus": [
+        "MAT-KOV-ALU-0P5x100x100",
+        "MAT-KOV-ALU-0P5x300x300"
+      ],
+      "sourceLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+      "decision": "Stahl2000² is cropped/mixed-thickness; Versandmetall600px or less; exact200²×0.3 eBay six originals1000² fail threshold. Modulor generic whole stack has unproved top-sheet thickness; accept only thickness-specific0.5 detail for two existing main-covered cuts."
+    },
+    {
+      "slug": "bakrena-plosca",
+      "name": "Bakrena plošča",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 1,
+      "remainingVariantsWithoutPhotos": 1,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+      "decision": "Nizpol3×2560×1706 cropped stacks and shallow focus, no clear whole300² main. Praktiker2000² is clipped at far edges, detail held until exact whole main. Prom originals500×375,205×135,1000×667 all belowminimum."
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "name": "Medeninasta plošča",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 2,
+      "remainingVariantsWithoutPhotos": 2,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+      "decision": "RCM exact0.5×200×300 original374×500, Buko512×316 and source filename100² conflicts selected300×200. eBay publicpage403. No qualifying main."
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "name": "Penjeni PVC (komateks)",
+      "allFamilyVariants": 4,
+      "variantsWithoutPhotosAtStart": 3,
+      "remainingVariantsWithoutPhotos": 3,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+      "decision": "Alutech1220×680 fails height and3mm title conflicts1mm description. Globus3000×2000 shows palegreen manufactured depiction, not a verifiable white product photograph. Baumaxxe titledPVC but descriptionPolystyrol/HIPS, reject material conflict."
+    },
+    {
+      "slug": "pleksi-steklo",
+      "name": "Pleksi steklo",
+      "allFamilyVariants": 7,
+      "variantsWithoutPhotosAtStart": 6,
+      "remainingVariantsWithoutPhotos": 6,
+      "improvedVariantSkus": [],
+      "sourceLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+      "decision": "Plattenzuschnitt24white3mm1500² crops whole edge and is soft with visible blocklike edge artefacts, unsuitable useful zoom. Acrylglasplattenshop1024² images are synthetic product depictions, not real exact source photographs; do not publish."
+    }
+  ]
+}

@@ -1,0 +1,1757 @@
+{
+  "version": 5,
+  "reviewedAt": "2026-09-14T11:50:27.824Z",
+  "status": "partial-four-approved-photos-three-variants",
+  "scope": [
+    "seleshamer",
+    "barvni-papir",
+    "grafopak",
+    "fotokarton",
+    "lepenka",
+    "risalni-list"
+  ],
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "noAI": true,
+    "exactVariantOnly": true,
+    "noDataMutations": true
+  },
+  "summary": {
+    "productFamilies": 6,
+    "variants": 63,
+    "acceptedImages": 4,
+    "coveredVariants": 3,
+    "remainingVariants": 60
+  },
+  "products": [
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "wildart-200gsm",
+          "url": "https://www.wildartgallery.co.uk/cdn/shop/products/image_19831754-42a0-40d7-803a-0c1138276be4.jpg?v=1675249428",
+          "path": "tmp/product-image-audit/paper-v5/wildart-200gsm.jpg",
+          "width": 1460,
+          "height": 1460,
+          "bytes": 55162,
+          "sha256": "f3fa6ee5d1dc43fb1a84bad5e7ba8e9c7d4d3f1232091bbd3f165bd3b7140f24",
+          "reason": "Photograph/design shows a branded40-sheet Zieler retail package, with clipped rear sheets and little useful material detail; no package/model identity established for ATEHNA single sheet."
+        },
+        {
+          "name": "pinkfrog-200gsm",
+          "url": "https://files.ekmcdn.com/reedycdboy/images/pink-frog-crafts-super-smooth-a4-card-200gsm-select-pack-size-100-a4-sheets-10848-p.png?v=288A3BC6-B52F-453B-9EAA-353C2CF445C0",
+          "path": "tmp/product-image-audit/paper-v5/pinkfrog-200gsm.png",
+          "width": 800,
+          "height": 800,
+          "bytes": 26602,
+          "sha256": "d38e9c3c3ca77f2124d40f7f4f0c41e34ac039c828e7daa9025a49b2a49c3587",
+          "reason": "Native800×800."
+        },
+        {
+          "name": "bakerross-white-main",
+          "url": "https://www.bakerross.co.uk/media/catalog/product/w/h/white-card-value-pack-e99az.jpg",
+          "path": "tmp/product-image-audit/paper-v5/bakerross-white-main.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 19367,
+          "sha256": "116931992fcbe1addc8c0a5afcf677c6d37fbe6d968ae4978d707281d439fc26",
+          "reason": "500square native."
+        },
+        {
+          "name": "bakerross-white-extra",
+          "url": "https://www.bakerross.co.uk/media/catalog/product/e/9/e99al2.jpg",
+          "path": "tmp/product-image-audit/paper-v5/bakerross-white-extra.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 21936,
+          "sha256": "20076066cf30218d8d91d485a3a133135d6d9513691b0fd1817887926c3975d0",
+          "reason": "500square native."
+        },
+        {
+          "name": "copierpaper-white-main",
+          "url": "https://www.copierpaper.co.uk/wp-content/uploads/2022/08/200gsm-2.jpg",
+          "path": "tmp/product-image-audit/paper-v5/copierpaper-white-main.jpg",
+          "width": 1220,
+          "height": 1500,
+          "bytes": 15573,
+          "sha256": "c5a0b40db97b93d3e233f8d6b2990631759683e12a17e44416e6705f0363c614",
+          "reason": "1220×1500 file shows visibly soft enlarged white-sheet stack; no useful zoom detail."
+        },
+        {
+          "name": "copierpaper-white-front",
+          "url": "https://www.copierpaper.co.uk/wp-content/uploads/2022/08/200gsm.jpg",
+          "path": "tmp/product-image-audit/paper-v5/copierpaper-white-front.jpg",
+          "width": 1500,
+          "height": 1268,
+          "bytes": 44425,
+          "sha256": "9dbe1627a1c8be163189d1103b9ad73f73ec215e872c544a1d3909958ce7bb8b",
+          "reason": "1500×1268 flat/stock-style stack with clipped sheet corners and artificial uniform shadows; not accepted as a sharp real full sheet."
+        },
+        {
+          "name": "copierpaper-white-new",
+          "url": "https://www.copierpaper.co.uk/wp-content/uploads/2024/07/a4-200gsm.jpg",
+          "path": "tmp/product-image-audit/paper-v5/copierpaper-white-new.jpg",
+          "width": 679,
+          "height": 487,
+          "bytes": 80266,
+          "sha256": "f12edaa1cf317a64d2a96f6fe7a59cbb142979c640540bb7b279e7f77f80f742",
+          "reason": "679×487 native; fails minimum."
+        },
+        {
+          "name": "muflon-white-a3-stock",
+          "url": "https://trgovina.muflon.si/wp-content/uploads/2020/05/risalni-listi-a3.png",
+          "path": "tmp/product-image-audit/paper-v5/muflon-white-a3-stock.png",
+          "width": 1200,
+          "height": 1200,
+          "bytes": 432443,
+          "sha256": "46b5cc038c9080bcd50f50087e3a30678277287b0844d267aa6c5b6f1bca484b",
+          "reason": "1200×1200 source is illustrated coloured risalni-blok packaging with visible raster damage; not a real blank200gsm sheet photo."
+        },
+        {
+          "name": "muflon-white-a3-smallpack",
+          "url": "https://trgovina.muflon.si/wp-content/uploads/2020/11/risalni-list-gladek_A3_10listov.png",
+          "path": "tmp/product-image-audit/paper-v5/muflon-white-a3-smallpack.png",
+          "width": 1801,
+          "height": 2492,
+          "bytes": 492577,
+          "sha256": "d3cd5a287359c144c98f09f965457b94b776e33fdd4b7e37c93ee7dbdc68578b",
+          "reason": "1801×2492 flat package artwork includes a human hand holding a pencil; violates no-humans and does not show the blank sheet."
+        },
+        {
+          "name": "muflon-white-a4-large",
+          "url": "https://trgovina.muflon.si/wp-content/uploads/2020/11/risalni-list-gladek_A4_200-listov-01-e1605014400805-1.png",
+          "path": "tmp/product-image-audit/paper-v5/muflon-white-a4-large.png",
+          "width": 2481,
+          "height": 2481,
+          "bytes": 348148,
+          "sha256": "d83f3a4592a62543a20a4eee34c783e25518a67caec8cb19991af2505d5dee04",
+          "reason": "2481×2481 flat package artwork contains a human hand and large unused padding; not eligible."
+        },
+        {
+          "name": "marker-b1-main",
+          "url": "https://www.marker.si/content/images/thumbs/0027893_papir-b1-specialni-risalni-favini-seleshamer-200g.jpeg",
+          "path": "tmp/product-image-audit/paper-v5/marker-b1-main.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 111712,
+          "sha256": "87214128dedb9dcd2e33b1b8981afda168e0b04da7ce114bc83d9486fa32e0b5",
+          "reason": "1080×1080 depicts a heavily cropped corner illustration, not a complete B1 sheet and not a useful material photograph."
+        },
+        {
+          "name": "marker-b1-second",
+          "url": "https://www.marker.si/content/images/thumbs/0022660_papir-b1-specialni-risalni-favini-seleshamer-200g.jpeg",
+          "path": "tmp/product-image-audit/paper-v5/marker-b1-second.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 211441,
+          "sha256": "7e0607a0ff37885145efd7ce0ece08d913bb8d8aa153908163582a8f2fbf8262",
+          "reason": "1080×1080 contains a person, arm and hand painting on paper; prohibited human content."
+        },
+        {
+          "name": "marker-b1-third",
+          "url": "https://www.marker.si/content/images/thumbs/0022663_papir-b1-specialni-risalni-favini-seleshamer-200g.jpeg",
+          "path": "tmp/product-image-audit/paper-v5/marker-b1-third.jpg",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 380923,
+          "sha256": "482677136fe49c23f55a9f355e9ccbdb14455a7fde5383dbbc23bcf1673bd15d",
+          "reason": "1080×1080 collage shows decorated party display and finished cards, not the exact plain white B1 sheet."
+        },
+        {
+          "name": "biroteka-whiteb1-original",
+          "url": "https://biroteka.si/img/p/2/7/5/7/9/27579.jpg",
+          "path": "tmp/product-image-audit/paper-v5/biroteka-whiteb1-original.png",
+          "width": 360,
+          "height": 360,
+          "bytes": 17580,
+          "sha256": "d5e6278e1be2a2d846a9b5aa2d8643048b681265ea16206938facb6132e5e1e8",
+          "reason": "360×360 original fails both native minimum dimensions."
+        },
+        {
+          "name": "architektur-bristol200-original",
+          "url": "https://www.architekturbedarf.de/img_big/850abacd1544d3a032cf888e9b0428d6.jpg",
+          "path": "tmp/product-image-audit/paper-v5/architektur-bristol200-original.jpg",
+          "width": 600,
+          "height": 600,
+          "bytes": 36507,
+          "sha256": "ff660e1200bbef1401023ad2338fab92fac4e379ecab40aa54b3cb417ce50124",
+          "reason": "600×600 original fails both native minimum dimensions."
+        },
+        {
+          "name": "alexander-white200-original",
+          "url": "https://www.alexanderpapersupplies.co.uk/cdn/shop/files/White-Card-230-micron.jpg?v=1692026407",
+          "path": "tmp/product-image-audit/paper-v5/alexander-white200-original.jpg",
+          "width": 1100,
+          "height": 1280,
+          "bytes": 36039,
+          "sha256": "4f8e4cae4f8e0d47bddf6a41fb87390ad0dabf7fb8f92e528d971cb7969e2bc2",
+          "reason": "1100×1280 original is badly lit/yellow cast with blurred labels and cropped top/right sheets; unsuitable full main or detailed zoom."
+        },
+        {
+          "name": "ebay-white200-1",
+          "url": "https://i.ebayimg.com/images/g/ozUAAOSwE~ZjtDht/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-1.webp",
+          "width": 1040,
+          "height": 1040,
+          "bytes": 33828,
+          "sha256": "02cbe970a2d05d755ec6fabc3865a1b4249178f2e88defc031fc9827d7564a93",
+          "reason": "1040×1040 main is a clipped sheet fan with soft surfaces; entire sheet is not visible. Same source composition already rejected during v4."
+        },
+        {
+          "name": "ebay-white200-2",
+          "url": "https://i.ebayimg.com/images/g/JyUAAOSweP1jtDhv/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-2.webp",
+          "width": 1600,
+          "height": 1066,
+          "bytes": 102260,
+          "sha256": "f61df5ee34449749a2ce18d44e457cb9bc73e576e4d352dc8f26a4521e3b7884",
+          "reason": "1600×1066 real stack-edge detail is retained as a possible future secondary source but cannot serve as the required complete main image; main source currently fails framing. Not added."
+        },
+        {
+          "name": "ebay-white200-3",
+          "url": "https://i.ebayimg.com/images/g/aMwAAOSwDSxjtDhx/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-3.webp",
+          "width": 1400,
+          "height": 1400,
+          "bytes": 64000,
+          "sha256": "3f2fa7233fbe91fee0cbf207ff606020374cf8e442b639424583d086af84aa03",
+          "reason": "1400×1400 finished folded-card application; not the complete unaltered blank A4 sheet main."
+        },
+        {
+          "name": "ebay-white200-4",
+          "url": "https://i.ebayimg.com/images/g/r6YAAOSwEORjtDhz/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-4.webp",
+          "width": 1400,
+          "height": 1400,
+          "bytes": 59932,
+          "sha256": "94bd0366cf2df635273b6bacee38a2d0da888821c61c7288a45951f10337533b",
+          "reason": "1400×1400 finished folded-card application; not a genuinely different view of the complete blank A4 sheet."
+        },
+        {
+          "name": "ebay-white200-5",
+          "url": "https://i.ebayimg.com/images/g/pj4AAOSwYUFjtDh0/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-5.webp",
+          "width": 800,
+          "height": 800,
+          "bytes": 17600,
+          "sha256": "84472b8335b45f89fa52afcb8de87bc832d1a094fb7329fadf57e29015e4caa0",
+          "reason": "800×800 native source fails minimum, regardless of s-l1600 requested URL."
+        },
+        {
+          "name": "ebay-white200-6",
+          "url": "https://i.ebayimg.com/images/g/kuIAAOSwqnJjtDh3/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-white200-6.webp",
+          "width": 1209,
+          "height": 1600,
+          "bytes": 109406,
+          "sha256": "80b8417de5ed599a44666ed8294d46e42f3bb47cfaf2e44639898c477c407342",
+          "reason": "1209×1600 original package has markedly smeared/aliased text and no detailed material view; enlarging the package does not provide useful zoom."
+        },
+        {
+          "name": "ryman-white200-native",
+          "url": "https://www.ryman.co.uk/media/catalog/product/0/2/0230090460.jpg",
+          "error": "HTTP 403",
+          "reason": "HTTP403 on original asset; no image obtained or accepted."
+        },
+        {
+          "name": "londongraphics-white200-native",
+          "url": "https://www.londongraphics.co.uk/media/catalog/product/l/-/l-0230090464_ryman_card_a4_200gsm_100_white.jpg",
+          "error": "HTTP 403",
+          "reason": "HTTP403 on original asset; no image obtained or accepted."
+        },
+        {
+          "name": "zybux-white200-native-gallery",
+          "sourcePage": "https://zybux.co.uk/products/15x-a4-smooth-card-sheets-200gsm-snow-white-paper-craft-hobby-printer-cardmaking",
+          "url": "https://zybux.co.uk/cdn/shop/files/1_a1ecbe2c-b16d-4ce5-8e23-f1568492c945.png?v=1683299485",
+          "width": 1000,
+          "height": 1000,
+          "reason": "Actual Shopify product media gallery declares maximum1000×1000 for main; remaining frames1000square,800×620,800square. No native source satisfies1024both axes.",
+          "evidenceFile": "tmp/product-image-audit/paper-v5/zybux-white200.html"
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/papir-seleshamer-200-g-a4/",
+        "https://atehna.si/product/papir-seleshamer-200-g-a2/",
+        "https://atehna.si/product/papir-seleshamer-200-g-a3/",
+        "https://atehna.si/product/papir-seleshamer-200-g-b1/"
+      ],
+      "missingViews": "Native sharp complete-sheet main plus genuinely useful surface/edge photographs for each sold variant remain missing."
+    },
+    {
+      "slug": "barvni-papir",
+      "itemName": "Barvni papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-STRUKTURNO-BELA",
+        "MAT-PAP-BAR-SVETLO-RJAVA",
+        "MAT-PAP-BAR-TEMNO-RJAVA",
+        "MAT-PAP-BAR-RJAVA",
+        "MAT-PAP-BAR-LILA",
+        "MAT-PAP-BAR-VIJOLICASTA",
+        "MAT-PAP-BAR-CRNA",
+        "MAT-PAP-BAR-SIVA",
+        "MAT-PAP-BAR-ROZA",
+        "MAT-PAP-BAR-TEMNO-LILA",
+        "MAT-PAP-BAR-TRAVNO-ZELENA",
+        "MAT-PAP-BAR-TEMNO-ZELENA",
+        "MAT-PAP-BAR-ZELENA",
+        "MAT-PAP-BAR-SVETLO-ZELENA",
+        "MAT-PAP-BAR-ORANZNA",
+        "MAT-PAP-BAR-MODRA",
+        "MAT-PAP-BAR-NEBESNO-MODRA",
+        "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+        "MAT-PAP-BAR-SVETLO-MODRA",
+        "MAT-PAP-BAR-TEMNO-RDECA",
+        "MAT-PAP-BAR-VINSKO-RDECA",
+        "MAT-PAP-BAR-KARMIN-RDECA",
+        "MAT-PAP-BAR-RDECA",
+        "MAT-PAP-BAR-KORUZNO-RUMENA",
+        "MAT-PAP-BAR-MARELICNA",
+        "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+        "MAT-PAP-BAR-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "strukturno bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "variantName": "svetlo rjava",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "svetlo rjava"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "temno rjava"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "rjava"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "lila"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "vijoličasta"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-CRNA",
+          "variantName": "črna",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "črna"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "siva"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "roza"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "temno lila"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "travno zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "temno zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "svetlo zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "oranžna"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "nebesno modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "kalifornijsko modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "svetlo modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "temno rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "vinsko rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "karmin rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RDECA",
+          "variantName": "rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "koruzno rumena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "marelična"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "intenzivno rumena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "130 g/m²",
+            "Barva": "rumena"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "gerstaecker-ursus-white",
+          "url": "https://images.gerstaecker.de/out/pictures/generated/1500_1500/309713/URSUS%C2%AE+Tonpapier+und+Fotokarton%2C+130+g%2Fqm%2C+10+Bogen%2C+Hochwei%C3%9F.jpg",
+          "path": "tmp/product-image-audit/paper-v5/gerstaecker-ursus-white.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 16642,
+          "sha256": "d9c9b51de6496c2d6ddd2c562aae31f1094a8429ff8d477625972a90b1c911e0",
+          "reason": "1500square derivative containing small flat white outlined rectangle; no real photographed surface detail and extensive padding."
+        },
+        {
+          "name": "gerstaecker-ursus-main",
+          "url": "https://images.gerstaecker.de/out/pictures/generated/1500_1500/369845/URSUS%C2%AE+Tonpapier+und+Fotokarton.jpg",
+          "path": "tmp/product-image-audit/paper-v5/gerstaecker-ursus-main.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 27903,
+          "sha256": "749533f2e8c1aebfcd63adbd644b4286754e11722a85148c9d1c8ff84b67a14f",
+          "reason": "1500square derivative with only a tiny ~450pixel colour fan inside excessive white padding. Mixed colour fan cannot identify each sold variant."
+        },
+        {
+          "name": "creativ-paper-grey",
+          "url": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/CFO6784_Tonpapier_50x70cm_Steingrau.jpg",
+          "path": "tmp/product-image-audit/paper-v5/creativ-paper-grey.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 58241,
+          "sha256": "d32413548435546720a8203087bc5a09dfaffa5c0a909a39bd25f5ae6e2e9277",
+          "reason": "1500square flat pack artwork/colour swatch with pasted10-sheet Folia label; real texture and exact sold grey shade not established."
+        },
+        {
+          "name": "lms-black-detail",
+          "url": "https://www.lms.de/media/image/64/dd/76/21310001_21311001_21315001_21316001.jpg",
+          "path": "tmp/product-image-audit/paper-v5/lms-black-detail.jpg",
+          "width": 827,
+          "height": 872,
+          "bytes": 71392,
+          "sha256": "80716198078e9b647f6bfa9030c2cdc2646d770c31bce3418e5c83cc6e117d3b",
+          "reason": "827×872; fails native minimum."
+        },
+        {
+          "name": "lms-black-main",
+          "url": "https://www.lms.de/media/image/7e/e3/74/21310001_21311001_21315001_21316001_a.jpg",
+          "path": "tmp/product-image-audit/paper-v5/lms-black-main.jpg",
+          "width": 2000,
+          "height": 1251,
+          "bytes": 446734,
+          "sha256": "d89e05fedd952565ff0490e826f84f5efae7b3f30ed73772a90eed2019a01099",
+          "reason": "2000×1251 colour chart, not a photograph of a sheet; no exact per-variant surface view."
+        },
+        {
+          "name": "lms-black-extra",
+          "url": "https://www.lms.de/media/image/73/73/1b/21310001_21311001.jpg",
+          "path": "tmp/product-image-audit/paper-v5/lms-black-extra.jpg",
+          "width": 2000,
+          "height": 1251,
+          "bytes": 446817,
+          "sha256": "da151a4cec6df19ce3fb83ad4fd9f79329309aa67478399aa30c521e87c89ce3",
+          "reason": "Same2000×1251 colour chart as main; not a real additional product angle."
+        },
+        {
+          "name": "brack-1408999-1",
+          "url": "https://assets.brack.ch/images2/5/6/7/227864765/227864765_xxl3.jpg",
+          "path": "tmp/product-image-audit/paper-v5/brack-1408999-1.jpg",
+          "width": 2547,
+          "height": 1069,
+          "bytes": 14197,
+          "sha256": "df3d2f1ffbc2846ab0701a94ec8c3ed33a72926764c82fb8f73feb6cab48903e",
+          "reason": "Native2547×1069 file contains only small labelled code13 colour swatch with excessive white padding. Does not supply full paper view or useful native detail."
+        },
+        {
+          "name": "brack-1409000-1",
+          "url": "https://assets.brack.ch/images2/9/2/8/227864829/227864829_xxl3.jpg",
+          "path": "tmp/product-image-audit/paper-v5/brack-1409000-1.jpg",
+          "width": 2547,
+          "height": 1069,
+          "bytes": 16328,
+          "sha256": "8940bc41009210dc06f156bab3663768f16766058dae677c41c86577bab4fbf1",
+          "reason": "Native2547×1069 file contains only small labelled code22 colour swatch with excessive white padding. Does not supply full paper view or useful native detail."
+        },
+        {
+          "name": "brack-1409001-1",
+          "url": "https://assets.brack.ch/images2/2/3/8/227864832/227864832_xxl3.jpg",
+          "path": "tmp/product-image-audit/paper-v5/brack-1409001-1.jpg",
+          "width": 2547,
+          "height": 1069,
+          "bytes": 34431,
+          "sha256": "a96f0e9bebb3ba820011038e747d15845d7de87b2b70d523b2537ca9b8d9a910",
+          "reason": "Native2547×1069 file contains only small labelled code31 colour swatch with excessive white padding. Does not supply full paper view or useful native detail."
+        },
+        {
+          "name": "brack-578839-1",
+          "url": "https://assets.brack.ch/images2/4/5/4/182405454/182405454_xxl3.jpg",
+          "path": "tmp/product-image-audit/paper-v5/brack-578839-1.jpg",
+          "width": 3000,
+          "height": 1888,
+          "bytes": 83088,
+          "sha256": "dcf8a3d7585ac695ab50c0c323b1ed0be331797decba39909c042b63332a5175",
+          "reason": "Native3000×1888, but lightgreen uses exactly the same photographed fan geometry as black with uniformly filled surface colour; independent genuine exact-colour photograph provenance is not established. Root agreed to exclude colourized supplier template set."
+        },
+        {
+          "name": "brack-578839-2",
+          "url": "https://assets.brack.ch/images2/6/5/4/182405456/182405456_xxl3.jpg",
+          "path": "tmp/product-image-audit/paper-v5/brack-578839-2.jpg",
+          "width": 3000,
+          "height": 1888,
+          "bytes": 132701,
+          "sha256": "8d24661c64aefdbdfa9ea3e510d2292ea97bf97414dde61c34caa70395bd2350",
+          "reason": "Native3000×1888, but lightgreen uses exactly the same stack-edge geometry as black with flat recoloured surface; genuine exact-colour photograph provenance is not established."
+        },
+        {
+          "name": "mag-green130-native",
+          "url": "https://mag-ag.ch/cdn/shop/files/URSUS-2232255-4008525709879.jpg?v=1750682435",
+          "path": "tmp/product-image-audit/paper-v5/mag-green130-native.jpg",
+          "width": 396,
+          "height": 337,
+          "bytes": 25104,
+          "sha256": "a64eb1a8050473f57133ba2db53e4805a4e068d9e6f4ac10d50a37cc055dc230",
+          "reason": "Untransformed Shopify original fails1024 minimum; displayed responsive width1946 is not proof of native dimensions."
+        },
+        {
+          "name": "mag-california130-native",
+          "url": "https://mag-ag.ch/cdn/shop/files/URSUS-2232235-4008525710004.jpg?v=1750682423",
+          "path": "tmp/product-image-audit/paper-v5/mag-california130-native.jpg",
+          "width": 395,
+          "height": 333,
+          "bytes": 19765,
+          "sha256": "165555b4247aebe676fcc8aef0d275407f67fde2a09e1acefcb29994d6d47ac2",
+          "reason": "Untransformed Shopify original fails1024 minimum; displayed responsive width1946 is not proof of native dimensions."
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+        "Brack black B2 source public product attributeValues exposes11colours; code55darkgreen and35California are absent. New source pages explicitly list actualxxl3 gallery image URLs; no guessed image paths. Codes13yellow,22rubyred,31lightblue are padded swatches, while51lightgreen reveals recoloured fan/edge templates shared withblack. MagAG untransformed original URSUS2232255/2232235 bytes checked separately."
+      ],
+      "missingViews": "Native sharp complete-sheet main plus genuinely useful surface/edge photographs for each sold variant remain missing."
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "grafopak-europapier-lightbox",
+          "url": "https://www.europapier.hr/_default_upload_bucket/3530411/image-thumb__3530411__lightbox/Grafopak%20GD2.1101235a.jpg",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-europapier-lightbox.jpg",
+          "width": 1184,
+          "height": 900,
+          "bytes": 35737,
+          "sha256": "1a5fc02bd910a33c58fae2daeeed881217144dfc5fffc924611ef53cdb4a3547",
+          "reason": "1184×900 derivative; low height and printed packaging rather than blank sheet."
+        },
+        {
+          "name": "grafopak-dealer-2",
+          "url": "https://bumaga--karton.ru/userfiles/clauses/large/415_karton-grafopak.png",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-dealer-2.png",
+          "width": 416,
+          "height": 416,
+          "bytes": 89128,
+          "sha256": "04bf113ce6f261a33b31fa595eaa8c469dfe2d4042e9e9a6681d8227505f5e9e",
+          "reason": "Native416square."
+        },
+        {
+          "name": "grafopak-dealer-1",
+          "url": "https://bumaga--karton.ru/userfiles/clauses/large/414_karton-grafopak.jpg",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-dealer-1.jpg",
+          "width": 1024,
+          "height": 665,
+          "bytes": 130261,
+          "sha256": "0231d2b5839fe171f6e1786c77d51c243eff7eb6d7f16592eb36ec3f80744f76",
+          "reason": "Native1024×665; insufficient height."
+        },
+        {
+          "name": "grafopak-dealer-3",
+          "url": "https://bumaga--karton.ru/userfiles/clauses/large/416_karton-grafopak.png",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-dealer-3.png",
+          "width": 1200,
+          "height": 900,
+          "bytes": 1548587,
+          "sha256": "1af24d3d5b78f1e1414421f72d0f3a7155c34983d68f09fa7928ae24f8250244",
+          "reason": "Native1200×900; insufficient height."
+        },
+        {
+          "name": "grafopak-europapier-native",
+          "url": "https://www.europapier.hr/_default_upload_bucket/Grafopak%20GD2.jpg",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-europapier-native.jpg",
+          "width": 4062,
+          "height": 3086,
+          "bytes": 1450071,
+          "sha256": "dddb7895b73486541b5d3195185f879e651b11c494ab5904da8ea27187f2f6e5",
+          "reason": "Native file4062×3086 is visually enlarged low-detail pink printed/folded packaging, not blank350gsm A3/A4 Grafopak sheet. Rejected after full-resolution visual inspection."
+        },
+        {
+          "name": "grafopak-europapier-second",
+          "url": "https://www.europapier.hr/_default_upload_bucket/Grafopak%20GD2_1.jpg",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-europapier-second.jpg",
+          "width": 4062,
+          "height": 3086,
+          "bytes": 1450071,
+          "sha256": "dddb7895b73486541b5d3195185f879e651b11c494ab5904da8ea27187f2f6e5",
+          "reason": "Identical SHA to rejected4062×3086 printed/folded pink package source; not blank350gsmA3/A4."
+        },
+        {
+          "name": "grafopak-russian-detail1",
+          "url": "https://bumaga--karton.ru/userfiles/editor/before_price/417_mm_grafopak.jpg",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-russian-detail1.jpg",
+          "width": 450,
+          "height": 390,
+          "bytes": 141761,
+          "sha256": "a6507d86015b82eda9e14f59c60ad53d9b25758e63af545877e9d4d3a26896fa",
+          "reason": "450×390 native source fails minimum."
+        },
+        {
+          "name": "grafopak-russian-detail2",
+          "url": "https://bumaga--karton.ru/userfiles/editor/before_price/418_karton_grafopak_2.png",
+          "path": "tmp/product-image-audit/paper-v5/grafopak-russian-detail2.png",
+          "width": 450,
+          "height": 360,
+          "bytes": 138666,
+          "sha256": "d575ee7d8e57c2b2247869302e184608988f42214deac51a23aeceac47acc840",
+          "reason": "450×360 native source fails minimum."
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/grafopak-polkarton-a3/",
+        "https://atehna.si/product/grafopak-polkarton-a4/"
+      ],
+      "missingViews": "Native sharp complete-sheet main plus genuinely useful surface/edge photographs for each sold variant remain missing."
+    },
+    {
+      "slug": "fotokarton",
+      "itemName": "Fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-CRNA",
+        "MAT-PAP-FOT-SREBRNA",
+        "MAT-PAP-FOT-SIVA",
+        "MAT-PAP-FOT-ZLATA",
+        "MAT-PAP-FOT-SVETLO-RJAVA",
+        "MAT-PAP-FOT-RJAVA",
+        "MAT-PAP-FOT-VIJOLICASTA",
+        "MAT-PAP-FOT-LILA",
+        "MAT-PAP-FOT-TEMNO-ZELENA",
+        "MAT-PAP-FOT-ZELENA",
+        "MAT-PAP-FOT-ORANZNA",
+        "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+        "MAT-PAP-FOT-MODRA",
+        "MAT-PAP-FOT-TEMNO-MODRA",
+        "MAT-PAP-FOT-TEMNO-RDECA",
+        "MAT-PAP-FOT-RDECA",
+        "MAT-PAP-FOT-KORUZNO-RUMENA",
+        "MAT-PAP-FOT-MARELICNA",
+        "MAT-PAP-FOT-RUMENA",
+        "MAT-PAP-FOT-BELA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-FOT-CRNA",
+          "variantName": "črna",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "črna"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-SREBRNA",
+          "variantName": "srebrna",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "srebrna"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-SIVA",
+          "variantName": "siva",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "siva"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ZLATA",
+          "variantName": "zlata",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "zlata"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-SVETLO-RJAVA",
+          "variantName": "svetlo rjava",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "svetlo rjava"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RJAVA",
+          "variantName": "rjava",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "rjava"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-VIJOLICASTA",
+          "variantName": "vijoličasta",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "vijoličasta"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-LILA",
+          "variantName": "lila",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "lila"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-ZELENA",
+          "variantName": "temno zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "temno zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ZELENA",
+          "variantName": "zelena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "zelena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-ORANZNA",
+          "variantName": "oranžna",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "oranžna"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+          "variantName": "kraljevsko modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "kraljevsko modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-MODRA",
+          "variantName": "modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-MODRA",
+          "variantName": "temno modra",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "temno modra"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-TEMNO-RDECA",
+          "variantName": "temno rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "temno rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RDECA",
+          "variantName": "rdeča",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "rdeča"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "koruzno rumena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-MARELICNA",
+          "variantName": "marelična",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "marelična"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-RUMENA",
+          "variantName": "rumena",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "rumena"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-FOT-BELA",
+          "variantName": "bela",
+          "specifications": {
+            "Format": "B2",
+            "Gramatura": "300 g/m²",
+            "Barva": "bela"
+          }
+        }
+      ],
+      "accepted": [
+        {
+          "id": "fotokarton-beli-b2-300-kurth-v5",
+          "slug": "fotokarton",
+          "variantSkus": [
+            "MAT-PAP-FOT-BELA"
+          ],
+          "variantNames": [
+            "bela"
+          ],
+          "blobUrl": "/images/catalog/2026-09/fotokarton-beli-b2-300-kurth-v5.jpg",
+          "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-weiss-300-g-m2-50-x-70-cm/013000",
+          "sourceUrl": "https://jetzt-kommt-kurth.de/media/bc/dd/25/1612290412/picA013000-1_XL.jpg",
+          "imageUrl": "https://jetzt-kommt-kurth.de/media/bc/dd/25/1612290412/picA013000-1_XL.jpg",
+          "sha256": "ae6159f044d9c384eba7692cab2b45fb52ed33f52e8ba33ebbd47482cbcdefaa",
+          "width": 3000,
+          "height": 3000,
+          "dimensions": {
+            "width": 3000,
+            "height": 3000
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "whole-sheet-front",
+          "altText": "Beli fotokarton B2, 300 g/m² — celoten pogled na list. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Original ATEHNA and canonical MAT-PAP-FOT-BELA explicitly specify ordinary bela,300g/m² Fotokarton,B2. Source page independently specifies weiß,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+          "review": {
+            "exactIdentity": "Original ATEHNA and canonical MAT-PAP-FOT-BELA explicitly specify ordinary bela,300g/m² Fotokarton,B2. Source page independently specifies weiß,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+            "quality": "Unchanged native3000×3000 supplier /media original. Whole foreground sheet visible on clean white background, natural curvature and surface lighting, defined edges, no people or body parts. Original bytes and colours preserved; no resizing, padding, recolouring or geometry changes. One photograph only per exact colour, not counted as multiple angles.",
+            "independentRootReview": "Root independently viewed both white and black originals; entire foreground sheet/all corners visible, natural curvature and surface lighting, no humans. Ordinarywhite/black only approved after explicit DIN B2 and importer-derived707 provenance check."
+          },
+          "formatEvidence": {
+            "originalSourcePage": "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/",
+            "originalFormat": "B2",
+            "supplierFormat": "DIN B2 (ca.50×70cm)",
+            "supplierPublishedDimensionsMm": [
+              500,
+              700
+            ],
+            "canonicalDimensionsMm": [
+              500,
+              707
+            ],
+            "canonicalDimensionProvenance": "tmp/catalog-import/research-audit.mjs:5,11-14",
+            "specificationsModified": false
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja po listih; dodatni prikazani listi niso vključeni."
+        },
+        {
+          "id": "fotokarton-crni-b2-300-kurth-v5",
+          "slug": "fotokarton",
+          "variantSkus": [
+            "MAT-PAP-FOT-CRNA"
+          ],
+          "variantNames": [
+            "črna"
+          ],
+          "blobUrl": "/images/catalog/2026-09/fotokarton-crni-b2-300-kurth-v5.jpg",
+          "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-schwarz-300-g-m2-50-x-70-cm/013090",
+          "sourceUrl": "https://jetzt-kommt-kurth.de/media/bf/4a/ab/1612337365/picA013090-1_XL.jpg",
+          "imageUrl": "https://jetzt-kommt-kurth.de/media/bf/4a/ab/1612337365/picA013090-1_XL.jpg",
+          "sha256": "a51fd7eca4670578fe402b39c87261100c3c68f9d7bd2f4b8b0f155ee1eaafd7",
+          "width": 3000,
+          "height": 3000,
+          "dimensions": {
+            "width": 3000,
+            "height": 3000
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "whole-sheet-front",
+          "altText": "Črni fotokarton B2, 300 g/m² — celoten pogled na list. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Original ATEHNA and canonical MAT-PAP-FOT-CRNA explicitly specify ordinary črna,300g/m² Fotokarton,B2. Source page independently specifies schwarz,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+          "review": {
+            "exactIdentity": "Original ATEHNA and canonical MAT-PAP-FOT-CRNA explicitly specify ordinary črna,300g/m² Fotokarton,B2. Source page independently specifies schwarz,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+            "quality": "Unchanged native3000×3000 supplier /media original. Whole foreground sheet visible on clean white background, natural curvature and surface lighting, defined edges, no people or body parts. Original bytes and colours preserved; no resizing, padding, recolouring or geometry changes. One photograph only per exact colour, not counted as multiple angles.",
+            "independentRootReview": "Root independently viewed both white and black originals; entire foreground sheet/all corners visible, natural curvature and surface lighting, no humans. Ordinarywhite/black only approved after explicit DIN B2 and importer-derived707 provenance check."
+          },
+          "formatEvidence": {
+            "originalSourcePage": "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/",
+            "originalFormat": "B2",
+            "supplierFormat": "DIN B2 (ca.50×70cm)",
+            "supplierPublishedDimensionsMm": [
+              500,
+              700
+            ],
+            "canonicalDimensionsMm": [
+              500,
+              707
+            ],
+            "canonicalDimensionProvenance": "tmp/catalog-import/research-audit.mjs:5,11-14",
+            "specificationsModified": false
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja po listih; dodatni prikazani listi niso vključeni."
+        }
+      ],
+      "rejections": [
+        {
+          "name": "dasbasteln-white-card",
+          "url": "https://www.dasbasteln.de/wp-content/uploads/2019/07/fotokarton300gweiss1615602.jpg",
+          "path": "tmp/product-image-audit/paper-v5/dasbasteln-white-card.jpg",
+          "width": 100,
+          "height": 100,
+          "bytes": 5640,
+          "sha256": "2c7bb78f56624deabe983a5adb03227e316a3822dab5b23b8c3d35ff8bae642e",
+          "reason": "Native 100×100 only."
+        },
+        {
+          "name": "spielheld-white-card",
+          "url": "https://www.spielheld.de/out/pictures/master/product/1/spielheld-folia-fotokarton-weiss.jpg",
+          "path": "tmp/product-image-audit/paper-v5/spielheld-white-card.jpg",
+          "width": 1280,
+          "height": 960,
+          "bytes": 50830,
+          "sha256": "9a222d872032c01f3c3e71c02e5a2bb70634ce9616073eb1d1b50e5d5caf78fc",
+          "reason": "Native 1280×960; height below1024."
+        },
+        {
+          "name": "morger-black-native",
+          "url": "https://www.morger.ch/wp-content/uploads/2023/12/URSUS-3882290-4008525184706.jpg",
+          "path": "tmp/product-image-audit/paper-v5/morger-black-native.jpg",
+          "width": 600,
+          "height": 400,
+          "bytes": 82882,
+          "sha256": "6e24d869387251fa43e9865806ddd07ee4787735665d9844b57056310db5ba54",
+          "reason": "600×400 native; fails minimum."
+        },
+        {
+          "name": "kreativ-black300-original",
+          "url": "https://www.kreativ-depot.de/media/image/7d/09/39/fotokarton-50x70cm-schwarz5711073f0542c.jpg",
+          "path": "tmp/product-image-audit/paper-v5/kreativ-black300-original.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 14702,
+          "sha256": "2a5665066c014742398f97305de3341b175eeaf7942ee5cafa9ed41a47c5fe5b",
+          "reason": "800×800 native source fails minimum."
+        },
+        {
+          "name": "maru-white300-original",
+          "url": "https://maru-versand.de/media/image/product/12639/lg/fotokarton-50x70-300g-1bg-weiss.jpg",
+          "path": "tmp/product-image-audit/paper-v5/maru-white300-original.jpg",
+          "width": 1024,
+          "height": 768,
+          "bytes": 15892,
+          "sha256": "4c0b1fa52e9d061826313edd03ba62dd39fec69cc7ab84628e247a26ad25cf71",
+          "reason": "1024×768 native source fails minimum height."
+        },
+        {
+          "name": "timetex-white300-main",
+          "url": "https://www.timetex.com/media/3a/d2/79/1772153605/95021-3_BB90903D54304A68883D56F0A2C95E6D.jpg?ts=1772153612",
+          "path": "tmp/product-image-audit/paper-v5/timetex-white300-main.jpg",
+          "width": 708,
+          "height": 1000,
+          "bytes": 450549,
+          "sha256": "9714f84f2cc90474c84c96872d874a84acbadb9d964b8559f1370219ef1fe063",
+          "reason": "708×1000 native original fails minimum;1920 thumbnail paths do not establish original resolution."
+        },
+        {
+          "name": "timetex-white300-second",
+          "url": "https://www.timetex.com/media/9c/fe/5c/1772153606/95021-2_B04291962ED248D5AC9AF1F2E7FC8866.jpg?ts=1772153612",
+          "path": "tmp/product-image-audit/paper-v5/timetex-white300-second.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 356742,
+          "sha256": "f4844e873120517bd8b1fe235a1d325588c0ffc74552c01f8bafac26053f2070",
+          "reason": "800×800 native original fails minimum."
+        },
+        {
+          "name": "timetex-white300-third",
+          "url": "https://www.timetex.com/media/a7/14/f1/1772153607/95021-_6382F69D6D3840168A7279101049E363.jpg?ts=1772153607",
+          "path": "tmp/product-image-audit/paper-v5/timetex-white300-third.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 268400,
+          "sha256": "8811af36c562cb036d5e9756dc3a84c9b49cb516c2bc838aec6387d8769e5eac",
+          "reason": "800×800 native original fails minimum."
+        },
+        {
+          "name": "creativ-white300-main",
+          "url": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/CFO6100_Fotokarton_50x70cm_Weiss.jpg",
+          "path": "tmp/product-image-audit/paper-v5/creativ-white300-main.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 66470,
+          "sha256": "604fb7fbc220e469228738a54897ebd62dd6a5ddfbffe3017d01d2dddbb6ce00",
+          "reason": "1500×1500 flat white rectangle with pasted package label/shadow; no real surface/edge details, not a useful photographic original."
+        },
+        {
+          "name": "creativ-white300-second",
+          "url": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/Fotokarton_10er_Parent.jpg",
+          "path": "tmp/product-image-audit/paper-v5/creativ-white300-second.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 337948,
+          "sha256": "bd1e5d461d8517b866de3fe55a721ef10ef67f3df8d9a2233f58210a05703d48",
+          "reason": "1500×1500 promotional collage of multiple colours and finished school cones; not exact white sheet, contains large advertising text."
+        },
+        {
+          "name": "creativ-white300-third",
+          "url": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/CFO6190_Fotokarton_50x70cm_Imagebild_01.jpg",
+          "path": "tmp/product-image-audit/paper-v5/creativ-white300-third.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 83273,
+          "sha256": "a8a0b7d741c4a30ab6988e8e94a7ad37744fd23be9f92d8316947ecad38d5eb4",
+          "reason": "1500×1500 finished paper-house application alone is not an informative main of the plain sheet; no suitable source main available."
+        },
+        {
+          "name": "easyhobby-white300-original",
+          "url": "https://d2j6dbq0eux0bg.cloudfront.net/images/69673624/3201674520.jpg",
+          "path": "tmp/product-image-audit/paper-v5/easyhobby-white300-original.jpg",
+          "width": 1200,
+          "height": 1200,
+          "bytes": 36032,
+          "sha256": "6ff2e7e5a95f12359841c5e423035dc509349173aaf3bdf37a53a0db20101535",
+          "reason": "1200×1200 original contains a small outline rectangle/swatch with large empty padding; no sharp product material detail."
+        },
+        {
+          "name": "spielheld-silver300-main",
+          "url": "https://www.spielheld.de/out/pictures/master/product/1/fotokarton-silber-bastelkarton-spielheld-folia.jpg",
+          "path": "tmp/product-image-audit/paper-v5/spielheld-silver300-main.jpg",
+          "width": 1280,
+          "height": 960,
+          "bytes": 49012,
+          "sha256": "dcb2a3ea0be8ce4bb2a8255b1913d97651aa127c7b0c5d3a480d5de3547fb95c",
+          "reason": "1280×960 native fails minimum height."
+        },
+        {
+          "name": "spielheld-silver300-second",
+          "url": "https://www.spielheld.de/out/pictures/master/product/2/silber-fotokarton-basteln-kindergarten-weihnachten.jpg",
+          "path": "tmp/product-image-audit/paper-v5/spielheld-silver300-second.jpg",
+          "width": 1280,
+          "height": 960,
+          "bytes": 41844,
+          "sha256": "c4ab50fa66b14515f157388593127c83f6b730515d072c6b6cb1f8cb45da16f4",
+          "reason": "1280×960 native fails minimum height."
+        },
+        {
+          "name": "spielheld-silver300-third",
+          "url": "https://www.spielheld.de/out/pictures/master/product/3/kreativ-papier-bastelapier-diy-basteln-projekte-silber.jpg",
+          "path": "tmp/product-image-audit/paper-v5/spielheld-silver300-third.jpg",
+          "width": 1280,
+          "height": 960,
+          "bytes": 27492,
+          "sha256": "9ce400034bcec410bc81e0a1db1533716542a687995f05466c7d239cdd9444b7",
+          "reason": "1280×960 native fails minimum height."
+        },
+        {
+          "name": "thueringen-silver300-native",
+          "url": "https://www.buero-bedarf-thueringen.de/img/p/1/4/2/5/5/9/5/1425595.jpg",
+          "path": "tmp/product-image-audit/paper-v5/thueringen-silver300-native.jpg",
+          "width": 968,
+          "height": 579,
+          "bytes": 58966,
+          "sha256": "45f9905cb22e8f62db22215137f5255c4978504c43f502dd0ca170c46873754d",
+          "reason": "968×579 native source fails minimum."
+        },
+        {
+          "name": "winkler-white300-main",
+          "url": "https://www.winklerschulbedarf.com/images/items/raw/1_Produkt/4xxx/40235401_1_Fotokarton_300g_weiss.jpg",
+          "path": "tmp/product-image-audit/paper-v5/winkler-white300-main.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 25788,
+          "sha256": "b9e22064ae93ddc4b65ade0028718d80029ad6c81d53614bf30b706bd49bf232",
+          "reason": "Native800×800 fails1024px minimum on both axes."
+        },
+        {
+          "name": "winkler-white300-second",
+          "url": "https://www.winklerschulbedarf.com/images/items/raw/1_Produkt/4xxx/40235401_2_Fotokarton_300g_weiss.jpg",
+          "path": "tmp/product-image-audit/paper-v5/winkler-white300-second.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 12576,
+          "sha256": "e7a05d0aef78fce207a714f1afd47527c8e668ffc7e6182f7adf422d3e48bde5",
+          "reason": "Native800×800 fails1024px minimum on both axes."
+        },
+        {
+          "name": "merlin-white300-native",
+          "url": "https://www.my-merlin.shop/media/catalog/product/1/6/165_50_00_fotokarton-set200-20farben-300g-50x70cm.jpg",
+          "path": "tmp/product-image-audit/paper-v5/merlin-white300-native.jpg",
+          "width": 1200,
+          "height": 800,
+          "bytes": 72125,
+          "sha256": "075c75d515d506ff8e43f46c2fc66a19247b03fad34fcfbb16ede1e5d9b13d74",
+          "reason": "Native1200×800 fails1024px minimum on both axes."
+        },
+        {
+          "name": "als-white300-native",
+          "url": "https://als-verlag.de/wp-content/uploads/productImages/32.905/00_32.905.jpg",
+          "path": "tmp/product-image-audit/paper-v5/als-white300-native.jpg",
+          "width": 705,
+          "height": 705,
+          "bytes": 23231,
+          "sha256": "01ade89fdabbc28167740df003858542c648ec0b4f6ab4b20ebe1acabfaa2e45",
+          "reason": "Native705×705 fails1024px minimum on both axes."
+        },
+        {
+          "name": "kurth-white300-25-native",
+          "url": "https://jetzt-kommt-kurth.de/media/bb/a4/42/1771403549/picA0113000-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v5/kurth-white300-25-native.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 555421,
+          "sha256": "d367c4a0ee57695b59dd61fd7b877fc585860c3a5967f43a32f82d63973dcb70",
+          "reason": "Same photographed white sheet and stack as the accepted10-pack image, with only source framing/compression change; not a genuinely new viewing angle."
+        },
+        {
+          "name": "kurth-red300-native",
+          "url": "https://jetzt-kommt-kurth.de/media/b8/84/e5/1612290416/picA013020-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v5/kurth-red300-native.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 2677798,
+          "sha256": "eb35d3112ad90d080c80679b955f8d876093886467a7253c2586194c99ce7827",
+          "reason": "Native3000square and full framing available, but ordinary red stock/hue has not been independently matched to original ATEHNA shade. Held unaccepted; no colour substitution."
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/",
+        "Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report."
+      ],
+      "missingViews": "18 other exact300g B2 colour variants still need suitable whole-sheet sources. Accepted ordinarywhite/black each have one main only; each needs genuinely distinct rear/edge/surface photographs where useful."
+    },
+    {
+      "slug": "lepenka",
+      "itemName": "Lepenka",
+      "variantSkus": [
+        "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+        "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+        "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4",
+        "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+        "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+        "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "variantName": "Bela lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A3",
+            "Format": "A3",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "variantName": "Siva lepenka A2",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Siva lepenka A2",
+            "Format": "A2",
+            "Debelina": "0,7 mm",
+            "Barva": "Siva"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4",
+          "variantName": "Papir lepenka A4",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir lepenka A4",
+            "Format": "A4",
+            "Debelina": "0,8 mm"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "variantName": "Bela lepenka A4",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A4",
+            "Format": "A4",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "variantName": "1,2 mm B1",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Lepenka 1,2 mm B1",
+            "Format": "B1",
+            "Debelina": "1,2 mm"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "variantName": "Papir lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir lepenka A3",
+            "Format": "A3",
+            "Debelina": "0,8 mm"
+          }
+        }
+      ],
+      "accepted": [
+        {
+          "id": "lepenka-a4-08-pogled-mailshack-v5",
+          "slug": "lepenka",
+          "variantSkus": [
+            "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+          ],
+          "variantNames": [
+            "Papir lepenka A4"
+          ],
+          "blobUrl": "/images/catalog/2026-09/lepenka-a4-08-pogled-mailshack-v5.jpg",
+          "sourcePage": "https://www.mailshack.co.uk/a4-800-microns-08mm-greyboard",
+          "sourceUrl": "https://cdn.ecommercedns.uk/files/3/203003/1/1978071/greyboard-1.jpg",
+          "imageUrl": "https://cdn.ecommercedns.uk/files/3/203003/1/1978071/greyboard-1.jpg",
+          "sha256": "76b8dff3887cbba99b5e507492ca3e11b0a3e2978d8c5a2594b5241841d5eddc",
+          "width": 1500,
+          "height": 1500,
+          "dimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "complete-sheet-front",
+          "altText": "Lepenka A4, 0,8 mm — celoten pogled. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+          "review": {
+            "exactIdentity": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+            "quality": "Unchanged native1500×1500 original, SHA256 and full sharp decode verified. Real sheet fibres and crisp edges visible; clean white background, no people/body parts. Entire top sheet visible in main; detail independently shows straight surface and stacked edges. Existing Mailshack watermark preserved. Multiple pictured sheets explicitly disclosed as illustration; sold quantity remains individual sheet.",
+            "independentRootReview": "Root visually reviewed all three Mailshack originals, approved1(main) and3(surface/edge), excluded2 as repetitive."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja se posamezen list. Fotografija prikazuje več listov za ponazoritev površine in robov."
+        },
+        {
+          "id": "lepenka-a4-08-povrsina-rob-mailshack-v5",
+          "slug": "lepenka",
+          "variantSkus": [
+            "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+          ],
+          "variantNames": [
+            "Papir lepenka A4"
+          ],
+          "blobUrl": "/images/catalog/2026-09/lepenka-a4-08-povrsina-rob-mailshack-v5.jpg",
+          "sourcePage": "https://www.mailshack.co.uk/a4-800-microns-08mm-greyboard",
+          "sourceUrl": "https://cdn.ecommercedns.uk/files/3/203003/3/1978073/greyboard-3.jpg",
+          "imageUrl": "https://cdn.ecommercedns.uk/files/3/203003/3/1978073/greyboard-3.jpg",
+          "sha256": "e70b4eb303c9ce41d9201951f108e49d4f9b402994a817a9f03097f941c966e8",
+          "width": 1500,
+          "height": 1500,
+          "dimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "straight-surface-and-edges",
+          "altText": "Lepenka A4, 0,8 mm — površina in robovi. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+          "review": {
+            "exactIdentity": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+            "quality": "Unchanged native1500×1500 original, SHA256 and full sharp decode verified. Real sheet fibres and crisp edges visible; clean white background, no people/body parts. Entire top sheet visible in main; detail independently shows straight surface and stacked edges. Existing Mailshack watermark preserved. Multiple pictured sheets explicitly disclosed as illustration; sold quantity remains individual sheet.",
+            "independentRootReview": "Root visually reviewed all three Mailshack originals, approved1(main) and3(surface/edge), excluded2 as repetitive."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja se posamezen list. Fotografija prikazuje več listov za ponazoritev površine in robov."
+        }
+      ],
+      "rejections": [
+        {
+          "name": "kulricke-grey-a4",
+          "url": "https://www.kulricke.de/images/product_images/original_images/Graupappen-Karton-500gr-A4.jpg",
+          "path": "tmp/product-image-audit/paper-v5/kulricke-grey-a4.jpg",
+          "width": 1748,
+          "height": 1273,
+          "bytes": 315699,
+          "sha256": "503b2cea197edee1df41d494427bedaddb222d77dd399ce4ab16c9a5a747cf91",
+          "reason": "Exact A4/0.8mm commodity lead; native1748×1273, real texture but large promotional text across multiple sheets. Superseded by cleaner independently approved Mailshack photographs."
+        },
+        {
+          "name": "kniharka-white",
+          "url": "https://cdn.myshoptet.com/usr/www.kniharka.cz/user/shop/orig/2517-1_1mm-bilo-bila-lepenka.jpg?66d717f3",
+          "path": "tmp/product-image-audit/paper-v5/kniharka-white.jpg",
+          "width": 2312,
+          "height": 2312,
+          "bytes": 682345,
+          "sha256": "1140fc8e89b7d9aca171cb4bb11127e56250a4cff5fa11b5d4a65568ae69813a",
+          "reason": "Sharp native2312square white-board corner detail only; source0.8mm while white ATEHNA board thickness unspecified. No matching complete main or established specific board thickness."
+        },
+        {
+          "name": "mailshack-grey-2",
+          "url": "https://cdn.ecommercedns.uk/files/3/203003/2/1978072/greyboard-2.jpg",
+          "path": "tmp/product-image-audit/paper-v5/mailshack-grey-2.jpg",
+          "width": 1500,
+          "height": 1500,
+          "bytes": 156356,
+          "sha256": "7f457020f97a2bf27187ad92d6e4d14f9c4f693664cb5db6abf93cbe50c830d1",
+          "reason": "Same product but repetitive relative to approved complete main and straight surface/edge view; not counted as an additional informative angle."
+        },
+        {
+          "name": "allegro-grey12-original",
+          "url": "https://a.allegroimg.com/original/11426e/f1361a16444b92eb7dfc9445d2fc/Tektura-introligatorska-szara-1-2mm-B1-A4",
+          "path": "tmp/product-image-audit/paper-v5/allegro-grey12-original.jpg",
+          "width": 1400,
+          "height": 1179,
+          "bytes": 705690,
+          "sha256": "0f8a636e81eb3d811f94e2c2b3feb16b376b377a5aea00189cc944a93d06099e",
+          "reason": "Quality peer review passed at1400×1179, but source explicitly700×1000mmB1 conflicts with originalATEHNA707×1000mmB1. The originalATEHNA HTML and historical sourceDescription confirm707; no assumption of import normalization. Await matching stock evidence before use."
+        },
+        {
+          "name": "ebay-grey08-main",
+          "url": "https://i.ebayimg.com/images/g/gNwAAOSwPVBkDOGq/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-grey08-main.webp",
+          "width": 1459,
+          "height": 1377,
+          "bytes": 174228,
+          "sha256": "f9c4d20958c29bba7e6c849f751f55241c81340d89486063d1c26587ed1c82ae",
+          "reason": "1459×1377 advertising text obscures sheets; seller offers white-coated front/grey back in multiple thicknesses, not established as same plain greyA3/0.8 stock."
+        },
+        {
+          "name": "ebay-grey08-second",
+          "url": "https://i.ebayimg.com/images/g/bVIAAOSwQxNkDOCd/s-l1600.webp",
+          "path": "tmp/product-image-audit/paper-v5/ebay-grey08-second.webp",
+          "width": 1459,
+          "height": 1377,
+          "bytes": 114970,
+          "sha256": "cb0d2cce7cd5304174d7351aeb70c1d8bd2b2cee16345849985fecd10e60d478",
+          "reason": "1459×1377 has cropped rear sheets and white-coated front/grey back; ATEHNA genericA3/0.8 cannot be silently changed to a white-coated variant."
+        },
+        {
+          "name": "circle-grey08-original",
+          "url": "https://www.circle-pls.com/wp-content/uploads/2019/06/gry4.jpg",
+          "path": "tmp/product-image-audit/paper-v5/circle-grey08-original.jpg",
+          "width": 450,
+          "height": 270,
+          "bytes": 127243,
+          "sha256": "dc8893623aced52a69753f376f24b4e464eccbf9d3d41fac8d8067b66d4f9738",
+          "reason": "450×270 native A3/0.8greyboard photo fails minimum."
+        },
+        {
+          "name": "circle-grey08-detail",
+          "url": "https://www.circle-pls.com/wp-content/uploads/2019/11/010.jpg",
+          "path": "tmp/product-image-audit/paper-v5/circle-grey08-detail.jpg",
+          "width": 144,
+          "height": 144,
+          "bytes": 37671,
+          "sha256": "fb474f678eba6d9de4d7e9c08af570255ed5063d9bfd68b6bf406d9d65336785",
+          "reason": "144×144 native detail fails minimum."
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/bela-lepenka-a3/",
+        "https://atehna.si/product/siva-lepenka-a2/",
+        "https://atehna.si/product/papir-lepenka-a4/",
+        "https://atehna.si/product/bela-lepenka-a4/",
+        "https://atehna.si/product/lepenka-12-mm-b1/",
+        "https://atehna.si/product/papir-lepenka-a3/"
+      ],
+      "missingViews": "A4/0.8mm has complete main and distinct surface/edge view. Other5 variants still lack verified native full-sheet mains; do not apply A4 photos to other cuts/thicknesses."
+    },
+    {
+      "slug": "risalni-list",
+      "itemName": "Risalni list",
+      "variantSkus": [
+        "MAT-PAP-RIS-594x420-A2",
+        "MAT-PAP-RIS-297x210-A4",
+        "MAT-PAP-RIS-210x148-A5",
+        "MAT-PAP-RIS-420x297-A3"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-RIS-594x420-A2",
+          "variantName": "A2",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-297x210-A4",
+          "variantName": "A4",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-210x148-A5",
+          "variantName": "A5",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A5",
+            "Format": "A5"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-420x297-A3",
+          "variantName": "A3",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A3",
+            "Format": "A3"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "artmie-school-main",
+          "url": "https://artmie.si/cdn/shop/files/solski-papir-za-risanje-a4a3a2-20-kom-razlicni-for-si-mxh111-308-1.jpg?v=1778806648",
+          "path": "tmp/product-image-audit/paper-v5/artmie-school-main.jpg",
+          "width": 661,
+          "height": 500,
+          "bytes": 9068,
+          "sha256": "e0f3c1c037ec0eb9400a3bba8c58a851b01511dddc0a4148d9d072ce076787dc",
+          "reason": "661×500 native; fails minimum."
+        },
+        {
+          "name": "maar-drawing-a3-original",
+          "url": "https://papirnica.eu/cdn/shop/files/risalni-list-a1_d05a05f2-eeea-48b1-9875-a3dcd29a4224.jpg?v=1772226116",
+          "path": "tmp/product-image-audit/paper-v5/maar-drawing-a3-original.jpg",
+          "width": 480,
+          "height": 480,
+          "bytes": 6398,
+          "sha256": "5c644debffc3ca0e6d12f6b36593227c7f806a4a228a47d61d2eb7e2f2173a23",
+          "reason": "480×480 native drawing-paper original fails minimum."
+        }
+      ],
+      "evidence": [
+        "https://atehna.si/product/risalni-list-a2/",
+        "https://atehna.si/product/risalni-list-a3/",
+        "https://atehna.si/product/risalni-list-a5/",
+        "https://atehna.si/product/risalni-list-a3-2/"
+      ],
+      "missingViews": "Native sharp complete-sheet main plus genuinely useful surface/edge photographs for each sold variant remain missing."
+    }
+  ],
+  "evidenceFiles": [
+    "tmp/product-image-audit/paper-v5/pages.json",
+    "tmp/product-image-audit/paper-v5/probes.json",
+    "tmp/product-image-audit/paper-v5/muflon-media.json",
+    "tmp/product-image-audit/paper-v5/ursus-b2-media.json"
+  ],
+  "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json",
+  "mutationSummary": {
+    "acceptedAssetsAdded": 2,
+    "catalogRowsChanged": 0,
+    "canonicalRowsChanged": 0,
+    "runtimeFilesChanged": 0
+  },
+  "researchPassNotes": [
+    "2026-09-14: Root owns further barvni-papir research; this ledger preserves earlier findings and only appends new research for other five families.",
+    "B1dimension check found original ATEHNA explicitly707×1000mm; Allegro700×1000mm source was not accepted despite passing visual quality.",
+    "Accepted two untouched Kurth3000square originals for ordinarywhite/black300gsmB2 only; nominal DIN B2 comparison and importer-derived707 provenance explicitly recorded. No red or other colour assigned.",
+    "Brack high-resolution gallery expansion completed: native resolution alone was misleading. Three entries are heavily padded colour swatches; green demonstrates supplier colourized photograph template also shared by black. All held outside accepted[]; no new130gsm images accepted."
+  ]
+}

@@ -1,0 +1,1124 @@
+{
+  "version": 10,
+  "reviewedAt": "2026-09-14T15:51:47.059Z",
+  "status": "Accepted originals saved and verified in canonical, local and production; remaining gaps recorded.",
+  "policy": "Real unchanged source photographs, native1024 minimum on BOTH axes and useful clarity, exact model/variant, no humans, AI, local enlargement or added padding. Crops, rotations, mirrors and duplicate product captures are not counted as additional angles. Schematics unchanged.",
+  "scope": "Eight established product families; useful independent supplementary views. No runtime, canonical or database changes by this agent.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-2026-09.json",
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-switch-v4-2026-09.json",
+    "data/catalog/replacement-sources-supplemental-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "name": "Vibracijska žaga Proxxon DSH",
+      "variantSkus": [
+        "STR-VIB-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+          "imageType": "product",
+          "altText": "Proxxon DSH 28092 — celoten pogled s standardnim prozornim varovalom žaginega lista"
+        }
+      ],
+      "accepted": [
+        {
+          "id": "proxxon-dsh-delovno-obmocje-narzedzia-v10",
+          "slug": "vibracijska-zaga-proxxon-dsh",
+          "variantSkus": [
+            "STR-VIB-OSNOVNA-IZVEDBA"
+          ],
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "file": "public/images/catalog/2026-09/proxxon-dsh-delovno-obmocje-narzedzia-v10.png",
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-delovno-obmocje-narzedzia-v10.png",
+          "sourcePage": "https://www.narzedzia.pl/proxxon-dsh-pr28092,1716.html",
+          "sourceUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080_2.png",
+          "imageUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080_2.png",
+          "sha256": "7bfced5454208e18c7749bea6ede2e9847cc7ef6c4e447b8ba20b4e16969a9d4",
+          "bytes": 1545607,
+          "width": 1542,
+          "height": 1080,
+          "dimensions": {
+            "width": 1542,
+            "height": 1080
+          },
+          "sourceIdentityEvidence": "Retailer identifies Proxxon DSH PR28092. The photographed plate independently reads NO 28 092, 220–240 V, 145/205 W and 900/1400 min⁻¹. Yellow upper arm, green cast base, table, transparent standard blade guard, blade holder and switch housing match the retained full main. Manufacturer manual section 6.5 establishes the clear blade guard as standard equipment. Wood workpieces are demonstrative props and excluded in the visible caption.",
+          "sourceIdentityDocument": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf",
+          "originalBytes": true,
+          "untouchedOriginal": true,
+          "humanFree": true,
+          "noHumans": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "context",
+          "role": "detail",
+          "view": "Independent photograph demonstrating the DSH working area, guard and wooden cutouts; not counted as a new camera angle.",
+          "altText": "Primer uporabe – Proxxon DSH 28092: delovna miza, prozorno varovalo in rezanje. Prikazani leseni obdelovanci niso vključeni.",
+          "review": "Root and quality_validation independently inspected the full photograph; quality_validation also inspected a native unscaled 1050×580 crop for labels, guard, blade and woodgrain. Sharp natural detail and full working area; no people, altered product geometry, recolouring, added padding or local resampling. The downloaded merchant fullscreen original decodes1542×1080, despite its1550×1080 display-container URL. It is a distinct photograph, not a crop/rotation/mirror of the retained main. The camera/master source dimensions are not exposed; no evidence of a smaller interpolated source was found. No claim of pristine manufacturer camera-master access.",
+          "integration": "Append after existing main; preserve gallery main/order. This context photograph improves useful information without claiming a new viewing angle.",
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/7bfced5454208e18-proxxon-dsh-delovno-obmocje-narzedzia-v10.png",
+          "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/7bfced5454208e18-proxxon-dsh-delovno-obmocje-narzedzia-v10.png"
+        },
+        {
+          "id": "proxxon-dsh-miza-prilozena-oprema-narzedzia-v10",
+          "slug": "vibracijska-zaga-proxxon-dsh",
+          "variantSkus": [
+            "STR-VIB-OSNOVNA-IZVEDBA"
+          ],
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "file": "public/images/catalog/2026-09/proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png",
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png",
+          "sourcePage": "https://www.narzedzia.pl/proxxon-dsh-pr28092,1716.html",
+          "sourceUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080.png",
+          "imageUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080.png",
+          "sha256": "bbdf46462d784e057d4f74ea3eb868d9747f844d29a39c15a52802f56dbb6951",
+          "bytes": 796840,
+          "width": 1080,
+          "height": 1080,
+          "dimensions": {
+            "width": 1080,
+            "height": 1080
+          },
+          "sourceIdentityEvidence": "Exact Proxxon DSH PR28092 merchant product and matching yellow upper arm, green base, table, transparent guard, switch housing and model plate. Manufacturer DSH manual section 6.7.1.2 explicitly describes the supplied Allen key with T grip; section 6.6 documents the vacuum connection. Independent exact 28092 package list at Proxxontools.ro includes one T Allen key and one rubber vacuum-connection adapter, with no dealer-bundle indication. Bauhaus 28092/EAN4006274280922 and Globus 28092 likewise list the extraction adapter in standard delivery. These photographed parts are standard machine equipment, not an inferred dealer-only bundle.",
+          "sourceIdentityDocument": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf",
+          "additionalIdentitySources": [
+            "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+            "https://www.bauhaus.info/proxxon-dekupiersaege-no-28092/p/20168119",
+            "https://www.globus-baumarkt.de/p/proxxon-2-gang-dekupiersaege-dsh-0761100081/"
+          ],
+          "originalBytes": true,
+          "untouchedOriginal": true,
+          "humanFree": true,
+          "noHumans": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "Independent photograph of the unobstructed full table and separate standard T-key and vacuum adapter; useful component information, not counted as a new camera angle.",
+          "altText": "Proxxon DSH 28092 — celotna delovna miza s priloženim T-ključem in nastavkom za odsesavanje.",
+          "review": "Root and quality_validation independently inspected the native photograph and approved full product framing, clear table, guard and separate components. Sharp useful labels and edge detail; no humans, locally added padding, local enlargement or altered product. Downloaded source decodes 1080×1080 and is copied unchanged. It is a separate photograph from the retained main and accepted wood context. Merchant source is the largest exposed fullscreen image; camera-master dimensions are not exposed and no source-upscaling evidence was found. Similar front/three-quarter viewpoint is explicitly not claimed as another viewing angle.",
+          "integration": "Append after existing main and the reviewed context image; preserve existing main and remaining gallery order.",
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/bbdf46462d784e05-proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png",
+          "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/bbdf46462d784e05-proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png"
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "dsh-official-detail2",
+          "url": "https://www.proxxon.com/de/images/produkte/28092_2.png",
+          "sourcePage": "https://www.proxxon.com/de/micromot/28092.php",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-official-detail2.png",
+          "bytes": 13524,
+          "sha256": "1168a797288e9f7b367a2ac0d865112c95b7c5e216474cbd08a987c20daceddb",
+          "width": 180,
+          "height": 201,
+          "format": "png",
+          "result": "Native180×201 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-official-detail3",
+          "url": "https://www.proxxon.com/de/images/produkte/28092_3.png",
+          "sourcePage": "https://www.proxxon.com/de/micromot/28092.php",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-official-detail3.png",
+          "bytes": 16851,
+          "sha256": "7c898e8f95af60c2a0c7d478f6a3a8fd207c73bf3495ff33781f99228bc338a7",
+          "width": 180,
+          "height": 201,
+          "format": "png",
+          "result": "Native180×201 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ro-2",
+          "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-2.jpg",
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ro-2.jpg",
+          "bytes": 46714,
+          "sha256": "723b4c08ad1d42fff00f3ba9386aa1c0ad8c2235277a94b02ea0182a61534372",
+          "width": 800,
+          "height": 615,
+          "format": "jpeg",
+          "result": "Native800×615 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ro-1",
+          "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-1.jpg",
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ro-1.jpg",
+          "bytes": 51846,
+          "sha256": "9d48b72563eeaf35cf854eac77de1c4205f77ee34ad321b20ffa7e922ac7f483",
+          "width": 800,
+          "height": 615,
+          "format": "jpeg",
+          "result": "Native800×615 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ro-0",
+          "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-5.jpg",
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ro-0.jpg",
+          "bytes": 56958,
+          "sha256": "86f564b3da075b6643ff89842167110f698837dda6845ec97ec5d8a7babdfeab",
+          "width": 800,
+          "height": 615,
+          "format": "jpeg",
+          "result": "Native800×615 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ro-3",
+          "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-3.jpg",
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ro-3.jpg",
+          "bytes": 75029,
+          "sha256": "6efedca6c7eeecca8f995000f0f9862e2307905fd15870dc857a13ddb5fb3b0f",
+          "width": 800,
+          "height": 615,
+          "format": "jpeg",
+          "result": "Native800×615 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ro-4",
+          "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-4.jpg",
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ro-4.jpg",
+          "bytes": 72624,
+          "sha256": "1797620962baf1bb8e49ae6d2c708ba320f4b1aa31398a92dce505252fd38f90",
+          "width": 800,
+          "height": 615,
+          "format": "jpeg",
+          "result": "Native800×615 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-4",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/103-3_proxxon_28092.jpg?ae71c",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-4.jpg",
+          "bytes": 15776,
+          "sha256": "78b9e64203db1e85ab9ad051fe286b730eff6188245446e0f7d9a3c202add50f",
+          "width": 544,
+          "height": 422,
+          "format": "jpeg",
+          "result": "Native544×422 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-5",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/104-3_proxxon_28092.jpg?3a142",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-5.jpg",
+          "bytes": 18298,
+          "sha256": "61f5da78cbb1952bfa5b19459a3d0085d1dedec24da972a59b1d3b1f271c706d",
+          "width": 588,
+          "height": 393,
+          "format": "jpeg",
+          "result": "Native588×393 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-6",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/105-3_proxxon_28092.jpg?fd272",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-6.jpg",
+          "bytes": 16787,
+          "sha256": "9c349dba050743381660292dadfa7543b50c6d2d105a40036541c67072a14afb",
+          "width": 544,
+          "height": 318,
+          "format": "jpeg",
+          "result": "Native544×318 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-2",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/74-3_proxxon_28092.jpg?613af",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-2.jpg",
+          "bytes": 51999,
+          "sha256": "ff991a546c3cca423e2afbe5c06ce8c06881618ec3348e0d42a74c62b17df7e2",
+          "width": 995,
+          "height": 576,
+          "format": "jpeg",
+          "result": "Native995×576 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-3",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/75-3_proxxon_28092.jpg?8458d",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-3.jpg",
+          "bytes": 46983,
+          "sha256": "a0d157939adfec96f68a3f5623922e646eb85a9de8ddae784f5cefdf578da897",
+          "width": 995,
+          "height": 576,
+          "format": "jpeg",
+          "result": "Native995×576 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-1",
+          "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/9-3_28092_proxxon.jpg?9181d",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-1.jpg",
+          "bytes": 63217,
+          "sha256": "6174f080cbe49639f5704db9ef16b25e9aa2d004005147d5f7d1ec99341f92fa",
+          "width": 995,
+          "height": 576,
+          "format": "jpeg",
+          "result": "Native995×576 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-ua-0",
+          "url": "https://proxxon.in.ua/uploads_shop/prods/4-3_dsh_proxxon_28092.jpg?85526",
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-ua-0.jpg",
+          "bytes": 126064,
+          "sha256": "25f7285f050f82ff06187faa3658392669901f47d77421dd15620332f6c4cfbe",
+          "width": 1024,
+          "height": 1024,
+          "format": "jpeg",
+          "result": "Full front photograph largely repeats the retained main information and omits the standard guard. Not selected as an independent informative supplement."
+        },
+        {
+          "id": "dsh-reichelt-image",
+          "url": "https://cdn-reichelt.de/bilder/web/xxl_ws/D330/PROXXON28092.png",
+          "sourcePage": "https://www.reichelt.com/gb/en/2-speed-scroll-saw-dsh-proxxon-28092-p38339.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-reichelt-image.png",
+          "bytes": 200089,
+          "sha256": "db02e5b01f6e34f243f0520cb123e9c26dc80b308b129b5ea52c2eaa1af795b4",
+          "width": 977,
+          "height": 733,
+          "format": "png",
+          "result": "Native977×733 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "dsh-official-large",
+          "url": "https://www.proxxon.com/de/images/produkte/lightbox/28092.png",
+          "sourcePage": "https://www.proxxon.com/de/micromot/28092.php",
+          "status": 200,
+          "file": "tmp/known-products-v10/dsh-official-large.png",
+          "bytes": 133980,
+          "sha256": "ef218e0c5afed1af6f85d2dce988bd44234947ab76fef9b279c99eb32820966c",
+          "width": 1024,
+          "height": 600,
+          "format": "png",
+          "result": "Native1024×600 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.proxxon.com/de/micromot/28092.php",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/proxxon-official.html",
+          "sha256": "ddf3f5b689bbbef096a3a22c4a81cf139766958604b6f6a61a02a97397e22dd3",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.motormarket.fi/koneet/2-nopeuksinen-kuviosaha-dsh/p/28092/",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/proxxon-motormarket.html",
+          "sha256": "746cd0a5c92ca4b096411502cdf945a1702b296860730d5cffcec4604291843c",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.conrad.de/de/p/proxxon-micromot-dsh-28092-dekupiersaege-205-w-2-gang-804577.html",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/dsh-conrad.html",
+          "sha256": "3770e969d95e99fbe0d59ab3e82434ea8eeaf87f2bd1c71992292337fff0227e",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.proxxon.com/en/pdf/28092.pdf",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-official-pdf.pdf",
+          "sha256": "c9f049672dec3d8bdc8d54f7865689041b0b3eadec923a327daa770e5abc7a9d",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.minitools.ro/home/525-28092-fierastrau-traforaj-electric-proxxon-dsh.html",
+          "status": 404,
+          "evidence": "tmp/known-products-v10/dsh-minitools.html",
+          "sha256": "7708d7ea804146f629cae4316050d5090a939a66818f6aababb2240960d005af",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-proxxonua.html",
+          "sha256": "faea19d0c2b30446b13daafa531fd5568ab2bd8ad89b7c28590f300cbc0a8cde",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-proxxonro.html",
+          "sha256": "2c74668d23318da6df546430c4646b1dacc026c35119e008617adb16f8489de1",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/291522741506",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/dsh-rdg-ebay.html",
+          "sha256": "17692e61708d90456b62028428a07c1fd7ebdda4011b24a0521a48e7a2693f68",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.narzedzia.pl/proxxon-dsh-pr28092,1716.html",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-narzedzia.html",
+          "sha256": "04af733c650abd257da8899dbb4241cbae64a63253a59743f90fa498eea005e2",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://swiatnarzedzi.pl/pl/p/Wyrzynarka-stolowa-wlosowa-Proxxon-DSH-28092-precyzyjna-pilarka/12166",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-swiat.html",
+          "sha256": "0446a6029823cd0f87722011ccd0d957bb7cee482e3110da8a627d6795c62e84",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.rdgtools.co.uk/product/proxxon-dsh-2-speed-scroll-saw-28092/",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/dsh-rdg.html",
+          "sha256": "852c84aa05ca097141eab2d2c5ac0a41856757b9c3cab909e59b482aece968f2",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w0-h0_2.png",
+          "status": 404,
+          "evidence": "tmp/known-products-v10/dsh-narzedzia-large-request.html",
+          "sha256": "4efe63a5bafefb2d3a4251c7e3bf2c9b3e5ec6666ba799666c3a59a1feff939b",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6_2.png",
+          "status": 404,
+          "evidence": "tmp/known-products-v10/dsh-narzedzia-noresize.html",
+          "sha256": "7f895c6f6e1141545aa016d27b41d42045bd22c95799794945ec853777af5b8b",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/dsh-manual-au.pdf",
+          "sha256": "b7973f002d8f38ffe4bdadcb361b0276bf32239513b6ad5922faa276be56a2ba",
+          "result": "Manufacturer DSH manual, printed page15 section6.7.1.2, confirms supplied T-grip Allen key; sections6.5/6.6 document standard blade guard and vacuum connection."
+        }
+      ],
+      "missingViews": [
+        "Rear motor/connections",
+        "Table tilt adjustment",
+        "Blade holder close-up or top view"
+      ],
+      "status": "two-reviewed-supplements-staged",
+      "identityEvidence": "Exact Proxxon DSH28092/220–240V plate confirmed against current source model and retained machine geometry. Standard blade guard included per manufacturer manual.",
+      "findings": [
+        "Manufacturer inline detail photos are180×201; linked larger main1024×600. Extracted original rasters from official product PDF max863×679. No PDF rendering used to manufacture resolution.",
+        "Romanian exact-model five-image gallery originals all800×615. Ukrainian six additional images544–995px wide and318–576px high.",
+        "Narzedzia independent workpiece context1542×1080 accepted; native labels and woodgrain independently reviewed. Similar camera angle is described honestly as context, not new angle.",
+        "Second independently reviewed full-table photograph accepted because it reveals the unobstructed table and separate standard T-key/vacuum adapter. Standard T-key is explicit in manufacturer manual section6.7.1.2; adapter is independently listed in exact28092 delivery contents. No new-angle claim."
+      ]
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "name": "Digitalno pomično merilo",
+      "variantSkus": [
+        "MER-DIG-150-MM"
+      ],
+      "variantNames": [
+        "Digitalno pomično merilo, 150 mm"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo-delavnica.jpg",
+          "imageType": "context",
+          "altText": "Primer uporabe digitalnega pomičnega merila 150 mm na delovni mizi. Druga merila in orodja niso vključena."
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "caliper-metrotech-935035",
+          "url": "https://gomagcdn.ro/domains3/metrotech.ro/files/product/original/subler-digital-de-atelier-satra-150mm-rezolutie-0-01mm-afisaj-lcd-mare-copie-935035.jpg",
+          "sourcePage": "https://www.metrotech.ro/sublere/subler-digital-de-atelier-150mm-rezolutie-0-02-mm-otel-inoxidabil.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/caliper-metrotech-935035.jpg",
+          "bytes": 64837,
+          "sha256": "e8ea760fea8bc33d600d0cd92dbc64b2beb0ec7e953691a6ec30c8ffb34aba76",
+          "width": 550,
+          "height": 413,
+          "format": "jpeg",
+          "result": "Native550×413 fails both minimum axes; the illustrated black/gold scale and control layout differ from original ATEHNA/OPITEC silver-scale caliper."
+        },
+        {
+          "id": "caliper-metrotech-339026",
+          "url": "https://gomagcdn.ro/domains3/metrotech.ro/files/product/original/subler-digital-de-atelier-satra-150mm-rezolutie-0-01mm-afisaj-lcd-mare-copie-339026.jpg",
+          "sourcePage": "https://www.metrotech.ro/sublere/subler-digital-de-atelier-150mm-rezolutie-0-02-mm-otel-inoxidabil.html",
+          "status": 200,
+          "file": "tmp/known-products-v10/caliper-metrotech-339026.jpg",
+          "bytes": 246636,
+          "sha256": "7c2d023aefa5e0486c0bd83e947cdd7a4833ee1343646d04b9ee4e6867a9da34",
+          "width": 550,
+          "height": 413,
+          "format": "jpeg",
+          "result": "Native550×413 fails both minimum axes; black/gold scale/case version does not establish exact identity with the retained silver-scale caliper."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.opitec.com/de-de/digital-messschieber-150-mm/303773",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/caliper-opitec.html",
+          "sha256": "4c62a941b1f40cd068f49a201ed44489c80cf6aa39070299013b63a52c1b18a9",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.winklerschulbedarf.com/de/i/digital-schiebelehre-150-mm-200907",
+          "status": 500,
+          "evidence": "tmp/known-products-v10/caliper-winkler.html",
+          "sha256": "44d71786ff0a50facc5c7ee8d6c727b7c93e052306db62c2cc408684c1f08e6a",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.metrotech.ro/sublere/subler-digital-de-atelier-150mm-rezolutie-0-02-mm-otel-inoxidabil.html",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/caliper-metrotech.html",
+          "sha256": "ce84f0aed5d2efd1a4a9449df842ce9fbff0de41083ae939ce56323440e6a6fb",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Whole isolated exact caliper meeting both-axis minimum",
+        "Internal/external jaw detail",
+        "Display/control/rear/depth rod independent views"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "Original ATEHNA SKU32812; silver STAINLESS HARDENED150mm scale, black body with inch/mm blue, on/off red and zero yellow controls. Existing OPITEC303773 photograph established by original visual match.",
+      "findings": [
+        "Fresh OPITEC gallery still has only the isolated2560×857 image (too short) and the retained2560×2423 workshop photo.",
+        "New Metrotech dealer exposes two originals550×413; both undersized and black/gold scale version contradicts retained silver-scale identity. No generic150mm caliper substitution."
+      ]
+    },
+    {
+      "slug": "solska-tehtnica",
+      "name": "Šolska tehtnica",
+      "variantSkus": [
+        "MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG",
+        "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-MAX-2-KG",
+        "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-Z-UTEZMI-MAX-2-KG"
+      ],
+      "variantNames": [
+        "Tehtnica Wissner, kovinska - max 2 kg",
+        "Tehtnica Wissner, plastična - max 2 kg",
+        "Tehtnica Wissner, plastična, z utežmi – max 2 kg"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-65108-z-utezmi-v4.jpg",
+          "imageType": "product",
+          "altText": "Šolska tehtnica s plastičnim ohišjem — celoten pogled. Prikazane kovinske uteži so vključene samo pri izvedbi »plastična, z utežmi«. Barvne kocke niso vključene."
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-070110-v4.png",
+          "imageType": "product",
+          "altText": "Tehtnica Wissner 070110 — celoten pogled. Prikazane utežne kocke niso vključene."
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "scale-original2",
+          "url": "https://cdn.shopify.com/s/files/1/0649/0688/7411/files/Precision-School-Balance-with-Weights-3.webp?v=1764934793",
+          "sourcePage": "https://learningspace.co.uk/products/precision-school-balance-with-weights",
+          "status": 200,
+          "file": "tmp/known-products-v10/scale-original2.jpg",
+          "bytes": 80035,
+          "sha256": "d6ddd6009a276a6b211adefdde82db1f533f6aaa1b151f8d178de6604af455e1",
+          "width": 1000,
+          "height": 1000,
+          "format": "jpeg",
+          "result": "Native1000×1000 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        },
+        {
+          "id": "scale-hand2mind-native",
+          "url": "https://www.hand2mind.com/media/catalog/product/1/1/11bd706c46ca8512f2bbe2a20fc3bacd9607b5e0.jpg",
+          "sourcePage": "https://www.hand2mind.com/item/precision-school-balance",
+          "status": 200,
+          "file": "tmp/known-products-v10/scale-hand2mind-native.jpg",
+          "bytes": 70470,
+          "sha256": "ae2043622f33d66a8b23dcc040e6da9cfa2ed8591a89849af2b749ce2e59e1fa",
+          "width": 1000,
+          "height": 1000,
+          "format": "jpeg",
+          "result": "Native1000×1000 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://learningspace.co.uk/products/precision-school-balance-with-weights.js",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/scale-learningspace.html",
+          "sha256": "dc0cd7a9bbc9a9ced96960c3f72a213f2d098458d0333f494a4b35b996821cc1",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.zoro.com/learning-resources-precision-school-balance-with-weights-2420/i/G9400152/",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/scale-zoro.html",
+          "sha256": "23bd95288faf0891dfe3eeed9e03d5f9e65a08297686991905fb4b57c747f7dd",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://imgs.michaels.com/MAM/assets/1/4498F4AD976B45D3A3FA77D38829F622/img/9EBB68A72AE845B0BEB8174B26F32DB4/D205718S_4.jpg",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/scale-michaels-detail.html",
+          "sha256": "2bdff52ad321a31ad17280be0017d2f0f7b4c76eb647c3da5cd300509ec69dcc",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.hand2mind.com/item/precision-school-balance",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/scale-hand2mind.html",
+          "sha256": "18a663f86c2c082078aad84af4421a4d50b4401932296879af8aa704ce73977b",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.dkclassroomoutlet.com/precision-school-balance-w-weights",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/scale-dkoutlet.html",
+          "sha256": "c9a1416d77824272ddc11437316b4b1e2f618acb2c601948fc8f38c630937f77",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://shop.dkoutlet.com/media/catalog/product/L/E/LER2420_L.jpg",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/scale-dk-native.html",
+          "sha256": "a8d9ed5f211fd90557ac43e20c8917e8e6202b7c3bc0376b334447fe05891f6f",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/en/Balance/070110.000",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/scale-wissner-new.html",
+          "sha256": "df989bcb50e6848a8fac0479c11f603bfd8842daf2a4401d2be8a1808ff47acd",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Independent beam/zero adjustment detail",
+        "Weight compartment and underside",
+        "Rear view of each exact body"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "070110 maps Wissner gray-body scale;070112 and65108 share the reviewed red Learning Resources-style body, with accessory exclusions recorded in current captions. No brand/specification changes in this pass.",
+      "findings": [
+        "Current Wissner070110 gallery is unchanged from prior V4 audit: main already used, advertising/cropped variants, human/AI context and an undersized737×537 old original. Prior decisions retained without repeat downloads.",
+        "LearningSPACE public Shopify media lists five original images1000×1000; directly downloaded sample confirms1000×1000. Hand2mind source original also1000×1000.",
+        "Michaels and DKOutlet untransformed image requests unavailable via public403; no bypass. No qualifying new weight-compartment or adjustment photo obtained."
+      ]
+    },
+    {
+      "slug": "mekol",
+      "name": "Mekol",
+      "variantSkus": [
+        "MAT-LEP-MEK-EKSPRES-0P5-KG",
+        "MAT-LEP-MEK-1001-1-KG",
+        "MAT-LEP-MEK-LEPILO-ZA-LES-500-G",
+        "MAT-LEP-MEK-SPECIAL-0P5-KG",
+        "MAT-LEP-MEK-LEPILO-MEKOL-130G"
+      ],
+      "variantNames": [
+        "Mekol Ekspres 0,5 kg",
+        "Mekol 1001 - 1 kg",
+        "Mekol lepilo za les 500 g",
+        "Mekol Special - 0,5 kg",
+        "Lepilo Mekol - 130g"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-ekspres-500g-v2.jpg",
+          "imageType": "product",
+          "altText": "Mekol Ekspres 500 g – izvirna fotografija steklenice."
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-1001-1kg-izvirnik-v3.jpg",
+          "imageType": "product",
+          "altText": "Mekol 1001, 1 kg — celotna embalaža in oznake izdelka"
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-d3-500g-izvirnik-v3.png",
+          "imageType": "product",
+          "altText": "Mekol D3, 500 g — izvirni posnetek embalaže in oznak"
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-special-500g.png",
+          "imageType": "product",
+          "altText": "Mekol Special – steklenica 500 g"
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-130g.png",
+          "imageType": "product",
+          "altText": "Mekol – steklenica 130 g"
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/mekol-ekspres-nanos-v2.jpg",
+          "imageType": "context",
+          "altText": "Primer uporabe lepila Mekol Ekspres 500 g na lesenem spoju. Les in podlaga nista vključena."
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "mitol-old-special",
+          "url": "https://www.mitol.si/wp-content/uploads/2018/12/mekol-special.jpg",
+          "sourcePage": "https://www.mitol.si/products/mekol-special/",
+          "status": 200,
+          "file": "tmp/known-products-v10/mitol-old-special.jpg",
+          "bytes": 440336,
+          "sha256": "2b42554c95281b8cf4900976c0abf11614b93c026bad62a57f4efbd37113485b",
+          "width": 2000,
+          "height": 2000,
+          "format": "jpeg",
+          "result": "Older MEKOL SPECIAL label layout (large vertical MEKOL and yellow/red SPECIAL) conflicts with retained current label. Not a view of the exact pictured packaging revision."
+        },
+        {
+          "id": "mitol-context",
+          "url": "https://www.mitol.si/wp-content/uploads/2019/01/mekol-1.jpg",
+          "sourcePage": "https://www.mitol.si/wp-json/wp/v2/media?search=mekol&per_page=100",
+          "status": 200,
+          "file": "tmp/known-products-v10/mitol-context.jpg",
+          "bytes": 575276,
+          "sha256": "7aaa1e1bd93bb63b35672331603dbd833451c788a9403600fcd9fcff81e5510b",
+          "width": 2000,
+          "height": 1333,
+          "format": "jpeg",
+          "result": "Group photograph contains 5kg and15kg tubs plus older-label500g bottle. Extra products and old packaging do not give a useful exact current500g view."
+        },
+        {
+          "id": "mitol-diy",
+          "url": "https://www.mitol.si/wp-content/uploads/2019/01/diy-mekol.jpg",
+          "sourcePage": "https://www.mitol.si/wp-json/wp/v2/media?search=mekol&per_page=100",
+          "status": 200,
+          "file": "tmp/known-products-v10/mitol-diy.jpg",
+          "bytes": 1063297,
+          "sha256": "392673965d4f8f326ef6046062afd11b84f8c851ef87193950ad344749588ad8",
+          "width": 2000,
+          "height": 1333,
+          "format": "jpeg",
+          "result": "Crop of same older-label mixed-pack group as mitol-context. Not a new view and wrong packaging revision."
+        },
+        {
+          "id": "mitol-062018",
+          "url": "https://www.mitol.si/wp-content/uploads/2018/12/Mekol-062018.jpg",
+          "sourcePage": "https://www.mitol.si/wp-json/wp/v2/media?search=mekol&per_page=100",
+          "status": 200,
+          "file": "tmp/known-products-v10/mitol-062018.jpg",
+          "bytes": 3256934,
+          "sha256": "5b7e032b7e909bc6d4d2c6d48e4208c796040fbbc77f6661507717b2284ca0ef",
+          "width": 4128,
+          "height": 3096,
+          "format": "jpeg",
+          "result": "Photograph shows MEKOL Creative in an architectural model; this is a different formula/variant from the five sold Mekol variants."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.mitol.si/products/mekol-special/",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/mitol-special.html",
+          "sha256": "3f6e24a4a86ec396d592ca13fdf477b096cf5e2e9e2be6e63515729ac179f5de",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.mitol.si/wp-json/wp/v2/media?search=mekol&per_page=100",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/mitol-media-search.html",
+          "sha256": "3906e3e13dcf4986e9d9df0fd73bb6926811d1b6d34696229fb508630b9cacbe",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.mitol.si/wp-json/wp/v2/media?search=mekol&per_page=100&page=2",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/mitol-images-page2.html",
+          "sha256": "214e42d091290e96c8903bbac749754c32c8396359c8af33d18c692402c3330e",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.merkur.si/lepilo-za-les-mitol-mekol-ekspres-500-g/",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/mekol-ekspres-merkur.html",
+          "sha256": "86ff808873fe3682d1804591ac1cc7be210b5192f5896a85dd923be83f5c52ae",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.bauhaus.si/lepila-za-les/lepilo-za-les-mekol-special/p/20923530",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/mekol-special-bauhaus.html",
+          "sha256": "ecf7e8899256213e62d01af332ad80cc90e3f34c36684a83e5574d285152f938",
+          "result": "Public response unavailable; no access bypass attempted."
+        }
+      ],
+      "missingViews": [
+        "Readable rear label for each exact formula/pack",
+        "Open nozzle/cap detail",
+        "No-human exact current-product use views"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "Five distinct Mitol formulas/pack sizes mapped to exact current labels: Ekspres500g,1001 1kg,D3 500g,Special500g,universal130g.",
+      "findings": [
+        "Manufacturer public WordPress media searched across both pages:112 media records, including document records. Current product shots repeat existing front views; archived context images either show different formulas or older packaging/mixed packs.",
+        "Archived4000px current front masters do not constitute additional viewing angles.",
+        "Merkur Ekspres gallery exposes one front only; Bauhaus Special page unavailable via public403. No back labels, nozzle-open views or exact current no-human usage photos beyond retained Ekspres use image found."
+      ]
+    },
+    {
+      "slug": "uhu-kraft",
+      "name": "UHU Kraft",
+      "variantSkus": [
+        "MAT-LEP-UHU-KRA-ALLESKLEBER-42G"
+      ],
+      "variantNames": [
+        "UHU Kraft alleskleber - 42g"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+          "imageType": "product",
+          "altText": "UHU Kraft FlexTube, 42 g — celotna tuba in oznake izdelka"
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "uhu-native-official",
+          "url": "https://www.uhu.com/getmedia/189eedce-e726-4336-9f65-75e930923b11/4026700450408-UHU-AK-Kraft-FLEX-CL-42g-Tray-packshot-tube",
+          "sourcePage": "https://www.uhu.com/de-de/produkte/uhu-alleskleber-kraft-flex-tube-42-g-de",
+          "status": 200,
+          "file": "tmp/known-products-v10/uhu-native-official.png",
+          "bytes": 270945,
+          "sha256": "cdd4795a68419ec9de23b88d0fa2abad090f8898d35e04e81d0d056255b4c15a",
+          "width": 957,
+          "height": 1280,
+          "format": "png",
+          "result": "Native957×1280 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.uhu.com/de-de/kategorie/kraft-und-kontaktkleber",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/uhu-official-category.html",
+          "sha256": "c80ff7b289669831382bec403f4736ef487043fb4b7dcc8ea3c36de66aef5baf",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.uhu.com/de-de/produkte/uhu-alleskleber-kraft-flex-tube-42-g-de",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/uhu-42-official.html",
+          "sha256": "a094cc635ebbb5db40a33f9d6d887d3d87bffe3ad4711200df886607250374f4",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.vbs-hobby.at/uhu-alleskleber-kraft-42-g-a2563/",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/uhu-vbs.html",
+          "sha256": "e3920e1f0d3d7673cd3f328b7fc8fc44b05deb5336525f09176217349a7559d4",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.reidl.de/uhu-alleskleber-kraft-flex-clean-tube-42g-p200272",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/uhu-reidl.html",
+          "sha256": "ae2d318e3a55409bfb0215326402540904321d4d92d55b7ab82dcff0805c9cfe",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.mueller.de/p/uhu-alleskleber-kraft-flextube-5915/",
+          "status": 403,
+          "evidence": "tmp/known-products-v10/uhu-mueller.html",
+          "sha256": "32ed63159c77e21ee19ca1b9aa3213ccf0218eb59539560b132a8e68ef0e18ea",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://toom.de/p/alleskleber-kraft-flex-tube-42-g/8150308",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/uhu-toom-current.html",
+          "sha256": "43e5c18ffa85c95ccd6e729e6d27dd285d4d92c5e77c952f79e34863a02bf098",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Rear42g label",
+        "Cap/nozzle detail",
+        "No-human exact42g use photograph"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "UHU Kraft FlexTube42g; exact product45040/EAN4026700450408, distinct from18g,super andcontact formula.",
+      "findings": [
+        "Official raw getmedia source is957×1280, same front capture as better retained2000-square Toom original.",
+        "Current Toom gallery still exposes a single product capture; VBS gallery also only a front tube image, not independent cap/rear/use view.",
+        "Müller and Reidl public pages403. No generic UHU formula/pack-size substitution."
+      ]
+    },
+    {
+      "slug": "ploscata-baterija",
+      "name": "Ploščata baterija 4,5 V",
+      "variantSkus": [
+        "ELE-PLO-OSNOVNA"
+      ],
+      "variantNames": [
+        "Ploščata baterija 4.5 V"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/baterija-ploscata-45v-izvirnik.jpg",
+          "imageType": "product",
+          "altText": "Ploščata baterija OPITEC 4,5 V 3R12"
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "battery-2",
+          "url": "https://www.opitec.com/media/99/cc/21/1764756172/204019-000-000-vo-03a02-v-9.avif",
+          "sourcePage": "https://www.opitec.com/de-at/opitec-flachbatterie-4-5v/204019",
+          "status": 200,
+          "file": "tmp/known-products-v10/battery-2.heif",
+          "bytes": 83639,
+          "sha256": "a8ca6356a71ab99e6d9aa1e2d551a9711a8a61abb0a42b5345e59c105ac12002",
+          "width": 2560,
+          "height": 2560,
+          "format": "heif",
+          "result": "Front context photograph shows a worn battery with torn top label and bent contact ends on unrelated nail boxes. Not suitable representation of the new product; little independent construction information compared with retained front."
+        },
+        {
+          "id": "battery-0",
+          "url": "https://www.opitec.com/media/3c/8f/cd/1764756169/204019-000-000-vo-03-v-9.avif",
+          "sourcePage": "https://www.opitec.com/de-at/opitec-flachbatterie-4-5v/204019",
+          "status": 200,
+          "file": "tmp/known-products-v10/battery-0.heif",
+          "bytes": 74520,
+          "sha256": "e85b1fb7389a8897efa7478f61930fbc6ccf53c84f84935d5c08dda2cf3c9e01",
+          "width": 2463,
+          "height": 2560,
+          "format": "heif",
+          "result": "Same supplier front photograph already retained; AVIF encoding is not an additional view."
+        },
+        {
+          "id": "battery-1",
+          "url": "https://www.opitec.com/media/60/98/68/1764756171/204019-000-000-vo-03a01-v-9.avif",
+          "sourcePage": "https://www.opitec.com/de-at/opitec-flachbatterie-4-5v/204019",
+          "status": 200,
+          "file": "tmp/known-products-v10/battery-1.heif",
+          "bytes": 164721,
+          "sha256": "27a652018ffcac82ac2959d1e25b7b8663b577b7ae4f4ed13ff6e3fb422f8fa7",
+          "width": 1748,
+          "height": 2560,
+          "format": "heif",
+          "result": "Actual photo contains a child, face and hands; rejects no-humans requirement."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.opitec.com/de-at/opitec-flachbatterie-4-5v/204019",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/battery-opitec.html",
+          "sha256": "ef140c78b0aeee21cdc37a5bb55bbe590f3298e2b6644cb68fbf65db07371697",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Rear label and side profile",
+        "Clean top terminal view"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "OPITEC204019 zinc-carbon3R12 4.5V; same labeled body as original ATEHNA.",
+      "findings": [
+        "Current supplier gallery has existing front plus two real context photos. One includes child/face/hands. The other is a worn battery with torn wrapper and bent contacts. Neither adopted."
+      ]
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "name": "Vgradno stikalo",
+      "variantSkus": [
+        "ELE-VGR-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg",
+          "imageType": "product",
+          "altText": "Vgradno stikalo – celoten pogled na bel gumb, rebrasto matico in črno ohišje."
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-navoj-matica-textilkabel-v4.jpg",
+          "imageType": "product",
+          "altText": "Vgradno stikalo – prikaz pritrdilnega navoja in priložene odvite matice."
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prikljucki-textilkabel-v4.jpg",
+          "imageType": "product",
+          "altText": "Vgradno stikalo – raven pogled na ohišje, odprtine priključkov in pritrdilni navoj."
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "switch-arditi-original",
+          "url": "https://www.arditi.de/wp-content/uploads/2022/09/037195.png",
+          "sourcePage": "https://www.arditi.de/part/037195/",
+          "status": 200,
+          "file": "tmp/known-products-v10/switch-arditi-original.png",
+          "bytes": 183818,
+          "sha256": "9f7ce8769e35a1cc203c5b2998bfc5077aaa83e668e1403f39bef1b87e9e7aa9",
+          "width": 750,
+          "height": 750,
+          "format": "png",
+          "result": "Native750×750 fails1024 minimum on at least one axis. No enlargement or padding performed."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.arditi.de/produkte/037195-druckschalter-hoch-mit-mutter/",
+          "status": 404,
+          "evidence": "tmp/known-products-v10/switch-arditi.html",
+          "sha256": "719db062425781dc605d9c34497f78a515f5902be9b0480f31ebee451cfea44c",
+          "result": "Public response unavailable; no access bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.arditi.de/kategorie/elektrotechnik/",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/switch-arditi-category.html",
+          "sha256": "69296d30a288a47865be11d0b51e4cb8b5f8c2731bdfd24caacc62f5391dec39",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Exact underside or rear construction view beyond existing three"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "Original21×12×30mm white-plunger/black-body switch; prior supplier/geometry evidence Arditi037195,468/12 andRadio Kölsch2014-1337. Existing three independent views already show body, threads/nut andterminals.",
+      "findings": [
+        "Manufacturer Arditi037195 original750×750 fails minimum. Existing Textilkabel gallery is already represented by three approved photos; prior fourth1015-square is not enlarged. No genuinely new exact underside view found."
+      ]
+    },
+    {
+      "slug": "objemka-za-motorcek-re260",
+      "name": "Objemka za motorček RE260",
+      "variantSkus": [
+        "ELE-OBJ-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "currentGallery": [
+        {
+          "blobUrl": "/images/catalog/2026-09/objemka-motorcek-24mm-izvirnik.jpg",
+          "imageType": "product",
+          "altText": "Objemka za motorček premera24mm"
+        },
+        {
+          "blobUrl": "/images/catalog/2026-09/objemka-motorcek-24mm-tehnicna-risba.jpg",
+          "imageType": "dimension-diagram",
+          "altText": "Tehnična risba objemke za motorček, premer 24 mm."
+        }
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "clip-drawing2",
+          "url": "https://www.opitec.com/media/68/80/05/1764938303/225029-000-000-VO-02d02_v_9.jpg?ts=1764938303",
+          "sourcePage": "https://www.opitec.com/de-de/befestigungsbuegel-24-mm/225029",
+          "status": 200,
+          "file": "tmp/known-products-v10/clip-drawing2.jpg",
+          "bytes": 132462,
+          "sha256": "b7143457965be8b479c263e9878f3931bc7a8ee352570046e3ecf57667fcca66",
+          "width": 2560,
+          "height": 888,
+          "format": "jpeg",
+          "result": "Technical dimension diagram is already retained and not counted as photography; it remains untouched."
+        },
+        {
+          "id": "clip-detail1",
+          "url": "https://www.opitec.com/media/bf/af/e4/1764938302/225029-000-000-VO-02d01_v_9.jpg?ts=1764938302",
+          "sourcePage": "https://www.opitec.com/de-de/befestigungsbuegel-24-mm/225029",
+          "status": 200,
+          "file": "tmp/known-products-v10/clip-detail1.jpg",
+          "bytes": 415336,
+          "sha256": "5ef8ab8f8a914f496a523433ebd640eab49bc31617c9e04773df904e26e73691",
+          "width": 2560,
+          "height": 1433,
+          "format": "jpeg",
+          "result": "Image contains a24mm clip beside a visibly marked21mm clip. The sold variant is24mm only; mixed sizes are not accepted or cropped into a fabricated additional view."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.opitec.com/de-de/befestigungsbuegel-21-mm/225018",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/clip-opitec.html",
+          "sha256": "65ec78a2fc90dd4a93918e16fb7df175ac7e52d241d2b8a043e6e89a63e00d7e",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        },
+        {
+          "sourcePage": "https://www.opitec.com/de-de/befestigungsbuegel-24-mm/225029",
+          "status": 200,
+          "evidence": "tmp/known-products-v10/clip-opitec24.html",
+          "sha256": "4d2ca5481bb891e6c3d02b7d947bbf1c35b640e0fbe2de5a30881d47257ef3a1",
+          "result": "Public source retrieved and gallery/native links inspected; see family findings and measured image records."
+        }
+      ],
+      "missingViews": [
+        "Independent24mm-only side/top/underside",
+        "Exact mounted24mm clip with clearly excluded motor"
+      ],
+      "status": "no-qualifying-new-supplement",
+      "identityEvidence": "Original ATEHNA clipSKU22043 and retained OPITEC22502924mm stamped metal bracket; not21mm orgenericplasticmotormount.",
+      "findings": [
+        "Current exact24mm OPITEC gallery adds a2560×1433 comparative image with both24 and21 stamps, rejected for mixed variants.",
+        "Existing dimension diagram2560×888 remains protected. No duplicate/cropped comparative photo counted as another product angle."
+      ]
+    }
+  ],
+  "summary": {
+    "families": 8,
+    "variants": 14,
+    "acceptedOriginals": 2,
+    "acceptedAssociations": 2,
+    "sourceRequests": 73,
+    "downloadedSourceImages": 33,
+    "rejectedOrUnselectedSourceImages": 31,
+    "pendingCandidates": 0
+  },
+  "researchFinishedAt": "2026-09-14T15:59:11.995Z",
+  "appliedAt": "2026-09-14T16:06:23.485Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T16-00-56-927Z"
+}

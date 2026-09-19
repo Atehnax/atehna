@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "reason": "User requests no visible image descriptions, including descriptive footers. Measurement diagrams/product markings/branding remain.",
+  "replacements": [
+    {
+      "id": "reference-pleksi-belo-300x200x3-vogal-rob-lasercut-v10",
+      "master": {
+        "file": "output/product-images/2026-09-19-products/material-native-details-v1/composites/pleksi-belo-reference-grey-background-v1.png",
+        "width": 1361,
+        "height": 1361,
+        "sha256": "fdfdad8157e3ca32b77092dc7c07b022ea2a5623fc16bae4cce1e5566bef2b14"
+      }
+    },
+    {
+      "id": "reference-lepenka-a4-08-povrsina-rob-mailshack-v5",
+      "master": {
+        "file": "output/product-images/2026-09-19-products/material-native-details-v1/originals/lepenka-a4-08-povrsina-rob-mailshack-v5.jpg",
+        "width": 1500,
+        "height": 1500,
+        "sha256": "e70b4eb303c9ce41d9201951f108e49d4f9b402994a817a9f03097f941c966e8"
+      }
+    },
+    {
+      "id": "objemka-za-motorcek-re260::objemka-24mm-primerjava-z-opombo-v1.png",
+      "master": {
+        "file": "output/product-images/2026-09-20-products/clamp-isolated-detail/objemka-24mm-isolated-detail-native-v2.png",
+        "sha256": "6875bd48f7f5e72fe5b5794ba21a58615e5ef200e30197fbec02ac226f26c2e8",
+        "width": 1800,
+        "height": 1293
+      },
+      "caption": "Objemka za motorček RE260, 24 mm – reliefni lok, oznaka 24 in pritrdilni odprtini.",
+      "imageType": "product",
+      "provenance": "output/product-images/2026-09-20-products/clamp-isolated-detail/manifest.json"
+    }
+  ],
+  "omit": [
+    {
+      "id": "motorcek::opitec-224024-r20-shafts-terminals-secondary",
+      "reason": "Multi-motor quantity shot relies on explanatory text; retain the single-model main."
+    }
+  ],
+  "pixelVerification": {
+    "comparedFiles": 4,
+    "totalRGBPixels": 12430001,
+    "differentPixels": 0,
+    "source": "Visual and pixel review by quality_validation"
+  }
+}

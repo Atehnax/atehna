@@ -11,11 +11,12 @@ export type ImagePreviewDialogProps = {
   alt: string;
   aspectRatio?: number;
   originalHref?: string;
+  originalLabel?: string;
   unoptimized?: boolean;
   onClose: () => void;
 };
 
-type PreviewImage = { src: string; alt: string; aspectRatio: number; originalHref?: string };
+type PreviewImage = { src: string; alt: string; aspectRatio: number; originalHref?: string; originalLabel?: string };
 type PreviewKeyEvent = Pick<KeyboardEvent, 'key' | 'preventDefault' | 'stopPropagation'>;
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -31,6 +32,7 @@ export default function ImagePreviewDialog({
   alt,
   aspectRatio,
   originalHref,
+  originalLabel = 'Odpri skico v polni velikosti',
   unoptimized = false,
   onClose
 }: ImagePreviewDialogProps) {
@@ -52,6 +54,7 @@ export default function ImagePreviewDialog({
         src,
         alt,
         originalHref,
+        originalLabel,
         aspectRatio: typeof aspectRatio === 'number' && Number.isFinite(aspectRatio) && aspectRatio > 0
           ? aspectRatio
           : current?.src === src ? current.aspectRatio : 4 / 3
@@ -66,7 +69,7 @@ export default function ImagePreviewDialog({
     setIsZoomVisible(false);
     const timer = setTimeout(() => setImage(null), reduceMotion ? 0 : 280);
     return () => clearTimeout(timer);
-  }, [open, src, alt, aspectRatio, originalHref]);
+  }, [open, src, alt, aspectRatio, originalHref, originalLabel]);
 
   const onPreviewKeyDown = useCallback((event: PreviewKeyEvent) => {
     if (event.key === 'Escape') {
@@ -167,6 +170,7 @@ export default function ImagePreviewDialog({
           src={image.src}
           alt={image.alt}
           fill
+          quality={90}
           unoptimized={unoptimized}
           loading="eager"
           sizes="72vw"
@@ -189,7 +193,7 @@ export default function ImagePreviewDialog({
           rel="noreferrer"
           className="max-w-[calc(100vw-2rem)] shrink-0 cursor-pointer rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-800 shadow-lg hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950/65"
         >
-          Odpri skico v polni velikosti
+          {image.originalLabel}
         </a>
       ) : null}
     </div>,

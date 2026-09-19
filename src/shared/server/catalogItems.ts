@@ -1,4 +1,6 @@
+import { CatalogImageQualityError, validateNewCatalogImages } from '@/shared/server/catalogImageQuality';
 import { getPool } from '@/shared/server/db';
+import { queueRemovedCatalogMediaFiles } from '@/shared/server/catalogMediaDeletion';
 import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
 import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
 import { normalizeCatalogDimensionOptions } from '@/shared/domain/catalog/catalogDimensionOptions';
@@ -3645,7 +3647,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
     const existingMedia = (
       await client.query(
         `
-        select id, media_kind, source_kind, blob_url, blob_pathname, external_url
+        select id, media_kind, source_kind, blob_url, blob_pathname, external_url, hidden
         from catalog_media
         where item_id = $1
         order by id asc
@@ -3653,6 +3655,12 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
         [itemRow.id]
       )
     ).rows as Array<Record<string, unknown>>;
+    try {
+      await validateNewCatalogImages(payload.media, existingMedia);
+    } catch (error) {
+      if (error instanceof CatalogImageQualityError) throw new CatalogItemValidationError(error.message);
+      throw error;
+    }
     const existingMediaById = new Map(existingMedia.map((entry) => [asNumber(entry.id), entry]));
     const claimedMediaIds = new Set<number>();
     const retainedMediaIds: number[] = [];
@@ -3786,6 +3794,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, 
     } else {
       await client.query('delete from catalog_media where item_id = $1', [itemRow.id]);
     }
+    await queueRemovedCatalogMediaFiles(client, itemRow.id, existingMedia);
 
     await client.query('delete from catalog_variant_media where item_id = $1', [itemRow.id]);
     for (const assignment of directMediaAssignments) {

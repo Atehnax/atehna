@@ -1,0 +1,290 @@
+{
+  "version": 5,
+  "reviewedAt": "2026-09-14T11:49:55.591Z",
+  "status": "partial-source-review",
+  "products": [
+    {
+      "slug": "barvni-papir",
+      "accepted": [],
+      "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+      "findings": [
+        "Original public WooCommerce27colour assignments re-read and saved in atehna-colour-variants.json. URSUS/Baehr named-colour match remains the stronger prior identification.",
+        "New KRAFT130gsm50x70 corn-yellow source has native1920square media but does not establish the same colour stock as the ATEHNA sample. Other four gallery photographs are cut/folded craft examples in unrelated colours; they are not additional sheet views.",
+        "Public KRAFT variant selector resolved light-blue440-623; its offered native image is unreachable. No rendered enlargement or source recolouring used.",
+        "New Brack supplier-native xxl3 originals3000x1888 accepted only for black130gsmB2 after independent quality review and original variant14328 matching. Ordinary xxl800x600 and Internetstore600square versions remain rejected. Other26colours still lack qualifying exact sources.",
+        "Final green-source cross-check withdrew both provisional black sources before any database/canonical apply. Recolour-template evidence overrides earlier narrow quality pass. No black-paper improvement is counted."
+      ],
+      "rejectedCandidates": [
+        {
+          "url": "https://imgproxy.kraft-lernen.de/WAnwt5PTkXoKYK3m2D0g7FTQuBvzPIVg4LNff58pwnw/rs:fit:3000:0:0/plain/s3://kraft-lernen/production/media/4a/83/ef/1759799528/440-606_tonpapier_maisgelb_a_main.jpg",
+          "file": "tmp/product-image-audit/root-v5/kraft-mais-0.jpg",
+          "width": 1920,
+          "height": 1920,
+          "sha256": "eb0f4e4ed2f8c69fc5c6298602099ff5ecf8e8147766e159056de413340ecf91",
+          "sourcePage": "https://kraft-lernen.de/p130-g-m2-50x70cm-12-bogen-maisgelb-440-606",
+          "reason": "Exact stock/colour not established; visible corn-yellow differs from original ATEHNA sample and no manufacturer link resolves this."
+        },
+        {
+          "url": "https://imgproxy.kraft-lernen.de/H8JOEt8ujEY9osVBimlWHFlW6K8Ij3LnNJAtTfIR2qg/rs:fit:3000:0:0/plain/s3://kraft-lernen/production/media/4a/ff/50/1759799529/440-606_tonpapier_maisgelb_b.jpg",
+          "file": "tmp/product-image-audit/root-v5/kraft-mais-1.jpg",
+          "width": 1920,
+          "height": 1920,
+          "sha256": "4960fcf8c40dc7422087d594c4e93d60a1fdc2374c006343fdb710ff83441833",
+          "sourcePage": "https://kraft-lernen.de/p130-g-m2-50x70cm-12-bogen-maisgelb-440-606",
+          "reason": "Cut/folded craft example with other components and colours; not the sold unmodified sheet."
+        },
+        {
+          "url": "https://imgproxy.kraft-lernen.de/I2gk05jYB5gNDZTbaL25KtL5PelJnTKrgXRTd3-oz9g/rs:fit:3000:0:0/plain/s3://kraft-lernen/production/media/56/8c/4c/1759799530/440-606_tonpapier_maisgelb_c.jpg",
+          "file": "tmp/product-image-audit/root-v5/kraft-mais-2.jpg",
+          "width": 1920,
+          "height": 1920,
+          "sha256": "a82865ad071688a40853bdf6e3085c44bec4b8822d2e786c655875f92e00228c",
+          "sourcePage": "https://kraft-lernen.de/p130-g-m2-50x70cm-12-bogen-maisgelb-440-606",
+          "reason": "Cut/folded craft example with other components and colours; not the sold unmodified sheet."
+        },
+        {
+          "url": "https://imgproxy.kraft-lernen.de/4MHpCDdQqHLHBbxBlmu7tXvfffOvuu81voZqSukp1nY/rs:fit:3000:0:0/plain/s3://kraft-lernen/production/media/93/4b/g0/1759799530/440-606_tonpapier_maisgelb_d.jpg",
+          "file": "tmp/product-image-audit/root-v5/kraft-mais-3.jpg",
+          "width": 1920,
+          "height": 1920,
+          "sha256": "d01657d6c43f9ba42dfc659b51cc8ee3a0eff8f6ffca7e88c2804adbd9e0d280",
+          "sourcePage": "https://kraft-lernen.de/p130-g-m2-50x70cm-12-bogen-maisgelb-440-606",
+          "reason": "Cut/folded craft example with other components and colours; not the sold unmodified sheet."
+        },
+        {
+          "url": "https://imgproxy.kraft-lernen.de/fVOk_mjR068G9vKPUMcgqBW1DfrX3urEVgPcv5LL18E/rs:fit:3000:0:0/plain/s3://kraft-lernen/production/media/8c/f9/1d/1759799531/440-606_tonpapier_maisgelb_e.jpg",
+          "file": "tmp/product-image-audit/root-v5/kraft-mais-4.jpg",
+          "width": 1920,
+          "height": 1920,
+          "sha256": "b64864183cfb1e7b0309a0b223352fe1ae90c81c7f95f1111548578e307103e9",
+          "sourcePage": "https://kraft-lernen.de/p130-g-m2-50x70cm-12-bogen-maisgelb-440-606",
+          "reason": "Cut/folded craft example with other components and colours; not the sold unmodified sheet."
+        },
+        {
+          "id": "barvni-papir-crni-b2-130-pogled-v5",
+          "variantSkus": [
+            "MAT-PAP-BAR-CRNA"
+          ],
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-crni-b2-130-pogled-v5.jpg",
+          "sha256": "1ee83e5e4ef2aa1ce5d4ad1c0d1e4c2326923cbe7187b09a04414961074af60b",
+          "dimensions": {
+            "width": 3000,
+            "height": 1888
+          },
+          "sourcePage": "https://www.brack.ch/ursus-tonzeichenpapier-50-x-70-cm-584681",
+          "sourceUrl": "https://assets.brack.ch/images2/2/3/0/182408032/182408032_xxl3.jpg",
+          "sourceIdentityEvidence": "Original ATEHNA black paper variant14328 explicitly black130gsmB2, with a whole matte black sheet fan; prior named-colour URSUS/Baehr palette tracing supports the stock identification. Public supplier specifies URSUS2232290/EAN4008525709978, black130gsm50x70cm. Assignment is only ordinary black, no other colour/weight. Original B2 is the named trade format: canonical500x707 came from import ISO-format conversion, not measured stock; source does not claim measured707mm. Original carries no manufacturer or conflicting coating/finish claim.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Complete top sheet in a fan",
+          "altText": "Črn barvni papir B2, 130 g/m² — celoten pogled. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "qualityReview": "Root and independent paper reviewer checked full originals. Whole front sheet, clean edges, no interpolation halos or distortion. Black surface is naturally very flat; useful shape/colour and separate edge lines, not claimed fibre detail. Two separate photographs, not crops/rotations. Additional sheets visibly excluded by caption.",
+          "reason": "Withdrawn before catalog apply: independent comparison with Brack green130gsm3000x1888 shows identical fan geometry and stack detail with flat colour fills. Real separate stock photography and unchanged photographed colour cannot be established; not accepted merely because image dimensions pass.",
+          "comparisonFiles": [
+            "tmp/product-image-audit/paper-v5/brack-578839-1.jpg",
+            "tmp/product-image-audit/paper-v5/brack-578839-2.jpg"
+          ],
+          "unassociatedUpload": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/1ee83e5e4ef2aa1c-barvni-papir-crni-b2-130-pogled-v5.jpg",
+          "everAssociatedWithCatalog": false,
+          "unassociatedUploadCleanup": {
+            "status": "retained-unassociated-retention-window",
+            "checkedAt": "2026-09-14T12:01:06.130Z",
+            "referenceCount": 0,
+            "scannedDatabases": 25,
+            "scannedTables": 1585,
+            "minimumAgeHours": 24,
+            "earliestRoutineCleanupAt": "2026-09-15T11:46:21.000Z",
+            "deletionAttempted": false,
+            "underlyingFileDeleted": false,
+            "evidence": "data/catalog/rejected-image-upload-cleanup-v5-2026-09.json"
+          }
+        },
+        {
+          "id": "barvni-papir-crni-b2-130-rob-v5",
+          "variantSkus": [
+            "MAT-PAP-BAR-CRNA"
+          ],
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-crni-b2-130-rob-v5.jpg",
+          "sha256": "2495ca1afdc8ab901586faabed8e0065575d3245a8ff3f117da43ea9d07ea1ee",
+          "dimensions": {
+            "width": 3000,
+            "height": 1888
+          },
+          "sourcePage": "https://www.brack.ch/ursus-tonzeichenpapier-50-x-70-cm-584681",
+          "sourceUrl": "https://assets.brack.ch/images2/4/3/0/182408034/182408034_xxl3.jpg",
+          "sourceIdentityEvidence": "Original ATEHNA black paper variant14328 explicitly black130gsmB2, with a whole matte black sheet fan; prior named-colour URSUS/Baehr palette tracing supports the stock identification. Public supplier specifies URSUS2232290/EAN4008525709978, black130gsm50x70cm. Assignment is only ordinary black, no other colour/weight. Original B2 is the named trade format: canonical500x707 came from import ISO-format conversion, not measured stock; source does not claim measured707mm. Original carries no manufacturer or conflicting coating/finish claim.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "Separate photograph of the sheet edges in a stack",
+          "altText": "Črn barvni papir B2, 130 g/m² — robovi listov. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "qualityReview": "Root and independent paper reviewer checked full originals. Whole front sheet, clean edges, no interpolation halos or distortion. Black surface is naturally very flat; useful shape/colour and separate edge lines, not claimed fibre detail. Two separate photographs, not crops/rotations. Additional sheets visibly excluded by caption.",
+          "reason": "Withdrawn before catalog apply: independent comparison with Brack green130gsm3000x1888 shows identical fan geometry and stack detail with flat colour fills. Real separate stock photography and unchanged photographed colour cannot be established; not accepted merely because image dimensions pass.",
+          "comparisonFiles": [
+            "tmp/product-image-audit/paper-v5/brack-578839-1.jpg",
+            "tmp/product-image-audit/paper-v5/brack-578839-2.jpg"
+          ],
+          "unassociatedUpload": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/2495ca1afdc8ab90-barvni-papir-crni-b2-130-rob-v5.jpg",
+          "everAssociatedWithCatalog": false,
+          "unassociatedUploadCleanup": {
+            "status": "retained-unassociated-retention-window",
+            "checkedAt": "2026-09-14T12:01:06.130Z",
+            "referenceCount": 0,
+            "scannedDatabases": 25,
+            "scannedTables": 1585,
+            "minimumAgeHours": 24,
+            "earliestRoutineCleanupAt": "2026-09-15T11:46:23.000Z",
+            "deletionAttempted": false,
+            "underlyingFileDeleted": false,
+            "evidence": "data/catalog/rejected-image-upload-cleanup-v5-2026-09.json"
+          }
+        }
+      ],
+      "missingViews": "Whole exact130gsmB2 sheets and useful surface/edge photographs for all27colours remain missing.",
+      "nativeProbeEvidence": "tmp/product-image-audit/root-v5/ursus-black-probes.json"
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "accepted": [],
+      "findings": [
+        "Official Wissner010400.M00 gallery traced. Whole native4140x469 and magnetic rear1200x197 both fail1024px minimum on short axis; padding forbidden. Existing decimal-ruler photographs remain limited to decimal variants."
+      ],
+      "candidateEvidence": [
+        {
+          "id": "ruler010400",
+          "url": "https://www.wissner-aktiv-lernen.com/media/57/52/39/1736149494/Wissner_010400.000.jpg?ts=1761747571",
+          "file": "tmp/product-image-audit/root-v5/ruler010400.jpeg",
+          "width": 4140,
+          "height": 469,
+          "bytes": 449374,
+          "sha256": "58e0239b56551fb4e6596676ca4dea8fca720274f771dd07faafe104539ff345"
+        },
+        {
+          "id": "rulerMagnetRear",
+          "url": "https://www.wissner-aktiv-lernen.com/media/5a/fe/9d/1736420262/Wissner_010300.M20_1_%281%29.jpg?ts=1761747554",
+          "file": "tmp/product-image-audit/root-v5/rulerMagnetRear.jpeg",
+          "width": 1200,
+          "height": 197,
+          "bytes": 42005,
+          "sha256": "86c6af87b1c5c4c808af8c4ad5f60d3c5bbcc2de99aafacbca2bcc3fab864339"
+        },
+        {
+          "id": "uniorUSA",
+          "url": "https://uniorusa.com/cdn/shop/products/812.jpg?v=1642726035",
+          "file": "tmp/product-image-audit/root-v5/uniorUSA.jpeg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 36258,
+          "sha256": "2b963f0b717fa123cc72bc915cfbffb1aef7f527feacd1b405d5622fe37f644e"
+        },
+        {
+          "id": "uniorSVE",
+          "url": "https://cdn.szk.rs/images/big/15691.jpg",
+          "file": "tmp/product-image-audit/root-v5/uniorSVE.jpeg",
+          "width": 800,
+          "height": 600,
+          "bytes": 49018,
+          "sha256": "81f4983159c88133248e3ffb25c871784b66b01fa9b480dd6ca4ae7100acdab1"
+        },
+        {
+          "id": "uniorSVE2",
+          "url": "https://cdn.szk.rs/images/big2/15691.jpg",
+          "file": "tmp/product-image-audit/root-v5/uniorSVE2.jpeg",
+          "width": 800,
+          "height": 600,
+          "bytes": 43041,
+          "sha256": "b671393ab55757aea99d82fc1fb38e1df5b0d0235a78db810d24271bd4881e1b"
+        },
+        {
+          "id": "uniorRobeks",
+          "url": "https://www.robeks.si/media/SlikeIT/002256.jpg",
+          "file": "tmp/product-image-audit/root-v5/uniorRobeks.jpeg",
+          "width": 800,
+          "height": 600,
+          "bytes": 18231,
+          "sha256": "9c29556b5161ff2db6534a2a609795e468cce2d735a6a10ed0fd7886fc0a73e3"
+        },
+        {
+          "id": "atehnaHammerOld",
+          "url": "https://atehna.si/wp-content/uploads/2014/08/328516.jpg",
+          "file": "tmp/product-image-audit/root-v5/atehnaHammerOld.jpeg",
+          "width": 322,
+          "height": 417,
+          "bytes": 27384,
+          "sha256": "d694e9a0bbfc3139765ecd885f8dd755bc585fd5a9bd435345bbce14a7da2be0"
+        },
+        {
+          "id": "atehnaHammerOld2",
+          "url": "https://atehna.si/wp-content/uploads/2017/10/343066-02-x1.jpg",
+          "file": "tmp/product-image-audit/root-v5/atehnaHammerOld2.jpeg",
+          "width": 175,
+          "height": 500,
+          "bytes": 6847,
+          "sha256": "0b055c5a10d2f68c13e50b8cee64ad4868a9d4a296510d0fc6ec820a5be3d952"
+        }
+      ],
+      "missingViews": "Plain100cm ruler and100cm magnetic ruler whole native views at least1024 on both axes."
+    },
+    {
+      "slug": "kladivo",
+      "accepted": [],
+      "findings": [
+        "Fresh variation-specific original source disproves earlier family-level Unior300assignment. Corrected using actual row and association deletion recorded in product-image-removals-v5-2026-09.json.",
+        "New official OPITEC343066 originals show current blue-handleBGS1852, contradicting older ATEHNA red handle. One supplier gallery frame even labels200G1851. Do not substitute by product number alone.",
+        "Unior200US listing uses an actual812-300photo;800x600 regionaldealer images failnative dimensions."
+      ],
+      "rejectedCandidates": [
+        {
+          "url": "https://www.opitec.com/media/a4/35/fa/1776315713/343066-000-000-VO-04_v_5.jpg",
+          "file": "tmp/product-image-audit/root-v5/hammer300-0.jpg",
+          "width": 2560,
+          "height": 1832,
+          "sha256": "4f17f02da450f96b618c2b80bc280ea3aed47fb743ead0f916a05eef611da8fc",
+          "reason": "Blue-handle variant differs from original red-handle300g."
+        },
+        {
+          "url": "https://www.opitec.com/media/7b/67/c3/1776315714/343066-000-000-VO-05_v_5.jpg",
+          "file": "tmp/product-image-audit/root-v5/hammer300-1.jpg",
+          "width": 2560,
+          "height": 1619,
+          "sha256": "5fea14349f01133053120b5ebd425c28e758ab025e45763a5453680e55ce81eb",
+          "reason": "Wrong200gmodel mixed into300ggallery."
+        },
+        {
+          "url": "https://www.opitec.com/media/2b/55/9b/1776315714/343066-000-000-VO-06_v_5.jpg",
+          "file": "tmp/product-image-audit/root-v5/hammer300-2.jpg",
+          "width": 2560,
+          "height": 1329,
+          "sha256": "20f01d9959547279125dbeeff90d5cf4d3e5db82b0d73fa18b96cf449cb0c4ac",
+          "reason": "Blue-handle variant differs from original red-handle300g."
+        },
+        {
+          "url": "https://www.opitec.com/media/f0/0c/40/1776315715/343066-000-000-VO-07_v_5.jpg",
+          "file": "tmp/product-image-audit/root-v5/hammer300-3.jpg",
+          "width": 2560,
+          "height": 1832,
+          "sha256": "a15a0c5dff75a581e4fbe099521652085351eddf2660e09478ddea88a1df6b93",
+          "reason": "Blue-handle variant differs from original red-handle300g."
+        }
+      ],
+      "missingViews": "Correct red-handle300g full photograph; exact200g Unior-family source; complete10-hammer sets in their stands."
+    },
+    {
+      "slug": "motorcek",
+      "accepted": [],
+      "findings": [
+        "Searched RE260 and RE280 dealer originals against original dimensions and winding/load specifications. ThaiRE260RA18130 has attached wires and different6900rpm winding; Aeronaut700028 differs34mmcan/12500rpm. Neither substituted."
+      ],
+      "missingViews": "Sharper exactR21/RE260 andR23/RE280R originals."
+    }
+  ],
+  "nativeProbeEvidence": "tmp/product-image-audit/root-v5/first-native-sources.json",
+  "hammerIdentityEvidence": "tmp/product-image-audit/root-v5/atehna-hammer-variants.json"
+}

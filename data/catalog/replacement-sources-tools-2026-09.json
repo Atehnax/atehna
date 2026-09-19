@@ -1,0 +1,958 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-13T20:17:59.476Z",
+  "status": "source-research-complete-with-outstanding-photo-gaps",
+  "policy": "Untouched real manufacturer or supplier original photographs only. Minimum native dimensions 1024 on both axes, visual clarity and exact model/variant review required. No generated views, upscaling, padding, recolouring or reconstruction. Technical schematics are retained separately and never counted as product photographs.",
+  "products": [
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "accepted": [
+        {
+          "id": "proxxon-dsh-celoten-pogled-v3",
+          "blobUrl": "/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+          "sourcePage": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+          "imageUrl": "https://www.opitec.com/media/0d/96/1e/1764713131/309975-000-000-VO-05_v_9.jpg?ts=1764713131",
+          "sha256": "110637498f77a2ab6be9766e63e7c67bd6f33d4d7b183bc147a4dcb994409ac0",
+          "width": 2560,
+          "height": 2192,
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "view": "front-three-quarter",
+          "role": "main",
+          "altText": "Proxxon DSH 28092 — celoten pogled s standardnim prozornim varovalom žaginega lista",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "OPITEC product309975 explicitly names ProxxonDSH, pictured plate reads28092. Same yellow upper arm, green cast base, table tilt bracket, speed/on-off controls and blade garage as current original reference. No product geometry, colour, markings or components changed.",
+            "quality": "Full machine visible with modest neutral white margins; useful visible table surface, adjustment scale, cast texture and controls. Native source2560×2192, visually inspected full frame and detailed preview.",
+            "accessories": "Transparent blade guard is standard supplied equipment per ProxxonDSH28092 manual §6.5; manufacturer explains guard can be absent in explanatory illustrations. No optional vacuum included in photo.",
+            "accessoryEvidence": "https://www.proxxon-tools.com.au/downloads/manuals/28092_DSH.pdf"
+          },
+          "replaceBlobUrls": [
+            "/images/catalog/2026-09/proxxon-dsh-proizvajalec.png",
+            "/images/catalog/2026-09/proxxon-dsh-sprednji-pogled.jpg"
+          ]
+        }
+      ],
+      "missingViews": [
+        "rear connections",
+        "table tilt close-up",
+        "blade holder close-up",
+        "top view"
+      ],
+      "notes": [
+        "One accepted replacement photo; supplier second asset is a vacuum connection drawing and is not counted as a photo. Existing technical schematics must remain."
+      ],
+      "rejected": []
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.bol.com/nl/nl/p/kunststof-buigmachine-thermoform-400/9300000007068784/",
+        "https://www.greenbasic.nl/blog/plexiglas-buigen/",
+        "https://www.greenbasic.nl/product/thermoform-400/"
+      ],
+      "assessment": "Verified Thermoform400 current exact original is1200×489; no qualifying larger real photo found. Greenbasic product URL now describes the replacement580S model, which must not be substituted.",
+      "missingViews": [
+        "front or three-quarter full machine",
+        "rear power/fuse connections",
+        "top heating wire",
+        "controls close-up"
+      ]
+    },
+    {
+      "slug": "kladivo",
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://uniortools.com/eng/product/812-locksmiths-hammer",
+        "https://uniorusa.com/products/locksmiths-hammer-200-813",
+        "https://proficentar.ba/shop/rucni-alati/cekici-probijaci-izbijaci-obiljezavaci-i-sjekaci/unior-cekic-bravarski-200-gr-812/",
+        "https://unior.mx/producto/martillo-para-herrero-2/",
+        "https://www.ridewill.com/p/en/unior-567008657-locksmiths-hammer-812-200g/1555089/"
+      ],
+      "assessment": "The200g original is322×417. Supplier galleries frequently reuse a300g photo for200g listing: Proficentar1200×1370 visibly reads812-300 and has excessive padding. UniorUSA1024×1024 is the existing300g photo, not a new upgrade. No authentic complete10-piece stand source found for either weight.",
+      "missingViews": [
+        "200g full tool",
+        "200g head/handle marking detail",
+        "300g informative alternate view",
+        "complete200g10-piece stand",
+        "complete300g10-piece stand"
+      ]
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.opitec.com/de-de/opitec-sparset-10-abisolierzangen-werkzeugblock/340599"
+      ],
+      "assessment": "Existing Tooltech blue/black10-piece stand original is already2560×2476. Additional current supplier image is2560×2252 but red/black handles, different finish and branding; rejected as a variant substitution.",
+      "missingViews": [
+        "blue/black Tooltech kit rear or side",
+        "same tool jaw and adjuster detail",
+        "complete stand alternate photo"
+      ]
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "variantNames": [
+        "Škarje za pločevino - zlatarske (10 kosov v stojalu)"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/skarje-za-plocevino-zlatarske-10-kosov-v-stojalu/",
+        "https://www.winklerschulbedarf.com/de/i/goldschmiedeschere-180-mm-bessey-erdi-per-stk-200248",
+        "https://www.opitec.com/de-de/goldschmiedeschere-gerade-180-mm/361887",
+        "https://www.opitec.com/de-de/goldschmiedeschere-erdi-gerade-180-mm/361795"
+      ],
+      "assessment": "No exact complete10-piece stand photo or manufacturer model confirmation obtained. Historical ATEHNA source-media filenames for tin snips show unrelated aviation snips in yellow/green/red, not the listed jewellers stand. Bessey/LUX single tools cannot establish exact kit identity.",
+      "missingViews": [
+        "entire10-piece stand",
+        "side/rear of exact stand",
+        "exact snip blade and pivot detail"
+      ]
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "variantNames": [
+        "Digitalno pomično merilo, 150 mm"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.opitec.com/de-de/digital-messschieber-150-mm/303773"
+      ],
+      "assessment": "Rechecked full supplier gallery: isolated exact caliper2560×857 fails minimum height; tool-table context2560×2423 equals existing original SHA. No independent new exact-model view found.",
+      "missingViews": [
+        "isolated complete caliper in suitable orientation",
+        "display/buttons close-up",
+        "external and internal jaws",
+        "rear/depth rod"
+      ]
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zica-za-lotanje-100g/",
+        "https://www.opitec.com/de-de/opitec-elektroniklot-sn95-5ag3-8cu0-7-1-mm-100g/328722"
+      ],
+      "assessment": "Only verified actual blue-spool source is350×400. Larger OPITEC solder is a different labelled alloy/spool and must not be substituted. Brand, alloy and wire diameter require authoritative confirmation before sourcing an equivalent-labelled photo.",
+      "missingViews": [
+        "whole exact100g spool",
+        "top manufacturer/alloy label",
+        "wire winding and diameter detail"
+      ]
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+        "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/"
+      ],
+      "assessment": "Manufacturer originals obtained for6 spiral blade packs:1025×1000 or226×681, and a4385×500 tooth strip. All fail minimum one axis. Grade-specific authoritative mapping from current generic fine/medium/coarse variants is incomplete.",
+      "missingViews": [
+        "qualifying exact-grade package for each variant",
+        "native-sharp spiral tooth macro",
+        "whole blade/end fastening photo"
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zagice-za-rezanje-kovin-no-0/",
+        "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/"
+      ],
+      "assessment": "Manufacturer1200×6575 and1200×6459 pack masters were downloaded and viewed at native pixels: visible softness/pixelation prevents useful sharp zoom despite nominal dimensions. Other pack originals1025×1000 fail height. The10003×1200 black tooth silhouette is a diagram, not an authentic photograph; do not count as a photo or remove any existing schematic.",
+      "missingViews": [
+        "native-sharp exact-grade package per variant",
+        "real tooth/material close-up",
+        "full blade/end photo"
+      ]
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/ravnilo-alu-z-rocajem-40-cm/",
+        "https://www.instal.si/index.php?id=7189"
+      ],
+      "assessment": "TM Kovine RAGR040S1 plausible matching original source is605×154; the retailer warns some photos are representative variants. No qualifying exact40cm native photograph obtained; no Koh-i-Noor substitution.",
+      "missingViews": [
+        "full40cm ruler",
+        "handle and fastening detail",
+        "readable40cm scale and markings",
+        "edge profile"
+      ]
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "variantNames": [
+        "Zaščitni predpasnik - otroški"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zascitni-predpasnik/"
+      ],
+      "assessment": "Original exact navy fabric apron remains500×500. WordPress filename without500x500 suffix returns404. No authoritative maker/model confirmed for a larger exact replacement; generic navy aprons differ in pockets, cut and ties.",
+      "missingViews": [
+        "full garment front with no wearer",
+        "back and ties",
+        "fabric and seam detail"
+      ]
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html"
+      ],
+      "assessment": "All4 TTS hi-res master originals were fetched without image resize parameters; each is900×900. Requesting a larger image-server size would enlarge these and is not acceptable.",
+      "missingViews": [
+        "front or three-quarter exact TTS1032927/770010 model",
+        "side arm adjustment detail",
+        "top/rear fit geometry"
+      ]
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo"
+      ],
+      "assessment": "All6 complete Koestier retailer gallery originals from root pictures directory are600×600. Existing790px files are already larger; no native qualifying source found.",
+      "missingViews": [
+        "complete exact Koestier front/three-quarter",
+        "side hinge/arm",
+        "lens and frame detail"
+      ]
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "variantNames": [
+        "220 × 300 mm",
+        "300 × 450 mm",
+        "450 × 600 mm",
+        "600 × 900 mm"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.opitec.com/de-de/schneidunterlage-220-x-300-mm/375028",
+        "https://www.opitec.com/de-de/schneidunterlage-300-x-450-mm/375039",
+        "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+        "https://www.opitec.com/de-de/schneidunterlage-600-x-900-mm/375051"
+      ],
+      "assessment": "Rechecked all4 supplier galleries: exact size originals already exist at2560px wide and1333–1994px high. Supplementary group photos mix sizes, and2 activity photos contain children. Existing neutral craft context is the same SHA. No new independent exact-size photograph found.",
+      "missingViews": [
+        "reverse/underside where useful",
+        "grid and surface close-up",
+        "thickness edge detail"
+      ]
+    }
+  ],
+  "rejections": [
+    {
+      "id": "proxxon-toolnation",
+      "url": "https://www.toolnation.de/media/catalog/product/p/r/proxxon_4006274280922_image_1.jpg",
+      "page": "https://www.toolnation.de/proxxon-28092-2-gang-dekupiersage-dsh.html",
+      "path": "tmp/tools-v3/candidates/proxxon-toolnation.jpg",
+      "width": 1186,
+      "height": 830,
+      "sha256": "80b356b9662640f1e47ff72264fda043e08b080b6ceb9eef0d28a19f4d6aff69",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-original",
+      "url": "https://www.proxxon.com/en/images/produkte/lightbox/28092.png",
+      "page": "https://www.proxxon.com/en/micromot/28092.php",
+      "path": "tmp/tools-v3/candidates/proxxon-original.png",
+      "width": 1024,
+      "height": 600,
+      "sha256": "ef218e0c5afed1af6f85d2dce988bd44234947ab76fef9b279c99eb32820966c",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-2",
+      "url": "https://www.proxxon.com/en/images/produkte/28092_2.png",
+      "page": "https://www.proxxon.com/en/micromot/28092.php",
+      "path": "tmp/tools-v3/candidates/proxxon-2.png",
+      "width": 180,
+      "height": 201,
+      "sha256": "1168a797288e9f7b367a2ac0d865112c95b7c5e216474cbd08a987c20daceddb",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-3",
+      "url": "https://www.proxxon.com/en/images/produkte/28092_3.png",
+      "page": "https://www.proxxon.com/en/micromot/28092.php",
+      "path": "tmp/tools-v3/candidates/proxxon-3.png",
+      "width": 180,
+      "height": 201,
+      "sha256": "7c898e8f95af60c2a0c7d478f6a3a8fd207c73bf3495ff33781f99228bc338a7",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "opitec-strippers-vo03",
+      "url": "https://www.opitec.com/media/64/24/c6/1764937256/340599-000-000-VO-03_v_9.jpg?ts=1764937256",
+      "page": "https://www.opitec.com/de-de/opitec-sparset-10-abisolierzangen-werkzeugblock/340599",
+      "path": "tmp/tools-v3/candidates/opitec-strippers-vo03.jpg",
+      "width": 2560,
+      "height": 2252,
+      "sha256": "45d303f07e6f021b9c53f76ee3cf909572eca22d13a9ec79d794d557e69ab6e4",
+      "reason": "Visually wrong variant: red/black handles instead of the exact existing Tooltech blue/black kit."
+    },
+    {
+      "id": "apron-original",
+      "url": "https://atehna.si/wp-content/uploads/2017/12/6-1038-zascitni-predpasnik-iz-blaga.jpg",
+      "page": "https://atehna.si/product/zascitni-predpasnik/",
+      "error": "HTTP 404",
+      "reason": "Unavailable source: HTTP 404"
+    },
+    {
+      "id": "goggles-koestier-0",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--0.jpg",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-0.jpg",
+      "width": 600,
+      "height": 600,
+      "sha256": "b9bef308a3a4d89606c8f734b2aaae4ebe6168ebeae303eca7465952015d5cb3",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "goggles-koestier-1",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--1.jpg",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-1.jpg",
+      "width": 600,
+      "height": 600,
+      "sha256": "a177afbc14afb918e565446fb1d0068fc5aa64684fc038cb5713ffb16a783d25",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "goggles-koestier-2",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--2.jpg",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-2.jpg",
+      "width": 600,
+      "height": 600,
+      "sha256": "93ba0dfa2999202ff82e929a65b6c70815041fc14d2252babb663961296cc4a9",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "goggles-koestier-3",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--3.jpg",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-3.jpg",
+      "width": 600,
+      "height": 600,
+      "sha256": "e9d3354ec44393fb8de6d665c38a202f3e2bb3ad1b7ea485a67f3a994dbef156",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "goggles-koestier-4",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--4.jpg",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-4.jpg",
+      "width": 600,
+      "height": 600,
+      "sha256": "5648a014b47eea4443cef13b71b038eddbaf5940cbb4ff8939125d0a6ed0567a",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "goggles-koestier-5",
+      "url": "https://www.techtradecenter.si/modules/uploader/uploads/s_product/pictures/zascitna-varnostna-ocala-za-delo--5.png",
+      "page": "https://www.techtradecenter.si/zascitna-varnostna-ocala-za-delo",
+      "path": "tmp/tools-v3/candidates/goggles-koestier-5.png",
+      "width": 600,
+      "height": 600,
+      "sha256": "97550b1d57033c66787177c4ced7716b6ba0cc380ec11f5bb58a3ce284ae69b7",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "tts-0",
+      "url": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dw227dc8db/images/hi-res/1032927_00_770010_2.jpg",
+      "page": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "path": "tmp/tools-v3/candidates/tts-0.jpg",
+      "width": 900,
+      "height": 900,
+      "sha256": "48f7438804d365f526b556a5d5b3e0bdb1eb53ed96322a6b8de6101ec7b5087a",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "tts-1",
+      "url": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dw84debe55/images/hi-res/1032927_00_035049_01.jpg",
+      "page": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "path": "tmp/tools-v3/candidates/tts-1.jpg",
+      "width": 900,
+      "height": 900,
+      "sha256": "4caf19cf1bf546d3a4e9530fa0ff666af4be258aae83fd03fca8cc809d4b9006",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "tts-2",
+      "url": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dwcaa029eb/images/hi-res/1032927_00_035049_3.jpg",
+      "page": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "path": "tmp/tools-v3/candidates/tts-2.jpg",
+      "width": 900,
+      "height": 900,
+      "sha256": "339c18bbe2b0cfe571b327744602a8c83fc39b33933a9840492a252d883d61fe",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "tts-3",
+      "url": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dw44d0ef6b/images/hi-res/1032927_30_SN47667.jpg",
+      "page": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "path": "tmp/tools-v3/candidates/tts-3.jpg",
+      "width": 900,
+      "height": 900,
+      "sha256": "2ae53203afac3497d7f5e91dd3f000d4e5a9bc25674251f8987b55f542312fd7",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ro-0",
+      "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-5.jpg",
+      "page": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+      "path": "tmp/tools-v3/candidates/proxxon-ro-0.jpg",
+      "width": 800,
+      "height": 615,
+      "sha256": "86f564b3da075b6643ff89842167110f698837dda6845ec97ec5d8a7babdfeab",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ro-1",
+      "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-1.jpg",
+      "page": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+      "path": "tmp/tools-v3/candidates/proxxon-ro-1.jpg",
+      "width": 800,
+      "height": 615,
+      "sha256": "9d48b72563eeaf35cf854eac77de1c4205f77ee34ad321b20ffa7e922ac7f483",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ro-2",
+      "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-2.jpg",
+      "page": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+      "path": "tmp/tools-v3/candidates/proxxon-ro-2.jpg",
+      "width": 800,
+      "height": 615,
+      "sha256": "723b4c08ad1d42fff00f3ba9386aa1c0ad8c2235277a94b02ea0182a61534372",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ro-3",
+      "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-3.jpg",
+      "page": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+      "path": "tmp/tools-v3/candidates/proxxon-ro-3.jpg",
+      "width": 800,
+      "height": 615,
+      "sha256": "6efedca6c7eeecca8f995000f0f9862e2307905fd15870dc857a13ddb5fb3b0f",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ro-4",
+      "url": "https://www.proxxontools.ro/Photos/Products/Large/proxxon-28092-4.jpg",
+      "page": "https://www.proxxontools.ro/proxxon-28092-traforaj-electric-cu-doua-viteze-dsh.aspx",
+      "path": "tmp/tools-v3/candidates/proxxon-ro-4.jpg",
+      "width": 800,
+      "height": 615,
+      "sha256": "1797620962baf1bb8e49ae6d2c708ba320f4b1aa31398a92dce505252fd38f90",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-0",
+      "url": "https://proxxon.in.ua/uploads_shop/prods/4-1_dsh_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-0.jpg",
+      "width": 110,
+      "height": 110,
+      "sha256": "cf46a24ceb2fb9a2a569dce1f682111e1ec5527fb1bd88b6d2be7144d53836e5",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-1",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/9-1_28092_proxxon.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-1.jpg",
+      "width": 110,
+      "height": 64,
+      "sha256": "5862b3c623543b9fcd7461570c93725a8ecd54167ea62ed91c9d8463b36c9092",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-2",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/74-1_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-2.jpg",
+      "width": 110,
+      "height": 64,
+      "sha256": "70d4e98b4eb804951fd51fd00ecfc315209f8da3c1a601329b54f0f8a84abe62",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-3",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/75-1_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-3.jpg",
+      "width": 110,
+      "height": 64,
+      "sha256": "bd5e58ae2dd66c3b4eb8a0b17280dbb9a36e78b15a2b6008fd94fb38de99d271",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-4",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/103-1_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-4.jpg",
+      "width": 110,
+      "height": 85,
+      "sha256": "85600e06b6b8b1a50b2ec3d59a95bf550055aa04222ca8d6164790091dd36b09",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-5",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/104-1_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-5.jpg",
+      "width": 110,
+      "height": 74,
+      "sha256": "3121b3c6a1f251ec5213c30bbf552be0d15dd8e9cfd2fda6ed854a347f622e1d",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-6",
+      "url": "https://proxxon.in.ua/uploads_shop/prods_gal/4/105-1_proxxon_28092.jpg",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "path": "tmp/tools-v3/candidates/proxxon-ua-6.jpg",
+      "width": 110,
+      "height": 64,
+      "sha256": "c6d51a3c832ac366cd1750ae24de62c00ebd01d74a8686afcb5d7fbcd72108d2",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "proxxon-ua-7",
+      "url": "https://proxxon.in.ua/libs/viewpdf/viewpdf.php",
+      "page": "https://proxxon.in.ua/nastilni-stanki/nastilniy-lobzik/dvoshvidkisniy-elektrolobzik-dsh-proxxon-28092.html",
+      "error": "Input buffer contains unsupported image format",
+      "reason": "Unavailable source: Input buffer contains unsupported image format"
+    },
+    {
+      "id": "proxxon-opitec-2",
+      "url": "https://www.opitec.com/media/cb/b0/b2/1764713132/309975-000-000-VO-02d01_v_9.jpg?ts=1764713132",
+      "page": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+      "path": "tmp/tools-v3/candidates/proxxon-opitec-2.jpg",
+      "width": 2560,
+      "height": 1122,
+      "sha256": "d44f0978198dfa55a32d9b2640c52753cc8a0dec6f36ffebdd2620c78c6bfc95",
+      "reason": "Technical vacuum connection drawing, not a photo. Existing schematics must remain."
+    },
+    {
+      "id": "proxxon-opitec-3",
+      "url": "https://www.opitec.com/media/0d/96/1e/1764713131/309975-000-000-vo-05-v-9.avif",
+      "page": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+      "path": "tmp/tools-v3/candidates/proxxon-opitec-3.heif",
+      "width": 2560,
+      "height": 2192,
+      "sha256": "b74cbab7523f690636ab9ed5b34f9e2dbeb095923893b181629bf23a17c01720",
+      "reason": "Alternate encoding of same accepted photo, not a new view."
+    },
+    {
+      "id": "proxxon-opitec-4",
+      "url": "https://www.opitec.com/media/cb/b0/b2/1764713132/309975-000-000-vo-02d01-v-9.avif",
+      "page": "https://www.opitec.com/de-de/proxxon-dekupiersaege-dsh/309975",
+      "path": "tmp/tools-v3/candidates/proxxon-opitec-4.heif",
+      "width": 2560,
+      "height": 1122,
+      "sha256": "aa574171bb239d33561cd93804607c0320cc6d231c5167b621e515dab05a2cbc",
+      "reason": "Technical vacuum connection drawing, not a photo. Existing schematics must remain."
+    },
+    {
+      "id": "pebaro-master-0",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-2.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/12-Spirallaubsaegeblaetter-fuer-Holz-und-Kunststoff-pb-2.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-0.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "baf52132f06a2a03ccf7c4bcb2aa26d6383c967f39458b1c912a13b8c1812d42",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-1",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-1.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/Laubsaegeblaetter-spiralfoermig.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-1.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "527083024ae1a81f281ddf471971aa2f6ecc5047bfaf1bf96fa0315dbd33d539",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-2",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/2/Saegeblatt_Spiral.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/Laubsaegeblaetter-spiralfoermig-pb.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-2.jpg",
+      "width": 4385,
+      "height": 500,
+      "sha256": "16f940f43b68436a3e9454d1784b3b8a1df235f8e1300ed6c20eec2e416a47e7",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-3",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-3.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/Laubsaegeblaetter-spiralfoermig-pb.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-3.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "19ce6f10262c12a4d74458d3643db581d69a5907254fe3f0f7f0650664f195f7",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-4",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-4_pack.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/12-Spirallaubsaegeblaetter-fuer-Holz-und-Kunststoff-pb.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-4.jpg",
+      "width": 226,
+      "height": 681,
+      "sha256": "5316ddf6edad68153670bdbf004368469c7dccac508c3a6fd7e0bc342b1ddd9e",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-5",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-5.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/12-Spirallaubsaegeblaetter-fuer-Holz-und-Kunststoff-pb-1.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-5.jpg",
+      "width": 226,
+      "height": 681,
+      "sha256": "225f761edc4081cef6e7f7018467e504cc2a89e4854e734f118e5c5dd3d10e59",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-6",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/134-6.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Holz-und-Kunststoff-spiralfoermig/12-Spirallaubsaegeblaetter-fuer-Holz-und-Kunststoff.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-6.jpg",
+      "width": 226,
+      "height": 681,
+      "sha256": "826851c85ee7b18cd6497ab45bb5f7b7c5aec271c21741322cfc4352369be52b",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-7",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-0.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-7.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "a0488cfa8cd0ce238a2f7d9fdc5cf2cb0c08bf49b3427419b656d70f02a6f33a",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-8",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/2/Saegeblatt_Metall.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-8.jpg",
+      "width": 10003,
+      "height": 1200,
+      "sha256": "2fe89d2b5c41a09c65b7a2f49c7937fa3275c2c7bdd9118c778e1eecbce70553",
+      "reason": "Black blade tooth silhouette diagram; not a product photograph. Existing schematics must remain."
+    },
+    {
+      "id": "pebaro-master-9",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-1.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/12-Laubsaegeblaetter-fuer-Metall.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-9.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "33043741b5a7ee0da25263e7a7b27fc72cd78030f5c154fa7a1031e41c12d102",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-10",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-3.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall-pb.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-10.jpg",
+      "width": 1025,
+      "height": 1000,
+      "sha256": "89c7c666cfe8393e311640bcecf1acc53fade4ca1ac2ad71a02f69faa05f7339",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-11",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/2/135-0.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall-pb.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-11.jpg",
+      "width": 1200,
+      "height": 6575,
+      "sha256": "9bcedf7328f8ec94c4da33a677f4c972bd2618bfd62fe1f4a0d574f14bb2da3a",
+      "reason": "Native pixel inspection shows visibly soft/pixelated blade details; dimensions alone do not supply useful sharp zoom."
+    },
+    {
+      "id": "pebaro-master-13",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/1/135_4_Pack.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall-pb-1.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-13.jpg",
+      "width": 212,
+      "height": 620,
+      "sha256": "6b196422e81b25d9adcf30cc01ee88239932ba773cb9ce2bf40846c4961e49f9",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-14",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/2/135-7.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall-pb-1.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-14.jpg",
+      "width": 1500,
+      "height": 1000,
+      "sha256": "77e6dd5cf6230d4096ac62a41c816dbdd2ce811bb81b6346851af39a5c955f0c",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "pebaro-master-15",
+      "url": "https://shop.pebaro.de/out/pictures/master/product/3/135-4.jpg",
+      "page": "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall-pb-1.html",
+      "path": "tmp/tools-v3/candidates/pebaro-master-15.jpg",
+      "width": 1200,
+      "height": 6459,
+      "sha256": "6f99117024c3e0d43af5e2d22b10ab15d02c0d68f757c56a211c21f8609318f6",
+      "reason": "Native pixel inspection shows visibly soft/pixelated blade details; dimensions alone do not supply useful sharp zoom."
+    },
+    {
+      "id": "caliper-0",
+      "url": "https://www.opitec.com/media/f8/55/3c/1765220842/303773-000-000-VO-01_v_9.jpg?ts=1765220842",
+      "page": "https://www.opitec.com/de-de/digital-messschieber-150-mm/303773",
+      "path": "tmp/tools-v3/candidates/caliper-0.jpg",
+      "width": 2560,
+      "height": 857,
+      "sha256": "12472392721f86fb1ebd82d0cbaa6fbebc951b0f90225b1cbc626c1b68196d2e",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "caliper-1",
+      "url": "https://www.opitec.com/media/58/7d/98/1764762418/303773-000-000-VO-01a01_v_9.jpg?ts=1764762418",
+      "page": "https://www.opitec.com/de-de/digital-messschieber-150-mm/303773",
+      "path": "tmp/tools-v3/candidates/caliper-1.jpg",
+      "width": 2560,
+      "height": 2423,
+      "sha256": "bc4e7eed96ec1fb13e2fea68475ecca96b63affd623638cc7d214b977c1211e0",
+      "reason": "Same source and bytes already present in existing product gallery; not a replacement or new view."
+    },
+    {
+      "id": "mat220-0",
+      "url": "https://www.opitec.com/media/7f/8b/3d/1764733672/375028-000-000-VO-02_v_9.jpg?ts=1764733672",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-220-x-300-mm/375028",
+      "path": "tmp/tools-v3/candidates/mat220-0.jpg",
+      "width": 2560,
+      "height": 1333,
+      "sha256": "9af0e2a27966a2f25c7f9716a4ab2e3dc09d6496d204ccb3e6cff1b92e98751c",
+      "reason": "Same source and bytes already present in existing product gallery; not a replacement or new view."
+    },
+    {
+      "id": "mat220-1",
+      "url": "https://www.opitec.com/media/88/3b/20/1764733673/375028-000-000-VO-02a01_v_9.jpg?ts=1764733673",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-220-x-300-mm/375028",
+      "path": "tmp/tools-v3/candidates/mat220-1.jpg",
+      "width": 2560,
+      "height": 2249,
+      "sha256": "c17035520f868526fd41dbef8261bcc86cdea32e7dced2ac82d7972be97753a7",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat220-2",
+      "url": "https://www.opitec.com/media/c5/bf/72/1764733674/375028-000-000-VO-02a02_v_9.jpg?ts=1764733674",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-220-x-300-mm/375028",
+      "path": "tmp/tools-v3/candidates/mat220-2.jpg",
+      "width": 2560,
+      "height": 2560,
+      "sha256": "086f0f4a69bf39268e4f06c683a03a9422fd1a372fa8c9683bf24e7fa290b0d4",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat300-0",
+      "url": "https://www.opitec.com/media/50/2e/4d/1764938764/375039-000-000-VO-02_v_9.jpg?ts=1764938764",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-300-x-450-mm/375039",
+      "path": "tmp/tools-v3/candidates/mat300-0.jpg",
+      "width": 2560,
+      "height": 1774,
+      "sha256": "35ac4897642a42d15d8e277bf23313dc02b060fea2179a241cf43d1d8c9ac89a",
+      "reason": "Same source and bytes already present in existing product gallery; not a replacement or new view."
+    },
+    {
+      "id": "mat300-1",
+      "url": "https://www.opitec.com/media/37/4e/aa/1764938765/375039-000-000-VO-02a01_v_9.jpg?ts=1764938765",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-300-x-450-mm/375039",
+      "path": "tmp/tools-v3/candidates/mat300-1.jpg",
+      "width": 2560,
+      "height": 1429,
+      "sha256": "f5055e0e276249c8a3b6ae16d62cb6e26d14c52faddea1059ae6120b4bd5b18f",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat300-2",
+      "url": "https://www.opitec.com/media/bc/81/89/1764717536/375051-000-000-VO-02_v_9.jpg?ts=1764717536",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-300-x-450-mm/375039",
+      "path": "tmp/tools-v3/candidates/mat300-2.jpg",
+      "width": 2560,
+      "height": 1774,
+      "sha256": "e1d096bca4b92b4f9c78468ce02961852b808b058341b26b42f008287661f942",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat450-0",
+      "url": "https://www.opitec.com/media/68/20/55/1764725457/375040-000-000-VO-02_v_9.jpg?ts=1764725457",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+      "path": "tmp/tools-v3/candidates/mat450-0.jpg",
+      "width": 2560,
+      "height": 1994,
+      "sha256": "1fea115ffa1594e28be558a5f449f5c664396551e33671e8b3fc4d598bc64aca",
+      "reason": "Same source and bytes already present in existing product gallery; not a replacement or new view."
+    },
+    {
+      "id": "mat450-1",
+      "url": "https://www.opitec.com/media/d0/da/43/1764725458/375040-000-000-VO-02a01_v_9.jpg?ts=1764725458",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+      "path": "tmp/tools-v3/candidates/mat450-1.jpg",
+      "width": 2560,
+      "height": 1429,
+      "sha256": "8194e1d32dd1f9c619552f9ea9a43c7caf767fc837936459c4d8b9ece7b69e0e",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat450-2",
+      "url": "https://www.opitec.com/media/43/e1/ea/1773741630/375040-000-000-VO-02a02_v_5.jpg?ts=1773741630",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+      "path": "tmp/tools-v3/candidates/mat450-2.jpg",
+      "width": 1943,
+      "height": 2560,
+      "sha256": "7d4d8cb6cdd2e81000b1e625fd8a94ac2bcd6977c32d73a937709b9ec06d368e",
+      "reason": "Contains people/faces/hands; rejected."
+    },
+    {
+      "id": "mat600-1",
+      "url": "https://www.opitec.com/media/ba/7c/dc/1764717537/375051-000-000-VO-01a01_v_9.jpg?ts=1764717537",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-600-x-900-mm/375051",
+      "path": "tmp/tools-v3/candidates/mat600-1.jpg",
+      "width": 2560,
+      "height": 1429,
+      "sha256": "386a5eb37a535fdb678923e57b97c8c977eae2b2c41e90894a333de30f8edc09",
+      "reason": "Group/related-size photo or existing identical craft-context original; does not supply a new exact-size view."
+    },
+    {
+      "id": "mat600-2",
+      "url": "https://www.opitec.com/media/30/81/3d/1773741631/375051-000-000-VO-02a01_v_5.jpg?ts=1773741631",
+      "page": "https://www.opitec.com/de-de/schneidunterlage-600-x-900-mm/375051",
+      "path": "tmp/tools-v3/candidates/mat600-2.jpg",
+      "width": 1943,
+      "height": 2560,
+      "sha256": "244c8f826a66dbef4e14fd9f72ab42b85a45bab021b14939e8c0d0fef1b1a4b8",
+      "reason": "Contains people/faces/hands; rejected."
+    },
+    {
+      "id": "unior-mx-native",
+      "url": "https://unior.mx/wp-content/uploads/2023/04/812.jpg",
+      "page": "https://unior.mx/producto/martillo-para-herrero-2/",
+      "path": "tmp/tools-v3/candidates/unior-mx-native.jpg",
+      "width": 700,
+      "height": 700,
+      "sha256": "6c356897079dfbaba2d8c9df8003e82f75b9ee024fb72cf50525719eef8c1807",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "hammer-proficentar",
+      "url": "https://proficentar.ba/wp-content/uploads/2024/03/unior-601799.webp",
+      "path": "tmp/tools-v3/candidates/hammer-proficentar.webp",
+      "width": 1200,
+      "height": 1370,
+      "sha256": "9b2cf29fccd9dd8b797044d447537578351e558136e0fa53360e0a3e52637865",
+      "reason": "Photo visibly readsUNIOR812-300 despite200g listing and uses excessive empty padding; cannot represent200g or count as improvement."
+    },
+    {
+      "id": "hammer-ridewill",
+      "url": "https://img.ridewill.it/public/generic/big/567008657_1.jpg",
+      "path": "tmp/tools-v3/candidates/hammer-ridewill.jpeg",
+      "width": 700,
+      "height": 700,
+      "sha256": "58a5145fb012da6aab6451443440e3e664cd5b6c347dcab3dba36c0db3d93779",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    },
+    {
+      "id": "hammer-bikeinn",
+      "url": "https://www.tradeinn.com/f/14247/142479777/unior-812-601799-200g-locksmiths-hammer.jpg",
+      "path": "tmp/tools-v3/candidates/hammer-bikeinn.webp",
+      "width": 1000,
+      "height": 1000,
+      "sha256": "05c834908c781a5aa5ff9bfff4a5ff8a1f4024a2d0d543c95f8bebc82b4d6fca",
+      "reason": "Original fails minimum1024 pixels on both axes."
+    }
+  ],
+  "summary": {
+    "familiesResearched": 14,
+    "acceptedNewOriginalPhotos": 1,
+    "familiesWithNewReplacement": 1,
+    "familiesWithoutNewQualifyingSource": [
+      "krivilnik-za-plasticne-mase",
+      "kladivo",
+      "elektricarske-klesce-za-snemanje-izolacije",
+      "zlatarske-skarje-za-plocevino",
+      "digitalno-pomicno-merilo",
+      "zica-za-lotanje",
+      "spiralne-zagice-za-les-in-mehke-kovine",
+      "zagice-za-rezanje-kovin",
+      "aluminijasto-ravnilo-z-rocajem",
+      "otroski-zascitni-predpasnik",
+      "otroska-ocala-za-zascito-oci",
+      "ocala-za-zascito-oci",
+      "podlaga-za-rezanje"
+    ],
+    "retainedSchematics": "All existing schematics must stay. No live/editor/gallery mutation performed by this research task.",
+    "filesChanged": [
+      "public/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+      "data/catalog/replacement-sources-tools-2026-09.json"
+    ],
+    "downloadedUniqueCandidateRecords": 65
+  },
+  "verification": {
+    "acceptedOriginalSha256Verified": true,
+    "acceptedOriginalDimensionsVerified": true,
+    "acceptedVariantNamesMatchCanonical": true,
+    "acceptedPhotoVisuallyInspected": true,
+    "acceptedPhotoNativePixelDetailInspected": true,
+    "acceptedOriginalNotModified": true,
+    "liveDataOrRuntimeTouched": false
+  }
+}

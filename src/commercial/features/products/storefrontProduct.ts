@@ -1,3 +1,4 @@
+import { normalizeCatalogImageOriginal } from '@/shared/domain/catalog/catalogImageOriginal';
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 import { resolveCatalogueDescription } from '@/commercial/catalog/catalogContentFallbacks';
 import { getDiscountedPrice } from '@/commercial/catalog/catalogUtils';
@@ -15,6 +16,9 @@ export type StorefrontProductMedia = {
   kind: StorefrontMediaKind;
   role: 'gallery' | 'technical_sheet';
   url: string;
+  originalUrl?: string;
+  originalWidth?: number;
+  originalHeight?: number;
   altText: string;
   filename?: string;
   mimeType?: string;
@@ -458,6 +462,7 @@ const normalizeMedia = (item: UnknownRecord, itemName: string): StorefrontProduc
             : 'gallery',
         url,
         altText: asString(row.altText, itemName),
+        ...normalizeCatalogImageOriginal(row.imageDimensions),
         ...(filename ? { filename } : {}),
         ...(mimeType ? { mimeType } : {}),
         ...(imageType ? { imageType } : {}),

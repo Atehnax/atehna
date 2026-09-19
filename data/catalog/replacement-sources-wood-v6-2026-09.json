@@ -1,0 +1,1627 @@
+{
+  "version": 6,
+  "createdAt": "2026-09-14T12:50:44.456Z",
+  "status": "bounded-source-pass-complete; no publishable whole-board photograph obtained",
+  "scope": "31 existing production plywood variants only. Source evidence ledger; no database, canonical catalog, runtime or product-image changes.",
+  "matchingPolicy": "User-authorized converging product name, dimensions, material, colour and original ATEHNA visual identity; no mandatory supplier/EAN link for unbranded commodities. Conflicting known branded model/grade/colour remains disallowed.",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "realPhotographsOnly": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "unchangedOriginalBytes": true,
+    "nearDuplicatesExcluded": true,
+    "schematicsPreserved": true
+  },
+  "priorEvidenceLedgers": [
+    "data/catalog/replacement-sources-materials-v4-2026-09.json",
+    "data/catalog/replacement-sources-materials-v5-2026-09.json"
+  ],
+  "summary": {
+    "familiesReviewed": 1,
+    "productionVariantsReviewed": 31,
+    "knownBeechVariants": 3,
+    "knownPoplarVariants": 4,
+    "unspecifiedSpeciesVariants": 24,
+    "sourcePagesInspected": 27,
+    "nativeFilesDownloaded": 52,
+    "uniqueNativeFiles": 41,
+    "filesWithBothAxesAtLeast1024": 23,
+    "acceptedOriginalPhotographs": 0,
+    "acceptedVariants": 0,
+    "approvedDetailsHeldFromV4": 1
+  },
+  "products": [
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "name": "Vezana plošča",
+      "sourceUrls": [
+        "https://atehna.si/product/vezana-plosca-bukev-razlicne-dimenzije/",
+        "https://atehna.si/product/vezana-plosca-topol-razlicne-dimenzije/",
+        "https://atehna.si/product/vezana-plosca-razlicne-dimenzije/"
+      ],
+      "variants": [
+        {
+          "id": "97",
+          "name": "Bukev / 6 x 300 x 400",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "status": "active",
+          "lengthMm": 400,
+          "widthMm": 300,
+          "thicknessMm": 6,
+          "woodSpecies": "beech",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "98",
+          "name": "Bukev / 4 x 500 x 500",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 500,
+          "thicknessMm": 4,
+          "woodSpecies": "beech",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "99",
+          "name": "Bukev / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "status": "active",
+          "lengthMm": 250,
+          "widthMm": 250,
+          "thicknessMm": 4,
+          "woodSpecies": "beech",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "100",
+          "name": "Topol / 6 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "status": "active",
+          "lengthMm": 1720,
+          "widthMm": 2520,
+          "thicknessMm": 6,
+          "woodSpecies": "poplar",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "101",
+          "name": "Topol / 4 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "status": "active",
+          "lengthMm": 1720,
+          "widthMm": 2520,
+          "thicknessMm": 4,
+          "woodSpecies": "poplar",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "102",
+          "name": "Topol / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 250,
+          "thicknessMm": 4,
+          "woodSpecies": "poplar",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing for this exact species, thickness and cut."
+        },
+        {
+          "id": "103",
+          "name": "Topol / 3 x 250 x 500",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 250,
+          "thicknessMm": 3,
+          "woodSpecies": "poplar",
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "A complete native, sharp 500 × 250 × 3 mm poplar main is still missing; approved Toom grain/edge detail remains held until then. Independent reverse and second edge views are also missing."
+        },
+        {
+          "id": "104",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 210,
+          "thicknessMm": 10,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "105",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 210,
+          "thicknessMm": 8,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "106",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 500,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "107",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 400,
+          "widthMm": 400,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "108",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 600,
+          "widthMm": 300,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "109",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 300,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "110",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 1000,
+          "widthMm": 250,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "111",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 250,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "112",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 250,
+          "widthMm": 250,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "113",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 200,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "114",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 200,
+          "widthMm": 150,
+          "thicknessMm": 6,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "115",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 150,
+          "widthMm": 200,
+          "thicknessMm": 5,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "116",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 400,
+          "widthMm": 400,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "117",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 420,
+          "widthMm": 300,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "118",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 1000,
+          "widthMm": 250,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "119",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 500,
+          "widthMm": 250,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "120",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 250,
+          "widthMm": 250,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "121",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 200,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "122",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 150,
+          "widthMm": 200,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "123",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 120,
+          "widthMm": 120,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "124",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 150,
+          "widthMm": 100,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "125",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 60,
+          "widthMm": 50,
+          "thicknessMm": 4,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "126",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 250,
+          "widthMm": 250,
+          "thicknessMm": 3,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        },
+        {
+          "id": "127",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "status": "active",
+          "lengthMm": 300,
+          "widthMm": 210,
+          "thicknessMm": 3,
+          "woodSpecies": null,
+          "targetPresence": {
+            "production": true,
+            "local": true,
+            "canonical": true
+          },
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-sheet main, reverse and informative edge views missing. The original ATEHNA picture mixes several species/thicknesses and does not map actual stock to this variant; a matching stock photograph or a more specific original record is needed."
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication.",
+          "carriedFromLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "hornbachPoplar4",
+          "sourcePage": "https://www.hornbach.de/conf/sperrholz-pappel-b-bb-2440-x-1220-x-4-mm-zuschnitt-online-reservierbar/5190648/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 4 mm poplar is cut to size, but all six gallery originals, including the explicitly linked dvid=8 variants, return only 500 × 400 pixels. Query-free and dvid=8 files match byte-for-byte.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/hornbachPoplar4.html",
+          "originals": [
+            {
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.46094597.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-0.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 22614,
+              "sha256": "a22a45f15b625ed74206186b6a1ec923c277a1c0308594eb2e3d1e8cc088d8d9",
+              "error": null
+            },
+            {
+              "imageUrl": "https://media.hornbach.de/hb/detail/as.46432978.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-2.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 13172,
+              "sha256": "c44c690f66cef58642bbaecda9bc9675d7eaa30b2e4bec855d963388905d041e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://media.hornbach.de/hb/detail/as.46433283.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-4.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 42684,
+              "sha256": "dbc7b746345193dff04fe6849924b473831850a8d0396ce907e94104e15c70f3",
+              "error": null
+            },
+            {
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.154020972.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-1.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 14143,
+              "sha256": "1e2ee1846fbbf07a62ec48973d6b4766b94633ed2b1d805def6d1698b53ea6c4",
+              "error": null
+            },
+            {
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.46433076.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-3.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 14769,
+              "sha256": "66495518079835779368cd30a59a9efa6600e98fa02e12ac5f5f17069d1ad63f",
+              "error": null
+            },
+            {
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.46433169.jpg",
+              "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-5.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 15784,
+              "sha256": "d532e2d6e274f780b78d61bdaf525ffab7259b24871fa60c6bc05b8efd4cf7a8",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "bauhausBeech4",
+          "sourcePage": "https://www.bauhaus.info/zuschnittplatten/sperrholzplatte-nach-mass/p/22751339",
+          "httpStatus": 403,
+          "error": null,
+          "inspection": "Search-indexed page confirms 4 mm beech with millimetre cut service, but direct page request returned HTTP 403 and exposed no original photo. Prior same source was also unavailable; no bypass or image substitution attempted.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/bauhausBeech4.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "panguanetaPoplar",
+          "sourcePage": "https://www.panguaneta.com/products/ranges/classic-range/4-tutto-pioppo-tutto-pioppo",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Manufacturer lists 2520 × 1720 mm poplar at 4/6 mm thicknesses. The 1560 × 1043 XL gallery photograph instead shows a thick branded sample with many plies. It cannot represent the thin exact variants.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/panguanetaPoplar.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.panguaneta.com/media/k2/items/cache/2ff2ba0051687eef5ca0459cf942940c_XL.jpg?t=20260413_130842",
+              "path": "tmp/product-image-audit/wood-v6/panguanetaPoplar.jpg",
+              "width": 1560,
+              "height": 1043,
+              "bytes": 473762,
+              "sha256": "ed81646c6e81d1555057334ee7f43e5ff82c0a593432322399d5459d5b1c35b0",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "balsaCh",
+          "sourcePage": "https://www.balsa.ch/de/kategorie/pappelsperrholz-standardformate",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Category inspection led to exact 500 × 250 × 3/4 mm poplar pages, whose largest linked files are identical 800 × 800 cropped-corner photographs.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/balsaCh.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "opitecPoplar4",
+          "sourcePage": "https://www.opitec.com/de-de/sperrholz-pappel-4-mm-sondermass/718000",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Custom-cut 4 mm poplar is offered in bounds covering 250 × 500 mm, but the 2560 × 1024 source is only a cropped corner with many visible plies. It is not a complete-sheet main; displayed thickness is not established independently.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/opitecPoplar4.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.opitec.com/media/48/82/a4/1764703988/718000-000-000-VO-02_v_9.jpg?ts=1764703988",
+              "path": "tmp/product-image-audit/wood-v6/opitecPoplar4.jpg",
+              "width": 2560,
+              "height": 1024,
+              "bytes": 404259,
+              "sha256": "299ea92e3e51add53a9431d89f019f7dd66b523931376c8af0371878641e4eeb",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "ortur3",
+          "sourcePage": "https://ortur.net/products/3mm-baltic-birch-plywood-1-8-x-12-x-8-inch-8pcs",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Current product title says basswood 210 × 300 × 3 mm, whereas the URL and body also say Baltic birch. Main native files are 1000 × 1000. Larger files show engraved finished goods or promotional text, not additional exact raw-sheet views.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/ortur3.html",
+          "originals": [
+            {
+              "imageUrl": "https://ortur.net/cdn/shop/files/ortur-3mm-basswood-plywood-main-pic-2.webp?v=1751364062&amp%3Bwidth=1200",
+              "path": "tmp/product-image-audit/wood-v6/ortur3-9.jpg",
+              "width": 1200,
+              "height": 1200,
+              "bytes": 372405,
+              "sha256": "36aa0fabfebdc010815cdad99d2c5761818559dfe36d14524d5719fe01332f1d",
+              "error": null
+            },
+            {
+              "imageUrl": "https://ortur.net/cdn/shop/products/ortur-3mm-basswood-plywood-main-pic-1.jpg?v=1764291958&amp%3Bwidth=1000",
+              "path": "tmp/product-image-audit/wood-v6/ortur3-8.jpg",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 37880,
+              "sha256": "3f296b1c0055d0b54bc28be02fd094f9df52d0a3859bac2cf72d09dd36651aac",
+              "error": null
+            },
+            {
+              "imageUrl": "https://ortur.net/cdn/shop/products/ortur-3mm-basswood-plywood-main-pic-4.jpg?v=1751364130&amp%3Bwidth=1000",
+              "path": "tmp/product-image-audit/wood-v6/ortur3-10.jpg",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 31719,
+              "sha256": "215eaa1b0568b4139d9f1b9cb764b635705554c8b7ee232c8e0f4a9402c564a9",
+              "error": null
+            },
+            {
+              "imageUrl": "https://ortur.net/cdn/shop/products/ortur-3mm-basswood-plywood-main-pic-5.jpg?v=1751364130&amp%3Bwidth=2560",
+              "path": "tmp/product-image-audit/wood-v6/ortur3-11.jpg",
+              "width": 2560,
+              "height": 2560,
+              "bytes": 286934,
+              "sha256": "d0a24f7117ef0cb35c75f8735eb05f397f3192342f20a69d9b5322bc54c09810",
+              "error": null
+            },
+            {
+              "imageUrl": "https://ortur.net/cdn/shop/products/ortur-3mm-basswood-plywood-main-pic-6.jpg?v=1751364130&amp%3Bwidth=1000",
+              "path": "tmp/product-image-audit/wood-v6/ortur3-12.jpg",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 124092,
+              "sha256": "a80b91794d3a8d864d90a04116e58e8baa12ec387a2722a259e1fba8a5684b3a",
+              "error": null
+            },
+            {
+              "imageUrl": "https://pinterest.com/pin/create/button/?url=https%3A%2F%2Fortur.net%2Fproducts%2F3mm-baltic-birch-plywood-1-8-x-12-x-8-inch-8pcs&media=https%3A%2F%2Fortur.net%2Fcdn%2Fshop%2Fproducts%2Fortur-3mm-basswood-plywood-main-pic-1.jpg%3Fv%3D1764291958&description=STRONG%2C+DURABLE%2C+HEAVY-DUTY+-+These+craft+wood+pieces+of+multi-coated+basswood+offer+exceptional+durability%2C+rigidity%2C+and+stability+for+all+your+woodworking+needs.+The+surfaces+provide+excellent+h...",
+              "path": null,
+              "width": null,
+              "height": null,
+              "bytes": null,
+              "sha256": null,
+              "error": "Error: Input buffer has corrupt header: glib: XML parse error: Error domain 1 code 76 on line 2202 column 1773 of data: Opening and ending tag mismatch: html line 1 and div"
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "leren3",
+          "sourcePage": "https://leren.co.uk/product/3mm-plywood-sheet/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Native 1319 × 1193 source is a real board-stack photograph, but every sheet is cut off at the frame. The page has a 210 × 300 × 3 mm option with unspecified wood; it cannot supply a complete main or establish the actual ATEHNA unknown-species stock.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/leren3.html",
+          "originals": [
+            {
+              "imageUrl": "https://leren.co.uk/wp-content/uploads/2025/05/ply-board-sheet.png",
+              "path": "tmp/product-image-audit/wood-v6/leren3.png",
+              "width": 1319,
+              "height": 1193,
+              "bytes": 1991726,
+              "sha256": "730e26f88e025584efae70ae3fee87eab348f37e3e59beaf55a9a143d47304a9",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "derulaPoplar",
+          "sourcePage": "https://derula.com/products/poplar-plywood/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Manufacturer lists 2520 × 1720 mm poplar at both required 4/6 mm thicknesses. Exposed photographs are 600 × 500 or 864 × 451 and only show corners; other images are small diagrams.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/derulaPoplar.html",
+          "originals": [
+            {
+              "imageUrl": "https://derula.com/wp-content/uploads/2023/02/Pannelli-Compensato-Pioppo.jpeg",
+              "path": "tmp/product-image-audit/wood-v6/derulaPoplar-15.jpg",
+              "width": 600,
+              "height": 500,
+              "bytes": 176105,
+              "sha256": "842077c048cf2faef09f607a23fd29812aaf09e35b42a02a7dfd6ae2625dd0e3",
+              "error": null
+            },
+            {
+              "imageUrl": "https://derula.com/wp-content/uploads/2023/02/poplar-plywood.jpeg",
+              "path": "tmp/product-image-audit/wood-v6/derulaPoplar-16.jpg",
+              "width": 864,
+              "height": 451,
+              "bytes": 194528,
+              "sha256": "c1a710ac6aa197bf1f408715f33cb0c27ae8fe3ecb0f283255587f227e548f37",
+              "error": null
+            },
+            {
+              "imageUrl": "https://derula.com/wp-content/uploads/2023/02/Caratteristiche-1-poplar-plywood.jpg",
+              "path": "tmp/product-image-audit/wood-v6/derulaPoplar-17.jpg",
+              "width": 390,
+              "height": 350,
+              "bytes": 53196,
+              "sha256": "5898a2da99e15a59f4b61bbe7b9c6b5a801098b3393bee95e148bb29e5319a1b",
+              "error": null
+            },
+            {
+              "imageUrl": "https://derula.com/wp-content/uploads/2023/02/Caratteristiche-2-poplar-plywood.jpg",
+              "path": "tmp/product-image-audit/wood-v6/derulaPoplar-18.jpg",
+              "width": 391,
+              "height": 191,
+              "bytes": 44468,
+              "sha256": "765688bc9802c97441f23f8fa9e268a87f708249b1ca4cb7269de9a21ac1f79a",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "balsaCh3",
+          "sourcePage": "https://www.balsa.ch/de/produkt/pappelsperrholz-500-x-250-x-3-mm",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 500 × 250 × 3 mm poplar product; explicitly linked _gr original is 800 × 800. The 4 mm page uses the identical SHA256. Both below the required dimensions and not distinct views.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/balsaCh3.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.balsa.ch/shop/ProdukteBilder/320525030_gr.jpg",
+              "path": "tmp/product-image-audit/wood-v6/balsaCh3.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 71274,
+              "sha256": "3e50f0e799496460bdc6e9e1097a4e9d47140f5ddbc7ae60741e1edf8e39d7c3",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "balsaCh4",
+          "sourcePage": "https://www.balsa.ch/de/produkt/pappelsperrholz-500-x-250-x-4-mm",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 500 × 250 × 4 mm poplar product; explicitly linked _gr original is 800 × 800 and identical to the 3 mm photograph.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/balsaCh4.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.balsa.ch/shop/ProdukteBilder/320525040_gr.jpg",
+              "path": "tmp/product-image-audit/wood-v6/balsaCh4.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 71274,
+              "sha256": "3e50f0e799496460bdc6e9e1097a4e9d47140f5ddbc7ae60741e1edf8e39d7c3",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "holzFrank3",
+          "sourcePage": "https://www.holz-frank.com/Pappel-Sperrholz-3-mm-A-BB-Qualitaet-500-x-340-x-3-mm-2mm",
+          "httpStatus": 403,
+          "error": null,
+          "inspection": "Page is 500 × 340 × 3 mm poplar, not a target cut; direct request returned HTTP 403. No exact 500 × 250 mm option could be verified.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/holzFrank3.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "balsaholzShop3",
+          "sourcePage": "https://www.balsaholz-shop.de/de/Pappel-Sperrholz--Pappelsperrholz--Balsaholz-shop-de--Modellbau--RC-Modellbau-Architektur-36.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 250 × 500 × 3 mm poplar listing. Explicit /original_images/ source is 400 × 295 and a cropped stack, below the native dimension threshold.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/balsaholzShop3.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.balsaholz-shop.de/images/product_images/original_images/pappelspr-balsaholz-shop_36_0.jpg",
+              "path": "tmp/product-image-audit/wood-v6/balsaholzShop3.jpg",
+              "width": 400,
+              "height": 295,
+              "bytes": 36226,
+              "sha256": "30c897d38395b879d231b1ad14d35ef7829f7c099a8f6004a105a8ff99c0efc6",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "zuschnitt3",
+          "sourcePage": "https://zuschnittonline.de/Sperrholz-Pappel-B-BB-3mm-auf-Mass/PZ10501",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 3 mm poplar custom-cut listing with a complete-looking sheet view. The untransformed /media/ source is only 750 × 422 pixels.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/zuschnitt3.html",
+          "originals": [
+            {
+              "imageUrl": "https://zuschnittonline.de/media/b2/5c/0b/1742903041/Sperrholzpappel.jpg",
+              "path": "tmp/product-image-audit/wood-v6/zuschnitt3.jpg",
+              "width": 750,
+              "height": 422,
+              "bytes": 48838,
+              "sha256": "d7f6515adba89066d647cd9b6412b7e04789fad850b7e83ba746260bb2a18ded",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "gercona",
+          "sourcePage": "https://www.gercona.com/en/wood-based-panels/poplar-plywood",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Manufacturer offers the relevant poplar stock, but all six explicitly linked originals are 800 × 800. One is a thick corner; others are finished furniture/interiors/curved pieces rather than exact raw boards.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/gercona.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_2.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-2.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 60314,
+              "sha256": "32a7f7fc5ea98a73245f30c5c2ee10d1fbecad786e98fc00839515876cd21426",
+              "error": null
+            },
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_1.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-1.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 62284,
+              "sha256": "a81d1025a0131d0daaffb5f92cade5e71574b668e41085e455df887614db348c",
+              "error": null
+            },
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_3.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-3.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 33354,
+              "sha256": "ffa6f4dd43760e32df2a84f48edb8f278e9cfa4e1d234b166555e51de7f5507a",
+              "error": null
+            },
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_5.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-5.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 113316,
+              "sha256": "c2dc7c2901bb793f3f62e7fe7a97a406c667bfd50065fc4d56c706f03340fcf3",
+              "error": null
+            },
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_6.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-6.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 72290,
+              "sha256": "7f88eda931737d971fb702e06db4e96b648f8b554b941a79ae6f8062d7829c99",
+              "error": null
+            },
+            {
+              "imageUrl": "https://www.gercona.com/fileadmin/content/holzwerkstoff/icta/icta_4.jpg",
+              "path": "tmp/product-image-audit/wood-v6/gercona-4.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 55211,
+              "sha256": "2947878c1324703fc52cdab3146325b9b436333457d43efc5305e52d3d90eca3",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "jumboBeech4",
+          "sourcePage": "https://www.jumbo.ch/de/bauen-renovieren/holz/holzzuschnitt/sperrholz/sperrholz-buche-bb-combi-4-mm/p/3469861",
+          "httpStatus": 403,
+          "error": null,
+          "inspection": "Page specifies 4 mm beech-faced combi construction with poplar/spruce core. That specific construction is not established for ATEHNA. Direct page returned HTTP 403; no suitable exact original obtained.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/jumboBeech4.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "rc3d",
+          "sourcePage": "https://rc3d.ch/Rik-Modellbau_s3",
+          "httpStatus": 403,
+          "error": null,
+          "inspection": "Retailer lists exact 500 × 250 × 3/4 mm RiK poplar. Direct page returned HTTP 403. RiK primary originals were already measured at 800 × 800; no new independent native view obtained.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/rc3d.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "holzlandBeech4",
+          "sourcePage": "https://www.holzland.de/p/sperrholz-buche-dd-if20-bbb-laengsfurniert/HL1937164/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "4 mm beech cut service confirmed. Linked zoom original is 1200 × 1200 but shows a cropped many-ply thick board, inconsistent with an informative 4 mm thin-sheet view.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/holzlandBeech4.html",
+          "originals": [
+            {
+              "imageUrl": "https://media.holzland.de/zoom/image/hlzco_Multiplex_Buche.jpg",
+              "path": "tmp/product-image-audit/wood-v6/holzlandBeechZoom.jpg",
+              "width": 1200,
+              "height": 1200,
+              "bytes": 192384,
+              "sha256": "5a1375ddc1e57f24bd7891dd0f3c8888601d9aa2fd5e94e83b7afb3f87cc49de"
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "engel",
+          "sourcePage": "https://www.engelmt.de/mtzubehoer/werkstoffe/holz/pappelsperrholz/1",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Only current result is 6 × 250 × 500 mm poplar. Exposed img_big source is 1000 × 750 and below the required threshold. The potentially matching ATEHNA 6 mm variant has no stated species, so no poplar assumption was made.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/engel.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.engelmt.de/img_big/af076379d82b95407d90affc70ec98b0.jpg",
+              "path": "tmp/product-image-audit/wood-v6/engelPoplar6.jpg",
+              "width": 1000,
+              "height": 750,
+              "bytes": 87927,
+              "sha256": "0c2836e404769a773b208a6037abc131245b31d6a8736840a74d1ed603abe9c5"
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "bpmPoplar4",
+          "sourcePage": "https://www.bpm-power.com/it/online/modellismo/accessori-modellismo/compensato-pioppo-reely-x-b0869074",
+          "httpStatus": 403,
+          "error": null,
+          "inspection": "Independent listing confirms the same Reely 244694 exact 500 × 250 × 4 mm poplar identity, but direct request returned HTTP 403. Primary Conrad source was measured separately and fails dimensions.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/bpmPoplar4.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "vallesBeech",
+          "sourcePage": "https://valles.si/vezane-plosce/vezane-plosce-bukev/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Local supplier lists 4/6 mm beech stock. 1920 × 1739 photo is a visibly thick, many-ply cropped corner, not the sold thin board; 1920 × 450 banner fails height. Sharpness is also insufficient across the enlarged-looking corner.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/vallesBeech.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "modelarzPoplar3",
+          "sourcePage": "https://www.modelarzsklep.pl/sklejka-topolowa-3-0x250x500-mm-p-13633.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact 3.0 × 250 × 500 mm poplar product. Largest directly linked source is 640 × 480, watermarked and a cropped stack.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/modelarzPoplar3.html",
+          "originals": [
+            {
+              "imageUrl": "https://www.modelarzsklep.pl/images/watermark/wpx_a9bbb38f92393ca3614b62138e824d00.jpg",
+              "path": "tmp/product-image-audit/wood-v6/modelarzPoplar3.jpg",
+              "width": 640,
+              "height": 480,
+              "bytes": 98825,
+              "sha256": "c0aae1eefb15938e894763dd19259ff0cf24d996412351944bb2df2eddc3fd94",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "conradPoplar4",
+          "sourcePage": "https://conrad.ba/p/iverica-od-topole-244694.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Reely 244694 / EAN 4016138091908 confirms exact poplar 500 × 250 × 4 mm, three plies, two sheets. Removing delivery-size query parameters returns only 1000 × 1000 original content; it is also cropped along the rear/top. No upscaling requested.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/conradPoplar4.html",
+          "originals": [
+            {
+              "imageUrl": "https://ags71.ba/image/products--1387808908-244694-0.jpg",
+              "path": "tmp/product-image-audit/wood-v6/conradPoplar4.webp",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 29874,
+              "sha256": "a4fc6e4b288bbf0761e3a9605f1fb5a5314b5b22f7e26b13ba54c063056059d0",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "sklejkaBeech",
+          "sourcePage": "https://www.sklejka.pl/produkty/sklejka-bukowa/",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Manufacturer lists 4–35 mm beech plywood. Exposed whole-board source is 1000 × 616 and visibly thick; corner 1272 × 751 also fails minimum height. The 2560 × 1575 photograph is only a surface close-up without a proven target cut/thickness.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/sklejkaBeech.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "cocorn2504",
+          "sourcePage": "https://allegro.pl/produkt/sklejka-formatka-250x250-4-mm-do-lasera-decoupage-a8f2734e-56d2-4d09-ab62-6d02d486f3c2",
+          "httpStatus": null,
+          "error": "TimeoutError: The operation was aborted due to timeout",
+          "inspection": "Allegro confirms generic hardwood 250 × 250 × 4 mm and class 2, but direct listing timed out. Investigation continued at the primary retailer Cocorn rather than inventing an asset.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/cocorn2504.html",
+          "originals": [],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "cocorn-1",
+          "sourcePage": "https://cocorn.pl/pl/products/sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact generic hardwood 500 × 250 × 6 mm page shares all five original files with the 4 mm rectangle and square. The main is cropped, and alternate compositions also crop sheets. High pixel count does not establish exact geometry/stock or a complete main.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/cocorn-1.html",
+          "originals": [
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51_2.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-1-2.jpg",
+              "width": 1560,
+              "height": 1560,
+              "bytes": 235326,
+              "sha256": "57d7c7e61d37b04525f497c1e04b1b672055aeab025087bcd62955641a52ed3e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51_4.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-1-4.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 479825,
+              "sha256": "f78259c1c3ff90685e9c7f1b48939b39c621600ed303ddc974f647d26cb0072e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51_3.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-1-3.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 781052,
+              "sha256": "dc9c603740accd215e326d549432a3e1ac3fddcc70145184d9ce4be78f244414",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51_1.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-1-1.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 242077,
+              "sha256": "9a81204241f6eac967ac4e5eed56237bc85ba585dc4e6f9b0b7d097b1f99849c",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-6-mm-kl-2-suchotrwala-51_5.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-1-5.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 759037,
+              "sha256": "6f484804780a016497492b17549e28cb6b6008ce17769e8ae4cace8796791912",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "cocorn-2",
+          "sourcePage": "https://cocorn.pl/pl/products/sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Generic hardwood 500 × 500 × 4 mm page reuses all five photographs of other cuts/thicknesses. ATEHNA 500-square 4 mm specifies beech, which this source does not prove. No image accepted.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/cocorn-2.html",
+          "originals": [
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32_1.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-2-1.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 242077,
+              "sha256": "9a81204241f6eac967ac4e5eed56237bc85ba585dc4e6f9b0b7d097b1f99849c",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32_2.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-2-2.jpg",
+              "width": 1560,
+              "height": 1560,
+              "bytes": 235326,
+              "sha256": "57d7c7e61d37b04525f497c1e04b1b672055aeab025087bcd62955641a52ed3e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32_4.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-2-4.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 479825,
+              "sha256": "f78259c1c3ff90685e9c7f1b48939b39c621600ed303ddc974f647d26cb0072e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32_3.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-2-3.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 781052,
+              "sha256": "dc9c603740accd215e326d549432a3e1ac3fddcc70145184d9ce4be78f244414",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x500-4-mm-kl-2-suchotrwala-32_5.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-2-5.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 759037,
+              "sha256": "6f484804780a016497492b17549e28cb6b6008ce17769e8ae4cace8796791912",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        },
+        {
+          "id": "cocorn-0",
+          "sourcePage": "https://cocorn.pl/pl/products/sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31.html",
+          "httpStatus": 200,
+          "error": null,
+          "inspection": "Exact generic hardwood 500 × 250 × 4 mm page provides five native 1560/1600-square files. Every file is byte-identical to the 6 mm rectangular and 4 mm square pages. The nominal main is cropped at both sides and shows a much thicker many-ply sheet; none establishes the exact cut/thickness.",
+          "pageEvidence": "tmp/product-image-audit/wood-v6/cocorn-0.html",
+          "originals": [
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31_2.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-0-2.jpg",
+              "width": 1560,
+              "height": 1560,
+              "bytes": 235326,
+              "sha256": "57d7c7e61d37b04525f497c1e04b1b672055aeab025087bcd62955641a52ed3e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31_1.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-0-1.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 242077,
+              "sha256": "9a81204241f6eac967ac4e5eed56237bc85ba585dc4e6f9b0b7d097b1f99849c",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31_4.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-0-4.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 479825,
+              "sha256": "f78259c1c3ff90685e9c7f1b48939b39c621600ed303ddc974f647d26cb0072e",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31_3.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-0-3.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 781052,
+              "sha256": "dc9c603740accd215e326d549432a3e1ac3fddcc70145184d9ce4be78f244414",
+              "error": null
+            },
+            {
+              "imageUrl": "https://cocorn.pl/pol_pl_Sklejka-lisciasta-500x250-4-mm-kl-2-suchotrwala-31_5.jpg",
+              "path": "tmp/product-image-audit/wood-v6/cocorn-0-5.jpg",
+              "width": 1600,
+              "height": 1600,
+              "bytes": 759037,
+              "sha256": "6f484804780a016497492b17549e28cb6b6008ce17769e8ae4cace8796791912",
+              "error": null
+            }
+          ],
+          "decision": "not-publishable"
+        }
+      ],
+      "missingViews": [
+        "Complete front or three-quarter sheet view for every exact variant.",
+        "Independent reverse face and useful edge/ply construction detail, where available.",
+        "No crops, rotations, mirrored views or source-reused photos count as extra viewpoints."
+      ],
+      "originalAtehnaVisualComparison": {
+        "sourceImageUrl": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca1.png",
+        "localEvidence": "tmp/product-image-audit/materials-v4/primary-veznaplosca1.png",
+        "finding": "The original shows several different face colours and ply constructions in a cropped stack. It confirms plain unfinished plywood generally but cannot establish a particular species or thickness for the 24 unspecified variants."
+      },
+      "nextUsefulSourceWork": [
+        "Obtain a genuine whole-sheet photo of the exact 500 × 250 × 3 mm poplar stock; then the already approved Toom edge detail can be published without making it the main.",
+        "Photograph the actual 3 beech and 4 poplar variants or obtain unresized originals from their supplying merchant.",
+        "For the 24 unspecified variants, establish which real stock/face and core construction each cut uses from a source record or photograph; keep current species wording unchanged."
+      ]
+    }
+  ],
+  "verification": {
+    "databaseWrites": false,
+    "canonicalWrites": false,
+    "runtimeWrites": false,
+    "productAssetsAdded": 0,
+    "sourceFilesRetainDownloadedBytes": true,
+    "reviewOnlyContactSheets": [
+      "tmp/product-image-audit/wood-v6/first-contact.jpg",
+      "tmp/product-image-audit/wood-v6/second-contact.jpg",
+      "tmp/product-image-audit/wood-v6/fourth-contact.jpg",
+      "tmp/product-image-audit/wood-v6/fifth-contact.jpg"
+    ],
+    "variantScopeSnapshot": "tmp/product-image-audit/wood-v6/variant-scope.json",
+    "nativeHashChecks": [
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-0.jpg",
+        "sha256": "a22a45f15b625ed74206186b6a1ec923c277a1c0308594eb2e3d1e8cc088d8d9",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-2.jpg",
+        "sha256": "c44c690f66cef58642bbaecda9bc9675d7eaa30b2e4bec855d963388905d041e",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-4.jpg",
+        "sha256": "dbc7b746345193dff04fe6849924b473831850a8d0396ce907e94104e15c70f3",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-1.jpg",
+        "sha256": "1e2ee1846fbbf07a62ec48973d6b4766b94633ed2b1d805def6d1698b53ea6c4",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-3.jpg",
+        "sha256": "66495518079835779368cd30a59a9efa6600e98fa02e12ac5f5f17069d1ad63f",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/hornbachPoplar4-5.jpg",
+        "sha256": "d532e2d6e274f780b78d61bdaf525ffab7259b24871fa60c6bc05b8efd4cf7a8",
+        "width": 500,
+        "height": 400
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/opitecPoplar4.jpg",
+        "sha256": "299ea92e3e51add53a9431d89f019f7dd66b523931376c8af0371878641e4eeb",
+        "width": 2560,
+        "height": 1024
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/ortur3-9.jpg",
+        "sha256": "36aa0fabfebdc010815cdad99d2c5761818559dfe36d14524d5719fe01332f1d",
+        "width": 1200,
+        "height": 1200
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/ortur3-8.jpg",
+        "sha256": "3f296b1c0055d0b54bc28be02fd094f9df52d0a3859bac2cf72d09dd36651aac",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/ortur3-10.jpg",
+        "sha256": "215eaa1b0568b4139d9f1b9cb764b635705554c8b7ee232c8e0f4a9402c564a9",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/ortur3-11.jpg",
+        "sha256": "d0a24f7117ef0cb35c75f8735eb05f397f3192342f20a69d9b5322bc54c09810",
+        "width": 2560,
+        "height": 2560
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/ortur3-12.jpg",
+        "sha256": "a80b91794d3a8d864d90a04116e58e8baa12ec387a2722a259e1fba8a5684b3a",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/panguanetaPoplar.jpg",
+        "sha256": "ed81646c6e81d1555057334ee7f43e5ff82c0a593432322399d5459d5b1c35b0",
+        "width": 1560,
+        "height": 1043
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/derulaPoplar-15.jpg",
+        "sha256": "842077c048cf2faef09f607a23fd29812aaf09e35b42a02a7dfd6ae2625dd0e3",
+        "width": 600,
+        "height": 500
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/derulaPoplar-16.jpg",
+        "sha256": "c1a710ac6aa197bf1f408715f33cb0c27ae8fe3ecb0f283255587f227e548f37",
+        "width": 864,
+        "height": 451
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/derulaPoplar-17.jpg",
+        "sha256": "5898a2da99e15a59f4b61bbe7b9c6b5a801098b3393bee95e148bb29e5319a1b",
+        "width": 390,
+        "height": 350
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/derulaPoplar-18.jpg",
+        "sha256": "765688bc9802c97441f23f8fa9e268a87f708249b1ca4cb7269de9a21ac1f79a",
+        "width": 391,
+        "height": 191
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/leren3.png",
+        "sha256": "730e26f88e025584efae70ae3fee87eab348f37e3e59beaf55a9a143d47304a9",
+        "width": 1319,
+        "height": 1193
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/balsaCh3.jpg",
+        "sha256": "3e50f0e799496460bdc6e9e1097a4e9d47140f5ddbc7ae60741e1edf8e39d7c3",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/zuschnitt3.jpg",
+        "sha256": "d7f6515adba89066d647cd9b6412b7e04789fad850b7e83ba746260bb2a18ded",
+        "width": 750,
+        "height": 422
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/balsaholzShop3.jpg",
+        "sha256": "30c897d38395b879d231b1ad14d35ef7829f7c099a8f6004a105a8ff99c0efc6",
+        "width": 400,
+        "height": 295
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-2.jpg",
+        "sha256": "32a7f7fc5ea98a73245f30c5c2ee10d1fbecad786e98fc00839515876cd21426",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-1.jpg",
+        "sha256": "a81d1025a0131d0daaffb5f92cade5e71574b668e41085e455df887614db348c",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-3.jpg",
+        "sha256": "ffa6f4dd43760e32df2a84f48edb8f278e9cfa4e1d234b166555e51de7f5507a",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-5.jpg",
+        "sha256": "c2dc7c2901bb793f3f62e7fe7a97a406c667bfd50065fc4d56c706f03340fcf3",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-6.jpg",
+        "sha256": "7f88eda931737d971fb702e06db4e96b648f8b554b941a79ae6f8062d7829c99",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/gercona-4.jpg",
+        "sha256": "2947878c1324703fc52cdab3146325b9b436333457d43efc5305e52d3d90eca3",
+        "width": 800,
+        "height": 800
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/holzlandBeechZoom.jpg",
+        "sha256": "5a1375ddc1e57f24bd7891dd0f3c8888601d9aa2fd5e94e83b7afb3f87cc49de",
+        "width": 1200,
+        "height": 1200
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/engelPoplar6.jpg",
+        "sha256": "0c2836e404769a773b208a6037abc131245b31d6a8736840a74d1ed603abe9c5",
+        "width": 1000,
+        "height": 750
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/vallesBeech1.jpg",
+        "sha256": "122e5d6285066c3e7547d117faa963c9180016d09d62440ab85b06ca0c2c48d8",
+        "width": 1920,
+        "height": 1739
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/vallesBeech0.jpg",
+        "sha256": "72209677a14352b2cc2e5f9bd8fab8974a83269aa8914ccc3ee1b34d6e5432f0",
+        "width": 1920,
+        "height": 450
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/modelarzPoplar3.jpg",
+        "sha256": "c0aae1eefb15938e894763dd19259ff0cf24d996412351944bb2df2eddc3fd94",
+        "width": 640,
+        "height": 480
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/conradPoplar4.webp",
+        "sha256": "a4fc6e4b288bbf0761e3a9605f1fb5a5314b5b22f7e26b13ba54c063056059d0",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/sklejkaBeech0.jpg",
+        "sha256": "828881ef2380907bfdf87e52224cb3098cb25618cadc82ccd6e7c8f8e3df677d",
+        "width": 1272,
+        "height": 751
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/sklejkaBeech1.jpg",
+        "sha256": "b1fc9123d0d1d829a37d1f115601cf31263832ea581cf6c81d288b03cb22630c",
+        "width": 1000,
+        "height": 616
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/sklejkaBeech2.jpg",
+        "sha256": "7c1cdfaf5e4742d815afcf06204c12e88bd13de597623111219adc8c82c5da69",
+        "width": 2560,
+        "height": 1575
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/cocorn-0-2.jpg",
+        "sha256": "57d7c7e61d37b04525f497c1e04b1b672055aeab025087bcd62955641a52ed3e",
+        "width": 1560,
+        "height": 1560
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/cocorn-0-4.jpg",
+        "sha256": "f78259c1c3ff90685e9c7f1b48939b39c621600ed303ddc974f647d26cb0072e",
+        "width": 1600,
+        "height": 1600
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/cocorn-0-3.jpg",
+        "sha256": "dc9c603740accd215e326d549432a3e1ac3fddcc70145184d9ce4be78f244414",
+        "width": 1600,
+        "height": 1600
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/cocorn-0-1.jpg",
+        "sha256": "9a81204241f6eac967ac4e5eed56237bc85ba585dc4e6f9b0b7d097b1f99849c",
+        "width": 1600,
+        "height": 1600
+      },
+      {
+        "path": "tmp/product-image-audit/wood-v6/cocorn-0-5.jpg",
+        "sha256": "6f484804780a016497492b17549e28cb6b6008ce17769e8ae4cace8796791912",
+        "width": 1600,
+        "height": 1600
+      }
+    ]
+  }
+}

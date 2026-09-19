@@ -1,0 +1,2491 @@
+{
+  "version": 4,
+  "createdAt": "2026-09-14T10:29:08.017Z",
+  "status": "source-research-complete-for-current-batch; three PVC originals ready, plywood detail held",
+  "scope": "Fourteen material/paper families only. No DB, canonical catalog, runtime, schema or storefront changes made by this source ledger.",
+  "matchingPolicy": "User-authorized converging product name, dimensions, material, colour and original ATEHNA visual identity; no mandatory supplier/EAN link for unbranded commodities. Conflicting known branded model/grade/colour remains disallowed.",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "realPhotographsOnly": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "unchangedOriginalBytes": true,
+    "nearDuplicatesExcluded": true,
+    "schematicsPreserved": true
+  },
+  "summary": {
+    "families": 14,
+    "variants": 128,
+    "acceptedOriginalPhotographs": 3,
+    "acceptedFamilies": 1,
+    "acceptedVariants": 1,
+    "approvedDetailAwaitingMain": 1
+  },
+  "accepted": [
+    {
+      "slug": "penjeni-pvc-komateks",
+      "role": "main",
+      "imageType": "product",
+      "view": "whole sheet, oblique front",
+      "variantIds": [
+        "19"
+      ],
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — celoten pogled.",
+      "qualityReview": "Whole rectangular sheet visible; natural perspective; fine face fibres and cut edges resolved. Neutral brown work surface, no body parts. Mild natural illumination gradient retained; original colours untouched.",
+      "status": "accepted-source-ready-for-integration",
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+      "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-2.jpeg",
+      "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "width": 4240,
+      "height": 2303,
+      "mimeType": "image/jpeg",
+      "bytes": 1040160,
+      "sha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+      "transformation": "none; exact downloaded bytes copied unchanged",
+      "realPhotograph": true,
+      "noHumans": true,
+      "reviewedBy": [
+        "catalog_audit",
+        "root"
+      ],
+      "identityBasis": {
+        "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+        "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+        "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+        "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+        "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+        "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+        "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+      },
+      "id": "penjeni-pvc-beli-300x200x3-celoten-pogled-v4",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+      "untouchedOriginal": true,
+      "distinctPhoto": true,
+      "review": {
+        "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+        "quality": "Whole rectangular sheet visible; natural perspective; fine face fibres and cut edges resolved. Neutral brown work surface, no body parts. Mild natural illumination gradient retained; original colours untouched.",
+        "accessories": "No accessories or human body parts shown."
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "role": "detail",
+      "imageType": "product",
+      "view": "oblique edge and surface",
+      "variantIds": [
+        "19"
+      ],
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — poševni pogled na rob in površino.",
+      "qualityReview": "Independent close photograph showing surface finish and the thin edge. Detail role only; original framing retained. No people. Edge is in focus; natural shallow focus farther across the sheet is not used to claim another whole-product view.",
+      "status": "accepted-source-ready-for-integration",
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+      "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-4.jpeg",
+      "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "width": 3717,
+      "height": 2454,
+      "mimeType": "image/jpeg",
+      "bytes": 1022249,
+      "sha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+      "transformation": "none; exact downloaded bytes copied unchanged",
+      "realPhotograph": true,
+      "noHumans": true,
+      "reviewedBy": [
+        "catalog_audit",
+        "root"
+      ],
+      "identityBasis": {
+        "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+        "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+        "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+        "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+        "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+        "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+        "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+      },
+      "id": "penjeni-pvc-beli-300x200x3-rob-v4",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+      "untouchedOriginal": true,
+      "distinctPhoto": true,
+      "review": {
+        "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+        "quality": "Independent close photograph showing surface finish and the thin edge. Detail role only; original framing retained. No people. Edge is in focus; natural shallow focus farther across the sheet is not used to claim another whole-product view.",
+        "accessories": "No accessories or human body parts shown."
+      }
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "role": "detail",
+      "imageType": "product",
+      "view": "foam core structure and cut edge",
+      "variantIds": [
+        "19"
+      ],
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — bližnji pogled na penjeno strukturo prereza.",
+      "qualityReview": "Independent near-normal close photograph resolving the cellular foam edge and surface texture; no people or accessories. Useful construction detail, not a crop derived from the main photo.",
+      "status": "accepted-source-ready-for-integration",
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+      "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-6.jpeg",
+      "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "width": 4608,
+      "height": 3456,
+      "mimeType": "image/jpeg",
+      "bytes": 1411316,
+      "sha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+      "transformation": "none; exact downloaded bytes copied unchanged",
+      "realPhotograph": true,
+      "noHumans": true,
+      "reviewedBy": [
+        "catalog_audit",
+        "root"
+      ],
+      "identityBasis": {
+        "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+        "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+        "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+        "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+        "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+        "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+        "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+      },
+      "id": "penjeni-pvc-beli-300x200x3-struktura-v4",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+      "untouchedOriginal": true,
+      "distinctPhoto": true,
+      "review": {
+        "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+        "quality": "Independent near-normal close photograph resolving the cellular foam edge and surface texture; no people or accessories. Useful construction detail, not a crop derived from the main photo.",
+        "accessories": "No accessories or human body parts shown."
+      }
+    }
+  ],
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "itemId": "1",
+      "name": "Aluminijasta plošča",
+      "variants": [
+        {
+          "id": "5",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "6",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x300",
+          "acceptedAssets": []
+        },
+        {
+          "id": "3",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "1",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x100x100",
+          "acceptedAssets": []
+        },
+        {
+          "id": "2",
+          "name": "0,5 × 200 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x100",
+          "acceptedAssets": []
+        },
+        {
+          "id": "4",
+          "name": "0,5 × 300 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x100",
+          "acceptedAssets": []
+        },
+        {
+          "id": "191",
+          "name": "0,3 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P3x200x200",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Both original aluminium uploads were downloaded unchanged from the configured blob store and contain C 2 PA created-by GPT-4 o / ChatGPT and trainedAlgorithmicMedia; their filenames do not make them photographs.",
+        "OPITEC 805030 exactly matches the additional 0. 3 × 200 × 200 variant, but its 2501 × 2560 original is visibly coarse and soft.",
+        "Fresh configurable Stahlog and Bestell-dein-Lochblech originals were inspected; composite/soft or ambiguous-finish details were not substituted."
+      ],
+      "missingViews": "Real sharp entire-sheet and edge photographs for the seven listed thickness/cut variants.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "0,5 × 300 × 200 mm",
+        "0,5 × 300 × 300 mm",
+        "0,5 × 200 × 200 mm",
+        "0,5 × 100 × 100 mm",
+        "0,5 × 200 × 100 mm",
+        "0,5 × 300 × 100 mm",
+        "0,3 × 200 × 200 mm"
+      ]
+    },
+    {
+      "slug": "bakrena-plosca",
+      "itemId": "2",
+      "name": "Bakrena plošča",
+      "variants": [
+        {
+          "id": "7",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "8",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x300",
+          "acceptedAssets": []
+        },
+        {
+          "id": "9",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x200x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "10",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-BAK-0P5x100x100",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "RCM exact 0. 5 × 200 × 300 listing provides a true original only 409 × 500; its nominal 1280 derivative is not native detail.",
+        "OmegaMix native 1200 × 1200 is generic across many thicknesses/cuts, has excessive empty space and watermark, and does not prove 0. 5 mm pictured thickness.",
+        "Public eBay exact configurable listings were found, but page retrieval returned 403; no bypass or invented image links used."
+      ],
+      "missingViews": "Native sharp 0. 5 mm copper whole-sheet views for 300 × 200, 300 × 300, 200 × 200 and 100 × 100.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "0,5 × 300 × 200 mm",
+        "0,5 × 300 × 300 mm",
+        "0,5 × 200 × 200 mm",
+        "0,5 × 100 × 100 mm"
+      ]
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "itemId": "3",
+      "name": "Pocinkana pločevina",
+      "variants": [
+        {
+          "id": "11",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "12",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x300",
+          "acceptedAssets": []
+        },
+        {
+          "id": "13",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x200x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "14",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x100x100",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Rechecked public dimensional supplier results: Winkler offers 0. 75 mm, not the sold 0. 5 mm; no substitution.",
+        "Prior 1024² Schmiedekult custom-cut 0. 5 mm texture does not establish photographed cut or exact finish against the small ATEHNA original."
+      ],
+      "missingViews": "Real 0. 5 mm zinc-coated sheet front, edge and surface photos for all four cuts.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "300 × 200 × 0,5 mm",
+        "300 × 300 × 0,5 mm",
+        "200 × 200 × 0,5 mm",
+        "100 × 100 × 0,5 mm"
+      ]
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "itemId": "4",
+      "name": "Medeninasta plošča",
+      "variants": [
+        {
+          "id": "15",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "16",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x300",
+          "acceptedAssets": []
+        },
+        {
+          "id": "17",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x200x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "18",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x100x100",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "The Clock Part Store has an exact 0. 5 × 200 × 200 product but original 300 × 300 fails.",
+        "Bestell-dein-Lochblech 1024² corner photo is reused across thicknesses; no verified sharp complete 0. 5 mm square/rectangle photo obtained."
+      ],
+      "missingViews": "Real sharp 0. 5 mm brass whole-sheet and edge views for the four cuts.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "300 × 200 × 0,5 mm",
+        "300 × 300 × 0,5 mm",
+        "200 × 200 × 0,5 mm",
+        "100 × 100 × 0,5 mm"
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "itemId": "5",
+      "name": "Penjeni PVC (komateks)",
+      "variants": [
+        {
+          "id": "19",
+          "name": "300 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x300",
+          "acceptedAssets": [
+            "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+            "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+            "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg"
+          ]
+        },
+        {
+          "id": "20",
+          "name": "150 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x150",
+          "acceptedAssets": []
+        },
+        {
+          "id": "21",
+          "name": "400 x 300 x 3 mm",
+          "sku": "MAT-UME-PEN-3x300x400",
+          "acceptedAssets": []
+        },
+        {
+          "id": "22",
+          "name": "500 x 500 x 3 mm",
+          "sku": "MAT-UME-PEN-3x500x500",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [
+        "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+        "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+        "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg"
+      ],
+      "freshFindings": [
+        "Three native genuine Wolff views accepted only for white 300 × 200 × 3 mm: whole sheet, oblique edge and foam structure.",
+        "ATEHNA uses foreks and komateks together as generic descriptors and gives no manufacturer; matching is based on known white foamedPVC dimensions and visual construction, not an invented brand.",
+        "Rejected Wolff fingers, duplicate face and glare views. Authentic namedKomatex alternatives were under resolution; four seemingly suitable Acrylstore PNGs contained trainedAlgorithmicMedia metadata."
+      ],
+      "missingViews": "Independent rear view for accepted variant; matching whole/edge photographs for 150 × 200,400 × 300 and 500 × 500 cuts.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [
+        {
+          "slug": "penjeni-pvc-komateks",
+          "role": "main",
+          "imageType": "product",
+          "view": "whole sheet, oblique front",
+          "variantIds": [
+            "19"
+          ],
+          "variantSkus": [
+            "MAT-UME-PEN-3x200x300"
+          ],
+          "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — celoten pogled.",
+          "qualityReview": "Whole rectangular sheet visible; natural perspective; fine face fibres and cut edges resolved. Neutral brown work surface, no body parts. Mild natural illumination gradient retained; original colours untouched.",
+          "status": "accepted-source-ready-for-integration",
+          "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+          "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+          "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-2.jpeg",
+          "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+          "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+          "width": 4240,
+          "height": 2303,
+          "mimeType": "image/jpeg",
+          "bytes": 1040160,
+          "sha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+            "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+            "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+            "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+            "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+            "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+            "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+          },
+          "id": "penjeni-pvc-beli-300x200x3-celoten-pogled-v4",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+            "quality": "Whole rectangular sheet visible; natural perspective; fine face fibres and cut edges resolved. Neutral brown work surface, no body parts. Mild natural illumination gradient retained; original colours untouched.",
+            "accessories": "No accessories or human body parts shown."
+          }
+        },
+        {
+          "slug": "penjeni-pvc-komateks",
+          "role": "detail",
+          "imageType": "product",
+          "view": "oblique edge and surface",
+          "variantIds": [
+            "19"
+          ],
+          "variantSkus": [
+            "MAT-UME-PEN-3x200x300"
+          ],
+          "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — poševni pogled na rob in površino.",
+          "qualityReview": "Independent close photograph showing surface finish and the thin edge. Detail role only; original framing retained. No people. Edge is in focus; natural shallow focus farther across the sheet is not used to claim another whole-product view.",
+          "status": "accepted-source-ready-for-integration",
+          "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+          "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+          "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-4.jpeg",
+          "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+          "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+          "width": 3717,
+          "height": 2454,
+          "mimeType": "image/jpeg",
+          "bytes": 1022249,
+          "sha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+            "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+            "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+            "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+            "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+            "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+            "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+          },
+          "id": "penjeni-pvc-beli-300x200x3-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+            "quality": "Independent close photograph showing surface finish and the thin edge. Detail role only; original framing retained. No people. Edge is in focus; natural shallow focus farther across the sheet is not used to claim another whole-product view.",
+            "accessories": "No accessories or human body parts shown."
+          }
+        },
+        {
+          "slug": "penjeni-pvc-komateks",
+          "role": "detail",
+          "imageType": "product",
+          "view": "foam core structure and cut edge",
+          "variantIds": [
+            "19"
+          ],
+          "variantSkus": [
+            "MAT-UME-PEN-3x200x300"
+          ],
+          "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — bližnji pogled na penjeno strukturo prereza.",
+          "qualityReview": "Independent near-normal close photograph resolving the cellular foam edge and surface texture; no people or accessories. Useful construction detail, not a crop derived from the main photo.",
+          "status": "accepted-source-ready-for-integration",
+          "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+          "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+          "sourcePath": "tmp/product-image-audit/materials-v4/wolff-pvc-6.jpeg",
+          "assetPath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+          "localUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+          "width": 4608,
+          "height": 3456,
+          "mimeType": "image/jpeg",
+          "bytes": 1411316,
+          "sha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link.",
+            "primaryPage": "https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/",
+            "primaryImage": "https://atehna.si/wp-content/uploads/2015/04/pvc.png",
+            "primaryTerminology": "Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model.",
+            "supplierTerminology": "White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA.",
+            "visualComparison": "Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants.",
+            "evidenceImage": "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg"
+          },
+          "id": "penjeni-pvc-beli-300x200x3-struktura-v4",
+          "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+            "quality": "Independent near-normal close photograph resolving the cellular foam edge and surface texture; no people or accessories. Useful construction detail, not a crop derived from the main photo.",
+            "accessories": "No accessories or human body parts shown."
+          }
+        }
+      ],
+      "variantNames": [
+        "300 x 200 x 3 mm",
+        "150 x 200 x 3 mm",
+        "400 x 300 x 3 mm",
+        "500 x 500 x 3 mm"
+      ]
+    },
+    {
+      "slug": "pleksi-steklo",
+      "itemId": "6",
+      "name": "Pleksi steklo",
+      "variants": [
+        {
+          "id": "23",
+          "name": "150 x 200 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x200x150-BELO",
+          "acceptedAssets": []
+        },
+        {
+          "id": "24",
+          "name": "150 x 200 x 3 mm, barvno",
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "acceptedAssets": []
+        },
+        {
+          "id": "25",
+          "name": "150 x 200 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "acceptedAssets": []
+        },
+        {
+          "id": "26",
+          "name": "200 x 300 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x300x200-BELO",
+          "acceptedAssets": []
+        },
+        {
+          "id": "27",
+          "name": "200 x 300 x 3 mm",
+          "sku": "MAT-UME-PLE-3x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "28",
+          "name": "400 x 300 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "acceptedAssets": []
+        },
+        {
+          "id": "29",
+          "name": "300 x 400 x 3 mm",
+          "sku": "MAT-UME-PLE-3x400x300",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Wolff current public catalog was searched for 3 mm clear/white acrylic cut sizes; available 297 × 203,396 × 248,400 × 400,500 × 340 etc do not match the sold cuts.",
+        "No colour was inferred for generic coloured variants. Prior exact-material wholesaler originals remain too small."
+      ],
+      "missingViews": "Exact transparent, white and specified colour/opacity photographs for each sold cut. Clarify unspecified coloured stock before assigning a shade.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "150 x 200 x 3 mm, belo",
+        "150 x 200 x 3 mm, barvno",
+        "150 x 200 x 3 mm, prozorno",
+        "200 x 300 x 3 mm, belo",
+        "200 x 300 x 3 mm",
+        "400 x 300 x 3 mm, prozorno",
+        "300 x 400 x 3 mm"
+      ]
+    },
+    {
+      "slug": "stiropor",
+      "itemId": "7",
+      "name": "Stiropor",
+      "variants": [
+        {
+          "id": "30",
+          "name": "200 x 300 x 10 mm",
+          "sku": "MAT-UME-STI-10x300x200",
+          "acceptedAssets": []
+        },
+        {
+          "id": "31",
+          "name": "A5",
+          "sku": "MAT-UME-STI-210x148-A5",
+          "acceptedAssets": []
+        },
+        {
+          "id": "32",
+          "name": "300 x 400 x 10 mm",
+          "sku": "MAT-UME-STI-10x400x300",
+          "acceptedAssets": []
+        },
+        {
+          "id": "33",
+          "name": "16 x 33 x 2 cm",
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Native 1500² Schott EPS photograph shows 600 × 400 × 10 mm, which is not the 200 × 300 or 300 × 400 stock; no substitution.",
+        "Historical native 625² photograph only shows texture."
+      ],
+      "missingViews": "Sharp full sheets and texture for four actual sizes; A 5 thickness remains unspecified.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "200 x 300 x 10 mm",
+        "A5",
+        "300 x 400 x 10 mm",
+        "16 x 33 x 2 cm"
+      ]
+    },
+    {
+      "slug": "seleshamer",
+      "itemId": "8",
+      "name": "Šeleshamer",
+      "variants": [
+        {
+          "id": "34",
+          "name": "Papir šeleshamer 200 g, A4",
+          "sku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "acceptedAssets": []
+        },
+        {
+          "id": "35",
+          "name": "Papir šeleshamer 200 g, A2",
+          "sku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "acceptedAssets": []
+        },
+        {
+          "id": "36",
+          "name": "Papir šeleshamer 200 g, A3",
+          "sku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "acceptedAssets": []
+        },
+        {
+          "id": "37",
+          "name": "Papir šeleshamer 200 g, B1",
+          "sku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Read fresh white 200 gsm sheet listings from Hartis, Muflon, Kopija, PriLevcku, Seawhite, Papercutz and Buystarget.",
+        "Kopija 1080² artwork/fans are soft/illustrative; Hartis 1024² package contains an illustrated hand; Seawhite max 1000 and PriLevcku 1427 × 925 fail.",
+        "Buystarget native 1600 × 1066 stack detail and folded applications reviewed but no suitable exact clean sheet main selected."
+      ],
+      "missingViews": "Real sharp white 200 gsm A 4/A 3/A 2/B 1 sheet views with visible full sheet and thickness/texture.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "Papir šeleshamer 200 g, A4",
+        "Papir šeleshamer 200 g, A2",
+        "Papir šeleshamer 200 g, A3",
+        "Papir šeleshamer 200 g, B1"
+      ]
+    },
+    {
+      "slug": "barvni-papir",
+      "itemId": "9",
+      "name": "Barvni papir",
+      "variants": [
+        {
+          "id": "38",
+          "name": "strukturno bela",
+          "sku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "39",
+          "name": "svetlo rjava",
+          "sku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "40",
+          "name": "temno rjava",
+          "sku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "41",
+          "name": "rjava",
+          "sku": "MAT-PAP-BAR-RJAVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "42",
+          "name": "lila",
+          "sku": "MAT-PAP-BAR-LILA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "43",
+          "name": "vijoličasta",
+          "sku": "MAT-PAP-BAR-VIJOLICASTA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "44",
+          "name": "črna",
+          "sku": "MAT-PAP-BAR-CRNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "45",
+          "name": "siva",
+          "sku": "MAT-PAP-BAR-SIVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "46",
+          "name": "roza",
+          "sku": "MAT-PAP-BAR-ROZA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "47",
+          "name": "temno lila",
+          "sku": "MAT-PAP-BAR-TEMNO-LILA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "48",
+          "name": "travno zelena",
+          "sku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "49",
+          "name": "temno zelena",
+          "sku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "50",
+          "name": "zelena",
+          "sku": "MAT-PAP-BAR-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "51",
+          "name": "svetlo zelena",
+          "sku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "52",
+          "name": "oranžna",
+          "sku": "MAT-PAP-BAR-ORANZNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "53",
+          "name": "modra",
+          "sku": "MAT-PAP-BAR-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "54",
+          "name": "nebesno modra",
+          "sku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "55",
+          "name": "kalifornijsko modra",
+          "sku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "56",
+          "name": "svetlo modra",
+          "sku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "57",
+          "name": "temno rdeča",
+          "sku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "58",
+          "name": "vinsko rdeča",
+          "sku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "59",
+          "name": "karmin rdeča",
+          "sku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "60",
+          "name": "rdeča",
+          "sku": "MAT-PAP-BAR-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "61",
+          "name": "koruzno rumena",
+          "sku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "62",
+          "name": "marelična",
+          "sku": "MAT-PAP-BAR-MARELICNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "63",
+          "name": "intenzivno rumena",
+          "sku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "64",
+          "name": "rumena",
+          "sku": "MAT-PAP-BAR-RUMENA",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Antus and URSUS colour names/codes provide a useful converging identity lead: California blue 35, yellow 13, darkgreen 55 etc. ATEHNA California/yellow/darkgreen originals compared visually.",
+        "URSUS originals: main 669 × 622, colour swatches roughly 395 × 247; Antus 835 × 675 and 100²; McBuero and Internetstore exact colour originals 600².",
+        "Native 1200² manufacturer craft application contains cut/folded mixed components; it is not an additional view of the unmodified sheet."
+      ],
+      "missingViews": "Native real 130 gsm B 2 photographs for each of 27 colours. Structural white stock should not be silently mapped to plain 130 gsm white.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "strukturno bela",
+        "svetlo rjava",
+        "temno rjava",
+        "rjava",
+        "lila",
+        "vijoličasta",
+        "črna",
+        "siva",
+        "roza",
+        "temno lila",
+        "travno zelena",
+        "temno zelena",
+        "zelena",
+        "svetlo zelena",
+        "oranžna",
+        "modra",
+        "nebesno modra",
+        "kalifornijsko modra",
+        "svetlo modra",
+        "temno rdeča",
+        "vinsko rdeča",
+        "karmin rdeča",
+        "rdeča",
+        "koruzno rumena",
+        "marelična",
+        "intenzivno rumena",
+        "rumena"
+      ]
+    },
+    {
+      "slug": "grafopak",
+      "itemId": "10",
+      "name": "Grafopak",
+      "variants": [
+        {
+          "id": "65",
+          "name": "polkarton A3",
+          "sku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "acceptedAssets": []
+        },
+        {
+          "id": "66",
+          "name": "polkarton A4",
+          "sku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Historical ATEHNA specifies 350 gsm A 3/A 4; genericGD/Triplex close-ups and arbitrary 250–500 gsm supplier images do not prove this exact grade.",
+        "No manufacturer or grade was invented from similar surface colour."
+      ],
+      "missingViews": "Sharp real 350 gsm Grafopak A 3/A 4 whole-sheet, coatedface, reverse andedge photos.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "polkarton A3",
+        "polkarton A4"
+      ]
+    },
+    {
+      "slug": "fotokarton",
+      "itemId": "11",
+      "name": "Fotokarton",
+      "variants": [
+        {
+          "id": "67",
+          "name": "črna",
+          "sku": "MAT-PAP-FOT-CRNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "68",
+          "name": "srebrna",
+          "sku": "MAT-PAP-FOT-SREBRNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "69",
+          "name": "siva",
+          "sku": "MAT-PAP-FOT-SIVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "70",
+          "name": "zlata",
+          "sku": "MAT-PAP-FOT-ZLATA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "71",
+          "name": "svetlo rjava",
+          "sku": "MAT-PAP-FOT-SVETLO-RJAVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "72",
+          "name": "rjava",
+          "sku": "MAT-PAP-FOT-RJAVA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "73",
+          "name": "vijoličasta",
+          "sku": "MAT-PAP-FOT-VIJOLICASTA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "74",
+          "name": "lila",
+          "sku": "MAT-PAP-FOT-LILA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "75",
+          "name": "temno zelena",
+          "sku": "MAT-PAP-FOT-TEMNO-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "76",
+          "name": "zelena",
+          "sku": "MAT-PAP-FOT-ZELENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "77",
+          "name": "oranžna",
+          "sku": "MAT-PAP-FOT-ORANZNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "78",
+          "name": "kraljevsko modra",
+          "sku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "79",
+          "name": "modra",
+          "sku": "MAT-PAP-FOT-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "80",
+          "name": "temno modra",
+          "sku": "MAT-PAP-FOT-TEMNO-MODRA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "81",
+          "name": "temno rdeča",
+          "sku": "MAT-PAP-FOT-TEMNO-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "82",
+          "name": "rdeča",
+          "sku": "MAT-PAP-FOT-RDECA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "83",
+          "name": "koruzno rumena",
+          "sku": "MAT-PAP-FOT-KORUZNO-RUMENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "84",
+          "name": "marelična",
+          "sku": "MAT-PAP-FOT-MARELICNA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "85",
+          "name": "rumena",
+          "sku": "MAT-PAP-FOT-RUMENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "86",
+          "name": "bela",
+          "sku": "MAT-PAP-FOT-BELA",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "URSUS/Antus 300 gsm colour code mappings checked against names: e. g. 3882201 white,3882213 yellow,3882216 apricot,3882235 blue,3882290 black.",
+        "Native manufacturer main 669 × 622 andcolour images roughly 395 × 247; ArtLj 100²; no usable native 1024² colour originals obtained.",
+        "OriginalATEHNA fan does not establish each individual colour, so no arbitrary colour fan assigned to 20 variants."
+      ],
+      "missingViews": "Real native 300 gsm B 2 full sheets and texture for all 20 sold colours.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "črna",
+        "srebrna",
+        "siva",
+        "zlata",
+        "svetlo rjava",
+        "rjava",
+        "vijoličasta",
+        "lila",
+        "temno zelena",
+        "zelena",
+        "oranžna",
+        "kraljevsko modra",
+        "modra",
+        "temno modra",
+        "temno rdeča",
+        "rdeča",
+        "koruzno rumena",
+        "marelična",
+        "rumena",
+        "bela"
+      ]
+    },
+    {
+      "slug": "lepenka",
+      "itemId": "12",
+      "name": "Lepenka",
+      "variants": [
+        {
+          "id": "87",
+          "name": "Bela lepenka A3",
+          "sku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "acceptedAssets": []
+        },
+        {
+          "id": "88",
+          "name": "Siva lepenka A2",
+          "sku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "acceptedAssets": []
+        },
+        {
+          "id": "89",
+          "name": "Papir lepenka A4",
+          "sku": "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4",
+          "acceptedAssets": []
+        },
+        {
+          "id": "90",
+          "name": "Bela lepenka A4",
+          "sku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "acceptedAssets": []
+        },
+        {
+          "id": "91",
+          "name": "1,2 mm B1",
+          "sku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "acceptedAssets": []
+        },
+        {
+          "id": "92",
+          "name": "Papir lepenka A3",
+          "sku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Original grey/white ATEHNA sheet sources reviewed; native source below 1024.",
+        "No 1. 25 mm board substituted for 0. 7/0. 8/1. 2 mm variants; unspecified white thickness not invented."
+      ],
+      "missingViews": "Native grey/white board photos matching each format and stated thickness; establish missing thickness/colour for ambiguous variants.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "Bela lepenka A3",
+        "Siva lepenka A2",
+        "Papir lepenka A4",
+        "Bela lepenka A4",
+        "1,2 mm B1",
+        "Papir lepenka A3"
+      ]
+    },
+    {
+      "slug": "risalni-list",
+      "itemId": "13",
+      "name": "Risalni list",
+      "variants": [
+        {
+          "id": "93",
+          "name": "A2",
+          "sku": "MAT-PAP-RIS-594x420-A2",
+          "acceptedAssets": []
+        },
+        {
+          "id": "94",
+          "name": "A4",
+          "sku": "MAT-PAP-RIS-297x210-A4",
+          "acceptedAssets": []
+        },
+        {
+          "id": "95",
+          "name": "A5",
+          "sku": "MAT-PAP-RIS-210x148-A5",
+          "acceptedAssets": []
+        },
+        {
+          "id": "96",
+          "name": "A3",
+          "sku": "MAT-PAP-RIS-420x297-A3",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Historical native 670² original and fresh Muflon sheet/pack sources checked. Muflon 140 gsm 773 × 792 fails; Hartis 200 gsm pack would additionally impose an unverified paper weight."
+      ],
+      "missingViews": "Native real drawing sheets A 5/A 4/A 3/A 2 with full sheet andsurface view; no gram weight should be guessed.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "A2",
+        "A4",
+        "A5",
+        "A3"
+      ]
+    },
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "name": "Vezana plošča",
+      "variants": [
+        {
+          "id": "97",
+          "name": "Bukev / 6 x 300 x 400",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "acceptedAssets": []
+        },
+        {
+          "id": "98",
+          "name": "Bukev / 4 x 500 x 500",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "acceptedAssets": []
+        },
+        {
+          "id": "99",
+          "name": "Bukev / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "acceptedAssets": []
+        },
+        {
+          "id": "100",
+          "name": "Topol / 6 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "acceptedAssets": []
+        },
+        {
+          "id": "101",
+          "name": "Topol / 4 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "acceptedAssets": []
+        },
+        {
+          "id": "102",
+          "name": "Topol / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "acceptedAssets": []
+        },
+        {
+          "id": "103",
+          "name": "Topol / 3 x 250 x 500",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "acceptedAssets": []
+        },
+        {
+          "id": "104",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "105",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "106",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "107",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "108",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "109",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "110",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "111",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "112",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "113",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "114",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "115",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "116",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "117",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "118",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "119",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "120",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "121",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "122",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "123",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "124",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "125",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "126",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        },
+        {
+          "id": "127",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedAssets": []
+        }
+      ],
+      "acceptedAssets": [],
+      "freshFindings": [
+        "Toom native 2000 × 2000 exact poplar 3 × 250 × 500 mm grain/edge detail is approved as a source but awaits a complete-sheet main before publication.",
+        "Balsaholz exact samecut original 400 × 295 fails; Vogt 3 mm edge 249 × 444 fails; Atmowood raw poplar structure/edge files remain 1024 × 768 even without transformquery.",
+        "Beech/poplar species and stated cuts retained; no arbitrary woodspecies assigned to 24 unspecified variants.",
+        "Final bounded whole-sheet checks: Balsa.ch exact 500 × 250 × 3 mm source original is 800 × 800; OPITEC custom-cut source shows cropped many-layer corner; Plattenzuschnitt 1500 × 1500 is soft and cropped. Hellweg old exact-product URL now returned generic store page without an item image. No valid full-sheet main obtained."
+      ],
+      "missingViews": "A real complete-sheet main is required before the approved 3 mm poplar detail can be published. All other variants still need matching photographs.",
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-2026-09.json",
+      "accepted": [],
+      "variantNames": [
+        "Bukev / 6 x 300 x 400",
+        "Bukev / 4 x 500 x 500",
+        "Bukev / 4 x 250 x 250",
+        "Topol / 6 x 2520 x 1720",
+        "Topol / 4 x 2520 x 1720",
+        "Topol / 4 x 250 x 500",
+        "Topol / 3 x 250 x 500",
+        "Lesna vrsta ni navedena / 10 x 210 x 300",
+        "Lesna vrsta ni navedena / 8 x 210 x 300",
+        "Lesna vrsta ni navedena / 6 x 500 x 500",
+        "Lesna vrsta ni navedena / 6 x 400 x 400",
+        "Lesna vrsta ni navedena / 6 x 300 x 600",
+        "Lesna vrsta ni navedena / 6 x 300 x 300",
+        "Lesna vrsta ni navedena / 6 x 250 x 1000",
+        "Lesna vrsta ni navedena / 6 x 250 x 500",
+        "Lesna vrsta ni navedena / 6 x 250 x 250",
+        "Lesna vrsta ni navedena / 6 x 200 x 300",
+        "Lesna vrsta ni navedena / 6 x 150 x 200",
+        "Lesna vrsta ni navedena / 5 x 200 x 150",
+        "Lesna vrsta ni navedena / 4 x 400 x 400",
+        "Lesna vrsta ni navedena / 4 x 300 x 420",
+        "Lesna vrsta ni navedena / 4 x 250 x 1000",
+        "Lesna vrsta ni navedena / 4 x 250 x 500",
+        "Lesna vrsta ni navedena / 4 x 250 x 250",
+        "Lesna vrsta ni navedena / 4 x 200 x 300",
+        "Lesna vrsta ni navedena / 4 x 200 x 150",
+        "Lesna vrsta ni navedena / 4 x 120 x 120",
+        "Lesna vrsta ni navedena / 4 x 100 x 150",
+        "Lesna vrsta ni navedena / 4 x 50 x 60",
+        "Lesna vrsta ni navedena / 3 x 250 x 250",
+        "Lesna vrsta ni navedena / 3 x 210 x 300"
+      ],
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Keep the dimensional schematic first until a complete-sheet photograph is available.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication."
+        }
+      ]
+    }
+  ],
+  "rejectedOriginalUploads": [
+    {
+      "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/2f6cebd1-25fa-40cf-b37d-e9f8b1ea5b23-aluminij_200_200_05.png",
+      "pathname": "catalog-items/aluminijasta-plosca/images/2f6cebd1-25fa-40cf-b37d-e9f8b1ea5b23-aluminij_200_200_05.png",
+      "size": 1226365,
+      "uploadedAt": "2026-08-28T21:41:17.000Z",
+      "path": "tmp/product-image-audit/materials-v4/aluminium-original-upload-1.png",
+      "sha256": "827e7bc7e46330b94b4a3edb135d755528f7e449ea74b6d74941216566c33983",
+      "width": 1024,
+      "height": 1024,
+      "metadata": {
+        "format": "png",
+        "hasProfile": false
+      },
+      "status": "rejected-generated",
+      "provenance": {
+        "createdBy": "GPT-4o",
+        "claimGenerator": "ChatGPT",
+        "digitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+      },
+      "reason": "Explicit embedded generated provenance; source-upload status and dimensions do not satisfy real photograph requirement."
+    },
+    {
+      "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/5829b35c-5226-4bb9-9ab8-eb764b07b462-aluminij_300_200_05.png",
+      "pathname": "catalog-items/aluminijasta-plosca/images/5829b35c-5226-4bb9-9ab8-eb764b07b462-aluminij_300_200_05.png",
+      "size": 1322514,
+      "uploadedAt": "2026-08-28T21:41:17.000Z",
+      "path": "tmp/product-image-audit/materials-v4/aluminium-original-upload-2.png",
+      "sha256": "ac05d534a98c6a35e2196337c2c90dd2e9f973267a798170bfdea8025e6b66a2",
+      "width": 1024,
+      "height": 1024,
+      "metadata": {
+        "format": "png",
+        "hasProfile": false
+      },
+      "status": "rejected-generated",
+      "provenance": {
+        "createdBy": "GPT-4o",
+        "claimGenerator": "ChatGPT",
+        "digitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+      },
+      "reason": "Explicit embedded generated provenance; source-upload status and dimensions do not satisfy real photograph requirement."
+    }
+  ],
+  "inspectedSourceImages": [
+    {
+      "name": "antus-paper-main",
+      "url": "https://www.antus.si/assets/shop_product/barvni_papir_130_g_b2_50_x_70_cm_1_pola.png",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/antus-paper-main.png",
+      "width": 835,
+      "height": 675,
+      "bytes": 570326,
+      "sha256": "9b8c8d1a99e6094e4b405d4c79a185260fc9e590fbb472219def7e6d47bebe22",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "antus-paper-california",
+      "url": "https://www.antus.si/assets/shop_product/barvni_papir_130_g_b2_kalifornijsko_moder.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/antus-paper-california.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 1993,
+      "sha256": "cbcc04684a3a563484ec385fe264085793be1407f7bf35f49911d9d69cfb757b",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "antus-paper-yellow",
+      "url": "https://www.antus.si/assets/shop_product/barvni_papir_130_g_b2_rumen.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/antus-paper-yellow.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 2305,
+      "sha256": "bc977a0fabc3c7f908c649408dade415d255cc0d9edbafe688061c2d37f2c875",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "antus-paper-darkgreen",
+      "url": "https://www.antus.si/assets/shop_product/barvni_papir_130_g_b2_temno_zelen.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/antus-paper-darkgreen.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 2543,
+      "sha256": "e5ee2947b3e52be6b7d8166721f49324f06de1029528eb75f366bf4218fedd6d",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "artlj-photocard-yellow",
+      "url": "https://www.art-lj.si/image/catalog/izdelki/433/fotokarton_300_g_b2_rumen.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/artlj-photocard-yellow.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 1333,
+      "sha256": "5c236c1e39cf8f24acd55eb5d06d74f23a55e110de7e35f6a970e7921f0763bd",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "artlj-photocard-blue",
+      "url": "https://www.art-lj.si/image/catalog/izdelki/433/fotokarton_300_g_b2_moder.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/artlj-photocard-blue.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 1076,
+      "sha256": "239070923cb1876f938dee8d29a2271555f063ef223a160f7328cb5f6e206212",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "artlj-photocard-darkred",
+      "url": "https://www.art-lj.si/image/catalog/izdelki/433/fotokarton_300_g_b2_temno_rdec.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/artlj-photocard-darkred.jpeg",
+      "width": 100,
+      "height": 100,
+      "bytes": 819,
+      "sha256": "32b9f06ac26687f08ff36008ce6ee2f60a685641d7d6fb5278cad1aa2b3a93bc",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen_21922xx.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen_21922xx.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen_21922xx.jpg",
+      "width": 669,
+      "height": 622,
+      "bytes": 301632,
+      "sha256": "9952e8cedc328a6220e65dde813412a37621f95cac21e0d73467f331ba6a3276",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen-01_21922xx.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen-01_21922xx.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-25-bogen-01_21922xx.jpg",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 520077,
+      "sha256": "c98f81a03dea4c127978b3ef2e8930fb757bdaf307e03f039e21ad13ff8c9874",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Craft-project application contains altered shapes and mixed accessories rather than the exact unmodified sheet/colour."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgelb-25-bogen_2192213.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgelb-25-bogen_2192213.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgelb-25-bogen_2192213.jpg",
+      "width": 396,
+      "height": 247,
+      "bytes": 30892,
+      "sha256": "f9474086197f208e73610437631a313d31b3e60a6d36dabd845042c5173be32f",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-apricose-25-bogen_2192216.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-apricose-25-bogen_2192216.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-apricose-25-bogen_2192216.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 71397,
+      "sha256": "a5fa77bbcf5191b141f2b10488a7654b3dc7d308c65051574e3d90d559e9f5c3",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-californiablau-25-bogen_2192235.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-californiablau-25-bogen_2192235.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-californiablau-25-bogen_2192235.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 63968,
+      "sha256": "36b1c2ae1bc2e77d09181da772f26ea64d040fb973162788b350fd97de1f1489",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgruen-25-bogen_2192255.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgruen-25-bogen_2192255.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-dunkelgruen-25-bogen_2192255.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 88176,
+      "sha256": "5003e250dc55396b4edab3ff587197d72938d479f385ca0ce4e7c12ebea1620a",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-schwarz-25-bogen_2192290.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-schwarz-25-bogen_2192290.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-paper-ursus_tonzeichenpapier-130-g-qm-50-x-70-cm-schwarz-25-bogen_2192290.jpg",
+      "width": 397,
+      "height": 247,
+      "bytes": 49871,
+      "sha256": "549248837e1bb4518990b357a85c5f976bdb84c6bf6bdfad0576419345e791a6",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-10-bogen_38822xx.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-10-bogen_38822xx.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-10-bogen_38822xx.jpg",
+      "width": 669,
+      "height": 622,
+      "bytes": 313417,
+      "sha256": "b9a7084596f91870d849f0409e504c70d0bfb645c67cc27e9bb6414ecf6a6256",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-dunkelgelb-10-bogen_3882213.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-dunkelgelb-10-bogen_3882213.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-dunkelgelb-10-bogen_3882213.jpg",
+      "width": 396,
+      "height": 247,
+      "bytes": 30896,
+      "sha256": "118ccdfc6104cbf3e96498a09aac319e832526eaab18d8331154530c2980f1fd",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-apricose-10-bogen_3882216.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-apricose-10-bogen_3882216.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-apricose-10-bogen_3882216.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 71472,
+      "sha256": "ace950ecd7a32772154ba464e4beb9f446b69a775d146956b76af766bd48f084",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-californiablau-10-bogen_3882235.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-californiablau-10-bogen_3882235.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-californiablau-10-bogen_3882235.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 63415,
+      "sha256": "64dd18f9161fe2ffb6b546d05146e562088826bcf772538a91e3a32cfae9fb51",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-dunkelgruen-10-bogen_3882255.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-dunkelgruen-10-bogen_3882255.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-dunkelgruen-10-bogen_3882255.jpg",
+      "width": 395,
+      "height": 247,
+      "bytes": 82736,
+      "sha256": "f51d8d91ed0e258fc7bdb8f5a9e8b73771fe9fac166cd4e3d21aeabc1adebc1c",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "ursus-photo-ursus_fotokarton-50-x-70-cm-schwarz-10-bogen_3882290.jpg",
+      "url": "https://www.buntpapierwelt.de/media/catalog/product/u/r/ursus_fotokarton-50-x-70-cm-schwarz-10-bogen_3882290.jpg",
+      "status": "not-selected",
+      "path": "tmp/product-image-audit/materials-v4/ursus-photo-ursus_fotokarton-50-x-70-cm-schwarz-10-bogen_3882290.jpg",
+      "width": 669,
+      "height": 622,
+      "bytes": 152880,
+      "sha256": "7f1b7ce38ca8c1134d1ead34ab5e03888844a1dadf37cb231d6eb4e1b29045cb",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/ursus-native-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "atehna-california",
+      "url": "https://atehna.si/wp-content/uploads/2014/08/kalifornijsko-modre-barve.jpg",
+      "path": "tmp/product-image-audit/materials-v4/atehna-california.jpeg",
+      "width": 494,
+      "height": 500,
+      "bytes": 16688,
+      "sha256": "956fbb35d78fac655596f0529a7fa5dd4a8bdefd200c5a1740a931ee5dde966f",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/atehna-colour-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "atehna-yellow",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/b2rumen.png",
+      "path": "tmp/product-image-audit/materials-v4/atehna-yellow.png",
+      "width": 483,
+      "height": 500,
+      "bytes": 104994,
+      "sha256": "c7dafd782efcfc2d65c75d0708997665658921973f185439d08231b0abc8751a",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/atehna-colour-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "atehna-darkgreen",
+      "url": "https://atehna.si/wp-content/uploads/2014/08/temno-zelena.jpg",
+      "path": "tmp/product-image-audit/materials-v4/atehna-darkgreen.jpeg",
+      "width": 478,
+      "height": 500,
+      "bytes": 17462,
+      "sha256": "7cd04295fcc4ebdc8438b8805a7ff9e2af73e4f0e3b0c80df15ba6cc31bac131",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/atehna-colour-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "mcbuero-2192235",
+      "url": "https://cdn.mcbuero.de/images/itemsbig/ursu2192235.jpg",
+      "path": "tmp/product-image-audit/materials-v4/mcbuero-2192235.jpg",
+      "status": "not-selected",
+      "width": 600,
+      "height": 600,
+      "bytes": 8389,
+      "sha256": "96acb7b079697f607b1dca91266c3afc3842af2da38f5d0a9f0cd753fd45ff64",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/distributor-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "internetstore-2232235-1",
+      "url": "https://www.internetstore.ch/media/image/product/17347/lg/p-ursus-tonzeichenpapier-50x70cm-2232235-130g-califblau-.jpg",
+      "path": "tmp/product-image-audit/materials-v4/internetstore-2232235-1.jpg",
+      "status": "not-selected",
+      "width": 600,
+      "height": 600,
+      "bytes": 21769,
+      "sha256": "4d9f7837fef72863a78009a35070526ebf554cb1ba648828bbf603f5efe9273b",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/distributor-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "internetstore-2232235-2",
+      "url": "https://www.internetstore.ch/media/image/product/17347/lg/p-ursus-tonzeichenpapier-50x70cm-2232235-130g-califblau-~2.jpg",
+      "path": "tmp/product-image-audit/materials-v4/internetstore-2232235-2.jpg",
+      "status": "not-selected",
+      "width": 600,
+      "height": 600,
+      "bytes": 47866,
+      "sha256": "35a0a8b1a7084b1b550727361ad4029fba874f1559df2bbbd44a40c91b0cc11f",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/distributor-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "seleshamer-bead-native",
+      "url": "https://www.bead.si/media/catalog/product/7/0/70194_0_1.jpg",
+      "path": "tmp/product-image-audit/materials-v4/seleshamer-bead-native.jpeg",
+      "status": "not-selected",
+      "width": 650,
+      "height": 650,
+      "bytes": 70658,
+      "sha256": "53280c412604b38544fa1f7a59f496ceb3850dee474203d640a1ee8802ef23da",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "seleshamer-school-native",
+      "url": "https://go2school.com/wp-content/uploads/2026/04/775112-KOS_1.jpg",
+      "path": "tmp/product-image-audit/materials-v4/seleshamer-school-native.jpeg",
+      "status": "not-selected",
+      "width": 658,
+      "height": 606,
+      "bytes": 11171,
+      "sha256": "87b1578895e1aa9ebc72bed49454b5ea12994e4762ef435e358201598cb53b1f",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "seleshamer-redoljub-native",
+      "url": "https://www.redoljub.si/media/catalog/product/b/a/barvni_karton_selshamer_a4_125_pol.jpg",
+      "path": "tmp/product-image-audit/materials-v4/seleshamer-redoljub-native.jpeg",
+      "status": "not-selected",
+      "width": 452,
+      "height": 452,
+      "bytes": 24433,
+      "sha256": "161b46423fc66a3a55c14e927f3c8c07aed4fa40276a4563eb89a9120b217d52",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "seleshamer-kopija-a3-native",
+      "url": "https://www.kopija-nova.si/wp-content/uploads/2025/03/1881.jpg",
+      "path": "tmp/product-image-audit/materials-v4/seleshamer-kopija-a3-native.jpeg",
+      "status": "not-selected",
+      "width": 1080,
+      "height": 1080,
+      "bytes": 35354,
+      "sha256": "9f898ff510e91bfcdf310df1d9848163fb69c0345a29ed3a328e3f82a8ee9dfd",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Flat illustrative/fan artwork or visibly soft stock source; not accepted as a real sharp product photograph."
+    },
+    {
+      "name": "seleshamer-prilevcku-native",
+      "url": "https://www.prilevcku.si/media/catalog/product/4/0/4060_seleshamer_vse_velikosti_bel.jpg",
+      "path": "tmp/product-image-audit/materials-v4/seleshamer-prilevcku-native.jpeg",
+      "status": "not-selected",
+      "width": 1427,
+      "height": 925,
+      "bytes": 45868,
+      "sha256": "70375bd62d6691a7975ebe1a45515fade39cea8d2034156b55f3e75768ee60cd",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "name": "risalni-list-muflon-native",
+      "url": "https://www.prilevcku.si/media/catalog/product/s/o/solski_risalni_listi_hrapav_a3_muflon_140g_150_listov_paket_prilevcku.jpg",
+      "path": "tmp/product-image-audit/materials-v4/risalni-list-muflon-native.jpeg",
+      "status": "not-selected",
+      "width": 773,
+      "height": 792,
+      "bytes": 166238,
+      "sha256": "b93062a60d30f32f05c3c3a8e651e5f017c04f572f9ad58f742bdcdd6390a1c1",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-paper-downloads.json",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/B3239F6D9B4A5AB331FC8D84560AB61E_5842c0d8-4220-4084-b6e7-96efacb09c69.jpg?v=1739295686",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-1.jpg",
+      "width": 1040,
+      "height": 1040,
+      "bytes": 35199,
+      "sha256": "00b3c9eccc9de7b6d80a274f81b4903f7367dac443d770443a732a29077bcd56",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Soft stock-style fan with clipped rear sheets; no useful sharp whole-sheet representation."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/02E0E87E71F855F90591B0FDBA45DCBB.jpg?v=1739295687",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-2.jpg",
+      "width": 1600,
+      "height": 1066,
+      "bytes": 91446,
+      "sha256": "176c9290e7b37c6e646fee20ced835bb57b887c0ed4f96c304be275fa0435ccc",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Genuine useful white-card stack detail but source pack differs and complete sheet framing is missing; not selected in current exact-stock batch."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/D6D1D946C67F2EF6644512916106F6E5.jpg?v=1739295688",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-3.jpg",
+      "width": 1400,
+      "height": 1400,
+      "bytes": 68822,
+      "sha256": "ce70473a332e88c3fd3dec42ed44db98f88520ac17e33864846e3fa479131b1b",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Folded greeting-card application, colour cast and changed sheet shape; not the unmodified blank sheet being sold."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/AF214D4835B5EF1BA0FEDE257B9DAF13.jpg?v=1739295690",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-4.jpg",
+      "width": 1400,
+      "height": 1400,
+      "bytes": 61942,
+      "sha256": "987d80d22877d4b1e4def0ac28c672e43fe999bb971d7a4ef919a98ad8997fde",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Folded greeting-card application, colour cast and changed sheet shape; not the unmodified blank sheet being sold."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/DCAA732A4C5A5E4F198F19240DA8ACDA.jpg?v=1739295689",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-5.jpg",
+      "width": 1200,
+      "height": 1200,
+      "bytes": 50662,
+      "sha256": "aa6c521ec4fbdf5f1bb48bcd2c0d44e5ab71b08429124a79a4dd14ac85535e68",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Branded 20-sheet retail package while source page says 15; ATEHNA sells single sheets. Avoid misleading packaging."
+    },
+    {
+      "url": "https://www.buystarget.co.uk/cdn/shop/products/50bd5e04-5529-4a26-8ef2-a2a0790df2df.jpg?v=1739295692",
+      "path": "tmp/product-image-audit/materials-v4/white-card-buystarget-6.jpg",
+      "width": 800,
+      "height": 800,
+      "bytes": 18444,
+      "sha256": "63f566015f0c15b960610368f8fd0415fa9c164182922fe51800d89b76fbda9d",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/white-card-buystarget-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "sourceProductUrl": "https://bestell-dein-lochblech.de/products/aluminiumblech-almg3-t-0-5mm",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0566/3260/6764/products/Blech_Aluminium_AlMg3.jpg?v=1678457225",
+      "path": "tmp/product-image-audit/materials-v4/new-aluminium-1.jpeg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 122253,
+      "sha256": "d192eff487caeb2cc54f8ad842464dd9c24f318e6b4e4c88667ec95457a34345",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/fresh-native-metal-downloads.json",
+      "status": "not-selected",
+      "review": "Soft source detail and cropped full-sheet framing; no new sharp whole-product image."
+    },
+    {
+      "sourceProductUrl": "https://bestell-dein-lochblech.de/products/aluminiumblech-almg3-t-0-5mm",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0566/3260/6764/products/Blech_Aluminium_AlMg3_Nahaufnahme.jpg?v=1678457231",
+      "path": "tmp/product-image-audit/materials-v4/new-aluminium-2.jpeg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 1136804,
+      "sha256": "e79497ff99e1a9d5df9e1941d2176d4bc12da49226d05de8e8de2196874e3de9",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/fresh-native-metal-downloads.json",
+      "status": "not-selected",
+      "review": "Surface macro without a proven ATEHNA finish/grade match; no exact dimensional view."
+    },
+    {
+      "sourceProductUrl": "https://bestell-dein-lochblech.de/products/aluminiumblech-almg3-t-0-5mm",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0566/3260/6764/products/Blech_Aluminium_AlMg3_Anwendungsbeispiele.jpg?v=1678457243",
+      "path": "tmp/product-image-audit/materials-v4/new-aluminium-3.jpeg",
+      "width": 4167,
+      "height": 4167,
+      "bytes": 1282745,
+      "sha256": "5f9abbf621fd090501468f3b6d2c18ecfb1a28ce55b3b4d2203214cb57a6285d",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/fresh-native-metal-downloads.json",
+      "status": "not-selected",
+      "review": "Promotional application composite repeats corner photo and includes unrelated constructions."
+    },
+    {
+      "sourceProductUrl": "https://bestell-dein-lochblech.de/products/messingblech-t-0-5-mm",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0566/3260/6764/products/Messingblech_5mm_7mm_1mm_dick.webp?v=1745335158",
+      "path": "tmp/product-image-audit/materials-v4/new-brass-1.jpeg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 69467,
+      "sha256": "f3d947f692b59980e38849b36b336cc94802945968f3d2269978004ee53aa4ed",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/fresh-native-metal-downloads.json",
+      "status": "not-selected",
+      "review": "Corner detail reused across thicknesses; photographed thickness/finish not established for the sold variant."
+    },
+    {
+      "sourceImageUrl": "https://www.hartis.si/uploads/images/products/r/i/risalni-listi-a4-muflon-bel-200-gr-seleshamer-526037.png",
+      "path": "tmp/product-image-audit/materials-v4/hartis-muflon-native.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 172580,
+      "sha256": "ba79117ac0ec8233c00b9003d73c9019a716e4b53a64481523698b486ac88b40",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/fresh-native-metal-downloads.json",
+      "status": "not-selected",
+      "review": "Small branded package within a padded-looking image; package illustration includes a hand, and packaging not part of known sold sheet."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/omega-native.jpg",
+      "sourceImageUrl": "https://www.omegamix.at/media/catalog/product/c/o/copper-plate.jpg",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "016dcc56d32960745267ea9415ea2545006528af2df54af7b9bac0789d4f7c3c",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/commodity-copper-downloads.json",
+      "status": "not-selected",
+      "review": "Generic multi-thickness copper photograph, large empty area and watermark; apparent edge thickness not proven 0.5 mm."
+    },
+    {
+      "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+      "path": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+      "width": 2000,
+      "height": 2000,
+      "bytes": 1451797,
+      "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/exact-native-downloads.json",
+      "status": "approved-detail-awaiting-main",
+      "review": "Clean authentic exact poplar detail. Not in publishable accepted list until a complete-sheet main is obtained."
+    },
+    {
+      "sourceImageUrl": "https://www.opitec.com/media/a6/b9/71/1764724734/805030-000-000-VO-01_v_9.jpg?ts=1764724734",
+      "path": "tmp/product-image-audit/materials-v4/opitecAluminium-native.jpeg",
+      "width": 2501,
+      "height": 2560,
+      "bytes": 664830,
+      "sha256": "d9383da1950999dffe24cccf5d428f9805c84fccd8dc2aee1d57b5b311627b3e",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/exact-native-downloads.json",
+      "status": "not-selected",
+      "review": "Exact 0.3 × 200 × 200 source, but native photograph is coarse/noisy/soft and does not provide useful sharp zoom."
+    },
+    {
+      "sourceImageUrl": "https://stahlog.de/wp-content/uploads/2025/12/Aluminiumblech-von-Stahlog-GmbH.jpg",
+      "path": "tmp/product-image-audit/materials-v4/stahlogAluminium-native.jpeg",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 70637,
+      "sha256": "b39bccb0e7d00dcacaa5eab37379773846f2f6471d51cfa8a0e9c8ffa04940ca",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/exact-native-downloads.json",
+      "status": "not-selected",
+      "review": "Promotional composite with logo and several plate thicknesses; not a faithful exact 0.5 mm product photograph."
+    },
+    {
+      "sourceImageUrl": "https://www.balsaholz-shop.de/images/product_images/original_images/pappelspr-balsaholz-shop_36_0.jpg",
+      "path": "tmp/product-image-audit/materials-v4/balsaPlywood-native.jpeg",
+      "width": 400,
+      "height": 295,
+      "bytes": 36226,
+      "sha256": "30c897d38395b879d231b1ad14d35ef7829f7c099a8f6004a105a8ff99c0efc6",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/exact-native-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-1.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/1_6ad4674d-c472-4f8e-90a6-a489e6ea48ff.jpg?v=1757403556",
+      "width": 3688,
+      "height": 2769,
+      "bytes": 1218985,
+      "sha256": "3b9e7c159389034a1cace828c0665687cefb749f648b4b9b6334d9d6f38cc1b6",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "not-selected",
+      "review": "Contains human fingers; forbidden."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-2.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+      "width": 4240,
+      "height": 2303,
+      "bytes": 1040160,
+      "sha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "accepted",
+      "review": "Whole rectangular sheet visible; natural perspective; fine face fibres and cut edges resolved. Neutral brown work surface, no body parts. Mild natural illumination gradient retained; original colours untouched."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-3.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/3_ab20c13c-9d6e-4eef-899a-f66df1fc0d37.jpg?v=1757403557",
+      "width": 3904,
+      "height": 2600,
+      "bytes": 966401,
+      "sha256": "51e25d12553c368bcdb20e208b446344ee9078f0f85d6e1719928ea262dd7ae8",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "not-selected",
+      "review": "Near-duplicate full-face/top view of main image; cannot prove rear view, so omitted from gallery count."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-4.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+      "width": 3717,
+      "height": 2454,
+      "bytes": 1022249,
+      "sha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "accepted",
+      "review": "Independent close photograph showing surface finish and the thin edge. Detail role only; original framing retained. No people. Edge is in focus; natural shallow focus farther across the sheet is not used to claim another whole-product view."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-5.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/5_5411b95b-cb9e-49d8-b54c-8063458519e3.jpg?v=1757403556",
+      "width": 3800,
+      "height": 2350,
+      "bytes": 844397,
+      "sha256": "b011c2c694a81d222a623d69b962ea709a71f91199e81c7eb4dc25d05d920edc",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "not-selected",
+      "review": "Harsh specular glare obscures surface; film/colour appearance less useful than selected views."
+    },
+    {
+      "path": "tmp/product-image-audit/materials-v4/wolff-pvc-6.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+      "width": 4608,
+      "height": 3456,
+      "bytes": 1411316,
+      "sha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/wolff-pvc-downloads.json",
+      "status": "accepted",
+      "review": "Independent near-normal close photograph resolving the cellular foam edge and surface texture; no people or accessories. Useful construction detail, not a crop derived from the main photo."
+    },
+    {
+      "sourceImageUrl": "https://cdn11.bigcommerce.com/s-zqywmr7miv/images/stencil/original/products/41935/45745/0701__72803.1710444484.jpg",
+      "path": "tmp/product-image-audit/materials-v4/clockBrass-native.jpeg",
+      "width": 300,
+      "height": 300,
+      "bytes": 10957,
+      "sha256": "1726be6e41ad9ac2dee44630e83555d67c16feb64a8db214b548a9b2c957f861",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/extra-commodity-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "sourceImageUrl": "https://www.vogt-mh.de/bilder/holz/plattenmaterial/sperrholzplatten/bild_holz_plattenmaterial_sperrholzplatten_pappel_3mm.png",
+      "path": "tmp/product-image-audit/materials-v4/vogtPlywood-native.png",
+      "width": 249,
+      "height": 444,
+      "bytes": 109767,
+      "sha256": "3aaa87062763125a823ab98f13d2ff68bd6302cb36af89a7455a653afa15ed72",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/extra-commodity-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "key": "materialKomatex",
+      "path": "tmp/product-image-audit/materials-v4/materialKomatex-native.jpeg",
+      "sourceImageUrl": "https://material-shop.ch/wp-content/uploads/2023/08/KOEMATEX-Weiss-662.jpg",
+      "width": 1500,
+      "height": 1000,
+      "bytes": 154244,
+      "sha256": "3abbcf2bfef9eda5dde63eb616f120086fb6c19c6b5cac823d02ca77f243c196",
+      "aiMetadata": [],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "key": "foamcoreKomatex",
+      "path": "tmp/product-image-audit/materials-v4/foamcoreKomatex-native.jpeg",
+      "sourceImageUrl": "https://cdn.shopify.com/s/files/1/0015/8112/1649/products/komatex_white_3mm.jpg?v=1574704695",
+      "width": 700,
+      "height": 700,
+      "bytes": 29339,
+      "sha256": "25e1853564db6b894a6c774a83d57c18750b9a6fe9f5093251ea7b5e0a0e7439",
+      "aiMetadata": [],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "key": "plotbaseKomatex",
+      "path": "tmp/product-image-audit/materials-v4/plotbaseKomatex-native.png",
+      "sourceImageUrl": "https://www.plotbase.at/media/uploads/ckeditor/komatex.png",
+      "width": 451,
+      "height": 511,
+      "bytes": 61375,
+      "sha256": "0298e2322e6f7bdb9e8d9eb180dce362b3b8f1f79828457d6620e661b207d427",
+      "aiMetadata": [],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "key": "acrylstoreKomatex0",
+      "path": "tmp/product-image-audit/materials-v4/acrylstoreKomatex0-native.png",
+      "sourceImageUrl": "https://acrylstore24.de/wp-content/uploads/2026/03/PVC-Hartsschaumm-weiss.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1233092,
+      "sha256": "1a42d674e8f1ae246f3cfe695d8c53bddb63ff9d544b93a22a9a69d06670dd0a",
+      "aiMetadata": [
+        "trainedAlgorithmicMedia"
+      ],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Embedded C2PA trainedAlgorithmicMedia marker: generated image, forbidden."
+    },
+    {
+      "key": "acrylstoreKomatex1",
+      "path": "tmp/product-image-audit/materials-v4/acrylstoreKomatex1-native.png",
+      "sourceImageUrl": "https://acrylstore24.de/wp-content/uploads/2026/03/Forex-weiss-mit-Logo-stehend-quadratisch.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1496651,
+      "sha256": "5e53a7b4b0ceddf23141a20f6e1e70c257a3e34340e94afb1d25a89780623cc6",
+      "aiMetadata": [
+        "trainedAlgorithmicMedia"
+      ],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Embedded C2PA trainedAlgorithmicMedia marker: generated image, forbidden."
+    },
+    {
+      "key": "acrylstoreKomatex2",
+      "path": "tmp/product-image-audit/materials-v4/acrylstoreKomatex2-native.png",
+      "sourceImageUrl": "https://acrylstore24.de/wp-content/uploads/2026/03/Forex-Platten-weiss-Quadratisch.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 999016,
+      "sha256": "6fb341697a33a45ad3c5e29f2d6f780269e1c168f8fc4462fd53cd4d52b5c4c1",
+      "aiMetadata": [
+        "trainedAlgorithmicMedia"
+      ],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Embedded C2PA trainedAlgorithmicMedia marker: generated image, forbidden."
+    },
+    {
+      "key": "acrylstoreKomatex3",
+      "path": "tmp/product-image-audit/materials-v4/acrylstoreKomatex3-native.png",
+      "sourceImageUrl": "https://acrylstore24.de/wp-content/uploads/2026/03/Forex-weiss-mit-Folie.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1069730,
+      "sha256": "f775309faa57488b71759974d9e12da1e65b0076d887dc39b154941544782c0c",
+      "aiMetadata": [
+        "trainedAlgorithmicMedia"
+      ],
+      "evidenceFile": "tmp/product-image-audit/materials-v4/komatex-downloads.json",
+      "status": "not-selected",
+      "review": "Embedded C2PA trainedAlgorithmicMedia marker: generated image, forbidden."
+    },
+    {
+      "sourceImageUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-1_preklizka-topol-struktura--1.jpg",
+      "path": "tmp/product-image-audit/materials-v4/pappel-detail-1.jpeg",
+      "width": 1024,
+      "height": 768,
+      "bytes": 81423,
+      "sha256": "df1cb9dbec9185cf9110d5b211ea810e11de9b313eee3178013de0a52971b6f3",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/pappel-detail-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "sourceImageUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-2_preklizka-topol-hrany--1.jpg",
+      "path": "tmp/product-image-audit/materials-v4/pappel-detail-2.jpeg",
+      "width": 1024,
+      "height": 768,
+      "bytes": 58895,
+      "sha256": "35f2a5fa0cc1bbfe433939718bfc7e3f3bd693d167a967fa3b668787d931ebe4",
+      "evidenceFile": "tmp/product-image-audit/materials-v4/pappel-detail-downloads.json",
+      "status": "not-selected",
+      "review": "Native dimensions below 1024 in at least one axis."
+    },
+    {
+      "key": "opitecPappel",
+      "path": "tmp/product-image-audit/materials-v4/opitecPappel-native.jpeg",
+      "sourceImageUrl": "https://www.opitec.com/media/9c/ae/a4/1764753545/717005-000-000-VO-02_v_9.jpg?ts=1764753545",
+      "width": 2560,
+      "height": 1024,
+      "bytes": 404259,
+      "sha256": "8b62b52dd0d3e65ef02c30ed234eaf0f3f24058838e2589499677966976171db",
+      "status": "not-selected",
+      "review": "Supplier 3 mm poplar custom-cut page uses a cropped corner photo with many visible layers, not a complete or trustworthy three-layer 3 mm sheet view."
+    },
+    {
+      "key": "plattenPappel",
+      "path": "tmp/product-image-audit/materials-v4/plattenPappel-native.jpeg",
+      "sourceImageUrl": "https://www.plattenzuschnitt24.de/media/4e/9d/51/1651570612/sperrholzplatte-3-mm.jpg?ts=1651570612",
+      "width": 1500,
+      "height": 1500,
+      "bytes": 42757,
+      "sha256": "e26cd602e3e0af804227c7403e26ebf0514839f1c8343172b7c12c46eb7a9528",
+      "status": "not-selected",
+      "review": "Soft cropped sheet corner, not a complete-product main; no exact cut depicted."
+    },
+    {
+      "sourcePage": "https://www.balsa.ch/de/produkt/pappelsperrholz-500-x-250-x-3-mm",
+      "sourceImageUrl": "https://www.balsa.ch/shop/ProdukteBilder/320525030_gr.jpg",
+      "path": "tmp/product-image-audit/materials-v4/balsaCh-native.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 71274,
+      "sha256": "3e50f0e799496460bdc6e9e1097a4e9d47140f5ddbc7ae60741e1edf8e39d7c3",
+      "status": "not-selected",
+      "review": "Exact poplar 500 × 250 × 3 mm source but largest exposed native original is 800 × 800, below both minimum axes."
+    }
+  ],
+  "evidence": {
+    "supplierInventory": "tmp/product-image-audit/root-v4/supplier-identities.json",
+    "supplierResult": "No assigned supplier rows were found. This is not used as a mandatory identity gate for commodity matches.",
+    "blobInventory": "tmp/product-image-audit/root-v4/catalog-blob-inventory.json",
+    "blobResult": "15objects:9already accepted originals and6copies of2generated aluminium uploads; no overlooked real material photograph found.",
+    "contactSheets": [
+      "tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+      "tmp/product-image-audit/materials-v4/exact-native-contact.jpg",
+      "tmp/product-image-audit/materials-v4/komatex-contact.jpg",
+      "tmp/product-image-audit/materials-v4/new-metal-paper-contact.jpg",
+      "tmp/product-image-audit/materials-v4/white-card-buystarget-contact.jpg"
+    ]
+  },
+  "limitations": "Three original PVC photographs are ready for publication for one exact variant. A fourth original poplar detail is approved but withheld until a complete-sheet main is found. Other material image gaps remain open. Three independent PVC photographs do not meet the 4–6 view aim; near-duplicates are omitted.",
+  "pendingMainPhoto": [
+    {
+      "slug": "vezana-plosca",
+      "role": "detail",
+      "imageType": "product",
+      "view": "poplar grain and laminated edge",
+      "variantIds": [
+        "103"
+      ],
+      "variantSkus": [
+        "MAT-LES-VEZ-3x500x250-TOPOL"
+      ],
+      "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+      "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+      "status": "approved-detail-awaiting-whole-sheet-main",
+      "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+      "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+      "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+      "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+      "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+      "width": 2000,
+      "height": 2000,
+      "mimeType": "image/png",
+      "bytes": 1451797,
+      "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+      "transformation": "none; exact downloaded bytes copied unchanged",
+      "realPhotograph": true,
+      "noHumans": true,
+      "reviewedBy": [
+        "catalog_audit",
+        "root"
+      ],
+      "identityBasis": {
+        "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+        "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+        "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+        "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+      },
+      "id": "vezana-plosca-topol-3x250x500-rob-v4",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+      "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+      "untouchedOriginal": true,
+      "distinctPhoto": true,
+      "review": {
+        "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+        "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Keep the dimensional schematic first until a complete-sheet photograph is available.",
+        "accessories": "No accessories or human body parts shown."
+      },
+      "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication."
+    }
+  ],
+  "reviewedAt": "2026-09-14T10:33:26.848Z",
+  "validation": {
+    "checkedAt": "2026-09-14T10:33:26.853Z",
+    "acceptedOriginals": [
+      {
+        "id": "penjeni-pvc-beli-300x200x3-celoten-pogled-v4",
+        "width": 4240,
+        "height": 2303,
+        "sha256Matches": true,
+        "variantSkus": [
+          "MAT-UME-PEN-3x200x300"
+        ]
+      },
+      {
+        "id": "penjeni-pvc-beli-300x200x3-rob-v4",
+        "width": 3717,
+        "height": 2454,
+        "sha256Matches": true,
+        "variantSkus": [
+          "MAT-UME-PEN-3x200x300"
+        ]
+      },
+      {
+        "id": "penjeni-pvc-beli-300x200x3-struktura-v4",
+        "width": 4608,
+        "height": 3456,
+        "sha256Matches": true,
+        "variantSkus": [
+          "MAT-UME-PEN-3x200x300"
+        ]
+      }
+    ],
+    "unmodifiedFileHashChecksPassed": true,
+    "noDatabaseWrites": true,
+    "noRuntimeChanges": true,
+    "noCanonicalChanges": true,
+    "existingSchematicsUntouched": true
+  }
+}

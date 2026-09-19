@@ -1,0 +1,1930 @@
+{
+  "version": 9,
+  "createdAt": "2026-09-14T15:29:00.188Z",
+  "status": "research-complete-no-new-qualified-assets",
+  "scope": {
+    "families": 3,
+    "variants": 35,
+    "plywood": 30,
+    "eps": 4,
+    "galvanized": 1,
+    "target": "production-existing missing whole-main variants at v9 start"
+  },
+  "constraints": {
+    "minimumWidth": 1024,
+    "minimumHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "wholeProductMainRequired": true,
+    "exactCommodityMatching": true,
+    "preserveSchematics": true
+  },
+  "priorEvidenceLedgers": [
+    "data/catalog/replacement-sources-materials-v8-2026-09.json",
+    "data/catalog/replacement-sources-wood-plastics-v7-2026-09.json",
+    "data/catalog/replacement-sources-wood-v6-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "variants": [
+        {
+          "id": "97",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "name": "Bukev / 6 x 300 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "99",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "name": "Bukev / 4 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "100",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "name": "Topol / 6 x 2520 x 1720",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "101",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "name": "Topol / 4 x 2520 x 1720",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "unpublishedDetailEvidenceId": "vezana-plosca-topol-4x1720x2520-detail-candidate-v7",
+          "requiredNextSource": "Whole 4 × 1720 × 2520 mm poplar main; confirmed source-native capture rather than server enlargement.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "102",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "name": "Topol / 4 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "103",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "name": "Topol / 3 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "unpublishedDetailEvidenceId": "vezana-plosca-topol-3x250x500-rob-v4",
+          "requiredNextSource": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "104",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "105",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "106",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "107",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "108",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "109",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "110",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "111",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "112",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "113",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "114",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "115",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "116",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "117",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "118",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "119",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "120",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "121",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "122",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "123",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "124",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "125",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "126",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        },
+        {
+          "id": "127",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence.",
+          "v9SourceFindingIds": [
+            "tehnika-je-zakon-poplar",
+            "heerdegen-indexed-catalogue",
+            "ciste-full-beech-range",
+            "butorlapvagas-poplar",
+            "filippi-poplar",
+            "invernizzi-tutto-poplar",
+            "okft-exact-poplar6",
+            "okft-exact-poplar4",
+            "plyco-original-gallery",
+            "woelbert-beech-cut-service",
+            "heinemann-laser-service",
+            "arkowood-current-host"
+          ]
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication.",
+          "carriedFromLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json",
+          "carriedForwardEvidenceOnly": true
+        },
+        {
+          "id": "vezana-plosca-topol-4x1720x2520-detail-candidate-v7",
+          "status": "unpublished-candidate-needs-whole-main-and-native-origin-review",
+          "sourcePage": "https://holzdisselnmeyer.de/4-mm-Pappel-Sperrholzplatten-B-BB-EN-636-1-EN-314-1/0301000187.1",
+          "imageUrl": "https://holzdisselnmeyer.de/products/public/v2/0301000187/images/base/1/2000/4-mm-pappel-sperrholzplatten-bbb---en-636-1-en-314-1-en-314-1-klasse-1---fuer-trockenbereiche-pappel-bbb-laengs-01.webp?ts=1789168282",
+          "sourcePath": "tmp/product-image-audit/wood-plastics-v7/disselnmeyer.webp",
+          "width": 2000,
+          "height": 1476,
+          "sha256": "860f73083f0054464d20cdb824e96d79001523d8ca17721bcb12364e7bba9aec",
+          "bytes": 322316,
+          "variantIds": [
+            "101"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "role": "detail",
+          "view": "Pale poplar grain, knot and thin laminated edge",
+          "noHumans": true,
+          "realPhotograph": true,
+          "untouchedDownloadedBytes": true,
+          "nativeOriginalProven": false,
+          "review": {
+            "exactIdentity": "Exact 4 × 1720 × 2520 mm poplar B/BB listing. Photo shows pale natural wood grain, knot and a thin laminated edge.",
+            "quality": "Observed maximum public gallery response 2000 × 1476 is a cropped corner, not a whole sheet. The PIM size route does not independently prove native capture scale. Do not publish without whole-sheet main and final native-origin/quality approval."
+          },
+          "missing": "Whole 4 × 1720 × 2520 mm poplar main; confirmed source-native capture rather than server enlargement.",
+          "carriedForwardEvidenceOnly": true
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "tehnika-je-zakon-poplar",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://tehnikajezakon.si/trgovina/les/lesena-vezana-plosca-topol/",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "id": "tehnikajezakon",
+              "url": "https://tehnikajezakon.si/wp-content/uploads/2020/10/Diapozitiv2-1.jpg",
+              "status": 200,
+              "path": "tmp/product-image-audit/materials-v9/tehnikajezakon.jpg",
+              "width": 960,
+              "height": 720,
+              "bytes": 27652,
+              "sha256": "69ec64ea6b35a9f23e9b6f8650a7efb61f88f9c4dedb3716bc7a3767c325ae44",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+            }
+          ],
+          "reason": "WooCommerce full_src width960 height720 is the actual960×720 JPEG, not just a thumbnail. Named poplar in assorted cuts cannot establish the wood species of ATEHNA records that omit it.",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/initial-pages.json"
+        },
+        {
+          "id": "heerdegen-indexed-catalogue",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.heerdegen-balsaholz.de/",
+          "status": "no-usable-gallery",
+          "originals": [],
+          "reason": "Indexed22_1_pdf.pdf catalogue lists250×500mm poplar3/4mm; current host is only a placeholder with an embedded554×300 image. No current native product photograph could be recovered.",
+          "indexedCatalogue": "https://www.heerdegen-balsaholz.de/22_1_pdf.pdf",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/heerdegen.html"
+        },
+        {
+          "id": "ciste-full-beech-range",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.cistedrevo.cz/bukove-preklizky/",
+          "status": "no-additional-exact-cut",
+          "originals": [],
+          "reason": "Followed the actual catalogue from the successful v8 source. Its10 beech offerings do not include4×250×250 or6×400×300. The already accepted4×500×500 photo is not remapped to a smaller square. Several4mm formats resemble unspecified-species ATEHNA sizes, but no independent evidence establishes those records as beech.",
+          "evidenceFiles": [
+            "tmp/product-image-audit/materials-v9/ciste-beech.html",
+            "tmp/product-image-audit/materials-v9/ciste-catalogue.html"
+          ]
+        },
+        {
+          "id": "butorlapvagas-poplar",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.butorlapvagaskft.hu/termek/nyar-retegelt-lemez/",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "name": "butor-poplar.jpg",
+              "url": "https://www.butorlapvagaskft.hu/wp-content/uploads/2023/08/butorlapvagas-butorlapvagas-lapszabaszat-retegelt-lemez-dunaharaszti-nyar.jpg",
+              "status": 200,
+              "width": 899,
+              "height": 547,
+              "bytes": 65870,
+              "sha256": "e55dcdc70907224863a7a94481bacb0562358237ee1970278966176794455f9c",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/butor-poplar.jpg"
+            }
+          ],
+          "reason": "New supplier lists2520×1720 poplar stock. Untouched WordPress JPEG is899×547 and shows a cropped corner; unsuitable as whole main."
+        },
+        {
+          "id": "filippi-poplar",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.filippi1971.com/wp-content/uploads/2023/09/POPLAR-PLYWOOD.pdf",
+          "status": "no-usable-gallery",
+          "originals": [],
+          "reason": "Technical sheet identifies2520×1720 poplar among standard formats. The former guessed product route returned404; public site search returned no usable product photo. New S3/CDN host references were followed without locating an exact photographic gallery.",
+          "evidenceFiles": [
+            "tmp/product-image-audit/materials-v9/filippi.html",
+            "tmp/product-image-audit/materials-v9/filippi-search.html"
+          ]
+        },
+        {
+          "id": "invernizzi-tutto-poplar",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://invernizzi-spa.com/en/product/tutto-pioppo-plywood/",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "name": "invernizzi-0.jpg",
+              "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/pannello_compemsato_tutto_pioppo_cover2.jpg",
+              "status": 200,
+              "width": 1920,
+              "height": 774,
+              "bytes": 114739,
+              "sha256": "7657c849d482fbba1d9bb273aa89d7521695d374ff7c3d27b827d8bb98706fce",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/invernizzi-0.jpg"
+            },
+            {
+              "name": "invernizzi-1.jpg",
+              "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/compensato_pioppo_tutto_pioppo_m1.jpg",
+              "status": 200,
+              "width": 900,
+              "height": 1964,
+              "bytes": 83318,
+              "sha256": "dfb045d241a624f4d47bcca0362ecbc43081823102af6a5e6eb91582a57ca22c",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/invernizzi-1.jpg"
+            },
+            {
+              "name": "invernizzi-2.jpg",
+              "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/pannello_compensato_in_pioppo_tuttopioppo.jpg",
+              "status": 200,
+              "width": 600,
+              "height": 600,
+              "bytes": 25277,
+              "sha256": "9caf7a4eafdf3e4c532af3ba2108bec2013a350a5c96411371611f4eadcce709",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/invernizzi-2.jpg"
+            },
+            {
+              "name": "invernizzi-3.jpg",
+              "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/Compensato-in-Pioppo-Tutto-Pioppo_texture-5.jpg",
+              "status": 200,
+              "width": 400,
+              "height": 600,
+              "bytes": 28904,
+              "sha256": "f7182c6a691c962f9015b7151531dc4f713bcc9d08cda78ec751bc4cf50482df",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/invernizzi-3.jpg"
+            }
+          ],
+          "reason": "Current manufacturer product gallery supplies1920×774,900×1964,600×600 and400×600 originals. Every original has at least one axis below1024. Gallery also lacks thickness-specific identification for the pictured panels; no source image enlarged."
+        },
+        {
+          "id": "okft-exact-poplar6",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.okftfaaruhaz.hu/NYAR-RET-LEM-6mm-AB/BB-2520x1720x-6mm-IF20",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "name": "okft-6mm.webp",
+              "url": "https://www.okftfaaruhaz.hu/img/41112/9999009739/9999009739.webp",
+              "status": 200,
+              "width": 900,
+              "height": 518,
+              "bytes": 29638,
+              "sha256": "ad3081861dd29f6ce1e1819082192be678fbebe83c750b94782e270502cdefcd",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round8-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/okft-6mm.webp"
+            },
+            {
+              "name": "okft-6mm-original.jpg",
+              "url": "https://www.okftfaaruhaz.hu/shop_ordered/41112/shop_pic/9999009739.jpg",
+              "status": 200,
+              "width": 900,
+              "height": 518,
+              "bytes": 89623,
+              "sha256": "56aff1be1bb658c3aa68b046d48e43f836bf17a04b0e11b1fc58b4c7318dbd14",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round8-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/okft-6mm-original.jpg"
+            }
+          ],
+          "reason": "Exact6×2520×1720 poplar entry9739 resolved via product page and untransformed UNAS shop_pic original. WebP and originalJPEG are both900×518; bypassing thumbnail transforms did not reveal a larger photograph.",
+          "variantSkus": [
+            "MAT-LES-VEZ-6x1720x2520-TOPOL"
+          ],
+          "evidenceFile": "tmp/product-image-audit/materials-v9/okft-6mm.html"
+        },
+        {
+          "id": "okft-exact-poplar4",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.okftfaaruhaz.hu/NYAR-RET-LEM-4mm-AB/BB-2520x1720x-4mm-IF20",
+          "status": "no-product-original",
+          "originals": [],
+          "reason": "Exact4×2520×1720 poplar page exists; current page has no product original distinct from navigation assets. Other product images were not substituted.",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "evidenceFile": "tmp/product-image-audit/materials-v9/okft-4mm.html"
+        },
+        {
+          "id": "plyco-original-gallery",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://plyco.com.au/products/poplar",
+          "status": "rejected-wrong-thickness",
+          "originals": [
+            {
+              "name": "plyco-0.jpg",
+              "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/plyco-poplar-premium.jpg?v=1740749350",
+              "status": 200,
+              "width": 1164,
+              "height": 1600,
+              "bytes": 124584,
+              "sha256": "d7ce1037723284f19c2a6a2a1f9cc8b1b5dfe644f0f7a125073d3bb3e49440fa",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/plyco-0.jpg"
+            },
+            {
+              "name": "plyco-1.jpg",
+              "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-1.jpg?v=1740749351",
+              "status": 200,
+              "width": 1024,
+              "height": 576,
+              "bytes": 78389,
+              "sha256": "d2081eed3bf4798692fef26362a0bc3c22135161f496e820c4efb58446e89011",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/plyco-1.jpg"
+            },
+            {
+              "name": "plyco-2.jpg",
+              "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-2.jpg?v=1740749351",
+              "status": 200,
+              "width": 1024,
+              "height": 576,
+              "bytes": 47387,
+              "sha256": "985c36369286e3ceb82614508435e19ee74c69044ffa307fb253abc36b18b6f2",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/plyco-2.jpg"
+            },
+            {
+              "name": "plyco-3.jpg",
+              "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-3.jpg?v=1740749351",
+              "status": 200,
+              "width": 1024,
+              "height": 576,
+              "bytes": 104638,
+              "sha256": "62d84d928faf7af5ac9d608b56c7a8457ef153c0d4f119176809b0b16944757d",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/plyco-3.jpg"
+            },
+            {
+              "name": "plyco-4.jpg",
+              "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/super35-EuropeanPoplar.jpg?v=1740749351",
+              "status": 200,
+              "width": 600,
+              "height": 597,
+              "bytes": 78093,
+              "sha256": "e3ebf5465f47c39b3566548a9a2ad1c95eca537a580dcd5ed73977d46d1083a9",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/plyco-4.jpg"
+            }
+          ],
+          "reason": "Shopify metadata explicitly labels the1164×1600 main as12mm Poplar Premium Plywood even when3mm or6mm is selected. This is a known thickness conflict, so it cannot be assigned to the exact3/4/6mm ATEHNA variants. Remaining originals are1024×576 or600×597.",
+          "metadataUrl": "https://plyco.com.au/products/poplar.js",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/plyco.txt"
+        },
+        {
+          "id": "woelbert-beech-cut-service",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://shop.sperrholz-woelbert.de/de/platten/sperrholz/sperrholz-standard/sonstiges/4-mm-buche-sperrholz-b-bb-product-7310615063592442848.html",
+          "status": "no-product-original",
+          "originals": [],
+          "reason": "Exact4mm beech cut-service page returns only default-bild placeholder assets, with no useful actual board photograph.",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/woelbert-beech.html"
+        },
+        {
+          "id": "heinemann-laser-service",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.heinemann-flugmodellbau.de/i/laser-service",
+          "status": "no-usable-whole-main",
+          "originals": [],
+          "reason": "Lists poplar3/4/6/8/10mm and a700×500 working area, but public laser-service page does not expose a complete untreated exact board photo. Laser-cut examples cannot stand in for raw panels.",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/heinemann.html"
+        },
+        {
+          "id": "arkowood-current-host",
+          "slug": "vezana-plosca",
+          "sourcePage": "https://www.arkowood.de/",
+          "status": "unavailable-source",
+          "originals": [],
+          "reason": "New current manufacturer host failed a plain public fetch; indexed2018 price list establishes stock types but not a qualifying original photograph.",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/round6-pages.json"
+        }
+      ],
+      "identityLimit": "Seven variants explicitly state beech or poplar. The other 24 do not name a species; original mixed-stack imagery does not establish their wood species, ply core or edge treatment. No species or treatment was inferred from a new supplier merely because its cut matches."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "itemId": "3",
+      "variants": [
+        {
+          "id": "11",
+          "sku": "MAT-KOV-POC-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A real original showing the entire 300 × 200 × 0.5 mm galvanized rectangular sheet. Square source photographs are not assigned to this cut.",
+          "v9SourceFindingIds": [
+            "evek-custom-galvanized",
+            "superdelivery-galvanized-1829700",
+            "neji-galvanized"
+          ]
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [],
+      "sourceFindings": [
+        {
+          "id": "evek-custom-galvanized",
+          "slug": "pocinkana-plocevina",
+          "sourcePage": "https://evek.one/steel/2322-galvanized-sheet-steel-4-8mm-iron-plates-sheet-cutting-selectable-desired-size-possible-100x1000mm.html",
+          "status": "held-detail-no-whole-main",
+          "originals": [
+            {
+              "id": "evek3365",
+              "url": "https://evek.one/img/p/3/3/6/5/3365.jpg",
+              "status": 200,
+              "path": "tmp/product-image-audit/materials-v9/evek3365.jpg",
+              "width": 2048,
+              "height": 1365,
+              "bytes": 199685,
+              "sha256": "c2e3b9738d0857af54dfdc9280cfb5241be4720197f3cabb334ef941c8ac0d8c",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+            },
+            {
+              "id": "evek3366",
+              "url": "https://evek.one/img/p/3/3/6/6/3366.jpg",
+              "status": 200,
+              "path": "tmp/product-image-audit/materials-v9/evek3366.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 30366,
+              "sha256": "ed4e01e39a206ff59178b3ca5080c79780b151970b029962f397de99dbde7f3e",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+            }
+          ],
+          "reason": "Public custom-cut selectors include0.5mm and300×200. Original2048×1365 shows an actual cropped overlapping stack, with product boundaries outside frame; cannot serve as whole main. Multiple available thicknesses and finishes are not individually associated with captures. Other original is800×800. Plain public eBay equivalent267647789235 returned403.",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x300x200"
+          ]
+        },
+        {
+          "id": "superdelivery-galvanized-1829700",
+          "slug": "pocinkana-plocevina",
+          "sourcePage": "https://www.superdelivery.com/p/r/pd_p/12201662/",
+          "status": "held-exact-photographed-cut-unconfirmed",
+          "originals": [
+            {
+              "name": "superdelivery-zinc.jpg",
+              "url": "https://www.superdelivery.com/product_image/012/201/662/12201662_1000.jpg",
+              "status": 200,
+              "width": 1200,
+              "height": 1200,
+              "bytes": 71904,
+              "sha256": "78ab879f45ee7fd9c52feea2abea83925833a473a089445fec495f29055c1e02",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/superdelivery-zinc.jpg"
+            }
+          ],
+          "reason": "Exact listing0.5×200×300/JAN4940372068832, iron/steel with zinc coating. Original1200×1200 shows the whole thin rectangular sheet with useful surface detail and no humans. However both source description and pixels label it a same-series representative image; the photographed cut is not identified. Not published as an exact main without further attribution.",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x300x200"
+          ],
+          "sourceCode": "1829700",
+          "jan": "4940372068832",
+          "sourceQualification": "同シリーズ代表画像",
+          "nativeReview": {
+            "quality": "Clear complete thin sheet; subtle actual metal texture, visible edges, no humans. Native crop inspected at source pixel scale.",
+            "identity": "Listing matches material and dimensions; source itself does not assert pictured cut. Representative-series status remains unresolved."
+          },
+          "evidenceFile": "tmp/product-image-audit/materials-v9/superdelivery-zinc.html"
+        },
+        {
+          "id": "neji-galvanized",
+          "slug": "pocinkana-plocevina",
+          "sourcePage": "https://www.neji-navi.com/index.php/products/detail/140130142",
+          "status": "unavailable-source",
+          "originals": [],
+          "reason": "Indexed exact0.5×200×300 zinc-coated iron stock; plain source fetch timed out. No pixels obtained or resolution claim made.",
+          "evidenceFile": "tmp/product-image-audit/materials-v9/round4-pages.json"
+        }
+      ],
+      "identityLimit": "Only the uncovered300×200×0.5mm rectangular cut is in v9 scope; square photos already published in v8 are not reused here."
+    },
+    {
+      "slug": "stiropor",
+      "itemId": "7",
+      "variants": [
+        {
+          "id": "30",
+          "sku": "MAT-UME-STI-10x300x200",
+          "name": "200 x 300 x 10 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source.",
+          "v9SourceFindingIds": [
+            "maroc-custom-eps",
+            "wqtrade-custom-eps",
+            "foamcompany-direct-shopify",
+            "decovision-a5",
+            "pictureframe-a5",
+            "merlin-thermasheet",
+            "mrpolystyrene-index"
+          ]
+        },
+        {
+          "id": "31",
+          "sku": "MAT-UME-STI-210x148-A5",
+          "name": "A5",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source.",
+          "v9SourceFindingIds": [
+            "maroc-custom-eps",
+            "wqtrade-custom-eps",
+            "foamcompany-direct-shopify",
+            "decovision-a5",
+            "pictureframe-a5",
+            "merlin-thermasheet",
+            "mrpolystyrene-index"
+          ]
+        },
+        {
+          "id": "32",
+          "sku": "MAT-UME-STI-10x400x300",
+          "name": "300 x 400 x 10 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source.",
+          "v9SourceFindingIds": [
+            "maroc-custom-eps",
+            "wqtrade-custom-eps",
+            "foamcompany-direct-shopify",
+            "decovision-a5",
+            "pictureframe-a5",
+            "merlin-thermasheet",
+            "mrpolystyrene-index"
+          ]
+        },
+        {
+          "id": "33",
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "name": "16 x 33 x 2 cm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-new-qualifying-v9-whole-main",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source.",
+          "v9SourceFindingIds": [
+            "maroc-custom-eps",
+            "wqtrade-custom-eps",
+            "foamcompany-direct-shopify",
+            "decovision-a5",
+            "pictureframe-a5",
+            "merlin-thermasheet",
+            "mrpolystyrene-index"
+          ]
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [],
+      "sourceFindings": [
+        {
+          "id": "maroc-custom-eps",
+          "slug": "stiropor",
+          "sourcePage": "https://marocpolystyrene.com/nos-produits/plaque-en-pse-decoupe/",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "name": "maroc-pse.png",
+              "url": "https://marocpolystyrene.com/wp-content/uploads/2026/03/plaque_pse.png",
+              "status": 200,
+              "width": 396,
+              "height": 297,
+              "bytes": 67084,
+              "sha256": "783b55052faeee0998e3130d0a39483a9ba6dd0886db356cde4316201a4ed949",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/maroc-pse.png"
+            }
+          ],
+          "reason": "Manufacturer offers cut-to-size bead EPS, but actual plaque_pse.png is396×297. Complete stack view is too small, with no exact-cut/thickness attribution."
+        },
+        {
+          "id": "wqtrade-custom-eps",
+          "slug": "stiropor",
+          "sourcePage": "https://wqtrade.co.za/polystyrene-products/",
+          "status": "rejected-wrong-shape",
+          "originals": [
+            {
+              "name": "wqtrade-eps.png",
+              "url": "https://wqtrade.co.za/wp-content/uploads/2021/12/thumbnail_9f8ac8d0-7440-464b-82e5-95c09fdd836c.png.2048x2048_q85.png",
+              "status": 200,
+              "width": 1024,
+              "height": 1024,
+              "bytes": 159213,
+              "sha256": "9d76e2296ff4082a4582e2a4893babb07f4f1e11ae59158275697527228cd306",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/wqtrade-eps.png"
+            }
+          ],
+          "reason": "1024×1024 image depicts a cube, not any of the four thin rectangular sheets. Filename containing2048 does not mean native2048: decoded file is1024×1024. No claim of authentic capture made for this render-like cube."
+        },
+        {
+          "id": "foamcompany-direct-shopify",
+          "slug": "stiropor",
+          "sourcePage": "https://www.thefoamcompany.com.au/products/polystyrene-sheets-eps-brisbane-qld",
+          "status": "rejected-native-resolution",
+          "originals": [
+            {
+              "name": "foamcompany.png",
+              "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld.png",
+              "status": 200,
+              "width": 1000,
+              "height": 1000,
+              "bytes": 772052,
+              "sha256": "adf102f2f11b70fae7829c0b5d6ade2971f83cf9b7bfb77ac38de7ec7221112b",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/foamcompany.png"
+            },
+            {
+              "name": "foamcompany-2.png",
+              "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld-2.png",
+              "status": 200,
+              "width": 1000,
+              "height": 1000,
+              "bytes": 1290566,
+              "sha256": "8c705fee32e032a3ce26258ae6a1966362bdc5000aa73c399aec83481aee6b7e",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/foamcompany-2.png"
+            },
+            {
+              "name": "foamcompany-3.png",
+              "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld-3.png",
+              "status": 200,
+              "width": 1000,
+              "height": 1000,
+              "bytes": 1307720,
+              "sha256": "951952c39eb279a99544f1332b8f1b4d4159109629831278382fb3c6d69ce941",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/foamcompany-3.png"
+            },
+            {
+              "name": "foamcompany-custom.png",
+              "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-eps-cut-to-size-1.png",
+              "status": 200,
+              "width": 1000,
+              "height": 1000,
+              "bytes": 414525,
+              "sha256": "c58dc7c727aaef288be0757a9ef47836d9366e3b05a1294f2b1a6f8d0e654dd8",
+              "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+              "path": "tmp/product-image-audit/materials-v9/foamcompany-custom.png"
+            }
+          ],
+          "reason": "Official manufacturer Shopify originals were fetched without width/crop parameters. All four are1000×1000; pages advertising2048 delivery resize do not establish a larger original. Views show stacked or mixed blocks, not a proven exact whole thin cut."
+        },
+        {
+          "id": "decovision-a5",
+          "slug": "stiropor",
+          "sourcePage": "https://www.decovision.co.uk/products/decovision-xps-foam-sheets-premium-extruded-polystyrene-boards-for-craft-modelling-diorama-diy-paintable-made-in-uk",
+          "status": "rejected-material",
+          "originals": [],
+          "reason": "A5 dimensions match but product explicitly identifies extruded XPS; ATEHNA original shows bead EPS. Do not replace with different foam construction."
+        },
+        {
+          "id": "pictureframe-a5",
+          "slug": "stiropor",
+          "sourcePage": "https://pictureframe.com.au/foamboard-and-foamcore-sheets/a5-white-foamboard-sheets-pack-of-6-sheets-14-8x21-cms/",
+          "status": "rejected-material",
+          "originals": [],
+          "reason": "Exact A5 board is paper-faced foamcore, not bare EPS sheet."
+        },
+        {
+          "id": "merlin-thermasheet",
+          "slug": "stiropor",
+          "sourcePage": "https://merlinmosaica.com/product/thermasheet-10mm-200x300mm/",
+          "status": "rejected-material",
+          "originals": [],
+          "reason": "Exact200×300×10 board is extruded XPS with fibreglass mesh and polymer-cement faces. It is not the white bead EPS being sold."
+        },
+        {
+          "id": "mrpolystyrene-index",
+          "slug": "stiropor",
+          "sourcePage": "https://www.ebay.co.uk/str/mrpolystyrene/Polystyrene-Sheets/_i.html?store_cat=166421011",
+          "status": "no-exact-cut-image-found",
+          "originals": [],
+          "reason": "New genuine EPS seller search exposed600×400×10 and300×300×10 sheets; neither is an ATEHNA cut. No exact200×300×10 or300×400×10 whole original was established."
+        }
+      ],
+      "identityLimit": "The A5 variant has no recorded thickness. Its material must remain bare white bead EPS. No XPS, PE or paper-faced foamcore substitution is allowed."
+    }
+  ],
+  "nativeCandidates": [
+    {
+      "id": "evek3365",
+      "url": "https://evek.one/img/p/3/3/6/5/3365.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v9/evek3365.jpg",
+      "width": 2048,
+      "height": 1365,
+      "bytes": 199685,
+      "sha256": "c2e3b9738d0857af54dfdc9280cfb5241be4720197f3cabb334ef941c8ac0d8c",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+    },
+    {
+      "id": "evek3366",
+      "url": "https://evek.one/img/p/3/3/6/6/3366.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v9/evek3366.jpg",
+      "width": 800,
+      "height": 800,
+      "bytes": 30366,
+      "sha256": "ed4e01e39a206ff59178b3ca5080c79780b151970b029962f397de99dbde7f3e",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+    },
+    {
+      "id": "tehnikajezakon",
+      "url": "https://tehnikajezakon.si/wp-content/uploads/2020/10/Diapozitiv2-1.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v9/tehnikajezakon.jpg",
+      "width": 960,
+      "height": 720,
+      "bytes": 27652,
+      "sha256": "69ec64ea6b35a9f23e9b6f8650a7efb61f88f9c4dedb3716bc7a3767c325ae44",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/initial-natives.json"
+    },
+    {
+      "name": "superdelivery-zinc.jpg",
+      "url": "https://www.superdelivery.com/product_image/012/201/662/12201662_1000.jpg",
+      "status": 200,
+      "width": 1200,
+      "height": 1200,
+      "bytes": 71904,
+      "sha256": "78ab879f45ee7fd9c52feea2abea83925833a473a089445fec495f29055c1e02",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/superdelivery-zinc.jpg"
+    },
+    {
+      "name": "butor-poplar.jpg",
+      "url": "https://www.butorlapvagaskft.hu/wp-content/uploads/2023/08/butorlapvagas-butorlapvagas-lapszabaszat-retegelt-lemez-dunaharaszti-nyar.jpg",
+      "status": 200,
+      "width": 899,
+      "height": 547,
+      "bytes": 65870,
+      "sha256": "e55dcdc70907224863a7a94481bacb0562358237ee1970278966176794455f9c",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/butor-poplar.jpg"
+    },
+    {
+      "name": "maroc-pse.png",
+      "url": "https://marocpolystyrene.com/wp-content/uploads/2026/03/plaque_pse.png",
+      "status": 200,
+      "width": 396,
+      "height": 297,
+      "bytes": 67084,
+      "sha256": "783b55052faeee0998e3130d0a39483a9ba6dd0886db356cde4316201a4ed949",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/maroc-pse.png"
+    },
+    {
+      "name": "wqtrade-eps.png",
+      "url": "https://wqtrade.co.za/wp-content/uploads/2021/12/thumbnail_9f8ac8d0-7440-464b-82e5-95c09fdd836c.png.2048x2048_q85.png",
+      "status": 200,
+      "width": 1024,
+      "height": 1024,
+      "bytes": 159213,
+      "sha256": "9d76e2296ff4082a4582e2a4893babb07f4f1e11ae59158275697527228cd306",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/wqtrade-eps.png"
+    },
+    {
+      "name": "foamcompany.png",
+      "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld.png",
+      "status": 200,
+      "width": 1000,
+      "height": 1000,
+      "bytes": 772052,
+      "sha256": "adf102f2f11b70fae7829c0b5d6ade2971f83cf9b7bfb77ac38de7ec7221112b",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/foamcompany.png"
+    },
+    {
+      "name": "foamcompany-2.png",
+      "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld-2.png",
+      "status": 200,
+      "width": 1000,
+      "height": 1000,
+      "bytes": 1290566,
+      "sha256": "8c705fee32e032a3ce26258ae6a1966362bdc5000aa73c399aec83481aee6b7e",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/foamcompany-2.png"
+    },
+    {
+      "name": "foamcompany-3.png",
+      "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-sheets-eps-brisbane-qld-3.png",
+      "status": 200,
+      "width": 1000,
+      "height": 1000,
+      "bytes": 1307720,
+      "sha256": "951952c39eb279a99544f1332b8f1b4d4159109629831278382fb3c6d69ce941",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/foamcompany-3.png"
+    },
+    {
+      "name": "foamcompany-custom.png",
+      "url": "https://www.thefoamcompany.com.au/cdn/shop/files/polystyrene-eps-cut-to-size-1.png",
+      "status": 200,
+      "width": 1000,
+      "height": 1000,
+      "bytes": 414525,
+      "sha256": "c58dc7c727aaef288be0757a9ef47836d9366e3b05a1294f2b1a6f8d0e654dd8",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round5-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/foamcompany-custom.png"
+    },
+    {
+      "name": "plyco-0.jpg",
+      "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/plyco-poplar-premium.jpg?v=1740749350",
+      "status": 200,
+      "width": 1164,
+      "height": 1600,
+      "bytes": 124584,
+      "sha256": "d7ce1037723284f19c2a6a2a1f9cc8b1b5dfe644f0f7a125073d3bb3e49440fa",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/plyco-0.jpg"
+    },
+    {
+      "name": "plyco-1.jpg",
+      "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-1.jpg?v=1740749351",
+      "status": 200,
+      "width": 1024,
+      "height": 576,
+      "bytes": 78389,
+      "sha256": "d2081eed3bf4798692fef26362a0bc3c22135161f496e820c4efb58446e89011",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/plyco-1.jpg"
+    },
+    {
+      "name": "plyco-2.jpg",
+      "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-2.jpg?v=1740749351",
+      "status": 200,
+      "width": 1024,
+      "height": 576,
+      "bytes": 47387,
+      "sha256": "985c36369286e3ceb82614508435e19ee74c69044ffa307fb253abc36b18b6f2",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/plyco-2.jpg"
+    },
+    {
+      "name": "plyco-3.jpg",
+      "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/Shopify-Poplar-3.jpg?v=1740749351",
+      "status": 200,
+      "width": 1024,
+      "height": 576,
+      "bytes": 104638,
+      "sha256": "62d84d928faf7af5ac9d608b56c7a8457ef153c0d4f119176809b0b16944757d",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/plyco-3.jpg"
+    },
+    {
+      "name": "plyco-4.jpg",
+      "url": "https://cdn.shopify.com/s/files/1/1506/5624/products/super35-EuropeanPoplar.jpg?v=1740749351",
+      "status": 200,
+      "width": 600,
+      "height": 597,
+      "bytes": 78093,
+      "sha256": "e3ebf5465f47c39b3566548a9a2ad1c95eca537a580dcd5ed73977d46d1083a9",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/plyco-4.jpg"
+    },
+    {
+      "name": "invernizzi-0.jpg",
+      "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/pannello_compemsato_tutto_pioppo_cover2.jpg",
+      "status": 200,
+      "width": 1920,
+      "height": 774,
+      "bytes": 114739,
+      "sha256": "7657c849d482fbba1d9bb273aa89d7521695d374ff7c3d27b827d8bb98706fce",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/invernizzi-0.jpg"
+    },
+    {
+      "name": "invernizzi-1.jpg",
+      "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/compensato_pioppo_tutto_pioppo_m1.jpg",
+      "status": 200,
+      "width": 900,
+      "height": 1964,
+      "bytes": 83318,
+      "sha256": "dfb045d241a624f4d47bcca0362ecbc43081823102af6a5e6eb91582a57ca22c",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/invernizzi-1.jpg"
+    },
+    {
+      "name": "invernizzi-2.jpg",
+      "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/pannello_compensato_in_pioppo_tuttopioppo.jpg",
+      "status": 200,
+      "width": 600,
+      "height": 600,
+      "bytes": 25277,
+      "sha256": "9caf7a4eafdf3e4c532af3ba2108bec2013a350a5c96411371611f4eadcce709",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/invernizzi-2.jpg"
+    },
+    {
+      "name": "invernizzi-3.jpg",
+      "url": "https://invernizzi-spa.com/wp-content/uploads/2026/03/Compensato-in-Pioppo-Tutto-Pioppo_texture-5.jpg",
+      "status": 200,
+      "width": 400,
+      "height": 600,
+      "bytes": 28904,
+      "sha256": "f7182c6a691c962f9015b7151531dc4f713bcc9d08cda78ec751bc4cf50482df",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round7-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/invernizzi-3.jpg"
+    },
+    {
+      "name": "okft-6mm.webp",
+      "url": "https://www.okftfaaruhaz.hu/img/41112/9999009739/9999009739.webp",
+      "status": 200,
+      "width": 900,
+      "height": 518,
+      "bytes": 29638,
+      "sha256": "ad3081861dd29f6ce1e1819082192be678fbebe83c750b94782e270502cdefcd",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round8-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/okft-6mm.webp"
+    },
+    {
+      "name": "okft-6mm-original.jpg",
+      "url": "https://www.okftfaaruhaz.hu/shop_ordered/41112/shop_pic/9999009739.jpg",
+      "status": 200,
+      "width": 900,
+      "height": 518,
+      "bytes": 89623,
+      "sha256": "56aff1be1bb658c3aa68b046d48e43f836bf17a04b0e11b1fc58b4c7318dbd14",
+      "evidenceFile": "tmp/product-image-audit/materials-v9/round8-natives.json",
+      "path": "tmp/product-image-audit/materials-v9/okft-6mm-original.jpg"
+    }
+  ],
+  "originalAtehnaReferences": [
+    {
+      "slug": "vezana-plosca",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca1.png",
+      "width": 800,
+      "height": 800,
+      "identityLimit": "A cropped mixed stack does not establish the species of each unspecified variant."
+    },
+    {
+      "slug": "stiropor",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/stiropor.png",
+      "width": 625,
+      "height": 625,
+      "identityLimit": "Original appearance is plain white bead EPS, not XPS, PE foam or paper-faced foamboard."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/belaplocevina.png",
+      "width": 266,
+      "height": 244,
+      "identityLimit": "Plain unbranded metal stock. Do not add a new alloy or surface treatment claim."
+    }
+  ],
+  "evidenceBaseDirectory": "tmp/product-image-audit/materials-v9",
+  "summary": {
+    "newAcceptedPhotographs": 0,
+    "newCoveredVariants": 0,
+    "remainingScopedVariants": 35,
+    "sourceGroupsInvestigated": 22,
+    "downloadedImageFiles": 22,
+    "uniqueOriginalImageHashes": 22,
+    "nativeImagesMeetingPixelThreshold": 4,
+    "sourceGaps": "No new whole-main photograph met all exact identity, native quality and framing conditions for these35 variants. Stronger new Japanese metal original is held for explicit photographed-cut attribution; all exact large-poplar originals found remain undersized. Existing v8 beech and square galvanized photos remain untouched."
+  },
+  "review": {
+    "methods": [
+      "Fresh manufacturer and exact dealer product searches in Slovenian, German, French, Polish, Hungarian and Japanese",
+      "Original WordPress paths without thumbnail suffixes",
+      "Shopify product JSON image metadata and untransformed image URLs",
+      "UNAS shop_pic original JPEG compared with rendered WebP",
+      "PrestaShop original image path",
+      "Direct Japanese supplier product_image origin bypassing display-size CDN transforms",
+      "Native-pixel visual checks of promising high-resolution candidates"
+    ],
+    "publishedAssetTransforms": [],
+    "noDatabaseOrRuntimeMutations": true,
+    "unverifiedSourcesAreNotClaimedAsAccepted": true
+  },
+  "coordinatedPeerReview": {
+    "rootOwnedLedger": "data/catalog/replacement-sources-root-v9-2026-09.json",
+    "decision": "Independently reviewed root aluminium candidates. Generic mixed-thickness main held; variant-specific0.5mm surface/edge detail visually approved for appropriate existing-main cuts. Root owns final exact associations and records the applied asset separately; no duplicate asset added here."
+  }
+}

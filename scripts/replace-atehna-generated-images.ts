@@ -301,7 +301,8 @@ export async function runRealPhotoReplacement(args = process.argv.slice(2)) {
   const target = resolveCatalogTypeTarget(options.target, process.env.DATABASE_URL);
   const source = JSON.parse(await readFile('data/catalog/atehna-2026-09.json', 'utf8')) as { products: RealPhotoSource[] };
   const historical = JSON.parse(await readFile('data/catalog/image-upgrades-2026-09.json', 'utf8')) as { products: HistoricalPhotoProduct[] };
-  const groups = await Promise.all(MANIFESTS.map(async file => JSON.parse(await readFile(file, 'utf8')) as { products: RealPhotoProduct[] }));
+  const groups = await Promise.all(MANIFESTS.map(async file => JSON.parse(await readFile(file, 'utf8')) as { products: RealPhotoProduct[]; supersededBy?: string[] }));
+  ensure(groups.every(group => !group.supersededBy?.length), 'Historical photo manifest superseded. Use scripts/remediate-catalog-product-images.ts.');
   const products = groups.flatMap(group => group.products);
   validateRealPhotoManifest(products, source.products, historical.products);
   const mimeByUrl = new Map<string, string>();

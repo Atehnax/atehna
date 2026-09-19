@@ -1,0 +1,111 @@
+{
+  "version": 9,
+  "reviewedAt": "2026-09-14T15:25:06.594Z",
+  "status": "Accepted originals saved and verified in canonical, local and production; remaining gaps recorded.",
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "files": [
+        "native-metals.json",
+        "alu03-ebay.json",
+        "native-acryl-alu.json"
+      ],
+      "decision": "Stahl2000² is cropped/mixed-thickness; Versandmetall600px or less; exact200²×0.3 eBay six originals1000² fail threshold. Modulor generic whole stack has unproved top-sheet thickness; accept only thickness-specific0.5 detail for two existing main-covered cuts.",
+      "accepted": [
+        {
+          "id": "aluminijasta-plosca-05-povrsina-rob-modulor-v9",
+          "slug": "aluminijasta-plosca",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x100x100",
+            "MAT-KOV-ALU-0P5x300x300"
+          ],
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg",
+          "sourcePath": "tmp/product-image-audit/root-v9/aluModulor-0.jpeg",
+          "sha256": "0d64ec2d0f52b1d9a2adffe277c91c311a790aeb4d906ae06c620a1c8d1e41da",
+          "dimensions": {
+            "width": 1920,
+            "height": 1440
+          },
+          "sourcePage": "https://www.modulor.de/aluminiumblech-tafeln-0-5-x-250-x-250-mm-st.html",
+          "sourceUrl": "https://cdn.modulor.de/products/eaaa_0125993/1_1920_1920_r_aluminiumblech_tafeln_0_5_x_250_x_250_mm.jpg",
+          "sourceIdentityEvidence": "Thickness-specific supplier item0125993 and its original filename explicitly identify bare aluminium sheet0.5mm. The supplier offers custom-cut sheet dimensions. This unbranded commodity surface/edge detail shows no full extent, markings or shape that imply a different cut; it supplements existing complete photographs of the matching100×100 and300×300×0.5mm cuts. ATEHNA specifies silver aluminium and0.5mm, without alloy/temper/manufacturer; none of the supplier-only claims are imported. Excludes0.3mm and all variants without an existing whole main. The generic multi-thickness stack is rejected as a main because top-leaf thickness cannot be proved.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "Independent close-up of0.5mm sheet surface, corner and cut edge",
+          "altText": "Aluminijasta plošča debeline 0,5 mm – podrobnost naravne površine, vogala in roba. Celotne mere izbranega kosa so prikazane na dimenzijski skici.",
+          "reviewedBy": [
+            "root",
+            "catalog_audit"
+          ],
+          "review": {
+            "quality": "Unchanged native1920×1440 original. Sharp natural surface grain and thin edge near the corner, neutral background, no people. Supplier photograph is cropped at other boundaries, so it is used only as a supplementary detail and not counted as another full viewing angle.",
+            "limitations": "No extra material grade, alloy, temper, brand or cut-size inference is added."
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/0d64ec2d0f52b1d9-aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg",
+          "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/0d64ec2d0f52b1d9-aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg"
+        }
+      ],
+      "nativeEvidence": [
+        "tmp/product-image-audit/root-v9/native-metals.json",
+        "tmp/product-image-audit/root-v9/alu03-ebay.json",
+        "tmp/product-image-audit/root-v9/native-acryl-alu.json"
+      ]
+    },
+    {
+      "slug": "bakrena-plosca",
+      "files": [
+        "native-metals.json",
+        "copperProm-native.json"
+      ],
+      "decision": "Nizpol3×2560×1706 cropped stacks and shallow focus, no clear whole300² main. Praktiker2000² is clipped at far edges, detail held until exact whole main. Prom originals500×375,205×135,1000×667 all belowminimum.",
+      "accepted": [],
+      "nativeEvidence": [
+        "tmp/product-image-audit/root-v9/native-metals.json",
+        "tmp/product-image-audit/root-v9/copperProm-native.json"
+      ]
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "files": [
+        "native-new-materials.json",
+        "pages-new-materials.json"
+      ],
+      "decision": "RCM exact0.5×200×300 original374×500, Buko512×316 and source filename100² conflicts selected300×200. eBay publicpage403. No qualifying main.",
+      "accepted": [],
+      "nativeEvidence": [
+        "tmp/product-image-audit/root-v9/native-new-materials.json",
+        "tmp/product-image-audit/root-v9/pages-new-materials.json"
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "files": [
+        "native-new-materials.json",
+        "pages-new-materials.json"
+      ],
+      "decision": "Alutech1220×680 fails height and3mm title conflicts1mm description. Globus3000×2000 shows palegreen manufactured depiction, not a verifiable white product photograph. Baumaxxe titledPVC but descriptionPolystyrol/HIPS, reject material conflict.",
+      "accepted": [],
+      "nativeEvidence": [
+        "tmp/product-image-audit/root-v9/native-new-materials.json",
+        "tmp/product-image-audit/root-v9/pages-new-materials.json"
+      ]
+    },
+    {
+      "slug": "pleksi-steklo",
+      "files": [
+        "native-acryl-alu.json"
+      ],
+      "decision": "Plattenzuschnitt24white3mm1500² crops whole edge and is soft with visible blocklike edge artefacts, unsuitable useful zoom. Acrylglasplattenshop1024² images are synthetic product depictions, not real exact source photographs; do not publish.",
+      "accepted": [],
+      "nativeEvidence": [
+        "tmp/product-image-audit/root-v9/native-acryl-alu.json"
+      ]
+    }
+  ],
+  "appliedAt": "2026-09-14T15:32:28.077Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T15-27-36-299Z"
+}

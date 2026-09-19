@@ -1,0 +1,156 @@
+{
+  "version": 8,
+  "reviewedAt": "2026-09-14T14:09:15.637Z",
+  "scope": [
+    {
+      "slug": "pocinkana-plocevina",
+      "name": "Pocinkana pločevina",
+      "variants": 4,
+      "finding": "Two native 1600 × 1600 originals approved for 100 × 100, 200 × 200 and 300 × 300 mm squares, all 0.5 mm. The 300 × 200 mm rectangular main is still missing.",
+      "improvedVariantSkus": [
+        "MAT-KOV-POC-0P5x100x100",
+        "MAT-KOV-POC-0P5x200x200",
+        "MAT-KOV-POC-0P5x300x300"
+      ],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "stiropor",
+      "name": "Stiropor",
+      "variants": 4,
+      "finding": "New exact or close EPS originals fail one or both minimum dimensions; other large files are soft, excessively padded or lack a verified thickness.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 4
+    },
+    {
+      "slug": "seleshamer",
+      "name": "Šeleshamer",
+      "variants": 4,
+      "finding": "All 4 white 200 gsm sizes still need a whole sharp main. The existing 2500 × 2500 A3 detail remains held because sheets are clipped. Newly checked whole-main originals are 1000 × 1000, 419 × 600 and 1280 × 720.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 4
+    },
+    {
+      "slug": "barvni-papir",
+      "name": "Barvni papir",
+      "variants": 27,
+      "finding": "All 27 B2/130 gsm shades still need accurate real photographs. New Buttinette files reuse identical paper geometry/surface marks with recolouring; flat supplier artwork is not accepted.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 27
+    },
+    {
+      "slug": "grafopak",
+      "name": "Grafopak",
+      "variants": 2,
+      "finding": "A3/A4 white-grey 350 gsm board requires both correct grade and useful front/back photographs. Generic paper, transparencies and different card grades are excluded.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 2
+    },
+    {
+      "slug": "vezana-plosca",
+      "name": "Vezana plošča",
+      "variants": 31,
+      "finding": "An 1813 × 1723 full-front beech 4 × 500 × 500 mm original is approved. Other 30 variants still need whole accurate sources; unnamed wood species cannot be inferred from unrelated supplier boards.",
+      "improvedVariantSkus": [
+        "MAT-LES-VEZ-4x500x500-BUKEV"
+      ],
+      "remainingVariants": 30
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "name": "Krivilnik za plastične mase THERMOFORM 400",
+      "variants": 1,
+      "finding": "The new 3426 × 2702 Jeulin source lacks the historical THERMOFORM 400 bending fixture/scale and differs in controls. Exact model main and controls remain missing.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "kladivo",
+      "name": "Kladivo",
+      "variants": 4,
+      "finding": "Need exact 200 g and 300 g hammer revisions and both actual ten-hammer stand sets. Old 200 g entry uses an image visibly marked 300 g; different certification/grip revisions are not substituted.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 4
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "name": "Žica za lotanje",
+      "variants": 1,
+      "finding": "Need the exact 100 g blue spool/markings. Large transparent-reel or different-brand candidates do not establish the sold product.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "name": "Žagice za rezanje kovin",
+      "variants": 3,
+      "finding": "Need sharp originals of the exact fine, medium and coarse blade models. A newly traced tall 476 × 2560 source still fails minimum width.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 3
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "name": "Aluminijasto ravnilo z ročajem (40 cm)",
+      "variants": 1,
+      "finding": "Exact 40 cm TM Kovine RAGR040S1 needs a qualifying full original and scale/handle detail; traced originals/PDFs remain undersized or unavailable.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "name": "Otroški zaščitni predpasnik",
+      "variants": 1,
+      "finding": "The old photograph maps to adult ŠČIT 61038 100 × 75 cm, contradicting the child-size title. The actual child garment must be identified before assigning photographs.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "name": "Otroška očala za zaščito oči",
+      "variants": 1,
+      "finding": "Original ATEHNA 45002 has no model or reference photo. Archive review did not identify it; tentative TTS attribution is not proof.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "name": "Očala za zaščito oči",
+      "variants": 1,
+      "finding": "Original ATEHNA 45001 has no model or reference photo. Archive review did not identify it; unrelated numeric SKU matches are not proof.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    },
+    {
+      "slug": "uhu-super-glue",
+      "name": "UHU Super glue",
+      "variants": 1,
+      "finding": "The exact old 3 ml variant still needs suitable originals. New high-resolution 3 g packaging is a different presentation and is excluded.",
+      "improvedVariantSkus": [],
+      "remainingVariants": 1
+    }
+  ],
+  "summary": {
+    "families": 15,
+    "variants": 86,
+    "acceptedOriginals": 3,
+    "savedOriginals": 3,
+    "improvedVariants": 4,
+    "improvedFamilies": 2,
+    "remainingVariants": 82,
+    "familiesStillWithoutPhotos": 13
+  },
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-materials-v8-2026-09.json",
+    "data/catalog/replacement-sources-paper-v8-2026-09.json",
+    "data/catalog/replacement-sources-tools-v8-2026-09.json",
+    "data/catalog/replacement-sources-ppe-v8-2026-09.json",
+    "data/catalog/replacement-sources-galvanized-root-v8-2026-09.json"
+  ],
+  "additionalArchiveVisualReview": {
+    "metadataRecords": 796,
+    "visuallyInspectedAdditionalRecords": 375,
+    "evidence": "tmp/product-image-audit/ppe-v8/archive/index.json"
+  },
+  "status": "Saved and verified; remaining exact source gaps explicitly recorded.",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T14-11-30-914Z"
+}

@@ -77,6 +77,7 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import {
+  PUBLIC_MEDIA_UPLOAD_LIMITS,
   getOrCreateCachedMediaUpload,
   type MediaUploadPromiseCache
 } from '@/shared/domain/media/publicMediaUpload';
@@ -429,7 +430,7 @@ function getPersistableQuantityDiscounts(rules: QuantityDiscountDraft[], hadPers
 }
 const MIN_MEDIA_SLOT_COUNT = 7;
 const UNDO_HISTORY_LIMIT = 10;
-const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const IMAGE_MAX_UPLOAD_BYTES = PUBLIC_MEDIA_UPLOAD_LIMITS.catalogImage;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
@@ -2673,7 +2674,7 @@ export default function AdminItemEditorPage({
   const isEditable = editorMode === 'edit';
   const hasUnsavedChanges = currentSnapshotKey !== savedSnapshotKey;
   const isTableEditable = isEditable;
-  const isMediaEditable = isEditable;
+  const isMediaEditable = isEditable && !isSaving;
   const isDimensionBasedMode = productType === 'dimensions';
   const buildSalesVariantHeaderLabel = (variant: Variant, index: number, includeUnits = false) => {
     return isDimensionBasedMode ? buildDimensionVariantHeaderLabel(variant, index, includeUnits) : variant.label?.trim() || variant.sku?.trim() || `Različica ${index + 1}`;
@@ -4201,7 +4202,7 @@ export default function AdminItemEditorPage({
         && slot.imageDimensions.height === dimensions.height
       ) return current;
       const next = [...current];
-      next[slotIndex] = { ...slot, imageDimensions: dimensions };
+      next[slotIndex] = { ...slot, imageDimensions: { ...slot.imageDimensions, ...dimensions } };
       return next;
     });
     setSavedSnapshot((current) => {
@@ -4214,7 +4215,7 @@ export default function AdminItemEditorPage({
       const nextMediaImages = [...current.mediaImages];
       nextMediaImages[slotIndex] = {
         ...savedSlot,
-        imageDimensions: dimensions
+        imageDimensions: { ...savedSlot.imageDimensions, ...dimensions }
       };
       return { ...current, mediaImages: nextMediaImages };
     });
@@ -4273,7 +4274,7 @@ export default function AdminItemEditorPage({
         return;
       }
       if (file.size > IMAGE_MAX_UPLOAD_BYTES) {
-        toast.error('Slika je prevelika. Dovoljena velikost je največ 4 MB.');
+        toast.error('Slika je prevelika. Dovoljena velikost je največ 20 MB.');
         return;
       }
       stageImageFile(file, startSlot + offset);
@@ -4465,21 +4466,27 @@ export default function AdminItemEditorPage({
   };
 
   const removeImageSlot = (slotIndex: number) => {
-    if (!isMediaEditable) return;
-    setMediaImageSlots((current) => {
-      const slotToRemove = current[slotIndex];
-      if (slotToRemove?.previewUrl) revokeLocalImageUrl(slotToRemove.previewUrl);
-      return current.filter((_, index) => index !== slotIndex);
-    });
+    if (!isMediaEditable || !mediaImageSlots[slotIndex]) return;
+    const remainingImages = mediaImageSlots.filter((_, index) => index !== slotIndex);
+    // Undo snapshots may still use this local preview. Release blob URLs only
+    // after saving or when the editor unmounts, never while staging a removal.
+    setMediaImageSlots(remainingImages);
     setDraft((current) => ({
       ...current,
-      variants: current.variants.map((variant) => ({
-        ...variant,
-        imageAssignments: (variant.imageAssignments ?? [])
+      images: remainingImages.map((slot) => slot.previewUrl),
+      variants: current.variants.map((variant) => {
+        const imageAssignments = (variant.imageAssignments ?? [])
           .filter((slot) => slot !== slotIndex)
-          .map((slot) => (slot > slotIndex ? slot - 1 : slot))
-      }))
+          .map((slot) => (slot > slotIndex ? slot - 1 : slot));
+        return {
+          ...variant,
+          imageAssignments,
+          imageOverride: remainingImages[imageAssignments[0]]?.previewUrl ?? null
+        };
+      })
     }));
+    setPreviewImage(null);
+    setDraggedImageIndex(null);
     setEditingImageSlot((current) => {
       if (current === null) return null;
       if (current === slotIndex) return null;
@@ -4563,7 +4570,7 @@ export default function AdminItemEditorPage({
     if (!isMediaEditable) return;
     const nextMimeType = mimeType || 'image/webp';
     if (blob.size > IMAGE_MAX_UPLOAD_BYTES) {
-      toast.error('Urejena slika je prevelika. Dovoljene so le slike do 4 MB.');
+      toast.error('Urejena slika je prevelika. Dovoljene so le slike do 20 MB.');
       return;
     }
     const extension = inferImageFormatLabel({ mimeType: nextMimeType, fileName: 'edited.webp' }).toLowerCase();
@@ -4609,18 +4616,18 @@ export default function AdminItemEditorPage({
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
     const actions = [
       {
+        key: 'remove',
+        label: 'Izbriši sliko',
+        tone: 'danger' as const,
+        onClick: () => removeImageSlot(slotIndex),
+        icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
+      },
+      {
         key: 'edit',
         label: 'Uredi sliko',
         tone: 'light' as const,
         onClick: () => setEditingImageSlot(slotIndex),
         icon: <PencilIcon className={compact ? 'h-3 w-3' : 'h-4 w-4'} />
-      },
-      {
-        key: 'remove',
-        label: 'Odstrani',
-        tone: 'danger' as const,
-        onClick: () => removeImageSlot(slotIndex),
-        icon: <span aria-hidden className={`${compact ? 'text-[11px]' : 'text-sm'} leading-none`}>✕</span>
       },
       {
         key: 'replace',
@@ -4651,13 +4658,18 @@ export default function AdminItemEditorPage({
     ];
 
     return (
-      <div className={`absolute inset-y-0 right-2 z-20 flex flex-col items-end opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 ${verticalAlignClass} ${compact ? 'gap-0.5' : 'gap-1.5'}`}>
+      <div className={`pointer-events-none absolute inset-y-0 right-2 z-20 flex flex-col items-end ${verticalAlignClass} ${compact ? 'gap-0.5' : 'gap-1.5'}`}>
         {actions.map((action) => (
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${compact ? 'h-[20px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            className={`pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${action.key === 'remove' ? 'h-6 w-6 opacity-100' : `${compact ? 'h-[18px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            draggable={false}
             onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+            onDragStart={(event) => {
               event.stopPropagation();
               event.preventDefault();
             }}
@@ -5543,7 +5555,7 @@ export default function AdminItemEditorPage({
                         <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
                           <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#1982bf]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
-                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
+                          <span className="text-xs font-medium text-slate-500">(največ 20 MB · najmanj 1024 × 1024 pik)</span>
                         </span>
                     </ImageDropzoneField>
                   ) : (

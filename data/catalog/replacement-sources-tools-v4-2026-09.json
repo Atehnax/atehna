@@ -1,0 +1,779 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-14T10:33:41.246Z",
+  "status": "research-in-progress",
+  "policy": "Untouched real photographs, native dimensions at least1024 on each axis, visual clarity and full product framing; no people, generated views, upscaling, padding or model reconstruction. Exact identity may be established using public product names, published specifications and original imagery; an internal supplier/EAN mapping is not mandatory. All existing schematics are preserved and not counted as photographs.",
+  "products": [
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "variantNames": [
+        "Škarje za pločevino - zlatarske (10 kosov v stojalu)"
+      ],
+      "accepted": [
+        {
+          "id": "zlatarske-skarje-10-stojalo-wiemann-v4",
+          "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-10-stojalo-wiemann-v4.jpg",
+          "sourcePage": "https://www.wiemann-lehrmittel.de/holzblock-mit-10-goldschmiedescheren/w-91431",
+          "imageUrl": "https://www.wiemann-lehrmittel.de/media/46/5a/8e/1611245656/temp91431x5isqftrr8swk.jpg",
+          "sha256": "93c25383e152a8fe7e0545c9bbda690b6305b49d9c958fabf26aed56efdb3330",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 197635,
+          "variantNames": [
+            "Škarje za pločevino - zlatarske (10 kosov v stojalu)"
+          ],
+          "view": "front-three-quarter-complete-set",
+          "role": "main",
+          "altText": "Zlatarske škarje za pločevino — komplet desetih škarij v lesenem stojalu",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "ATEHNA original title names goldsmith tin snips,10pieces in a stand(SKU32102); no brand, length, steel grade or stand shape is published. Wiemann W-91431 explicitly names Holzblock mit10 Goldschmiedescheren and shows10straight forged-steel scissors180mm long in the included wooden block. Product type, quantity and included stand agree, with no contradictory ATEHNA specification. Matching basis is public product name and set contents per user clarification; no unsupported brand or length specification is added to the catalog.",
+            "quality": "Native1024×1024 untouched supplier media original, not thumbnail. Entire wooden stand and all10tools visible, modest neutral margins; wood grain and individual scissors edges distinguishable. Full-frame inspected at native resolution. Accept as one complete-set view; close-up photograph still needed to show blade detail.",
+            "accessories": "Wooden stand and10scissors are the source product itself and match sold kit quantity; no extra accessories shown."
+          }
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "wiemann-snips-2",
+          "url": "https://www.wiemann-lehrmittel.de/media/59/fe/f1/1611241829/temp91431_ah1snc1wbwkgvd.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/wiemann-snips-2.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 73766,
+          "sha256": "efa22e14e921ef5519a1badceff51cc74f1a8167384e7b73995e032dbf7accdf",
+          "reason": "Individual-scissor photo clips handle edge and blade tip; not a useful complete-product main image or additional stand angle."
+        }
+      ],
+      "missingViews": [
+        "single complete scissor with blade detail",
+        "rear or side stand view revealing storage and construction"
+      ]
+    },
+    {
+      "slug": "solska-tehtnica",
+      "accepted": [
+        {
+          "id": "solska-tehtnica-wissner-070110-v4",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-070110-v4.png",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/en/Balance/070110.000",
+          "imageUrl": "https://www.wissner-aktiv-lernen.com/media/54/52/88/1719384530/Wissner_070110.000.png?ts=1761808111",
+          "sha256": "62b76faa4eb1c2047cfb5f7697dcd0ebede0ce83a04ddeb3e090c72377d24705",
+          "width": 2400,
+          "height": 1600,
+          "bytes": 2297690,
+          "variantNames": [
+            "Tehtnica Wissner, kovinska - max 2 kg"
+          ],
+          "variantSkus": [
+            "MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG"
+          ],
+          "sourceSku": "070110",
+          "optionSelections": {
+            "izvedba": "070110"
+          },
+          "view": "front-three-quarter",
+          "role": "main",
+          "altText": "Tehtnica Wissner 070110 — celoten pogled. Prikazane utežne kocke niso vključene.",
+          "caption": "Prikazane utežne kocke niso vključene.",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Original ATEHNA sourceSKU070110 and nameWissner identify manufacturer model070110.000. Canonical optionSelections.izvedba070110 maps only to variant MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG. Original ATEHNA gray-photo body, shallow rectangular pans, central raised beam/pointer and ivory housing match manufacturer. ATEHNA source description explicitly says made of plastic, robust as metal, wall thickness10mm, manually adjusted, five-year warranty, weighing0.5g–2kg and±0.5g; these identify this manufacturer model despite inaccurate existing variantwording.",
+            "quality": "Untouched manufacturer2400×1600 original. Whole body, both shallow pans, beam mechanism, fasteners and labels visible; neutralgray background, clear tonal detail and modest margins. Full image visually reviewed at1100px and prior native review.",
+            "accessories": "The four coloured weight cubes illustrate weighing and are not included in the manufacturer basic 070110 package (balance and instructions). The existing catalog separately names the variant with included weights. Alt text explicitly states in Slovenian that pictured weight cubes are not included, which the existing gallery displays as a visible caption. No current specifications or labels changed."
+          },
+          "imageType": "product",
+          "readmission": {
+            "previousBlobUrl": "/images/catalog/2026-09/solska-tehtnica-siva-wissner-070110.png",
+            "sha256": "62b76faa4eb1c2047cfb5f7697dcd0ebede0ce83a04ddeb3e090c72377d24705",
+            "basis": "Prior identity rejection resolved by original ATEHNA model070110 and direct manufacturer match."
+          }
+        },
+        {
+          "id": "solska-tehtnica-65108-z-utezmi-v4",
+          "blobUrl": "/images/catalog/2026-09/solska-tehtnica-65108-z-utezmi-v4.jpg",
+          "sourcePage": "https://www.walmart.com/ip/Learning-Resources-Precision-Balance-with-Weights/24886366",
+          "imageUrl": "https://i5.walmartimages.com/asr/12e7769c-ba09-407c-8a96-7b467891162f.c8822eba21c2608897049e85bd933392.jpeg",
+          "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+          "width": 1800,
+          "height": 1800,
+          "bytes": 187015,
+          "sourceSku": "65108",
+          "variantSkus": [
+            "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-Z-UTEZMI-MAX-2-KG"
+          ],
+          "variantNames": [
+            "Tehtnica Wissner, plastična, z utežmi – max 2 kg"
+          ],
+          "optionSelections": {
+            "izvedba": "65108"
+          },
+          "view": "front-three-quarter-with-included-metal-weights",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Šolska tehtnica 65108 s priloženimi kovinskimi utežmi. Prikazane barvne kocke niso vključene.",
+          "caption": "Prikazane barvne kocke niso vključene.",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact same photographic capture as original ATEHNA SKU65108 image plastična-tehtnica-5.jpg: red base, deep gray pans, central pointer, open built-in weights compartment, brass weights on left and coloured cubes on right. Original ATEHNA variant explicitly includes weights. Original source photograph establishes exact pictured model despite current family Wissner brand label. Map only SKU65108; never assign to gray070110 or unweighted070112.",
+            "quality": "Original1800×1800 JPEG from untransformed Walmart asr source URL. Full photograph and native detail reviewed independently by two agents. Moderate grain/compression remains, but body contours, removable pans, pointer and weight compartment retain useful detail and full framing. No evidence of enlargement found; no new scaling, cropping or padding applied. Acceptable photograph, not pristine studio quality.",
+            "accessories": "Manufacturer LER2420 package includes balance and ten brass gram weights; coloured cubes are demonstration props and are not included. Visible Slovenian caption explicitly excludes the cubes.",
+            "originalVerification": "Source URL re-fetched2026-09-14; exact same1800×1800 original bytes verified bySHA-256, without transform parameters."
+          },
+          "readmission": {
+            "previousBlobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-z-utezmi.jpg",
+            "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+            "basis": "Prior identity rejection resolved by direct original ATEHNA SKU65108 photographic match; no generated or upscaled image is readmitted."
+          }
+        }
+      ],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/solska-tehtnica/",
+        "https://www.wissner-aktiv-lernen.com/en/Balance/070110.000",
+        "https://www.wissner-aktiv-lernen.com/en/Download/Pictures/",
+        "https://www.learningresources.com/item-precision-school-balance-with-weights",
+        "https://www.learningresources.co.uk/precision-school-balance-with-weights",
+        "https://easttexaseducational.com/10909-precision-school-balance-with-weights-ler2420.html",
+        "https://www.target.com/p/-/A-80386227",
+        "https://www.staples.com/learning-resources-precision-school-balance-with-weights-ler2420/product_847123"
+      ],
+      "catalogDataIssue": "Existing variant label calls original070110 metal(kovinska), while originalATEHNA description and manufacturer identify specialplastic. Preserve currentdata per requested image-onlyscope and report wordingdiscrepancy. Acceptedphoto applies only sourceSKU070110; never assign to070112 or65108. Current family Wissner brand also conflicts with exact original65108 photograph of Learning Resources LER2420; retain catalog labels/specifications in this image-only task and report separately.",
+      "rejectedCandidates": [
+        {
+          "id": "wissner070110-1",
+          "url": "https://www.wissner-aktiv-lernen.com/media/bc/aa/c0/1780468743/070110.000.PT01_EN.png?ts=1780468743",
+          "file": "tmp/tools-v4/wissner070110-1.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 1581889,
+          "sha256": "1ab1aa1887906ea2e23de67d20e9b38a164f8e69eaa42c78a6a26cd20cd2e75b",
+          "reason": "Same capture onwhite with advertising text; no new view."
+        },
+        {
+          "id": "wissner070110-2",
+          "url": "https://www.wissner-aktiv-lernen.com/media/3f/1d/db/1780468742/070110.000.PT03_EN.png?ts=1780468743",
+          "file": "tmp/tools-v4/wissner070110-2.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 1054184,
+          "sha256": "9603787d1a42e39bb69032e587872afdb0d6ce66b999ca1debe666ea6a4c86c9",
+          "reason": "Crop and blurred duplicate of samecapture; no new view."
+        },
+        {
+          "id": "wissner070110-3",
+          "url": "https://www.wissner-aktiv-lernen.com/media/84/20/70/1780468745/070110.000.PT02_EN.png?ts=1780468745",
+          "file": "tmp/tools-v4/wissner070110-3.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 6139636,
+          "sha256": "a89a32c28f9600b8bc2efd3bacbc44d4072232244481aeff88b68a0596f0cab2",
+          "reason": "Contains children and explicitly labelled AI-generated product image."
+        },
+        {
+          "id": "wissner070110-4",
+          "url": "https://www.wissner-aktiv-lernen.com/media/26/e5/42/1780468744/070110.000.PT04_EN.png?ts=1780468744",
+          "file": "tmp/tools-v4/wissner070110-4.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 3582223,
+          "sha256": "171ed7c7535bca8d8a6ca5102272c1cd6f5f1690b160a48b2925cdc60df807ae",
+          "reason": "Contains human hand and duplicate scale crop."
+        },
+        {
+          "id": "wissner070110-5",
+          "url": "https://www.wissner-aktiv-lernen.com/media/df/bd/67/1780468742/070110.000.PT05_EN.png?ts=1780468742",
+          "file": "tmp/tools-v4/wissner070110-5.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 1053648,
+          "sha256": "9a0a6b8d13d0c26edd41806f295b8440f1c95da40e32ab371fedee0804fc7a7a",
+          "reason": "Contains human hands and duplicate scale crop."
+        },
+        {
+          "id": "wissner070110-6",
+          "url": "https://www.wissner-aktiv-lernen.com/media/da/f3/43/1719384571/Wissner_070110.000-3.jpg?ts=1761808138",
+          "file": "tmp/tools-v4/wissner070110-6.jpeg",
+          "status": 200,
+          "width": 737,
+          "height": 537,
+          "bytes": 323378,
+          "sha256": "75dbe73ec93faf28d3e2e2abe546cfc1ee95810b56a6dc4b0d2c35b12ff4c6e9",
+          "reason": "Native737×537 failsbothaxes; no qualifying additionalview."
+        },
+        {
+          "id": "wissner070110-7",
+          "url": "https://www.wissner-aktiv-lernen.com/media/31/dd/74/1780468744/070110.000.PT06_EN.png?ts=1780468744",
+          "file": "tmp/tools-v4/wissner070110-7.png",
+          "status": 200,
+          "width": 2400,
+          "height": 1600,
+          "bytes": 3404160,
+          "sha256": "8c2b952be3a5f18053fc2bfd608e039730c715926c579e3c13b6c4f059182e58",
+          "reason": "Contains child and does not show an informative productview."
+        },
+        {
+          "id": "red-amazon",
+          "url": "https://m.media-amazon.com/images/I/61C4rXO-1pL.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/red-amazon.jpeg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 95329,
+          "sha256": "2e75358abfbd6755ef2bdf3ccb605a3c0ad5096548e7a98045240a3866f0b951",
+          "reason": "Native1000×1000 fails minimum on both axes."
+        },
+        {
+          "id": "red-staples-properties",
+          "url": "https://www.staples-3p.com/s7/is/image/Staples/sp91161177_sc7?req=imageprops",
+          "status": 200,
+          "note": "Endpoint ignored property request and returned default400px JPEG; native asset metadata unavailable.",
+          "reason": "Endpoint ignored property request and returned default400px JPEG; native asset metadata unavailable."
+        },
+        {
+          "id": "red-staples",
+          "url": "https://www.staples-3p.com/s7/is/image/Staples/sp91161177_sc7?fmt=png-alpha&wid=1800&hei=1800&fit=fit,1",
+          "status": 200,
+          "file": "tmp/tools-v4/red-staples.png",
+          "width": 1800,
+          "height": 1800,
+          "bytes": 1693928,
+          "sha256": "eb7a9aeced3ba0c9043bc32f648c5604e0cd711d27fa4fae96476acf7f3f693b",
+          "assessment": "Transformed1800px request; original native size not verified. Do not use this file as native-resolution evidence.",
+          "reason": "Transformed1800px request; original native size not verified. Do not use this file as native-resolution evidence."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/s/szsklvmsj7lejm5hqkgf.jpg",
+          "file": "tmp/tools-v4/lr2420-master-0.jpg",
+          "width": 1800,
+          "height": 841,
+          "bytes": 243566,
+          "sha256": "17a9189ba8c3340b7b40b03c5a2c83dd5d70b891a7bba4a3dbd0798978516209",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/d/dehdoe4rsmdoth4p85bi.jpg",
+          "file": "tmp/tools-v4/lr2420-master-1.jpg",
+          "width": 450,
+          "height": 450,
+          "bytes": 24299,
+          "sha256": "6fe29c35ff661daa3e41530745eb6d361d578c9c2a214680ea7f26b2db5603d7",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/n/nonyoacx6wcdzq68d0ec.jpg",
+          "file": "tmp/tools-v4/lr2420-master-2.jpg",
+          "width": 450,
+          "height": 450,
+          "bytes": 25439,
+          "sha256": "7a34a47d95a6cccc9f7bbf12fc436aad5404b4a8a4b08d5961956c85db863ad2",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/k/kojk4iinrzn4nvgk3xav.jpg",
+          "file": "tmp/tools-v4/lr2420-master-3.jpg",
+          "width": 450,
+          "height": 450,
+          "bytes": 26975,
+          "sha256": "f2cb5af79e94b786ce290b691b4737e06fe66c7dda8f62ff1a33956fee19be8f",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/f/fy9pim95znnkougnpifu.jpg",
+          "file": "tmp/tools-v4/lr2420-master-4.jpg",
+          "width": 450,
+          "height": 450,
+          "bytes": 27566,
+          "sha256": "7f708b33e3ff5319784b51243407d8d4d04d10d5aa4019ae16f8e92cf157ef4a",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/h/hr9wunhjdrns4jdrwret.jpg",
+          "file": "tmp/tools-v4/lr2420-master-5.jpg",
+          "width": 1800,
+          "height": 894,
+          "bytes": 253876,
+          "sha256": "3f288abd49b50ead38a2acb5e54c9b107ae359a34c322bb9d8b602ff02033dc2",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        },
+        {
+          "url": "https://cdn.catalogsolutions.com/images/h/heejeq5tsm4bdlyiqmya.jpg",
+          "file": "tmp/tools-v4/lr2420-master-6.jpg",
+          "width": 1800,
+          "height": 920,
+          "bytes": 264148,
+          "sha256": "97df440ae480019689a92c9e8da0085462c4ffaca97adf2ffb2cd07ce852b284",
+          "reason": "Published untransformed dealer original fails1024 minimum on at least one axis; do not pad or enlarge."
+        }
+      ],
+      "missingViews": [
+        "rear and underside of070110",
+        "beam and adjustment details photographed independently",
+        "qualifying original exact070112 red plastic model",
+        "Independent rear, underside and control close-up of65108"
+      ],
+      "additionalSourceAccess": "Official manufacturer picture database requires emailed confirmation link; publicphotos checked without sending messages."
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "sourceModel": "THERMOFORM400",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://alton.nl/thermoform-400.html",
+        "https://www.heutink.nl/product/stralingsbalk-thermoform-400-kunststofbuiger/100_023190"
+      ],
+      "rejectedCandidates": [
+        {
+          "url": "https://alton.nl/media/producten/400.png",
+          "width": 426,
+          "height": 212,
+          "reason": "Official exact400 photograph fails native dimensions."
+        },
+        {
+          "id": "heutink-400",
+          "url": "https://cdn.heutink.nl/_productsprod_/images/100/023190-1.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/heutink-400.jpg",
+          "width": 4800,
+          "height": 4800,
+          "bytes": 244811,
+          "sha256": "544f3e44980617b0dc6cfc0a136412ac86061d56bbcb80d4d4cc51a478ae5469",
+          "reason": "Exactmodel and4800×4800 canvas, but visibly coarse jagged enlarged detail and excessive empty framing; two-agent visual rejection. Dimensions alone do not qualify."
+        }
+      ],
+      "pdfInspection": {
+        "sources": [
+          "https://alton.nl/media/thermoform4004talennieuw.pdf",
+          "https://weba-tuwas.de/fileadmin/kataloge/WEBA_Katalog_ab_2023_OP-komprimiert.pdf",
+          "https://www.winklerschulbedarf.com/Themes/Winkler_AT/Content/images/cms_upload/pdf/Werkzeug.pdf",
+          "https://download.neckar-verlag-vs.de/SCHULE/tu/tu_Sonderausgabe.pdf"
+        ],
+        "method": "Inspect native embedded raster objects on relevant product pages, never rasterized PDF pages.",
+        "result": "Alton images1494×371,1286×638,1288×639,708×646; no qualifying native photograph in other relevant pages.",
+        "evidence": "tmp/tools-v4/pdf-images.json"
+      },
+      "missingViews": [
+        "Sharp full front/three-quarter exactTHERMOFORM400",
+        "Rear connectors and heat controls",
+        "Side and working surface details"
+      ]
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "sourceSku": "32821",
+      "sourceModel": "TM Kovine RAGR040S1,40cm",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/ravnilo-alu-z-rocajem-40-cm/",
+        "https://www.tm-kovine.si/Izdelki/Kovinska-ravnila/category/kovinska-ravnila/rag-ragr-ravnila-alu",
+        "https://www.instal.si/index.php?pps=610"
+      ],
+      "identityEvidence": "Original ATEHNA photo filename1RAG and published silver anodized60×4.4mm profile match TM Kovine series; exact40cm RAGR040S1 is published, EAN3838853200080. Other50/60cm photographed variants must not substitute.",
+      "rejectedCandidates": [
+        {
+          "url": "https://www.tm-kovine.si/Portals/0/easygalleryimages/1/401/1rag.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/tm-original-0.jpg",
+          "width": 500,
+          "height": 268,
+          "bytes": 58816,
+          "sha256": "6764a70a292d5d94471349e7dee2a9025d56d9a683e89f6cfc1487a65b2df1a9",
+          "reason": "Official original500×268 fails both axes."
+        },
+        {
+          "url": "https://www.tm-kovine.si/Portals/0/easygalleryimages/1/401/rag060s1---flat-aluminium-rule.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/tm-original-1.jpg",
+          "width": 1024,
+          "height": 154,
+          "bytes": 11851,
+          "sha256": "8513c7bb2ed3a397969100a5613b7e00b4733cf552e35123652e530b8ae8a81b",
+          "reason": "Official original has short axis147–154px and shows50cm or60cm, not40cm."
+        },
+        {
+          "url": "https://www.tm-kovine.si/Portals/0/easygalleryimages/1/401/rag060s2---flat-aluminium-rule,-two-side-graduation.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/tm-original-2.jpg",
+          "width": 1024,
+          "height": 147,
+          "bytes": 17048,
+          "sha256": "a1ac1b2af21db7ae4e2a406623e9303ba54682dc3a590c6983e5de825b032299",
+          "reason": "Official original has short axis147–154px and shows50cm or60cm, not40cm."
+        },
+        {
+          "url": "https://www.tm-kovine.si/Portals/0/easygalleryimages/1/401/ragr050s1---flat-aluminium-rule-with-handle.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/tm-original-3.jpg",
+          "width": 1024,
+          "height": 152,
+          "bytes": 15096,
+          "sha256": "b9bcdd41eeb95dbf68a6a16d65bd524973a5dd9ebf88e29ca845811c22682e4e",
+          "reason": "Official original has short axis147–154px and shows50cm or60cm, not40cm."
+        },
+        {
+          "url": "https://www.tm-kovine.si/Portals/0/easygalleryimages/1/401/ragr060s2---flat-aluminium-rule-with-handle-and-two-side-graduation.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/tm-original-4.jpg",
+          "width": 1024,
+          "height": 151,
+          "bytes": 18406,
+          "sha256": "a1984a4d46ac20bed04375e7f8b90b3427e57e53f672846338ca5eeec03aa258",
+          "reason": "Official original has short axis147–154px and shows50cm or60cm, not40cm."
+        },
+        {
+          "id": "instal-ruler",
+          "url": "https://www.instal.si/web_slike/2344_Ravnilo_alu,_glatko_s_skalo_in_ročajem.webp",
+          "status": 200,
+          "file": "tmp/tools-v4/instal-ruler.webp",
+          "width": 605,
+          "height": 154,
+          "bytes": 2748,
+          "sha256": "987e929f5a7eafb7500fb1d0e9f645288a2d924d007909b6355ab22eb6c13bc7",
+          "reason": "605×154 exact-series photo fails both axes."
+        }
+      ],
+      "pdfInspection": {
+        "source": "https://www.tm-kovine.si/Portals/1/Dokumenti/tm-kovine%20sales%20catalog%2001-2019%20en%202web.pdf",
+        "result": "Page12 native image objects380×41,425×42,183×423 and smaller; no qualifying original.",
+        "evidence": "tmp/tools-v4/pdf-images-more.json"
+      },
+      "missingViews": [
+        "Complete exact40cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ]
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.scit-zascitna-oprema.si/zascitni-predpasnik-iz-blaga-100-75-cm",
+        "https://www.scit-zascitna-oprema.si/otroski-predpasnik-kinder"
+      ],
+      "identityEvidence": "OriginalATEHNA filename6-1038 and exact navy photograph match ŠČIT61038, but supplier identifies adult100×75cm, contradicting child product. Do not silently substitute adult apron. ChildKinder621231,55×68cm is a different garment.",
+      "rejectedCandidates": [
+        {
+          "id": "scit-apron-original",
+          "url": "https://www.scit-zascitna-oprema.si/modules/uploader/uploads/s_product/pics_s_product/zaitni-predpasnik-iz-blaga-100x75-0.jpg",
+          "file": "tmp/tools-v4/scit-apron-original.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 38311,
+          "sha256": "bda78590e545f2c68e0d460cbea973bff9a78f0e5d4494d6f742265749a7ba86",
+          "reason": "Exact old photo800×800 fails native dimensions and supplier adult100×75cm conflicts with child product."
+        },
+        {
+          "id": "scit-apron-child",
+          "url": "https://www.scit-zascitna-oprema.si/modules/uploader/uploads/s_product/pics_s_product/OTRO_KI_PREDPASNIK_MODRE_BARVE.jpg",
+          "file": "tmp/tools-v4/scit-apron-child.jpg",
+          "width": 450,
+          "height": 530,
+          "bytes": 19069,
+          "sha256": "691d0963fd2ab3545f16e496ff6d0e1b11fac149c529ae51d0e80e6307315667",
+          "reason": "Different child model,450×530 fails native dimensions."
+        }
+      ],
+      "pdfInspection": {
+        "source": "https://www.scit-zascitna-oprema.si/media/uploads/files/Katalog%20za%20higieno%20%C5%A0%C4%8CIT%21.pdf",
+        "result": "Page15 native garment photos204×447 and450×600; no qualifying source.",
+        "evidence": "tmp/tools-v4/pdf-images-more.json"
+      },
+      "missingViews": [
+        "Verified exact child-size apron front and rear",
+        "Neck strap, tie and material details"
+      ],
+      "catalogDataIssue": "Original source photo appears to be adult-size61038; exact sold child model/size needs source evidence."
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "sourceSku": "45001",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://b2b.bitset.si/en/protective-safety-glasses-for-work",
+        "https://www.banggood.com/Koestier-Protective-Safety-Glasses-Work-Anti-Dust-Eye-Anti-Fog-Antisand-windproof-Anti-Dust-Saliva-Transparent-Goggles-Eye-Protection-Mask-p-1652113.html"
+      ],
+      "identityEvidence": "OriginalATEHNA45001 contains no product photograph or exact model code; currentKoestier brand came from earlier tentative source and is not independent identity proof.",
+      "rejectedCandidates": [
+        {
+          "url": "https://imgaz3.staticbg.com/images/oaupload/banggood/images/EF/CE/36ef8617-a27d-4812-bd98-40f477489dd4.jpg",
+          "file": "tmp/tools-v4/koestier-original-0.jpg",
+          "status": 200,
+          "width": 400,
+          "height": 400,
+          "bytes": 27978,
+          "sha256": "3bb00878c3bf96fb343c353d586e1140696c09b914ef8ffaeedf50cba2552ae7",
+          "reason": "Original seller photograph400×400 or790×490–509; fails minimum native dimensions. Exact45001 identity also unproven."
+        },
+        {
+          "url": "https://imgaz1.staticbg.com/images/oaupload/banggood/images/AB/72/b3857f96-a32b-4c32-8947-e24a1e63a27f.jpg",
+          "file": "tmp/tools-v4/koestier-original-1.jpg",
+          "status": 200,
+          "width": 790,
+          "height": 509,
+          "bytes": 118684,
+          "sha256": "f939bf665c5f75fad7abf218f30fe3530f73c56d0e2595795a1be28b041207d2",
+          "reason": "Original seller photograph400×400 or790×490–509; fails minimum native dimensions. Exact45001 identity also unproven."
+        },
+        {
+          "url": "https://imgaz3.staticbg.com/images/oaupload/banggood/images/4F/84/a7373463-0134-4074-ba09-8433fdb0f77c.jpg",
+          "file": "tmp/tools-v4/koestier-original-2.jpg",
+          "status": 200,
+          "width": 790,
+          "height": 490,
+          "bytes": 107131,
+          "sha256": "de6979e201bc70891aaf5c9c93addf6a507152f660b0ed331b6add1b7a505a49",
+          "reason": "Original seller photograph400×400 or790×490–509; fails minimum native dimensions. Exact45001 identity also unproven."
+        },
+        {
+          "url": "https://imgaz1.staticbg.com/images/oaupload/banggood/images/EF/C9/c51a27d5-d495-48f5-9762-b9baf2d64682.jpg",
+          "file": "tmp/tools-v4/koestier-original-3.jpg",
+          "status": 200,
+          "width": 790,
+          "height": 493,
+          "bytes": 111495,
+          "sha256": "ef83d35fafd93482d88d11bd32ec5f799afea347e87cf7a3bfe60dbd15b87ae6",
+          "reason": "Original seller photograph400×400 or790×490–509; fails minimum native dimensions. Exact45001 identity also unproven."
+        },
+        {
+          "url": "https://imgaz3.staticbg.com/images/oaupload/banggood/images/37/40/009e4234-fece-4e84-b5f7-b96b06f431f5.jpg",
+          "file": "tmp/tools-v4/koestier-original-4.jpg",
+          "status": 200,
+          "width": 790,
+          "height": 493,
+          "bytes": 108808,
+          "sha256": "7b435add300d5424fd34384cc0cfd122b944725d56502c3a140eefd5d269c6aa",
+          "reason": "Original seller photograph400×400 or790×490–509; fails minimum native dimensions. Exact45001 identity also unproven."
+        }
+      ],
+      "missingViews": [
+        "Exact sold adult glasses full front/three-quarter",
+        "Side arms or strap",
+        "Lens and ventilation details"
+      ]
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "sourceSku": "45002",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+        "https://www.betzold.de/prod/E_88096/",
+        "https://www.wiemann-lehrmittel.de/schutzbrille-universalmodell/w-52298",
+        "https://cornelsen-experimenta.de/shop/de/Ger%C3%A4te%20-%20Zubeh%C3%B6r/Sicherheit%20-%20Unfallschutz/71100-Schutzbrille%2Bf%C3%BCr%2Bkleine%2BKopfgr%C3%B6%C3%9Fen%2Bgeeignet.html"
+      ],
+      "identityEvidence": "OriginalATEHNA45002 has no product photograph or exactmodel. TTS brand is from earlier tentative imagery; no evidence identifies random childglasses from other makers as exact solditem.",
+      "rejectedCandidates": [
+        {
+          "sourcePage": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+          "width": 900,
+          "height": 900,
+          "reason": "All four previously inspected TTS originals900×900 failminimum; no newly qualifying source."
+        },
+        {
+          "sourcePage": "https://www.betzold.de/prod/E_88096/",
+          "reason": "WINLAB blueframe child10–15 model13.5×9.5×4.8cm cannot be established as exact45002."
+        },
+        {
+          "sourcePage": "https://www.wiemann-lehrmittel.de/schutzbrille-universalmodell/w-52298",
+          "reason": "Schmerler universal adult/child59×49mm lens model differs from tentativeTTS; no exactmatch evidence."
+        }
+      ],
+      "missingViews": [
+        "Verified exact child safety glasses full front",
+        "Side arms or strap and ventilation detail"
+      ]
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "sourceSku": "30151",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zica-za-lotanje-100g/",
+        "https://www.danex.cz/",
+        "https://smghardwarett.com/"
+      ],
+      "identityEvidence": "ATEHNA100g image350×400 shows blue embossed spool; no readable alloy/diameter or confirmed manufacturer. BlueFelder resemblance alone does not establish exactalloy/mass. Never use250g spool.",
+      "rejectedCandidates": [
+        {
+          "id": "danex-solder",
+          "url": "https://cdn.danex.cz/products/felder-Sn97Cu3-2-3-250.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/danex-solder.jpg",
+          "width": 400,
+          "height": 400,
+          "bytes": 21186,
+          "sha256": "187b22df5fb3e8c804f0baffba9b319c2d6525f28193f481f74637268dbbf50c",
+          "reason": "Felder Sn97Cu3 250g source is400×400 and wrong mass."
+        },
+        {
+          "id": "smg-solder",
+          "url": "https://smghardwarett.com/wp-content/uploads/2024/09/Soldering-Wire-3.png",
+          "error": "Input buffer has corrupt header: glib: XML parse error: Error domain 1 code 76 on line 1448 column 11 of data: Opening and ending tag mismatch: img line 1446 and a",
+          "reason": "Public image request returned HTML rather than decodable original; no qualifying bytes."
+        }
+      ],
+      "missingViews": [
+        "Exact100g spool with readable brand/alloy/diameter",
+        "Wire detail and opposite spool label"
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://www.toolchest.de/12-x-Laubsaegeblaetter-fuer-Metall-Staerke-0",
+        "https://www.pebaro.de/wp-content/uploads/2025/01/Pebaro_Katalog-Laubsaege-Produkte-Werkzeuge-Saegen-2025.pdf"
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "toolchest-metal0",
+          "url": "https://www.toolchest.de/media/image/product/14218/lg/12-x-laubsaegeblaetter-fuer-metall-staerke-0.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/toolchest-metal0.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 23975,
+          "sha256": "dbdc708b78848e67d48eef29ac35893fb0d1b5bb53b20e71ac0cc5a9148d1fd9",
+          "reason": "Published original800×800 failsminimum. Numericgrade matching to ATEHNA fine/medium/coarse also not established."
+        },
+        {
+          "id": "toolchest-metal3",
+          "url": "https://www.toolchest.de/media/image/product/14219/lg/12-x-laubsaegeblaetter-fuer-metall-staerke-3.jpg",
+          "status": 200,
+          "file": "tmp/tools-v4/toolchest-metal3.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 23950,
+          "sha256": "c5ebb4814cdcb1597a6fca1a0d5adcffe9cfb5f29a96791cd74df16bf71c16d6",
+          "reason": "Published original800×800 failsminimum. Numericgrade matching to ATEHNA fine/medium/coarse also not established."
+        }
+      ],
+      "identityEvidence": "Original ATEHNA pack is PEBARO metalblades; numbered0–3 all fine and4–7 medium in officialcatalog, so qualitative label alone cannot establish exactnumber. Do not assign visibly numbered packs across grades.",
+      "missingViews": [
+        "Exact sold fine/medium/coarse pack originals",
+        "Independent tooth-detail photographs"
+      ],
+      "priorFindings": "Earlier manufacturer1200wide tall masters had visibly enlarged/soft detail;1025×1000 pack failsheight. Existing tooth diagrams preserved and not counted as photographs.",
+      "pdfInspection": {
+        "source": "https://www.pebaro.de/wp-content/uploads/2025/01/Pebaro_Katalog-Laubsaege-Produkte-Werkzeuge-Saegen-2025.pdf",
+        "method": "Native embedded raster dimensions on every text-matched blade page, without page rendering or enlargement.",
+        "pagesInspected": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          17,
+          18,
+          49
+        ],
+        "qualifyingNativeObjects": 0,
+        "evidence": "tmp/tools-v4/pebaro-pdf-images.json"
+      }
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+        "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+        "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-4-pebaro",
+        "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-5-pebaro",
+        "https://www.pebaro.de/wp-content/uploads/2025/01/Pebaro_Katalog-Laubsaege-Produkte-Werkzeuge-Saegen-2025.pdf"
+      ],
+      "pendingCandidates": [
+        {
+          "url": "https://s.coolbox.ua/static/content/files/c/5c/7515ea7293a5d708b3b93394010535cc.png",
+          "status": 200,
+          "file": "tmp/tools-v4/coolbox-spiral134-1.png",
+          "width": 2836,
+          "height": 3274,
+          "bytes": 898463,
+          "sha256": "7944b941aa7b2ccf25060199eb7142ad392dfae636cc8e13c11fa8a3b537298d",
+          "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+          "qualityReview": "Real photograph, full12pack and blades, crisp readable134-1/feinNo1 label. Two-agent visualqualitypass; nativePNG and XMP original3024×4032 photo converted2020 toPNG. No addedpadding or scaling; natural narrowproduct causes sidewhitespace.",
+          "pendingReason": "OriginalATEHNA fineSKU32470 has blank gradeblock; fine includesmanufacturer numbers1/2/3. Exactnumber1 not proven; do notpublish yet."
+        },
+        {
+          "id": "coolbox-spiral134-4",
+          "url": "https://s.coolbox.ua/static/content/files/9/e1/3624073d4fe3024452d696d2f6cf8e19.png",
+          "status": 200,
+          "file": "tmp/tools-v4/coolbox-spiral134-4.png",
+          "width": 3061,
+          "height": 3520,
+          "bytes": 903280,
+          "sha256": "c50df2e54dfc9b7d71f9e5e5076960eb1323c5c1380221c8d41051430e0a7dc7",
+          "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-4-pebaro",
+          "qualityReview": "Real fullpack photo3061×3520, readable134-4/mittelNo4. Native crop reviewed; mildsoftness but useful detail.",
+          "pendingReason": "OriginalATEHNA mediumSKU32471 has no visible numericgrade; medium includes4/5/6. Exactnumber4 not proven; do notpublish."
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "coolbox-spiral134-4-alt",
+          "url": "https://s.coolbox.ua/static/content/files/1/43/ae2ef4f70fc7554135cb3302f2bc8431.png",
+          "status": 200,
+          "file": "tmp/tools-v4/coolbox-spiral134-4-alt.png",
+          "width": 3840,
+          "height": 2160,
+          "bytes": 19121,
+          "sha256": "3db787c51090086011488d52431e441cb155c3348719f42e9648996646a220d6",
+          "reason": "3840×2160 graphic blade illustration, not an independent realproduct photograph; not counted as photo."
+        }
+      ],
+      "identityEvidence": "ATEHNA originalvariant labels only fine32470,medium32471,coarse32473; filename spirale-1 is not sufficient proof of manufacturer number. Publicoriginal has blankgradeblock. OfficialPEBARO2025catalog1–3fine,4–6medium; coarse mapping unresolved.",
+      "missingViews": [
+        "Numericgrade identification for sold fine/medium/coarse variants beforeusing numberedpack photographs",
+        "Independent blade toothdetail photographs"
+      ],
+      "publicVariantMetadata": {
+        "sourcePage": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+        "evidence": "tmp/tools-v4/atehna-spiral-variants.json",
+        "observed": "Fresh publicWooCommerce data contains130mm,hardened,12pieces for32470/32471/32473; no numericgrade. Alt/title are spiralne1 andspiralne3. This corrects prior audit assumption that quantity was unpublished, without editing catalogspecs."
+      },
+      "pdfInspection": {
+        "source": "https://www.pebaro.de/wp-content/uploads/2025/01/Pebaro_Katalog-Laubsaege-Produkte-Werkzeuge-Saegen-2025.pdf",
+        "method": "Native embedded raster dimensions on every text-matched blade page, without page rendering or enlargement.",
+        "pagesInspected": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          17,
+          18,
+          49
+        ],
+        "qualifyingNativeObjects": 0,
+        "evidence": "tmp/tools-v4/pebaro-pdf-images.json"
+      }
+    }
+  ],
+  "summary": {
+    "familiesInvestigated": 10,
+    "acceptedPhotographs": 3,
+    "pendingPhotographs": 2,
+    "note": "Only accepted arrays are ready for integration. Pendingblade photos passquality but exactnumericvariant remains unresolved. Alltechnicalschematics remain untouched."
+  }
+}

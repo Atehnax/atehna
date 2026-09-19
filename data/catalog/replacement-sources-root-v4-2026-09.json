@@ -1,0 +1,160 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T10:09:35.946Z",
+  "status": "accepted-awaiting-integration",
+  "products": [
+    {
+      "slug": "trigonir",
+      "accepted": [
+        {
+          "id": "trigonir-triso-prednja-stran",
+          "slug": "trigonir",
+          "variantSkus": [
+            "MER-TRI-216-OSNOVNA-IZVEDBA"
+          ],
+          "blobUrl": "/images/catalog/2026-09/trigonir-triso-prednja-stran.png",
+          "sha256": "a72312af7781ffb170546194049846013270f5035bef6881248f35d0f9354a01",
+          "dimensions": {
+            "width": 1026,
+            "height": 1026
+          },
+          "sourcePage": "https://www.hartis.si/sl/p/5351/trigonir-samostojni-z-navodili-triso-12496.html",
+          "sourceUrl": "https://www.hartis.si/uploads/images/products/t/r/trigonir-samostojni-z-navodili-12496-6c0ec0.png",
+          "sourceIdentityEvidence": "Original ATEHNA product https://atehna.si/product/trigonir-216/ explicitly includes physical product photograph https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg . The photograph visibly identifies TRISO and matches the white transparent round-cornered plate, black circular angle scale, red/black axes, central pivot and long diagonal pointer shown by Hartis TRISO12496. This visual and named product match resolves the previously unproven identity;216 is retained as the existing catalog label and not asserted to be a separate manufacturer part number. Both views show the same product and its included instructions.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "front-complete-product-in-original-packaging",
+          "altText": "Trigonir — sprednja stran pripomočka TRISO s kotnimi lestvicami in premičnim kazalcem"
+        },
+        {
+          "id": "trigonir-triso-navodila",
+          "slug": "trigonir",
+          "variantSkus": [
+            "MER-TRI-216-OSNOVNA-IZVEDBA"
+          ],
+          "blobUrl": "/images/catalog/2026-09/trigonir-triso-navodila.png",
+          "sha256": "4f3756d5b3e5e3e5ed717038d20330aeb1c5a17f0a5a996dc32a9ceb82aa4d8c",
+          "dimensions": {
+            "width": 1026,
+            "height": 1026
+          },
+          "sourcePage": "https://www.hartis.si/sl/p/5351/trigonir-samostojni-z-navodili-triso-12496.html",
+          "sourceUrl": "https://www.hartis.si/uploads/images/products/t/r/trigonir-samostojni-z-navodili-12496-187f02.png",
+          "sourceIdentityEvidence": "Original ATEHNA product https://atehna.si/product/trigonir-216/ explicitly includes physical product photograph https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg . The photograph visibly identifies TRISO and matches the white transparent round-cornered plate, black circular angle scale, red/black axes, central pivot and long diagonal pointer shown by Hartis TRISO12496. This visual and named product match resolves the previously unproven identity;216 is retained as the existing catalog label and not asserted to be a separate manufacturer part number. Both views show the same product and its included instructions.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "rear-with-included-instructions-and-formulas",
+          "altText": "Trigonir — zadnja stran z vključenimi navodili in formulami"
+        }
+      ],
+      "matchingEvidence": {
+        "originalStorePage": "https://atehna.si/product/trigonir-216/",
+        "originalPhysicalPhoto": "https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg",
+        "originalPhysicalPhotoDimensions": {
+          "width": 288,
+          "height": 320
+        },
+        "review": "Original physical photograph inspected separately from the unit-circle mathematical diagrams. Clear product and brand visual match; no image modification or invented view."
+      },
+      "qualityReview": "Native1026x1026 PNG originals, exact byte match to supplier; inspected front and rear, complete product and packaging visible, readable print, neutral background, no humans. Front and rear are distinct photographs. Retain all original mathematical diagrams.",
+      "missingViews": [
+        "unpackaged side/profile view",
+        "close-up of pivot and moving pointer"
+      ]
+    }
+  ],
+  "rejectedSourceChecks": [
+    {
+      "id": "muekra",
+      "url": "https://cdn.myshoptet.com/usr/www.muekra.de/user/shop/orig/2481_druck-einbau-schalter-hals-8mm-druckschalter.jpg?6465dbe1",
+      "width": 500,
+      "height": 500,
+      "status": 200
+    },
+    {
+      "id": "muekra2",
+      "url": "https://cdn.myshoptet.com/usr/www.muekra.de/user/shop/orig/2481-1_einbau-druckschalter-hals-8mm.jpg?6465dbe1",
+      "width": 500,
+      "height": 500,
+      "status": 200
+    },
+    {
+      "id": "lauermann",
+      "url": "https://www.lauermann.at/images/product_images/popup_images/6599_0.jpg",
+      "width": 410,
+      "height": 409,
+      "status": 200
+    },
+    {
+      "name": "uhu-wolt",
+      "url": "https://wolt-menu-images-cdn.wolt.com/menu-images/66b0b8a784c4c6ec925c846f/49258ca2-5fc6-11ef-97c0-badc92fafc3b_406536.jpg",
+      "file": "tmp/product-image-audit/root-v4/uhu-wolt.jpeg",
+      "width": 1200,
+      "height": 675
+    },
+    {
+      "name": "switch-lightshop",
+      "url": "https://lightshop.at/media/images/org/Radon-2018-2-14-of-48.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-lightshop.jpeg",
+      "width": 500,
+      "height": 500
+    },
+    {
+      "name": "switch-venova",
+      "url": "https://www.venova.ch/media/image/16/e0/9b/129568_1_600x600@2x.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-venova.jpeg",
+      "width": 500,
+      "height": 500
+    },
+    {
+      "url": "https://www.elektrokuchorz.de/media/e6/68/0c/1654177192/552501jukehqkwrhjpj.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-kuchorz-0.jpeg",
+      "width": 850,
+      "height": 850
+    },
+    {
+      "url": "https://www.elektrokuchorz.de/media/d1/36/1e/1707738424/552502-A.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-kuchorz-1.jpeg",
+      "width": 850,
+      "height": 850
+    },
+    {
+      "url": "https://www.elektrokuchorz.de/media/2a/4b/1d/1707738424/552502-A-mass.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-kuchorz-2.jpeg",
+      "width": 850,
+      "height": 850
+    },
+    {
+      "url": "https://www.elektrokuchorz.de/media/85/a6/f6/1707738424/552502-A-1.jpg",
+      "file": "tmp/product-image-audit/root-v4/switch-kuchorz-3.jpeg",
+      "width": 850,
+      "height": 850
+    },
+    {
+      "source": "https://media.cdn.bauhaus/m/1675140-2/prod_large_square.webp?quality=75&width=1920",
+      "file": "tmp/product-image-audit/root-v4/bauhaus-switch-0.webp",
+      "width": 696,
+      "height": 696
+    },
+    {
+      "source": "https://media.cdn.bauhaus/m/1742455-2/prod_large_square.webp?quality=75&width=1920",
+      "file": "tmp/product-image-audit/root-v4/bauhaus-switch-1.webp",
+      "width": 696,
+      "height": 696
+    },
+    {
+      "source": "https://media.cdn.bauhaus/m/1742460-2/prod_large_square.webp?quality=75&width=1920",
+      "file": "tmp/product-image-audit/root-v4/bauhaus-switch-2.webp",
+      "width": 696,
+      "height": 696
+    }
+  ]
+}

@@ -1,0 +1,1614 @@
+{
+  "version": 8,
+  "createdAt": "2026-09-14T14:01:01.577Z",
+  "status": "Accepted originals saved in canonical, local and production catalogs; remaining gaps retained.",
+  "scope": "Source research for exactly 31 plywood, 4 galvanized steel and 4 styrofoam variants. Only reviewed original source assets are staged. Parent owns product integration; no database, canonical catalogue or runtime writes were made by this source task.",
+  "constraints": {
+    "minimumWidth": 1024,
+    "minimumHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "wholeProductMainRequired": true,
+    "exactCommodityMatching": true,
+    "preserveSchematics": true
+  },
+  "priorEvidenceLedgers": [
+    "data/catalog/replacement-sources-wood-plastics-v7-2026-09.json",
+    "data/catalog/replacement-sources-wood-v6-2026-09.json",
+    "data/catalog/replacement-sources-materials-v6-2026-09.json",
+    "data/catalog/replacement-sources-materials-v5-2026-09.json"
+  ],
+  "coordinatedAcceptedLedger": "data/catalog/replacement-sources-galvanized-root-v8-2026-09.json",
+  "products": [
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "variants": [
+        {
+          "id": "97",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "name": "Bukev / 6 x 300 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut."
+        },
+        {
+          "id": "98",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "name": "Bukev / 4 x 500 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Distinct rear view",
+            "Sharp oblique view showing the 4 mm laminated edge"
+          ],
+          "researchApprovedPhotographIds": [
+            "vezana-plosca-bukev-4x500x500-ciste-v8"
+          ],
+          "researchApprovedPhotographCount": 1,
+          "hasApprovedWholeMain": true,
+          "sourceStatus": "approved-source-available"
+        },
+        {
+          "id": "99",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "name": "Bukev / 4 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut."
+        },
+        {
+          "id": "100",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "name": "Topol / 6 x 2520 x 1720",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut."
+        },
+        {
+          "id": "101",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "name": "Topol / 4 x 2520 x 1720",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "unpublishedDetailEvidenceId": "vezana-plosca-topol-4x1720x2520-detail-candidate-v7",
+          "requiredNextSource": "Whole 4 × 1720 × 2520 mm poplar main; confirmed source-native capture rather than server enlargement."
+        },
+        {
+          "id": "102",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "name": "Topol / 4 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact named wood species, thickness and cut."
+        },
+        {
+          "id": "103",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "name": "Topol / 3 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "unpublishedDetailEvidenceId": "vezana-plosca-topol-3x250x500-rob-v4",
+          "requiredNextSource": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication."
+        },
+        {
+          "id": "104",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "105",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "106",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "107",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "108",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "109",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "110",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "111",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "112",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "113",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "114",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "115",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "116",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "117",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "118",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "119",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "120",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "121",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "122",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "123",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "124",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "125",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "126",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        },
+        {
+          "id": "127",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp whole-sheet original of this exact cut, with wood species and construction corroborated by existing stock or source evidence."
+        }
+      ],
+      "accepted": [
+        {
+          "id": "vezana-plosca-bukev-4x500x500-ciste-v8",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v8/ciste-orig.jpg",
+          "variantSkus": [
+            "MAT-LES-VEZ-4x500x500-BUKEV"
+          ],
+          "variantIds": [
+            "98"
+          ],
+          "targetScope": "production-existing",
+          "sourcePage": "https://www.cistedrevo.cz/bukova-preklizka-4-x-500-x-500-mm/",
+          "imageUrl": "https://cdn.myshoptet.com/usr/www.cistedrevo.cz/user/shop/orig/55308_buk-500-500.jpg",
+          "sha256": "ab8f188f394bd0022cb0202a4c2bb8ae17d126da3bd2afb50f0aa6b45ec2cd99",
+          "width": 1813,
+          "height": 1723,
+          "bytes": 92409,
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "realPhotograph": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "distinctPhoto": true,
+          "role": "main",
+          "view": "Whole front face of the square sheet",
+          "imageType": "product",
+          "altText": "Vezana plošča iz bukve, 4 × 500 × 500 mm – pogled na celotno ploščo.",
+          "sourceIdentityEvidence": "ČistéDřevo LA541 explicitly specifies natural beech plywood, 4 mm thick, length 50 cm and width 50 cm. The complete square and natural beech grain match the known ATEHNA beech variant. No supplier brand or unstated glue/core specification is added to the product.",
+          "nativeOriginEvidence": "The earlier /big/ image route served only 1024 × 768. The untransformed /user/shop/orig/ upload is 1813 × 1723; the CDN and source website return identical bytes and SHA256. No resize, padding, crop, sharpening, colour or geometry change was made.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Known beech 4 × 500 × 500 mm only; do not associate with unknown-species squares or different dimensions.",
+            "quality": "Root independently approved complete square framing, natural grain, neutral background and no humans. Native pixel inspection shows fine low-contrast grain and veneer markings; subtly soft photographic texture is present without block artefacts or evidence of enlargement. All four sheet edges are visible. No edge thickness view is provided by this photograph.",
+            "accessories": "One bare sheet; no accessories or extra units."
+          },
+          "missingViews": [
+            "Distinct rear view",
+            "Sharp oblique view showing the 4 mm laminated edge"
+          ],
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vezana-plosca/images/ab8f188f394bd002-vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+          "hostedBlobPathname": "catalog-items/vezana-plosca/images/ab8f188f394bd002-vezana-plosca-bukev-4x500x500-celotna-v8.jpg"
+        }
+      ],
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication.",
+          "carriedFromLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json",
+          "carriedForwardEvidenceOnly": true
+        },
+        {
+          "id": "vezana-plosca-topol-4x1720x2520-detail-candidate-v7",
+          "status": "unpublished-candidate-needs-whole-main-and-native-origin-review",
+          "sourcePage": "https://holzdisselnmeyer.de/4-mm-Pappel-Sperrholzplatten-B-BB-EN-636-1-EN-314-1/0301000187.1",
+          "imageUrl": "https://holzdisselnmeyer.de/products/public/v2/0301000187/images/base/1/2000/4-mm-pappel-sperrholzplatten-bbb---en-636-1-en-314-1-en-314-1-klasse-1---fuer-trockenbereiche-pappel-bbb-laengs-01.webp?ts=1789168282",
+          "sourcePath": "tmp/product-image-audit/wood-plastics-v7/disselnmeyer.webp",
+          "width": 2000,
+          "height": 1476,
+          "sha256": "860f73083f0054464d20cdb824e96d79001523d8ca17721bcb12364e7bba9aec",
+          "bytes": 322316,
+          "variantIds": [
+            "101"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-4x1720x2520-TOPOL"
+          ],
+          "role": "detail",
+          "view": "Pale poplar grain, knot and thin laminated edge",
+          "noHumans": true,
+          "realPhotograph": true,
+          "untouchedDownloadedBytes": true,
+          "nativeOriginalProven": false,
+          "review": {
+            "exactIdentity": "Exact 4 × 1720 × 2520 mm poplar B/BB listing. Photo shows pale natural wood grain, knot and a thin laminated edge.",
+            "quality": "Observed maximum public gallery response 2000 × 1476 is a cropped corner, not a whole sheet. The PIM size route does not independently prove native capture scale. Do not publish without whole-sheet main and final native-origin/quality approval."
+          },
+          "missing": "Whole 4 × 1720 × 2520 mm poplar main; confirmed source-native capture rather than server enlargement.",
+          "carriedForwardEvidenceOnly": true
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "modulor-poplar6",
+          "sourcePage": "https://www.modulor.de/pappel-sperrholz-zuschnitt-moeglich.html",
+          "identity": "Poplar 6 mm custom cutting includes 2520 × 1720 mm; other known poplar thicknesses are absent.",
+          "decision": "reject-resolution-and-framing",
+          "reason": "The advertised 1920 route serves an 800 × 600 original showing mixed-thickness edge samples rather than a whole sheet.",
+          "evidenceFiles": [
+            "initial-pages.json",
+            "initial-natives.json"
+          ]
+        },
+        {
+          "id": "keller-beech4",
+          "sourcePage": "https://shop.holz-keller.de/multiplex-buche-4mm.html",
+          "identity": "Beech 4 mm cutting service includes 250 × 250 and 500 × 500 mm.",
+          "decision": "reject-resolution",
+          "reason": "Both explicit original_images files are 700 × 700. The edge photograph shows much thicker layered stock.",
+          "evidenceFiles": [
+            "initial-pages.json",
+            "initial-natives.json"
+          ]
+        },
+        {
+          "id": "holzwurmdratzer-poplar3",
+          "sourcePage": "https://www.holzwurmdratzer.de/shop/pappelsperrholz/",
+          "identity": "Poplar 3 mm supplier; the page offers 400 × 500 mm, not the exact 250 × 500 mm cut.",
+          "decision": "reject-cut-and-framing",
+          "reason": "The Jimdo transf/none original is 2016 × 1512 but shows a cropped stack with the top and left sheet edges outside the frame. The sold cut does not match.",
+          "evidenceFiles": [
+            "initial-pages.json",
+            "initial-natives.json"
+          ]
+        },
+        {
+          "id": "zoechling-beech4",
+          "sourcePage": "https://www.zoechling-holz.at/produkte/shop/detail?ai%5Bd_prodid%5D=6375",
+          "identity": "Beech 4 mm custom cutting service.",
+          "decision": "reject-resolution",
+          "reason": "The Aimeos original is 960 × 720; neither axis reaches the required minimum.",
+          "evidenceFiles": [
+            "round2-pages.json",
+            "round2-natives.json"
+          ]
+        },
+        {
+          "id": "legnonline-poplar3",
+          "sourcePage": "https://www.legnonline.it/pioppo/3056-pannello-compensato-pioppo-spessore-3mm-qualita-a.html",
+          "identity": "Poplar 3 mm custom cutting service.",
+          "decision": "reject-resolution",
+          "reason": "All untransformed PrestaShop img/p originals are 500 × 500: 11 files and 7 distinct hashes across the two galleries.",
+          "evidenceFiles": [
+            "round4-pages.json",
+            "legno-natives.json"
+          ]
+        },
+        {
+          "id": "legnonline-poplar4",
+          "sourcePage": "https://www.legnonline.it/pioppo/160-pannello-compensato-pioppo-spessore-4mm-qualita-a.html",
+          "identity": "Poplar 4 mm custom cutting service.",
+          "decision": "reject-resolution",
+          "reason": "All untransformed PrestaShop img/p originals are 500 × 500: 11 files and 7 distinct hashes across the two galleries.",
+          "evidenceFiles": [
+            "round4-pages.json",
+            "legno-natives.json"
+          ]
+        },
+        {
+          "id": "getzoo-a4-3",
+          "sourcePage": "https://www.getzoo.de/en/premium-poplar-plywood-panel-3mm-10-pieces-versatile-wood-blanks-for-fretwork-pyrography-laser-cutting-cnc-router-and-openwork-artwork",
+          "identity": "The source specifies 300 × 210 × 3 mm poplar. Target variant 127 has no stated wood species.",
+          "decision": "not-approved-species-and-edge-treatment-unverified",
+          "reason": "Five distinct originals range from 1500 × 1229 to 1688 × 1688 and 1500 × 1905. The main shows a branded ten-pack with rounded, treated edges; other whole views contain promotional text or multiple formats. The original ATEHNA mixed-stack photo does not corroborate this species or edge treatment. No source was approved.",
+          "evidenceFiles": [
+            "getzoo-natives.json"
+          ]
+        },
+        {
+          "id": "onlywood-poplar",
+          "sourcePage": "https://onlywood.pl/",
+          "identity": "Manufacturer and custom cutting catalogue.",
+          "decision": "reject-resolution",
+          "reason": "The current WordPress original is 600 × 400.",
+          "evidenceFiles": [
+            "round4-pages.json",
+            "alternate-natives.json"
+          ]
+        },
+        {
+          "id": "cistedrevo-beech500",
+          "sourcePage": "https://www.cistedrevo.cz/bukova-preklizka-4-x-500-x-500-mm/",
+          "identity": "Natural beech B/BB, 500 × 500 × 4 mm, supplier product LA541. Matches only production variant 98.",
+          "decision": "accepted-one-exact-variant-main",
+          "reason": "The earlier /big/ image route served only 1024 × 768. The untransformed /user/shop/orig/ upload is 1813 × 1723; the CDN and source website return identical bytes and SHA256. No resize, padding, crop, sharpening, colour or geometry change was made. Root independently approved complete square framing, natural grain, neutral background and no humans. Native pixel inspection shows fine low-contrast grain and veneer markings; subtly soft photographic texture is present without block artefacts or evidence of enlargement. All four sheet edges are visible. No edge thickness view is provided by this photograph.",
+          "evidenceFiles": [
+            "alternate-natives.json",
+            "cistebeech500.txt"
+          ]
+        },
+        {
+          "id": "blc-beech",
+          "sourcePage": "https://www.blccompensati.it/prodotti/beech-plywood/",
+          "identity": "Beech plywood producer with 4 mm and 6 mm stock. No new matching-cut association was established.",
+          "decision": "reject-resolution",
+          "reason": "The untransformed WordPress image is 1000 × 667. It cannot provide a qualifying main or detailed view.",
+          "evidenceFiles": [
+            "round5-pages.json",
+            "final-natives.json"
+          ]
+        },
+        {
+          "id": "sperrholzshop-current",
+          "sourcePage": "https://www.sperrholz-shop.de/de/sperrholz/kleinformat-a3-a4-sonderzuschnitte",
+          "identity": "The former CGI catalogue links to a new live catalogue with poplar small cuts and beech veneer products.",
+          "decision": "reject-resolution-and-unverified-variant",
+          "reason": "The old catalogue returns a closed-shop notice. The replacement catalogue was followed and its original media paths inspected: poplar product original 720 × 479, beech product original 640 × 424. Current beech products are 500 × 300 × 3 or 5.5 mm, not the target cuts. Poplar listings do not establish the species of ATEHNA variants whose species is unspecified.",
+          "evidenceFiles": [
+            "sperrholzshop-final.json",
+            "sperrholzshop-info.txt",
+            "sperrholz-current-pages.json",
+            "sperrholz-native.json",
+            "sperrholz-product-natives.json"
+          ]
+        }
+      ],
+      "identityLimit": "Seven variants explicitly state beech or poplar. The other 24 do not name a species; original mixed-stack imagery does not establish their wood species, ply core or edge treatment. No species or treatment was inferred from a new supplier merely because its cut matches."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "itemId": "3",
+      "variants": [
+        {
+          "id": "11",
+          "sku": "MAT-KOV-POC-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A real original showing the entire 300 × 200 × 0.5 mm galvanized rectangular sheet. Square source photographs are not assigned to this cut."
+        },
+        {
+          "id": "12",
+          "sku": "MAT-KOV-POC-0P5x300x300",
+          "name": "300 × 300 × 0,5 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Distinct rear view",
+            "Further useful side or construction views where available"
+          ],
+          "researchApprovedPhotographIds": [
+            "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+            "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8"
+          ],
+          "researchApprovedPhotographCount": 2,
+          "hasApprovedWholeMain": true,
+          "sourceStatus": "approved-source-available"
+        },
+        {
+          "id": "13",
+          "sku": "MAT-KOV-POC-0P5x200x200",
+          "name": "200 × 200 × 0,5 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Distinct rear view",
+            "Further useful side or construction views where available"
+          ],
+          "researchApprovedPhotographIds": [
+            "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+            "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8"
+          ],
+          "researchApprovedPhotographCount": 2,
+          "hasApprovedWholeMain": true,
+          "sourceStatus": "approved-source-available"
+        },
+        {
+          "id": "14",
+          "sku": "MAT-KOV-POC-0P5x100x100",
+          "name": "100 × 100 × 0,5 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Distinct rear view",
+            "Further useful side or construction views where available"
+          ],
+          "researchApprovedPhotographIds": [
+            "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+            "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8"
+          ],
+          "researchApprovedPhotographCount": 2,
+          "hasApprovedWholeMain": true,
+          "sourceStatus": "approved-source-available"
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [],
+      "sourceFindings": [
+        {
+          "id": "stahl24",
+          "sourcePage": "https://stahl24.de/products/verzinktes-stahlblech",
+          "identity": "Galvanized steel 0.5 mm with custom cutting.",
+          "decision": "reject-synthetic-composite",
+          "reason": "The unchanged 1080 × 1080 Shopify file depicts floating parallel sheets with smooth, rendered geometry. It was not accepted as an authentic photograph.",
+          "evidenceFiles": [
+            "initial-pages.json",
+            "initial-natives.json"
+          ]
+        },
+        {
+          "id": "allegro-polskieule2",
+          "sourcePage": "https://allegro.pl/produkt/arkusz-blachy-ocynkowanej-0-5-mm-blacha-ocynk-formatka-200x200-mm-9c4e8143-a300-469e-b8dd-2e83aefec740",
+          "identity": "Exact 200 × 200 × 0.5 mm, manufacturer code Blachaocynk, offer 17245978642; a related 300 × 300 mm option exists.",
+          "decision": "source-original-not-obtained",
+          "reason": "The indexed description confirms the cuts. The public product fetch returned HTTP 403; image search did not expose this exact gallery.",
+          "evidenceFiles": [
+            "round2-pages.json"
+          ]
+        },
+        {
+          "id": "schmiedekult15799",
+          "sourcePage": "https://www.schmiedekult.de/Lamiera-dacciaio-zincata-DX51-050-mm-di-spessore-lamiera-sottile-200x200-mm",
+          "identity": "Exact 200 × 200 × 0.5 mm galvanized DX51 stock. No brand or grade claim is added to ATEHNA.",
+          "decision": "not-selected-detail-surface-conflict",
+          "reason": "Two 1024 × 1024 originals show surface and corner close-ups without a complete main sheet. Their coarse spangle differs from the selected fine-finish square source. These alternatives were not selected or assigned; root supplies independently reviewed main and detail photographs in its separate ledger.",
+          "evidenceFiles": [
+            "round3-pages.json",
+            "round2-natives.json"
+          ]
+        },
+        {
+          "id": "modeco",
+          "sourcePage": "https://www.modeco-djakovo.com/de/shop/ravni-lim-poc-050",
+          "identity": "Flat galvanized steel 0.5 mm with custom cutting.",
+          "decision": "reject-wrong-photo",
+          "reason": "The page image is products/trapezni.png and shows a corrugated sheet, not the flat target.",
+          "evidenceFiles": [
+            "round2-pages.json"
+          ]
+        },
+        {
+          "id": "coupang8456793463",
+          "sourcePage": "https://www.coupang.com/vp/products/8456793463",
+          "identity": "Exact 200 × 200 mm with 0.5 mm and 1 mm options.",
+          "decision": "reject-resolution",
+          "reason": "The original vendor_inventory image is 1000 × 1000. No enlargement was used.",
+          "evidenceFiles": [
+            "round2-natives.json"
+          ]
+        }
+      ],
+      "coordinatedAccepted": [
+        {
+          "id": "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+          "ledger": "data/catalog/replacement-sources-galvanized-root-v8-2026-09.json",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x100x100",
+            "MAT-KOV-POC-0P5x200x200",
+            "MAT-KOV-POC-0P5x300x300"
+          ],
+          "role": "main"
+        },
+        {
+          "id": "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8",
+          "ledger": "data/catalog/replacement-sources-galvanized-root-v8-2026-09.json",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x100x100",
+            "MAT-KOV-POC-0P5x200x200",
+            "MAT-KOV-POC-0P5x300x300"
+          ],
+          "role": "detail"
+        }
+      ]
+    },
+    {
+      "slug": "stiropor",
+      "itemId": "7",
+      "variants": [
+        {
+          "id": "30",
+          "sku": "MAT-UME-STI-10x300x200",
+          "name": "200 x 300 x 10 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source."
+        },
+        {
+          "id": "31",
+          "sku": "MAT-UME-STI-210x148-A5",
+          "name": "A5",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source."
+        },
+        {
+          "id": "32",
+          "sku": "MAT-UME-STI-10x400x300",
+          "name": "300 x 400 x 10 mm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source."
+        },
+        {
+          "id": "33",
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "name": "16 x 33 x 2 cm",
+          "targetScope": "production-existing",
+          "missingViews": [
+            "Whole exact product main photograph",
+            "Different useful rear or side view",
+            "Surface or edge close-up where useful"
+          ],
+          "researchApprovedPhotographIds": [],
+          "researchApprovedPhotographCount": 0,
+          "hasApprovedWholeMain": false,
+          "sourceStatus": "no-qualifying-whole-main-source",
+          "requiredNextSource": "A sharp original showing the entire exact-cut white bead EPS sheet, with both source dimensions at least 1024 pixels; confirm the unknown A5 thickness before using a thickness-specific source."
+        }
+      ],
+      "accepted": [],
+      "pendingMainPhoto": [],
+      "sourceFindings": [
+        {
+          "id": "epsfoam-nz",
+          "sourcePage": "https://epsfoam.co.nz/polystyrene-sheets/",
+          "identity": "White EPS sheets, custom sizes, thicknesses of 10 mm or more.",
+          "decision": "reject-resolution",
+          "reason": "The public WordPress media API confirms originals of 400 × 300 and 179 × 105. It did not expose a higher-resolution original.",
+          "evidenceFiles": [
+            "initial-pages.json",
+            "round2-pages.json"
+          ]
+        },
+        {
+          "id": "ribrudi-criscolor",
+          "sourcePage": "https://www.ribrudi.com.pt/pt/papelaria/criscolor/esferovite-placa-retangular-40x30cm-pack-3_p380531.html",
+          "identity": "White EPS, 400 × 300 mm, pack of three, supplier SKU 16150348. Thickness is not stated.",
+          "decision": "reject-quality-and-missing-thickness",
+          "reason": "The decoded getImage source path yields a 1920 × 1920 original, but the product occupies a small bottom portion and its native texture and edges are soft and washed out. The 10 mm target thickness is also unverified.",
+          "evidenceFiles": [
+            "round3-pages.json",
+            "round2-natives.json"
+          ]
+        },
+        {
+          "id": "bubbles",
+          "sourcePage": "https://bubblesplastics.co.za/products/polystyrene-styrofoam-sheets-30x40cm-69904030",
+          "identity": "Bare EPS, 300 × 400 mm; thickness is unlisted.",
+          "decision": "reject-quality-and-missing-thickness",
+          "reason": "The untransformed Shopify source is 2048 × 2048 but is visibly soft, with blurred edges and little useful foam detail. Its pixel dimensions do not establish genuine capture detail; no source was accepted.",
+          "evidenceFiles": [
+            "round3-pages.json",
+            "round2-natives.json"
+          ]
+        },
+        {
+          "id": "shopee40x30x1",
+          "sourcePage": "https://shopee.ph/40x30x1cm-Styrofoam-Board-Cork-Sheet-Styrofoam-40x30-i.1291100943.24132908077",
+          "identity": "Exact 400 × 300 × 10 mm white foam.",
+          "decision": "reject-resolution",
+          "reason": "The untransformed susercontent original is 700 × 700 and contains dimension text. No larger native image was exposed.",
+          "evidenceFiles": [
+            "round3-pages.json",
+            "round2-natives.json"
+          ]
+        },
+        {
+          "id": "pebaro-a5",
+          "sourcePage": "https://www.pebaro.de/wp-content/uploads/2025/01/Pebaro_Katalog-Kreatives-Hobby-2025.pdf",
+          "identity": "A5 EPS sheets are included in a cutting kit; refill variants are printed for Christmas or include accessories.",
+          "decision": "no-qualifying-bare-sheet-source",
+          "reason": "WordPress media search finds only 444 × 503 and 737 × 492 craft photos. No plain bare A5 sheet source meeting both 1024-pixel dimensions was found. The complete kit would misrepresent the sold sheet.",
+          "evidenceFiles": [
+            "round4-pages.json"
+          ]
+        },
+        {
+          "id": "fairybridge",
+          "sourcePage": "https://fairybridgewoodcraft.co.uk/300-x-200-x-6mm-xps-foam-sheets-modelcraft-free-uk-delivery-231",
+          "identity": "The page title specifies 300 × 200 × 10 mm.",
+          "decision": "reject-construction",
+          "reason": "Explicit XPS extruded foam; the original ATEHNA sheet shows bead EPS.",
+          "evidenceFiles": []
+        },
+        {
+          "id": "mtgterrain",
+          "sourcePage": "https://www.mtgterrain.com/products/xps-craft-foam-sheets-wargaming-terrain-diorama-hobby-foam-300mm-x-200mm",
+          "identity": "An exact 300 × 200 × 10 mm option exists.",
+          "decision": "reject-construction",
+          "reason": "Explicit XPS extruded foam, not bead EPS.",
+          "evidenceFiles": []
+        },
+        {
+          "id": "prizmagraphics",
+          "sourcePage": "https://www.prizmagraphics.co.uk/10mm-foamboard-white-30-x-40-pack-of-13-sheets",
+          "identity": "A search result near 30 × 40 × 10.",
+          "decision": "reject-size-and-construction",
+          "reason": "The source dimensions are 30 × 40 inches, not centimetres, and the product is paper-faced foamcore.",
+          "evidenceFiles": []
+        },
+        {
+          "id": "pe-foam-a5",
+          "sourcePage": "https://shopee.co.id/PE-Foam-Sheet-10mm-Lembaran-A5-Custom-21x14-8cm-Styrofoam-Underlayer-i.497015455.8482467421",
+          "identity": "The listing specifies exact A5 dimensions.",
+          "decision": "reject-material",
+          "reason": "Explicit PE foam, not EPS, despite loose use of the word Styrofoam in the title.",
+          "evidenceFiles": []
+        },
+        {
+          "id": "10doigts-current-and-legacy",
+          "sourcePage": "https://www.10doigts.fr/plaques-en-polystyrene-20-x-30-cm-gp9121.aspx",
+          "identity": "Legacy product 02484 was 200 × 300 × 10 mm. The current page offers 148 × 210 × 20 mm A5 and 210 × 300 × 20 mm sheets.",
+          "decision": "reject-resolution",
+          "reason": "The legacy exact-cut original is 750 × 500. Current untransformed originals are 1500 × 1000, including the A5 view. Their short axis is below 1024. The current 210 × 300 × 20 mm option is not a substitute for 200 × 300 × 10 mm. The generic and current large-sheet asset are byte-identical.",
+          "evidenceFiles": [
+            "round5-pages.json",
+            "10doigts-native.json",
+            "final-natives.json"
+          ]
+        },
+        {
+          "id": "shopadd-a5",
+          "sourcePage": "https://www.shop-add.jp/SHOP/7PS-A5.html",
+          "identity": "A5 white polystyrene board, 7 mm product; EPS versus XPS construction is not independently resolved.",
+          "decision": "reject-resolution",
+          "reason": "The supplier llimg original is 640 × 640. No qualifying original was obtained.",
+          "evidenceFiles": [
+            "final-natives.json"
+          ]
+        }
+      ],
+      "identityLimit": "The A5 variant has no recorded thickness. Its material must remain bare white bead EPS. No XPS, PE or paper-faced foamcore substitution is allowed."
+    }
+  ],
+  "nativeCandidates": [
+    {
+      "id": "stahl24",
+      "url": "https://cdn.shopify.com/s/files/1/0982/6471/1503/files/verzinktes_stahlblech.png?v=1768235128",
+      "path": "tmp/product-image-audit/materials-v8/stahl24.png",
+      "bytes": 890196,
+      "width": 1080,
+      "height": 1080,
+      "sha256": "ac52e02df2a7f70ced9c9c353ba2b0cc7706ff69f5c44755716c186c30ea181c"
+    },
+    {
+      "id": "modulor",
+      "url": "https://cdn.modulor.de/products/ceeb/1_1920_1920_r_pappel_sperrholz.jpg",
+      "path": "tmp/product-image-audit/materials-v8/modulor.jpg",
+      "bytes": 60473,
+      "width": 800,
+      "height": 600,
+      "sha256": "3f76982f08db4afc88d0aba63d516cfd6a8baa8ca6149724ef7d736f1d42e015"
+    },
+    {
+      "id": "keller-edge",
+      "url": "https://shop.holz-keller.de/images/product_images/original_images/Multiplex-Buche-Kante.jpg",
+      "path": "tmp/product-image-audit/materials-v8/keller-edge.jpg",
+      "bytes": 317848,
+      "width": 700,
+      "height": 700,
+      "sha256": "766f4e7f2d594e4b4d11e0eac419c067f8ed70d1485d71348533661332198cf8"
+    },
+    {
+      "id": "keller-face",
+      "url": "https://shop.holz-keller.de/images/product_images/original_images/Multiplex-Buche.jpg",
+      "path": "tmp/product-image-audit/materials-v8/keller-face.jpg",
+      "bytes": 489655,
+      "width": 700,
+      "height": 700,
+      "sha256": "39c08e02642f3d9ac7d49a28aea212de54beac53826baf09b469ae9a3b8ed0b0"
+    },
+    {
+      "id": "holzwurm",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sf7d738eae93ac3d1/image/i21256ce4009285d0/version/1638606778/image.jpg",
+      "path": "tmp/product-image-audit/materials-v8/holzwurm.jpg",
+      "bytes": 485189,
+      "width": 2016,
+      "height": 1512,
+      "sha256": "ba89b6bae66621434599394c5004fe7717c3f7d69fa2c79920f106569ced65ae"
+    },
+    {
+      "id": "epsnz",
+      "url": "https://epsfoam.co.nz/wp-content/uploads/elementor/thumbs/p_sheet-400x300-01-qb99ollyit7wjb785a0ry2xx04wzgusbgr3xbvo62g.jpg",
+      "path": "tmp/product-image-audit/materials-v8/epsnz.jpg",
+      "bytes": 9780,
+      "width": 400,
+      "height": 300,
+      "sha256": "4f7e407ecce7f396d15ce00b268781525fc915f82614798735bf2315524dff45"
+    },
+    {
+      "id": "zoechling",
+      "url": "https://www.zoechling-holz.at/uploads/tx_aimeos/files/4/0/40b8b76969424c2daaf0966999ae0b18.jpg",
+      "path": "tmp/product-image-audit/materials-v8/zoechling.jpg",
+      "bytes": 80615,
+      "width": 960,
+      "height": 720,
+      "sha256": "449d032b070bc3d0b933f4060ad3e4515b20f23be7d0072e189e09ad6658c494"
+    },
+    {
+      "id": "ribrudi",
+      "url": "https://1221129134.rsc.cdn77.org/temp/1753951010_6bd3c0449e0ff92c45ac7d6000cd425d.jpg",
+      "path": "tmp/product-image-audit/materials-v8/ribrudi.jpg",
+      "bytes": 52465,
+      "width": 840,
+      "height": 840,
+      "sha256": "bd96c8206963c2bc5ca9afebec1b8337ddf10dc3909322ff71114508fb1aa4bb"
+    },
+    {
+      "id": "ribrudi-origin",
+      "url": "https://www.ribrudi.com.pt/images_prods_static/SKU/16150348.jpg",
+      "path": "tmp/product-image-audit/materials-v8/ribrudi-origin.jpg",
+      "bytes": 89813,
+      "width": 1920,
+      "height": 1920,
+      "sha256": "1ddf89918041d718ccf97d0a1446466210fb8ed7b90a96ce780083ba6e97d9d3"
+    },
+    {
+      "id": "shopeefoam",
+      "url": "https://down-ph.img.susercontent.com/file/id-11134207-7r98t-lr5tidwnja7t1d",
+      "path": "tmp/product-image-audit/materials-v8/shopeefoam.jpg",
+      "bytes": 43856,
+      "width": 700,
+      "height": 700,
+      "sha256": "35c09ace09625409616dee121d71b562f779140a1e88f8f78c993746c23390ca"
+    },
+    {
+      "id": "bubbles",
+      "url": "https://bubblesplastics.co.za/cdn/shop/files/polystyrene-159x_8a74e270-9a16-42cd-bc6b-e224c4e7faff.png?v=1755880514",
+      "path": "tmp/product-image-audit/materials-v8/bubbles.png",
+      "bytes": 81193,
+      "width": 2048,
+      "height": 2048,
+      "sha256": "ce8ae2317406c0a38fdbbd2fa9b12375527012bcb1e18c13cfb9bafdcc55db22"
+    },
+    {
+      "id": "schmiedgalv-main",
+      "url": "https://www.schmiedekult.de/media/image/product/15799/lg/verzinktes-stahlblech-dx51-050mm-stark-feinblech-200x200mm.jpg",
+      "path": "tmp/product-image-audit/materials-v8/schmiedgalv-main.jpg",
+      "bytes": 116183,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "913bc7747009eb0be9427fb44b2c2714ad5472972796346b8f0a498897767d0c"
+    },
+    {
+      "id": "schmiedgalv2",
+      "url": "https://www.schmiedekult.de/media/image/product/15799/lg/verzinktes-stahlblech-dx51-050mm-stark-feinblech-200x200mm~2.webp",
+      "path": "tmp/product-image-audit/materials-v8/schmiedgalv2.webp",
+      "bytes": 52028,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "d1a0632a54a7d4f031bee508b09d30740c1f52c5e55a902f34030026f77ddd59"
+    },
+    {
+      "id": "coupanggalv",
+      "url": "https://image.coupangcdn.com/image/vendor_inventory/e86f/346081c102d5d156dc1edd7571b868649b65a2b221fed068ce15defc4bbf.jpg",
+      "path": "tmp/product-image-audit/materials-v8/coupanggalv.jpg",
+      "bytes": 97467,
+      "width": 1000,
+      "height": 1000,
+      "sha256": "10cb8bac49c7cc8c5445a76e4193c8b9c1647d407def016938e6eff338052ef8"
+    },
+    {
+      "id": "legno9475",
+      "url": "https://www.legnonline.it/img/p/9/4/7/5/9475.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno9475.png",
+      "bytes": 327072,
+      "width": 500,
+      "height": 500,
+      "sha256": "45761a90b8b13f2d675abef17075f39b0258b9c432ef9b0e7ab1bf682d9de202"
+    },
+    {
+      "id": "legno8304",
+      "url": "https://www.legnonline.it/img/p/8/3/0/4/8304.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8304.png",
+      "bytes": 75521,
+      "width": 500,
+      "height": 500,
+      "sha256": "c23f1f488798a007cffcc18c392b776f167c9d185cf5897c546422080b90cfd1"
+    },
+    {
+      "id": "legno8343",
+      "url": "https://www.legnonline.it/img/p/8/3/4/3/8343.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8343.png",
+      "bytes": 87739,
+      "width": 500,
+      "height": 500,
+      "sha256": "9c64f370a420544ee10980cbf23aef5f6045622241a67068163148d8539f1065"
+    },
+    {
+      "id": "legno8305",
+      "url": "https://www.legnonline.it/img/p/8/3/0/5/8305.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8305.png",
+      "bytes": 147029,
+      "width": 500,
+      "height": 500,
+      "sha256": "dd5769858f1d0190c93d456ab581792d27e85a5f4c27b8ef049634c7f1c105e0"
+    },
+    {
+      "id": "legno8346",
+      "url": "https://www.legnonline.it/img/p/8/3/4/6/8346.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8346.png",
+      "bytes": 114424,
+      "width": 500,
+      "height": 500,
+      "sha256": "b31113960c8cb5ec61b046637c7d1c336a11fa5b279e63c85a17d2a3b6d919f0"
+    },
+    {
+      "id": "legno3891",
+      "url": "https://www.legnonline.it/img/p/3/8/9/1/3891.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno3891.png",
+      "bytes": 307228,
+      "width": 500,
+      "height": 500,
+      "sha256": "9ef43a50820b5e08e40e99e0cfc8c0137c38945396c6b5c506e9c2375e2bcd1d"
+    },
+    {
+      "id": "legno3800",
+      "url": "https://www.legnonline.it/img/p/3/8/0/0/3800.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno3800.png",
+      "bytes": 75521,
+      "width": 500,
+      "height": 500,
+      "sha256": "c23f1f488798a007cffcc18c392b776f167c9d185cf5897c546422080b90cfd1"
+    },
+    {
+      "id": "legno8356",
+      "url": "https://www.legnonline.it/img/p/8/3/5/6/8356.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8356.png",
+      "bytes": 87739,
+      "width": 500,
+      "height": 500,
+      "sha256": "9c64f370a420544ee10980cbf23aef5f6045622241a67068163148d8539f1065"
+    },
+    {
+      "id": "legno8355",
+      "url": "https://www.legnonline.it/img/p/8/3/5/5/8355.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8355.png",
+      "bytes": 242707,
+      "width": 500,
+      "height": 500,
+      "sha256": "47f8272a3cbb0ac0f307e5295096c1873338e78b6b642b6f9947ab83d7ebaf99"
+    },
+    {
+      "id": "legno3801",
+      "url": "https://www.legnonline.it/img/p/3/8/0/1/3801.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno3801.png",
+      "bytes": 147029,
+      "width": 500,
+      "height": 500,
+      "sha256": "dd5769858f1d0190c93d456ab581792d27e85a5f4c27b8ef049634c7f1c105e0"
+    },
+    {
+      "id": "legno8353",
+      "url": "https://www.legnonline.it/img/p/8/3/5/3/8353.jpg",
+      "path": "tmp/product-image-audit/materials-v8/legno8353.png",
+      "bytes": 114424,
+      "width": 500,
+      "height": 500,
+      "sha256": "b31113960c8cb5ec61b046637c7d1c336a11fa5b279e63c85a17d2a3b6d919f0"
+    },
+    {
+      "id": "ciste-orig",
+      "url": "https://cdn.myshoptet.com/usr/www.cistedrevo.cz/user/shop/orig/55308_buk-500-500.jpg",
+      "path": "tmp/product-image-audit/materials-v8/ciste-orig.jpg",
+      "bytes": 92409,
+      "width": 1813,
+      "height": 1723,
+      "sha256": "ab8f188f394bd0022cb0202a4c2bb8ae17d126da3bd2afb50f0aa6b45ec2cd99"
+    },
+    {
+      "id": "ciste-originhost",
+      "url": "https://www.cistedrevo.cz/user/shop/orig/55308_buk-500-500.jpg",
+      "path": "tmp/product-image-audit/materials-v8/ciste-originhost.jpg",
+      "bytes": 92409,
+      "width": 1813,
+      "height": 1723,
+      "sha256": "ab8f188f394bd0022cb0202a4c2bb8ae17d126da3bd2afb50f0aa6b45ec2cd99"
+    },
+    {
+      "id": "onlywood-poplar",
+      "url": "https://onlywood.pl/wp-content/uploads/2025/05/Sklejka-topolowa-1.webp",
+      "path": "tmp/product-image-audit/materials-v8/onlywood-poplar.webp",
+      "bytes": 322122,
+      "width": 600,
+      "height": 400,
+      "sha256": "e1840a6d91398f4ae5a3cb99242e746619456cac3914ce5b459c595d4b3cd743"
+    },
+    {
+      "id": "getzoo0",
+      "url": "https://www.getzoo.de/media/2e/92/24/1738222556/getzoo-holz-service-papelsperrholz-sperrholz-00-a4-1-jpg_780ad874e8062d05.jpg?ts=1738222556",
+      "path": "tmp/product-image-audit/materials-v8/getzoo0.jpg",
+      "width": 1500,
+      "height": 1229,
+      "bytes": 96958,
+      "sha256": "e6ff60b1306e6c823217cefd8aeae698c4d20836168a1e2bb74b6bd3fcfb7e93"
+    },
+    {
+      "id": "getzoo1",
+      "url": "https://www.getzoo.de/media/5d/73/85/1720780765/getzoo-holz-service-papelsperrholz-sperrholz-00-a4-1-jpg.jpg?ts=1720780765",
+      "path": "tmp/product-image-audit/materials-v8/getzoo1.jpg",
+      "width": 1500,
+      "height": 1229,
+      "bytes": 96958,
+      "sha256": "e6ff60b1306e6c823217cefd8aeae698c4d20836168a1e2bb74b6bd3fcfb7e93"
+    },
+    {
+      "id": "getzoo2",
+      "url": "https://www.getzoo.de/media/f8/51/g0/1738222518/getzoo-holz-service-papelsperrholz-sperrholz-00-gesamt-jpg_10dbaefc032d5eb3.jpg?ts=1738222582",
+      "path": "tmp/product-image-audit/materials-v8/getzoo2.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 173218,
+      "sha256": "f877bd3c4c93a0265e82a7d9a7711d83471bd702c089ec443b8f9dc227404bf9"
+    },
+    {
+      "id": "getzoo3",
+      "url": "https://www.getzoo.de/media/56/89/07/1720780863/getzoo-holz-service-papelsperrholz-sperrholz-00-gesamt-jpg_2901f34a7dd5bc63.jpg?ts=1720780863",
+      "path": "tmp/product-image-audit/materials-v8/getzoo3.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 173218,
+      "sha256": "f877bd3c4c93a0265e82a7d9a7711d83471bd702c089ec443b8f9dc227404bf9"
+    },
+    {
+      "id": "getzoo4",
+      "url": "https://www.getzoo.de/media/3c/b1/30/1738222525/getzoo-holz-service-papelsperrholz-sperrholz-01-gesamt-jpg_2378e3fe85d0620a.jpg?ts=1778871937",
+      "path": "tmp/product-image-audit/materials-v8/getzoo4.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 187282,
+      "sha256": "025b7f4b6af1b604472a063cce080f94e29140b1ed874467bd44685603822090"
+    },
+    {
+      "id": "getzoo5",
+      "url": "https://www.getzoo.de/media/57/b5/18/1720780864/getzoo-holz-service-papelsperrholz-sperrholz-01-gesamt-jpg_aaf38e4422804b09.jpg?ts=1778871948",
+      "path": "tmp/product-image-audit/materials-v8/getzoo5.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 187282,
+      "sha256": "025b7f4b6af1b604472a063cce080f94e29140b1ed874467bd44685603822090"
+    },
+    {
+      "id": "getzoo6",
+      "url": "https://www.getzoo.de/media/30/28/d8/1738222529/getzoo-holz-service-papelsperrholz-sperrholz-02-gesamt-jpg_7e873917352f5428.jpg?ts=1778871945",
+      "path": "tmp/product-image-audit/materials-v8/getzoo6.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 428101,
+      "sha256": "5c960890584abc8b57734e53694fa531c2c993d4602faccb75898231fcec2784"
+    },
+    {
+      "id": "getzoo7",
+      "url": "https://www.getzoo.de/media/22/26/e6/1720780922/getzoo-holz-service-papelsperrholz-sperrholz-02-gesamt-jpg_4bf114f14785fc21.jpg?ts=1720780922",
+      "path": "tmp/product-image-audit/materials-v8/getzoo7.jpg",
+      "width": 1688,
+      "height": 1688,
+      "bytes": 428101,
+      "sha256": "5c960890584abc8b57734e53694fa531c2c993d4602faccb75898231fcec2784"
+    },
+    {
+      "id": "getzoo8",
+      "url": "https://www.getzoo.de/media/2e/25/63/1720780865/getzoo-holz-service-papelsperrholz-sperrholz-00-a4-jpg.jpg?ts=1720780865",
+      "path": "tmp/product-image-audit/materials-v8/getzoo8.jpg",
+      "width": 1500,
+      "height": 1905,
+      "bytes": 205010,
+      "sha256": "6e4b57750351633be183f35a74ffdd8096ca8644b1a66526d6eeade0993f19e8"
+    },
+    {
+      "id": "getzoo9",
+      "url": "https://www.getzoo.de/media/82/3e/e6/1738222568/getzoo-holz-service-papelsperrholz-sperrholz-00-a4-jpg_6ab71d4fdfdee071.jpg?ts=1778871934",
+      "path": "tmp/product-image-audit/materials-v8/getzoo9.jpg",
+      "width": 1500,
+      "height": 1905,
+      "bytes": 205010,
+      "sha256": "6e4b57750351633be183f35a74ffdd8096ca8644b1a66526d6eeade0993f19e8"
+    },
+    {
+      "id": "10doigts",
+      "url": "https://www.10doigts.fr/assets/products/set-de-16-plaques-en-polystyrene-epaisseur-1cm-taille-20x30cm-02484.jpg",
+      "path": "tmp/product-image-audit/materials-v8/10doigts-native.jpg",
+      "width": 750,
+      "height": 500,
+      "bytes": 65742,
+      "sha256": "df10b87781cfcf37a842e045f5f676cbb5499a27bf162e6c5fc39457f3441ecd"
+    },
+    {
+      "id": "10doigts-generic",
+      "url": "https://static.10doigts.fr/assets/generics/plaques-polystyrene-21-x-30-cm.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v8/10doigts-generic.jpg",
+      "bytes": 226151,
+      "width": 1500,
+      "height": 1000,
+      "sha256": "f5c80f67fa05a12dc6ffde2aa2c9fdfdbf60d523b307f1fb5696dbbdb04ae831"
+    },
+    {
+      "id": "10doigts-a5",
+      "url": "https://static.10doigts.fr/assets/products/plaques-en-polystyrene-148-x-21-cm-epaisseur-2-cm-4-plaques-57324.jpg?v=1773743250",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v8/10doigts-a5.jpg",
+      "bytes": 209330,
+      "width": 1500,
+      "height": 1000,
+      "sha256": "064c2173de4fe8452fcd19e535d71e9635b11dbc4ce5768b82cefe41268dee9e"
+    },
+    {
+      "id": "10doigts-a4",
+      "url": "https://static.10doigts.fr/assets/products/plaques-en-polystyrene-21-x-30-cm-epaisseur-2-cm-3-plaques-57325.jpg?v=1773743250",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v8/10doigts-a4.jpg",
+      "bytes": 226151,
+      "width": 1500,
+      "height": 1000,
+      "sha256": "f5c80f67fa05a12dc6ffde2aa2c9fdfdbf60d523b307f1fb5696dbbdb04ae831"
+    },
+    {
+      "id": "blcbeech-native",
+      "url": "https://www.blccompensati.it/wp-content/uploads/2019/05/multistrato-faggio.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v8/blcbeech-native.jpg",
+      "bytes": 36171,
+      "width": 1000,
+      "height": 667,
+      "sha256": "e15145ff867d8e04cb18e204af3b8a22dfa177f9501de61d20be75388f8036da"
+    },
+    {
+      "id": "shopadd-a5",
+      "url": "https://image1.shopserve.jp/shop-add.jp/pic-labo/llimg/7hb-a5.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/materials-v8/shopadd-a5.jpg",
+      "bytes": 103376,
+      "width": 640,
+      "height": 640,
+      "sha256": "938dc1f2bb59bf55703f6c7640c8b3daef072bc22ea5baaff04b0c2fcf8b86bb"
+    },
+    {
+      "id": "sperrholz-poplar-original",
+      "url": "https://www.sperrholz-shop.de/media/images/org/PappelsperrholzSperrholzshop_1.jpg",
+      "path": "tmp/product-image-audit/materials-v8/sperrholz-poplar-original.jpg",
+      "width": 720,
+      "height": 479,
+      "bytes": 63632,
+      "sha256": "f0b0b45f3484a3b57070306655dd11c1cf17578f56ccf5cb753d58fdfdcffa18"
+    },
+    {
+      "id": "sperrholz-PappelsperrholzSperrholzshop.jpg",
+      "url": "https://www.sperrholz-shop.de/media/images/org/PappelsperrholzSperrholzshop.jpg",
+      "path": "tmp/product-image-audit/materials-v8/sperrholz-PappelsperrholzSperrholzshop.jpg",
+      "width": 720,
+      "height": 479,
+      "bytes": 63632,
+      "sha256": "f0b0b45f3484a3b57070306655dd11c1cf17578f56ccf5cb753d58fdfdcffa18"
+    },
+    {
+      "id": "sperrholz-Buche_1.jpg",
+      "url": "https://www.sperrholz-shop.de/media/images/org/Buche_1.jpg",
+      "path": "tmp/product-image-audit/materials-v8/sperrholz-Buche_1.jpg",
+      "width": 640,
+      "height": 424,
+      "bytes": 66623,
+      "sha256": "0a6df771973c3023686490b6d8221c658e0eaf5c4e275426ae219078342ff6ad"
+    }
+  ],
+  "summary": {
+    "families": 3,
+    "variants": 39,
+    "sourceGroups": 27,
+    "downloadedFiles": 47,
+    "distinctDownloadedHashes": 35,
+    "acceptedPhotographs": 1,
+    "acceptedVariants": 1,
+    "coordinatedAcceptedPhotographs": 2,
+    "coordinatedAcceptedVariants": 3,
+    "combinedAcceptedPhotographs": 3,
+    "combinedVariantsWithApprovedMain": 4,
+    "variantsStillWithoutApprovedMain": 35,
+    "byFamily": [
+      {
+        "slug": "vezana-plosca",
+        "variants": 31,
+        "withApprovedMain": 1,
+        "stillWithoutApprovedMain": 30
+      },
+      {
+        "slug": "pocinkana-plocevina",
+        "variants": 4,
+        "withApprovedMain": 3,
+        "stillWithoutApprovedMain": 1
+      },
+      {
+        "slug": "stiropor",
+        "variants": 4,
+        "withApprovedMain": 0,
+        "stillWithoutApprovedMain": 4
+      }
+    ],
+    "interpretation": "Counts describe reviewed source availability, not a claim that every product now has 4–6 views. Root owns upload and integration receipts. Galvanized photographs are referenced once from the separate coordinated ledger."
+  },
+  "updatedAt": "2026-09-14T14:12:49.813Z",
+  "evidenceBaseDirectory": "tmp/product-image-audit/materials-v8",
+  "originalAtehnaReferences": [
+    {
+      "slug": "vezana-plosca",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/veznaplosca1.png",
+      "width": 800,
+      "height": 800,
+      "identityLimit": "A cropped mixed stack does not establish the species of each unspecified variant."
+    },
+    {
+      "slug": "stiropor",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/stiropor.png",
+      "width": 625,
+      "height": 625,
+      "identityLimit": "Original appearance is plain white bead EPS, not XPS, PE foam or paper-faced foamboard."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "url": "https://atehna.si/wp-content/uploads/2015/04/belaplocevina.png",
+      "width": 266,
+      "height": 244,
+      "identityLimit": "Plain unbranded metal stock. Do not add a new alloy or surface treatment claim."
+    }
+  ],
+  "finalReview": "Original supplier bytes were retained. No generated image, enlargement, padding, mirrored view or rotation was added. One beech main was approved here; two galvanized originals were approved and staged separately by root. Unresolved sources and their exact variant gaps remain explicit.",
+  "appliedAt": "2026-09-14T14:19:20.845Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T14-11-30-914Z"
+}

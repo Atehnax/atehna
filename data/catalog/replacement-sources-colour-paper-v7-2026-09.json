@@ -1,0 +1,108 @@
+{
+  "version": 7,
+  "createdAt": "2026-09-14T13:36:27.764Z",
+  "status": "reviewed-no-accepted-images",
+  "scope": "Black B2 130gsm paper plus newly checked red300gsmB2 cardstock and original Antus colour identification. No accepted additions.",
+  "products": [
+    {
+      "slug": "barvni-papir",
+      "itemId": "9",
+      "variants": [
+        {
+          "id": "44",
+          "sku": "MAT-PAP-BAR-CRNA",
+          "name": "črna",
+          "statedFormat": "B2",
+          "statedGrammage": "130 g/m²",
+          "databaseDimensions": {
+            "width": 500,
+            "length": 707
+          }
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.betzold.de/prod/80001/",
+          "imageUrl": "https://static.betzold.de/fullsize_zoom_new/80001_b.jpg",
+          "sourcePath": "tmp/product-image-audit/colour-paper-v7/betzold-native.jpg",
+          "width": 2048,
+          "height": 2048,
+          "bytes": 137578,
+          "sha256": "a2191aa01f1f1bc96ac2a02f3cdac8bd8369374f8acedb9cc3417b2fb7343afb",
+          "untouchedDownloadedBytes": true,
+          "noHumans": true,
+          "role": "main-candidate",
+          "identity": "Folia black drawing/craft paper, 130 g/m², 50 × 70 cm, 100 sheets. Betzold 80001IN; primary web-rendered page confirms manufacturer Max Bringmann/Folia and black colour.",
+          "decision": "reject-insufficient-native-clarity",
+          "review": {
+            "quality": "Whole black top sheet and stacked edge are visible with no people. However at 1:1 the sheet surface resolves as broad blocky/compressed patches and lower/left edges are soft with repeated coarse stair-step halos. The 2048² canvas does not provide sharp useful zoom detail. Do not treat dimensions alone as compliance; no external upscale proven, but genuine high-detail capture not established.",
+            "exactIdentity": "Original ATEHNA page explicitly identifies black B 2, 130 g and through-coloured paper. Its original black photo is compatible in tone, and no maker is stated. Current database 707 × 500 mm derives from ISO B 2 import, while source merely names B 2; this 50 × 70 cm supplier format is a plausible nominal-format match, not proof that 700 equals 707. No dimensions or product facts changed.",
+            "views": "Single photograph only. Linked MM 343 × 281 and BL 180 × 149 repeat the capture, not additional angles."
+          }
+        },
+        {
+          "sourcePage": "https://www.sajor.com.mx/producto/cartoncillo-130-gr-50x70-negro-pqt-c-250",
+          "imageUrl": "https://www.sajor.com.mx/assets/uploads/sw_137011.png",
+          "sourcePath": "tmp/product-image-audit/colour-paper-v7/sajor-native.png",
+          "width": 640,
+          "height": 640,
+          "bytes": 222493,
+          "sha256": "95d82506ec5f7ade844c7980ed15e99783e803020f078cc35a2ae64ef05269a7",
+          "untouchedDownloadedBytes": true,
+          "noHumans": true,
+          "role": "main-candidate",
+          "identity": "Celufibra black school card/paper, 130 g, 50 × 70 cm, 250 sheets. Primary Sajor product 137011.",
+          "decision": "reject-resolution",
+          "review": {
+            "quality": "Actual unmodified original 640 × 640 fails both minimum axes. No larger native original linked in page.",
+            "exactIdentity": "Name, black colour, 130 g and 50 × 70 cm known, but through-coloured construction not independently specified. No claim or substitute published."
+          }
+        },
+        {
+          "sourcePage": "https://www.antus.si/sl/shop/papirji-kartoni/barvni-papir--130-g/barvni-papir-130g-b2-50x70cm-1-pola.html",
+          "evidence": "tmp/product-image-audit/colour-paper-v7/antus.html",
+          "decision": "Fresh public colour names/codes and EANs confirmed; variants remain presented by tiny swatches. No new qualifying real whole-sheet source accepted."
+        },
+        {
+          "sourcePage": "https://www.lms.de/kunst-basteln/papier/tonpapier/21309063/tonpapier-sortiment-50x70-cm-400-bogen-in-schwarz",
+          "decision": "Exactblack130gsm50×70 pack indexed, publicsourcefetch timedout and cachedgallery unavailable."
+        }
+      ],
+      "originalAtehnaEvidence": {
+        "sourcePage": "https://atehna.si/product/barvni-papir-b2-razlicne-barve/",
+        "savedPage": "tmp/product-image-audit/materials-v3/barvni-papir-b2-razlicne-barve.html",
+        "imagePath": "tmp/product-image-audit/root-v5/atehna-black-original.jpg",
+        "description": "Original title B 2; description 130 g, coloured during manufacture so cut edges are not white. No explicit millimetre dimensions or maker."
+      },
+      "missingViews": "Sharp real whole black B 2 sheet main; useful reverse/edge view if available. No accepted photo from either new source."
+    },
+    {
+      "slug": "fotokarton",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.creativ-discount.de/Fotokarton-300g%2Fqm-50x70-cm-Hoch-Rot-1-Bogen",
+          "nativeEvidence": "tmp/product-image-audit/colour-paper-v7/creativ-natives.json",
+          "nativeDimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "decision": "Three originals inspected: flat red pack with Folia10sheet brandlabel and little observable material detail; genericmulticolourfan and whiteconstructedhouse. No exactplainred individual main/independent matching view accepted; do not silently substitute brandpack or recolour scene."
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "sourceEvidenceFile": "tmp/product-image-audit/colour-paper-v7/sources.json",
+    "linkedGalleryEvidence": "tmp/product-image-audit/colour-paper-v7/betzold-linked-images.json",
+    "filesChecked": [
+      "tmp/product-image-audit/colour-paper-v7/betzold-native.jpg",
+      "tmp/product-image-audit/colour-paper-v7/sajor-native.png"
+    ],
+    "noTransformsPublished": true,
+    "noDatabaseChanges": true,
+    "noCanonicalChanges": true,
+    "independentRootReview": "Betzold native original reviewed: broad blocky tone patches and soft haloed edges do not provide useful paper texture for zoom. No claim made about external processing history."
+  }
+}

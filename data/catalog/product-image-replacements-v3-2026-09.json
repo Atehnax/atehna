@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-13T20:14:24.128Z",
+  "status": "sources-reviewed",
+  "accepted": [
+    {
+      "slug": "mekol",
+      "id": "mekol-1001-1kg-izvirnik-v3",
+      "file": "tmp/product-image-audit/root-v3/mekol-1001-trgopromet.jpeg",
+      "sourcePage": "https://www.trgopromet.si/products/lepilo-za-les-mekol-1001-1kg",
+      "imageUrl": "https://www.trgopromet.si/cdn/shop/files/FC17BCF3-8347-4494-AD5E-4BA327733D75.jpg?v=1692779998",
+      "variantNames": [
+        "1001 1kg"
+      ],
+      "view": "front-three-quarter",
+      "altText": "Mekol 1001, 1 kg — celotna embalaža in oznake izdelka",
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/mekol-1001-1kg.jpg"
+      ],
+      "review": "Native 3024 square supplier photograph of MEKOL1001 1kg, same model/formula and size. Real older packaging, readable label and full tub with red lid, neutral white background. Visually inspected original; no people or body parts. Source Shopify metadata confirms 3024x3024. Replaces an image whose nominal 1200 square dimensions were padded from an 800x1200 original.",
+      "width": 3024,
+      "height": 3024,
+      "sha256": "1ec2a726f6187ab01d35086e686000d153fcd518b1124a387e6ab2e025d03e97",
+      "blobUrl": "/images/catalog/2026-09/mekol-1001-1kg-izvirnik-v3.jpg",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "role": "main"
+    },
+    {
+      "slug": "mekol",
+      "id": "mekol-d3-500g-izvirnik-v3",
+      "file": "tmp/product-image-audit/root-v3/mekol-d3-raw.png",
+      "sourcePage": "https://sijalka.com/artikli/disperzijsko-enokomponentno-vodoodporno-lepilo-za-les-mitol-mekol-d3-500-g/",
+      "imageUrl": "https://sijalka.com/wp-content/uploads/2024/12/Disperzijsko-enokomponentno-vodoodporno-lepilo-za-lepljenje-lesa-Mitol-nekol-D3-500-g.png",
+      "variantNames": [
+        "D3 500g"
+      ],
+      "view": "front-three-quarter",
+      "altText": "Mekol D3, 500 g — izvirni posnetek embalaže in oznak",
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/mekol-d3-500g.png"
+      ],
+      "review": "Native 2582x2965 supplier original, replacing the WordPress scaled 2229x2560 version of this same photograph. Same exact D3 500g label, red cap and full bottle. Visually inspected full frame; no humans. Native detail upgrade only, not an extra viewing angle.",
+      "width": 2582,
+      "height": 2965,
+      "sha256": "4b8a5fece63b7c3550fda0eb22da9294521ebfc88717edcca6c0147ebefca68f",
+      "blobUrl": "/images/catalog/2026-09/mekol-d3-500g-izvirnik-v3.png",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "role": "main"
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "id": "ravnilo-decimetrsko-100cm-izvirnik-v3",
+      "blobUrl": "/images/catalog/2026-09/ravnilo-decimetrsko-100cm-izvirnik-v3.png",
+      "sourcePage": "https://wissner-aktiv-lernen.com/Lineal-100-cm/010300.000",
+      "imageUrl": "https://wissner-aktiv-lernen.com/media/f6/f6/c3/1735909579/Wissner_010300.000.png?ts=1761747367",
+      "width": 2400,
+      "height": 1600,
+      "sha256": "09445513513cf84c0d3f6c60d829d93a09c56f89883bbdc1e1a0c1dc326c2bd2",
+      "variantNames": [
+        "100 cm, decimetrska skala"
+      ],
+      "view": "front-three-quarter",
+      "role": "main",
+      "altText": "Wissner decimetrsko ravnilo za tablo, 100 cm — celotno ravnilo in merilna skala",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/ravnilo-za-tablo-decimetrsko-izvirnik.jpg"
+      ],
+      "review": "Native manufacturer 2400x1600 original, same100cm decimetre ruler with black ribbed handle, alternating top centimetre blocks and numbered lower decimetres/red alternate bars. Full product visible, readable scales, neutral grey background. Replaces soft ATEHNA1200 square red-background photo. Supplier white-background rendition is the same capture and is not added as another view."
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "id": "trikotnik-45-50cm-izvirnik-v3",
+      "blobUrl": "/images/catalog/2026-09/trikotnik-45-50cm-izvirnik-v3.png",
+      "sourcePage": "https://www.wissner-aktiv-lernen.com/Rechter-Winkel-450-50-cm/010700.000",
+      "imageUrl": "https://www.wissner-aktiv-lernen.com/media/b8/62/5d/1736251295/Wissner_010700.000.png?ts=1761748120",
+      "width": 2400,
+      "height": 1600,
+      "sha256": "cbef3167c23c57ab7653bc6b5892990593a254c6079fc787436b91f5bf157ce6",
+      "variantNames": [
+        "45° / 50 cm"
+      ],
+      "view": "front-three-quarter",
+      "role": "main",
+      "altText": "Wissner trikotnik za tablo, 45° / 50 cm — celoten izdelek, ročaj in merilna skala",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/trikotniki-za-tablo.jpg"
+      ],
+      "review": "Native manufacturer2400x1600 photograph of exact older Wissner black ribbed handle model010700.000,45degree with50cm base. Matched scale markings, body cutouts, handle and overall geometry to original ATEHNA photo. Entire product visible, neutralgrey background, readable scales. Visual review at1200x800 and native metadata; no humans, no edits. White-background manufacturer copy is same capture, excluded."
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "id": "trikotnik-60-60cm-izvirnik-v3",
+      "blobUrl": "/images/catalog/2026-09/trikotnik-60-60cm-izvirnik-v3.png",
+      "sourcePage": "https://www.wissner-aktiv-lernen.com/Spitzer-Winkel-600-60-cm/010810.000",
+      "imageUrl": "https://www.wissner-aktiv-lernen.com/media/22/42/20/1736317906/Wissner_010810.000.png?ts=1761748200",
+      "width": 2400,
+      "height": 1600,
+      "sha256": "b6b603d3c4678b6788567632dc803401fb37018fd70d0a858cd21d48ec3cd0b6",
+      "variantNames": [
+        "60° / 60 cm"
+      ],
+      "view": "front-three-quarter",
+      "role": "main",
+      "altText": "Wissner trikotnik za tablo, 60° / 60 cm — celoten izdelek, ročaj in merilna skala",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/trikotnik-60-stopinj-60cm-izvirnik.jpg"
+      ],
+      "review": "Native manufacturer2400x1600 photograph of exact older Wissner black ribbed handle model010810.000,60degree with60cm long leg. Matched scale markings, body cutouts, handle and overall geometry to original ATEHNA photo. Entire product visible, neutralgrey background, readable scales. Visual review at1200x800 and native metadata; no humans, no edits. White-background manufacturer copy is same capture, excluded."
+    },
+    {
+      "slug": "uhu-kraft",
+      "id": "uhu-kraft-42g-front-toom-v3",
+      "file": "public/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "sourcePage": "https://toom.de/p/alleskleber-kraft-flex-tube-42-g/8150308",
+      "imageUrl": "https://static.toom.de/produkte/bilder/8150308/8150308.png",
+      "sourceIdentityEvidence": "TOOM product 8150308 identifies UHU Kraft FlexTube 42 g; linked manufacturer SDS explicitly identifies UHU 45040. Label/model/volume match the current official photo.",
+      "sourceIdentityDocument": "https://static.toom.de/produkte/bilder/8150308/sicherheitsdatenblatt_8150308.pdf",
+      "variantNames": [
+        "UHU Kraft alleskleber - 42g"
+      ],
+      "variantIds": [
+        "175"
+      ],
+      "view": "front-three-quarter",
+      "altText": "UHU Kraft FlexTube, 42 g — celotna tuba in oznake izdelka",
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png"
+      ],
+      "review": "Unchanged native 2000 × 2000 retailer original PNG. Sharp exact UHU Kraft 42 g FlexTube label, cap and tube surface at original pixel scale; complete product on neutral white background, no humans. Product itself spans 1160 × 1192 pixels (threshold 180 bounds), with natural framing. Higher detail version of the authenticated official front capture; counts as one front photograph, not an additional viewing angle. Root independently visually reviewed and accepted.",
+      "width": 2000,
+      "height": 2000,
+      "bytes": 629496,
+      "sha256": "56de812574c2ed2b21f59c8d04712b08ef7e6c8ae0e6a3f74e275175ebfa7f0a",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "role": "main"
+    }
+  ],
+  "researchEvidence": [
+    "tmp/product-image-audit/root-v3/second-candidates.json",
+    "tmp/product-image-audit/root-v3/mekol-1001-candidates.json",
+    "tmp/product-image-audit/root-v3/switch-candidates.json",
+    "tmp/product-image-audit/root-v3/geometry-candidates.json",
+    "tmp/product-image-audit/root-v3/extra-geometry.json"
+  ],
+  "rejectedSourceFindings": [
+    {
+      "slugs": [
+        "uhu-super-glue"
+      ],
+      "finding": "LargerShopify/Premier sources showControl3g orUltraFast3g, notexact3mlInstantBond oldredtube. Original exactATEHNAphoto is1200x675 andfails. No acceptedreplacement."
+    },
+    {
+      "slugs": [
+        "vgradno-stikalo"
+      ],
+      "finding": "ExactRadioKoelschthree realangles are800x800. LargerOPITEC/Jimdo alternatives differ plunger/collar/terminalconstruction."
+    },
+    {
+      "slugs": [
+        "geotrikotnik"
+      ],
+      "finding": "WLVersand1024square multi-view gallery usesorangeWiemann handles andmarkings, differssoldblackhandleWissner."
+    },
+    {
+      "slugs": [
+        "trigonir"
+      ],
+      "finding": "Official TRISO12496 original is420x240. Existing1026square front/reverse depict TRISO12496/EAN3830056490558, while the catalog explicitly specifies model216; no equivalence is verified. Both photograph records were actually removed. The separate mathematical schematic is preserved. Exact model216 original photos are still needed."
+    },
+    {
+      "slugs": [
+        "mekol"
+      ],
+      "finding": "Mekol1001 padded1200square image traces to800x1200 original, rejected. Other native1001supplier sources250–800pixelswide. LIONSpecial1600x1200 provideslessdetail thanexisting2048source; itsusephoto containsa handandis1200x900."
+    }
+  ]
+}

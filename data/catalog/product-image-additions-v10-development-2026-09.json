@@ -1,0 +1,220 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T15:59:33.635Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-paper-v10-2026-09.json",
+    "data/catalog/replacement-sources-known-products-v10-2026-09.json",
+    "data/catalog/replacement-sources-white-products-v10-2026-09.json",
+    "data/catalog/replacement-sources-root-v10-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "proxxon-dsh-delovno-obmocje-narzedzia-v10",
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "variantSkus": [
+        "STR-VIB-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-delovno-obmocje-narzedzia-v10.png",
+      "sha256": "7bfced5454208e18c7749bea6ede2e9847cc7ef6c4e447b8ba20b4e16969a9d4",
+      "dimensions": {
+        "width": 1542,
+        "height": 1080
+      },
+      "sourcePage": "https://www.narzedzia.pl/proxxon-dsh-pr28092,1716.html",
+      "sourceUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080_2.png",
+      "sourceIdentityEvidence": "Retailer identifies Proxxon DSH PR28092. The photographed plate independently reads NO 28 092, 220–240 V, 145/205 W and 900/1400 min⁻¹. Yellow upper arm, green cast base, table, transparent standard blade guard, blade holder and switch housing match the retained full main. Manufacturer manual section 6.5 establishes the clear blade guard as standard equipment. Wood workpieces are demonstrative props and excluded in the visible caption.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "context",
+      "role": "detail",
+      "view": "Independent photograph demonstrating the DSH working area, guard and wooden cutouts; not counted as a new camera angle.",
+      "altText": "Primer uporabe – Proxxon DSH 28092: delovna miza, prozorno varovalo in rezanje. Prikazani leseni obdelovanci niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/7bfced5454208e18-proxxon-dsh-delovno-obmocje-narzedzia-v10.png",
+      "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/7bfced5454208e18-proxxon-dsh-delovno-obmocje-narzedzia-v10.png"
+    },
+    {
+      "id": "proxxon-dsh-miza-prilozena-oprema-narzedzia-v10",
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "variantSkus": [
+        "STR-VIB-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png",
+      "sha256": "bbdf46462d784e057d4f74ea3eb868d9747f844d29a39c15a52802f56dbb6951",
+      "dimensions": {
+        "width": 1080,
+        "height": 1080
+      },
+      "sourcePage": "https://www.narzedzia.pl/proxxon-dsh-pr28092,1716.html",
+      "sourceUrl": "https://www.narzedzia.pl/photo/product/proxxon-dsh-pr28092-2-1716-f-sk6-w1550-h1080.png",
+      "sourceIdentityEvidence": "Exact Proxxon DSH PR28092 merchant product and matching yellow upper arm, green base, table, transparent guard, switch housing and model plate. Manufacturer DSH manual section 6.7.1.2 explicitly describes the supplied Allen key with T grip; section 6.6 documents the vacuum connection. Independent exact 28092 package list at Proxxontools.ro includes one T Allen key and one rubber vacuum-connection adapter, with no dealer-bundle indication. Bauhaus 28092/EAN4006274280922 and Globus 28092 likewise list the extraction adapter in standard delivery. These photographed parts are standard machine equipment, not an inferred dealer-only bundle.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "Independent photograph of the unobstructed full table and separate standard T-key and vacuum adapter; useful component information, not counted as a new camera angle.",
+      "altText": "Proxxon DSH 28092 — celotna delovna miza s priloženim T-ključem in nastavkom za odsesavanje.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vibracijska-zaga-proxxon-dsh/images/bbdf46462d784e05-proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png",
+      "hostedBlobPathname": "catalog-items/vibracijska-zaga-proxxon-dsh/images/bbdf46462d784e05-proxxon-dsh-miza-prilozena-oprema-narzedzia-v10.png"
+    },
+    {
+      "id": "pleksi-belo-300x200x3-vogal-rob-lasercut-v10",
+      "slug": "pleksi-steklo",
+      "variantSkus": [
+        "MAT-UME-PLE-3x300x200-BELO"
+      ],
+      "blobUrl": "/images/catalog/2026-09/pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg",
+      "sha256": "d29358ca27ac48632793d748647ae34619ebd12d5dbc2dfa86be2c9493ca0e3a",
+      "dimensions": {
+        "width": 1361,
+        "height": 1361
+      },
+      "sourcePage": "https://lasercutstudio.com/products/white-acrylic-with-laser-cutting-only-300x200mm",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0240/0915/files/squarewhiteacrylic_a4c4c878-0ce0-488a-84ae-0a8fb9a716a1.jpg?v=1682510539",
+      "sourceIdentityEvidence": "Dealer product explicitly offers white acrylic 3 mm in 300 × 200 mm stock format for laser cutting; photo belongs to that exact gallery. No manufacturer or optical-transmission claims added.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "Close corner and cut-edge photograph",
+      "altText": "Belo pleksi steklo, debeline 3 mm — podrobnost vogala, površine in roba.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pleksi-steklo/images/d29358ca27ac4863-pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg",
+      "hostedBlobPathname": "catalog-items/pleksi-steklo/images/d29358ca27ac4863-pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg"
+    },
+    {
+      "id": "fotokarton-rdeci-b2-300-kurth-v10",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-RDECA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-rdeci-b2-300-kurth-v10.jpg",
+      "sha256": "eb35d3112ad90d080c80679b955f8d876093886467a7253c2586194c99ce7827",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-rot-300-g-m2-50-x-70-cm/013020",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/b8/84/e5/1612290416/picA013020-1_XL.jpg",
+      "sourceIdentityEvidence": "Supplier page and variant code 013020 explicitly identify 300 g/m² photo card in DIN B2, colour rot. The original ATEHNA family identifies unbranded B2/300 g photo card; its named colour and original flat swatch agree with this ordinary colour/finish. No brand or proprietary shade claim is imported. This is commodity matching by material, format, grammage and colour, not proof of a manufacturer identity. B2 is the original named format: the imported 707 mm conversion was generated from B2, not a measurement. The supplier labels DIN B2 (approximately 50×70 cm). Supplier reuses some colour stock-photo compositions between 130 g and 300 g pages; this exact source is attached to its 300 g page and does not independently demonstrate grammage or stiffness. It is one photograph, not a newly invented angle.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete photo-card sheet and stacked sheets, natural surface and edge view",
+      "altText": "Fotokarton B2, 300 g/m², rdeč – prikaz barve, površine in roba lista. Fotografija prikazuje več listov; dodatni listi niso vključeni v ceno posameznega lista.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/eb35d3112ad90d08-fotokarton-rdeci-b2-300-kurth-v10.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/eb35d3112ad90d08-fotokarton-rdeci-b2-300-kurth-v10.jpg"
+    },
+    {
+      "id": "fotokarton-srebrni-b2-300-kurth-v10",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-SREBRNA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-srebrni-b2-300-kurth-v10.jpg",
+      "sha256": "246f9da51aff021f1ea33c92dafd03b3e2c1bca99b1f1a677e0eac9787f4d946",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-silber-300-g-m2-50-x-70-cm/013060",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/a2/74/00/1612290424/picA013060-1_XL.jpg",
+      "sourceIdentityEvidence": "Supplier page and variant code 013060 explicitly identify 300 g/m² photo card in DIN B2, colour silber. The original ATEHNA family identifies unbranded B2/300 g photo card; its named colour and original flat swatch agree with this ordinary colour/finish. No brand or proprietary shade claim is imported. This is commodity matching by material, format, grammage and colour, not proof of a manufacturer identity. B2 is the original named format: the imported 707 mm conversion was generated from B2, not a measurement. The supplier labels DIN B2 (approximately 50×70 cm). Supplier reuses some colour stock-photo compositions between 130 g and 300 g pages; this exact source is attached to its 300 g page and does not independently demonstrate grammage or stiffness. It is one photograph, not a newly invented angle.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete photo-card sheet and stacked sheets, natural surface and edge view",
+      "altText": "Fotokarton B2, 300 g/m², srebrn – prikaz barve, površine in roba lista. Fotografija prikazuje več listov; dodatni listi niso vključeni v ceno posameznega lista.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/246f9da51aff021f-fotokarton-srebrni-b2-300-kurth-v10.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/246f9da51aff021f-fotokarton-srebrni-b2-300-kurth-v10.jpg"
+    },
+    {
+      "id": "fotokarton-zlati-b2-300-kurth-v10",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-ZLATA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-zlati-b2-300-kurth-v10.jpg",
+      "sha256": "0c75d131e957c1241c4884739255a2543710f0c330d065b4cac983cad02cd395",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-gold-300-g-m2-50-x-70-cm/013065",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/ce/5c/58/1612290424/picA013065-1_XL.jpg",
+      "sourceIdentityEvidence": "Supplier page and variant code 013065 explicitly identify 300 g/m² photo card in DIN B2, colour gold. The original ATEHNA family identifies unbranded B2/300 g photo card; its named colour and original flat swatch agree with this ordinary colour/finish. No brand or proprietary shade claim is imported. This is commodity matching by material, format, grammage and colour, not proof of a manufacturer identity. B2 is the original named format: the imported 707 mm conversion was generated from B2, not a measurement. The supplier labels DIN B2 (approximately 50×70 cm). Supplier reuses some colour stock-photo compositions between 130 g and 300 g pages; this exact source is attached to its 300 g page and does not independently demonstrate grammage or stiffness. It is one photograph, not a newly invented angle.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete photo-card sheet and stacked sheets, natural surface and edge view",
+      "altText": "Fotokarton B2, 300 g/m², zlat – prikaz barve, površine in roba lista. Fotografija prikazuje več listov; dodatni listi niso vključeni v ceno posameznega lista.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/0c75d131e957c124-fotokarton-zlati-b2-300-kurth-v10.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/0c75d131e957c124-fotokarton-zlati-b2-300-kurth-v10.jpg"
+    },
+    {
+      "id": "fotokarton-rumeni-b2-300-kurth-v10",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-RUMENA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-rumeni-b2-300-kurth-v10.jpg",
+      "sha256": "324f23f8707dd7df6bbba26497a5e03be783a94ea05a5e2137fa34f3e3fd1593",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-zitronengelb-300-g-50-x-70-cm/013012",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/d1/aa/49/1612290414/picA013012-1_XL.jpg",
+      "sourceIdentityEvidence": "Supplier page and variant code 013012 explicitly identify 300 g/m² photo card in DIN B2, colour zitronengelb. The original ATEHNA family identifies unbranded B2/300 g photo card; its named colour and original flat swatch agree with this ordinary colour/finish. No brand or proprietary shade claim is imported. This is commodity matching by material, format, grammage and colour, not proof of a manufacturer identity. B2 is the original named format: the imported 707 mm conversion was generated from B2, not a measurement. The supplier labels DIN B2 (approximately 50×70 cm). Supplier reuses some colour stock-photo compositions between 130 g and 300 g pages; this exact source is attached to its 300 g page and does not independently demonstrate grammage or stiffness. It is one photograph, not a newly invented angle.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete photo-card sheet and stacked sheets, natural surface and edge view",
+      "altText": "Fotokarton B2, 300 g/m², rumen – prikaz barve, površine in roba lista. Fotografija prikazuje več listov; dodatni listi niso vključeni v ceno posameznega lista.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/324f23f8707dd7df-fotokarton-rumeni-b2-300-kurth-v10.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/324f23f8707dd7df-fotokarton-rumeni-b2-300-kurth-v10.jpg"
+    },
+    {
+      "id": "risalni-list-a5-na-leseni-podlagi-v10",
+      "slug": "risalni-list",
+      "variantSkus": [
+        "MAT-PAP-RIS-210x148-A5"
+      ],
+      "blobUrl": "/images/catalog/2026-09/risalni-list-a5-na-leseni-podlagi-v10.jpg",
+      "sha256": "319b98aafe620a855103d399f43651e6ff91b550d23d7abe8608db8b84594b51",
+      "dimensions": {
+        "width": 3024,
+        "height": 3024
+      },
+      "sourcePage": "https://stamfordnotebooks.co.uk/products/loose-sheets-white-sketch-cartridge-paper-140gsm",
+      "sourceUrl": "https://stamfordnotebooks.co.uk/cdn/shop/files/IMG_7278_e5d172a0-591a-4aa7-bae6-86cef9cee94e.jpg?v=1744729962",
+      "sourceIdentityEvidence": "Source explicitly sells loose plain white sketch/drawing cartridge paper cut to A4 or A5. ATEHNA risalni-list A5 identifies plain white loose drawing paper and A5 dimensions; its original listing and canonical variant do not state grammage or manufacturer. The complete A5 foreground sheet is suitable under authorized unbranded commodity material/form matching; the rear A4 sheet is partially obscured, so this photograph is not assigned as A4 main. No source-only Stamford brand, 140 g weight or manufacturing claim is added to catalog specifications. This illustrates plain drawing paper material and selected A5 shape, not supplier identity or measurable weight.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete A5 drawing sheet on contrasting wooden surface, with an A4 sheet behind",
+      "altText": "Risalni list A5 v ospredju na leseni podlagi; zadaj je primer formata A4. Dodatni list, knjige in miza niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/319b98aafe620a85-risalni-list-a5-na-leseni-podlagi-v10.jpg",
+      "hostedBlobPathname": "catalog-items/risalni-list/images/319b98aafe620a85-risalni-list-a5-na-leseni-podlagi-v10.jpg"
+    }
+  ]
+}

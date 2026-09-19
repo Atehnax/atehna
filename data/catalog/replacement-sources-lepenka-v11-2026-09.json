@@ -1,0 +1,328 @@
+{
+  "version": 11,
+  "reviewedAt": "2026-09-14T16:06:02.918Z",
+  "status": "reviewed-with-source-gaps",
+  "scope": "Bounded fresh source pass for five missing Lepenka variants. Source research only; no DB, canonical, runtime or public assets modified.",
+  "authoritativeAudit": "data/catalog/product-image-audit-v9-2026-09.json",
+  "priorEvidence": [
+    "data/catalog/replacement-sources-paper-v5-2026-09.json",
+    "data/catalog/replacement-sources-paper-v7-2026-09.json",
+    "data/catalog/replacement-sources-root-v10-2026-09.json"
+  ],
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "unchangedOriginalBytes": true,
+    "exactStockAndCutOnly": true,
+    "preferContrastingBackgroundForWhite": true
+  },
+  "summary": {
+    "families": 1,
+    "remainingVariantsAtStart": 5,
+    "remainingVariantsAfterResearch": 5,
+    "acceptedImages": 0,
+    "htmlPageProbes": 12,
+    "successfulHtmlPages": 11,
+    "productJsonGalleries": 1,
+    "decodedOriginalFetches": 8,
+    "uniqueDecodedOriginals": 8,
+    "originalFetchesBelowMinimum": 2,
+    "heldDetailOriginals": 2,
+    "largeOriginalsRejectedForContent": 4
+  },
+  "products": [
+    {
+      "slug": "lepenka",
+      "itemName": "Lepenka",
+      "variantSkus": [
+        "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+        "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+        "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+        "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+        "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "variantName": "Bela lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A3",
+            "Format": "A3",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "variantName": "Siva lepenka A2",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Siva lepenka A2",
+            "Format": "A2",
+            "Debelina": "0,7 mm",
+            "Barva": "Siva"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "variantName": "Bela lepenka A4",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A4",
+            "Format": "A4",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "variantName": "1,2 mm B1",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Lepenka 1,2 mm B1",
+            "Format": "B1",
+            "Debelina": "1,2 mm"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "variantName": "Papir lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir lepenka A3",
+            "Format": "A3",
+            "Debelina": "0,8 mm"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "rca-white-native-0",
+          "sourcePage": "https://shop.rca.ac.uk/products/a3-mountboard",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0440/8983/5680/products/MBSW_alt.jpg?v=1599165217",
+          "nativeDimensions": {
+            "width": 709,
+            "height": 709
+          },
+          "sha256": "c9c091f98b5aae2c902e6b72d1bd23a4e7a0155097e3d3da99c75410751977f5",
+          "evidencePath": "tmp/lepenka-v11/rca-white-native-0.jpg",
+          "status": "rejected",
+          "reason": "Native 709×709; fails minimum 1024 pixels on both axes. Enlarged storefront derivatives are not qualifying originals."
+        },
+        {
+          "id": "hura-white-native",
+          "sourcePage": "https://www.hurapapir.cz/1-mm/bila-lepenka-kartony-10-ks-a4-21-x-29-8-cm-tl--1-mm---vhodne-na-tvorbu-alba/",
+          "imageUrl": "https://cdn.myshoptet.com/usr/www.hurapapir.cz/user/shop/orig/68694_rysovaci-karton-a3-original.jpg?67a0ace5",
+          "nativeDimensions": {
+            "width": 576,
+            "height": 576
+          },
+          "sha256": "da0e8239fcb607ea064907453661be142ce3ed0303d4985fc028dbd79eeaca7c",
+          "evidencePath": "tmp/lepenka-v11/hura-white-native.jpg",
+          "status": "rejected",
+          "reason": "Native 576×576; fails minimum 1024 pixels on both axes. Enlarged storefront derivatives are not qualifying originals."
+        },
+        {
+          "id": "zieler-white-a3-native",
+          "sourcePage": "https://www.zieler.co.uk/product/a3-mount-board-white-pack-of-4-by-zieler-09290041/",
+          "imageUrl": "https://www.zieler.co.uk/wp-content/uploads/2025/10/1-MAIN-57-scaled-1.jpg",
+          "nativeDimensions": {
+            "width": 2560,
+            "height": 2560
+          },
+          "sha256": "e09271e1cbe2f4aa706de092665f33afd621c8ceb256ef9135988d45fd472d30",
+          "evidencePath": "tmp/lepenka-v11/zieler-white-a3-native.jpg",
+          "status": "rejected",
+          "reason": "Complete branded Zieler pack of four is pictured with acid-free, neutral-pH and anti-UV claims on visible packaging. This package and treated stock are not established for the unbranded individual ATEHNA sheet. Flat white-on-white frontal image also gives little material detail."
+        },
+        {
+          "id": "bevelmounts-native-1",
+          "sourcePage": "https://www.bevelmounts.com/shop/p/max-size-a4-297-x-21cm-photo-picture-mount-rte4m-f7lkx-247nk-dw3j9-8y3rm-6zaj2-9clgn",
+          "imageUrl": "https://images.squarespace-cdn.com/content/v1/69a61126fcad8b12c94d467c/b5f36750-93c2-4197-9271-9946fb28f52d/BACKS-SOFT-20.jpg",
+          "nativeDimensions": {
+            "width": 1920,
+            "height": 1440
+          },
+          "sha256": "d026d1baf33964749e13aa87896b0cf014e7ee29914eff965db00af893322a48",
+          "evidencePath": "tmp/lepenka-v11/bevelmounts-native-1.webp",
+          "status": "rejected",
+          "reason": "Native size passes, but fine sheet edges are soft and the surface lacks useful resolved detail. Shared sheet geometry with the ice-white image also means these cannot be represented as independent photographs of opposite sides."
+        },
+        {
+          "id": "bevelmounts-native-2",
+          "sourcePage": "https://www.bevelmounts.com/shop/p/max-size-a4-297-x-21cm-photo-picture-mount-rte4m-f7lkx-247nk-dw3j9-8y3rm-6zaj2-9clgn",
+          "imageUrl": "https://images.squarespace-cdn.com/content/v1/69a61126fcad8b12c94d467c/505bbddc-92e5-4453-9745-7c32185371bc/BACKS-ICE-20.jpg",
+          "nativeDimensions": {
+            "width": 1920,
+            "height": 1440
+          },
+          "sha256": "a3b10be990bf732ccbf22c629956d773dcd04cf7d68cfbe8f61ea6282981c1e4",
+          "evidencePath": "tmp/lepenka-v11/bevelmounts-native-2.webp",
+          "status": "rejected",
+          "reason": "Native size passes, but strong blue cast misrepresents natural white; soft fine edge outlines and flat noisy surface do not provide useful zoom. Independently rejected by root. No colour correction permitted."
+        },
+        {
+          "id": "bevelmounts-native-0",
+          "sourcePage": "https://www.bevelmounts.com/shop/p/max-size-a4-297-x-21cm-photo-picture-mount-rte4m-f7lkx-247nk-dw3j9-8y3rm-6zaj2-9clgn",
+          "imageUrl": "https://images.squarespace-cdn.com/content/v1/69a61126fcad8b12c94d467c/f2cdc917-371c-4f45-8123-412da72fa830/BACKS-ICE-SOFT-20.jpg",
+          "nativeDimensions": {
+            "width": 1920,
+            "height": 1440
+          },
+          "sha256": "80b5f29d8b6127a05738db84bd569170b69032e43448d1a88c1e14c5cae19a3c",
+          "evidencePath": "tmp/lepenka-v11/bevelmounts-native-0.webp",
+          "status": "rejected",
+          "reason": "Combined soft-white/ice-white display does not resolve missing natural-colour, sharp material view. The two individual views have shared geometry and cannot establish distinct sides; this composite is not counted as an additional angle."
+        }
+      ],
+      "pending": [
+        {
+          "id": "intaglio-single-native",
+          "sourcePage": "https://intaglioprintmaker.com/product/enviromount-a3/",
+          "imageUrl": "https://intaglioprintmaker.com/wp-content/uploads/2020/04/Enviromount-Each-copy.jpg",
+          "nativeDimensions": {
+            "width": 1417,
+            "height": 1417
+          },
+          "sha256": "9426ae167723c2d150784e99cf451bec3700f8f5949d9cd6432fe4ff86930061",
+          "evidencePath": "tmp/lepenka-v11/intaglio-single-native.jpg",
+          "status": "held-detail-only",
+          "reason": "Real sharp corner/edge detail, but product is cropped: no complete sheet main. Source is A3 Enviromount 1.25 mm, white both sides with grey core; exact ATEHNA stock construction is not established. Held only as a possible detail if compatible complete main and stock evidence are obtained."
+        },
+        {
+          "id": "intaglio-pack-native",
+          "sourcePage": "https://intaglioprintmaker.com/product/enviromount-a3/",
+          "imageUrl": "https://intaglioprintmaker.com/wp-content/uploads/2020/04/Enviromount-Pack-copy-1.jpg",
+          "nativeDimensions": {
+            "width": 1417,
+            "height": 1417
+          },
+          "sha256": "f032b52eaa669b4a6ff8d6d5e9fa62ea4fea52f958648f7fd6f5a6cd814f4f07",
+          "evidencePath": "tmp/lepenka-v11/intaglio-pack-native.jpg",
+          "status": "held-detail-only",
+          "reason": "Real sharp corner/edge detail, but product is cropped: no complete sheet main. Source is A3 Enviromount 1.25 mm, white both sides with grey core; exact ATEHNA stock construction is not established. Held only as a possible detail if compatible complete main and stock evidence are obtained."
+        }
+      ],
+      "sourceChecks": [
+        {
+          "sourcePage": "https://kartonfritze.de/din-a-2-zuschnitte-graupappe-594x420-mm.html",
+          "evidencePath": "tmp/lepenka-v11/kartonfritze-a2-grey.html",
+          "target": "A2 grey 0.7 mm",
+          "status": "rejected-stock",
+          "reason": "Exact A2 594×420 cut, but source explicitly specifies approximately 1.2 mm thickness. No thickness substitution."
+        },
+        {
+          "sourcePage": "https://www.likovni-material.si/artikli.php?id=64",
+          "evidencePath": "tmp/lepenka-v11/likovni-grey-product.html",
+          "target": "Grey A2/A3/B1",
+          "status": "rejected-stock",
+          "reason": "Slovenian Biroprodaja offers grey board 1, 2 and 3 mm, all 100×70 cm. None matches required A2/0.7, A3/0.8 or 707×1000/1.2."
+        },
+        {
+          "sourcePage": "https://profilstore.de/product-category/papier/tonpapier",
+          "evidencePath": "tmp/lepenka-v11/profilstore-white.html",
+          "target": "White A3/A4",
+          "status": "unresolved-cut-and-source",
+          "reason": "Category offers a white-front/grey-back 400 gsm board family A2/A3/A4, but specific observed item is A2. Product detail returned HTTP 520; no verified A3/A4 gallery association. Do not transfer A2 image to another cut."
+        },
+        {
+          "sourcePage": "https://www.eribo.sk/sk/lepenka/",
+          "target": "B1 1.2 mm",
+          "status": "rejected-stock",
+          "reason": "1.2 mm listing is white-grey 785 gsm; grey-grey options start at 1.75 mm. Different visible material and thickness; no qualifying exact grey B1/1.2 photo."
+        },
+        {
+          "sourcePage": "https://sklep.itax.net.pl/tektura-lita-makulaturowa-100x70-710g-08mm",
+          "target": "A3 grey 0.8 mm",
+          "status": "rejected-cut",
+          "reason": "Approximately 0.8 mm grey board is offered only as 100×70 cm sheet on this page, not exact A3. No photo transfer across cuts."
+        },
+        {
+          "sourcePage": "https://zing.com.pl/wp-content/uploads/2023/11/Kappa-Solid-Grey.pdf",
+          "target": "A3 grey 0.8 mm",
+          "status": "specification-only",
+          "reason": "Manufacturer datasheet establishes 0.8 mm grey board exists, but contains no exact A3 gallery photograph. Not a product-photo source."
+        },
+        {
+          "sourcePage": "https://www.europapier.si/si/spletna-trgovina/kartoni-lepenka-in-embalazni-papirji/lepenka~c96190",
+          "target": "White and grey board",
+          "status": "no-exact-cut-gallery",
+          "reason": "Catalogue includes multiple grades and white/grey constructions. No exact A3/A4 white or required grey thickness-and-cut native photograph was established from this category."
+        }
+      ],
+      "originalIdentityNotes": [
+        "White A3 and A4 specify plain white lepenka and cut, with no thickness stated. No new supplier brand, treatment, reverse colour or board grade was imported.",
+        "Grey A2 must be 0.7 mm; grey A3 must be 0.8 mm. Existing A4 grey 0.8 mm Mailshack photographs remain outside this pass.",
+        "Original ATEHNA B1 lepenka explicitly states 707×1000 mm. Unlike generic ISO normalization for some other paper families, 700×1000 is not accepted here as the same cut."
+      ],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "variantName": "Bela lepenka A3",
+          "missingViews": [
+            "sharp whole-sheet main",
+            "useful surface and edge detail"
+          ],
+          "reason": "Fresh originals are low resolution, cropped details, unsuitable branded package, or soft/cast whole-sheet images; no accepted exact white-sheet main."
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "variantName": "Siva lepenka A2",
+          "missingViews": [
+            "sharp whole-sheet main",
+            "useful surface and edge detail"
+          ],
+          "reason": "No fresh native sharp photograph for exact grey sheet cut and thickness; near thicknesses/cuts remain excluded."
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "variantName": "Bela lepenka A4",
+          "missingViews": [
+            "sharp whole-sheet main",
+            "useful surface and edge detail"
+          ],
+          "reason": "Fresh originals are low resolution, cropped details, unsuitable branded package, or soft/cast whole-sheet images; no accepted exact white-sheet main."
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "variantName": "1,2 mm B1",
+          "missingViews": [
+            "sharp whole-sheet main",
+            "useful surface and edge detail"
+          ],
+          "reason": "No native photograph tied to exact grey 1.2 mm, 707×1000 mm sheet. Known 700×1000 photo remains excluded."
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "variantName": "Papir lepenka A3",
+          "missingViews": [
+            "sharp whole-sheet main",
+            "useful surface and edge detail"
+          ],
+          "reason": "No fresh native sharp photograph for exact grey sheet cut and thickness; near thicknesses/cuts remain excluded."
+        }
+      ]
+    }
+  ],
+  "evidence": {
+    "directory": "tmp/lepenka-v11",
+    "pages": "tmp/lepenka-v11/pages.json",
+    "images": "tmp/lepenka-v11/probes.json",
+    "jsonGallery": "tmp/lepenka-v11/rca-native-gallery.json",
+    "checks": "All 8 downloaded original files were decoded with sharp and dimensions/SHA256 verified before writing this ledger."
+  },
+  "futureCaptionRule": "If multiple identical sheets are pictured in any accepted future main/detail, state: Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+  "previousRejectedSourcesNotRetried": [
+    "Calco grey board 0.5/0.75/1/1.25/etc mm",
+    "Papercard measured 0.6/0.75/1 mm",
+    "Kniharka white cropped corner",
+    "Slanchogled specialist absorbent coaster pulpboard",
+    "Giclees human-bearing and low-resolution gallery",
+    "Allegro B1 700×1000 versus original 707×1000",
+    "Circle PLS A3 grey low-resolution originals"
+  ]
+}

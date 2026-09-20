@@ -2,6 +2,7 @@ import { expect, test as base, type APIRequestContext, type Locator, type Page }
 import { resolve } from 'node:path';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { assertAuthenticatedAdmin, E2E_BASE_URL } from './support/auth';
+import { seedRetainedCatalogMediaFixture } from './support/retained-catalog-media-fixture';
 
 const IMAGE_PATHS = [
   '/images/catalog/2026-09/aluminijasta-plosca-kvadrat.png',
@@ -32,7 +33,7 @@ const test = base.extend<{ imageItem: CatalogItemEditorHydration; externalImageU
       unit: 'kos', taxRate: 0.22, optionAxes: imageVariantsMode === 'dimensions' ? [{ name: 'Barva', slug: 'barva', values: DIMENSION_COLORS.map((value, index) => ({ value, slug: 'barva-' + index })) }] : [], quantityDiscounts: [],
       media: IMAGE_PATHS.map((blobUrl, index) => ({
         mediaKind: 'image', role: 'gallery', sourceKind: 'upload',
-        ...(index === 0 && externalImageUrl ? { externalUrl: externalImageUrl } : { blobUrl }),
+        blobUrl,
         filename: blobUrl.split('/').at(-1), mimeType: 'image/png', altText: IMAGE_ALTS[index],
         imageDimensions: { width: 1024, height: 1024 }, imageType: 'product', hidden: false, position: index
       })),
@@ -46,7 +47,13 @@ const test = base.extend<{ imageItem: CatalogItemEditorHydration; externalImageU
     };
     const response = await request.post('/api/admin/artikli', { headers: { origin: E2E_BASE_URL }, data: payload });
     expect(response.status(), await response.text()).toBe(200);
+    const created = await response.json() as { id: number };
     try {
+      if (externalImageUrl) {
+        await seedRetainedCatalogMediaFixture({ id: created.id, slug }, [{
+          expectedBlobUrl: IMAGE_PATHS[0], externalUrl: externalImageUrl, mimeType: 'image/png'
+        }]);
+      }
       await runFixture(await readItem(request, slug));
     } finally {
       const deleted = await request.delete('/api/admin/artikli/' + slug, { headers: { origin: E2E_BASE_URL } });

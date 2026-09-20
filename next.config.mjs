@@ -7,6 +7,11 @@ const sensitiveOrderPageHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Catalog originals are CDN assets. Hosted validation reads them from the
+  // trusted site origin instead of duplicating the library in every function.
+  outputFileTracingExcludes: {
+    '/*': ['./public/images/catalog/**/*']
+  },
   async headers() {
     return [
       '/order/confirmation',

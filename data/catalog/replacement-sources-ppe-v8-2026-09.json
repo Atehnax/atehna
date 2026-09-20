@@ -1,0 +1,134 @@
+{
+  "version": 8,
+  "reviewedAt": "2026-09-14T13:56:51.347Z",
+  "status": "All three PPE families researched; no accurate qualifying source obtained.",
+  "policy": "Exact product/variant, unaltered native original >=1024 on both axes, no humans, no invented views. Identity gaps must not be resolved by arbitrary substitutions.",
+  "archiveEvidence": "tmp/product-image-audit/ppe-v8/archive/index.json",
+  "products": [
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "name": "Otroški zaščitni predpasnik",
+      "variantSkus": [
+        "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zascitni-predpasnik/",
+        "https://www.scit-zascitna-oprema.si/zascitni-predpasnik-iz-blaga-100-75-cm",
+        "https://www.scit-zascitna-oprema.si/otroski-predpasnik-kinder",
+        "https://www.scit-zascitna-oprema.si/media/uploads/files/Katalog%20za%20higieno%20%C5%A0%C4%8CIT%21.pdf"
+      ],
+      "rejectedCandidates": [
+        {
+          "sourceUrl": "https://atehna.si/wp-content/uploads/2017/12/6-1038-zascitni-predpasnik-iz-blaga-500x500.jpg",
+          "dimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "decision": "Below minimum; original reference depicts an adult100×75cm apron rather than establishing child-size product."
+        },
+        {
+          "sourceUrl": "https://www.scit-zascitna-oprema.si/modules/uploader/uploads/s_product/pics_s_product/zaitni-predpasnik-iz-blaga-100x75-0.jpg",
+          "dimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "decision": "Same adult model; below minimum and child-size identity unresolved."
+        },
+        {
+          "sourceUrl": "https://www.scit-zascitna-oprema.si/modules/uploader/uploads/s_product/pics_s_product/OTRO_KI_PREDPASNIK_MODRE_BARVE.jpg",
+          "dimensions": {
+            "width": 450,
+            "height": 530
+          },
+          "decision": "Child KINDER62123155×68cm is a different garment and below minimum."
+        }
+      ],
+      "missingViews": [
+        "Complete exact product, front or three-quarter view",
+        "Rear/side view showing construction",
+        "Useful detail of fastenings, markings or frame components"
+      ],
+      "identityEvidence": "ATEHNA item is explicitly child-size. Original media3163 (post2998) is named6-1038 and visually matches ŠČIT61038 adult100×75cm apron, leaving a real identity conflict. Do not silently substitute the adult apron or another child model.",
+      "requiredEvidence": "A stock label or purchase item reference establishing which child apron is actually sold, followed by a qualifying original photo of that item."
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "name": "Otroška očala za zaščito oči",
+      "variantSkus": [
+        "ZAS-OTR-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+        "https://atehna.si/shop/page/2/?orderby=popularity",
+        "https://atehna.si/kategoija/tehnika-in-tehnologija/page/3/"
+      ],
+      "rejectedCandidates": [
+        {
+          "sourcePage": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+          "decision": "Previously investigated TTS photos are900×900 and there is no independent link from ATEHNA45002 to this model."
+        }
+      ],
+      "missingViews": [
+        "Complete exact product, front or three-quarter view",
+        "Rear/side view showing construction",
+        "Useful detail of fastenings, markings or frame components"
+      ],
+      "identityEvidence": "Original ATEHNA 45002 has no product photograph, manufacturer, model or identifying description. Earlier tentative replacement brands in the new catalog are not independent identity evidence.",
+      "requiredEvidence": "An identifying stock label, supplier item number or reference photograph of the product actually sold.",
+      "archiveReview": {
+        "metadataRecords": 796,
+        "additionalVisualRecords": 375,
+        "contactSheets": [
+          "tmp/product-image-audit/ppe-v8/archive/contact-1.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-2.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-3.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-4.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-5.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-6.jpg"
+        ],
+        "finding": "No matching safety-glasses photograph found among375 unassigned or numerically named attachment previews; text and linked media metadata also do not identify these products."
+      }
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "name": "Očala za zaščito oči",
+      "variantSkus": [
+        "ZAS-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "accepted": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/ocala-za-zascito-oci/",
+        "https://atehna.si/shop/page/2/?orderby=popularity",
+        "https://atehna.si/kategoija/tehnika-in-tehnologija/page/3/"
+      ],
+      "rejectedCandidates": [
+        {
+          "sourcePage": "https://jacksonsafety.com/en-us/shop/ppe/eye-protection/safety-glasses/hyper-guard-hseries-safety-glasses/safety-glasses-half-frame-safety-glasses/45001",
+          "decision": "Search finds the numeric code45001 but no visual or supplier evidence linking ATEHNA45001 to Jackson Safety Hyperguard. Numeric coincidence is insufficient."
+        }
+      ],
+      "missingViews": [
+        "Complete exact product, front or three-quarter view",
+        "Rear/side view showing construction",
+        "Useful detail of fastenings, markings or frame components"
+      ],
+      "identityEvidence": "Original ATEHNA 45001 has no product photograph, manufacturer, model or identifying description. Earlier tentative replacement brands in the new catalog are not independent identity evidence.",
+      "requiredEvidence": "An identifying stock label, supplier item number or reference photograph of the product actually sold.",
+      "archiveReview": {
+        "metadataRecords": 796,
+        "additionalVisualRecords": 375,
+        "contactSheets": [
+          "tmp/product-image-audit/ppe-v8/archive/contact-1.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-2.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-3.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-4.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-5.jpg",
+          "tmp/product-image-audit/ppe-v8/archive/contact-6.jpg"
+        ],
+        "finding": "No matching safety-glasses photograph found among375 unassigned or numerically named attachment previews; text and linked media metadata also do not identify these products."
+      }
+    }
+  ]
+}

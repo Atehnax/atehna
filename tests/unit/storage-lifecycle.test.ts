@@ -184,3 +184,16 @@ test('inventory URLs must bind to the configured store and access even when meta
     assert.throws(() => reviewObjects(config, [{ ...value, url: value.url.replace('public001.public', 'otherstore.public') }], scan()), /OBJECT_URL_MISMATCH/u);
     assert.throws(() => reviewObjects(config, [{ ...value, url: value.url.replace('public001.public', 'public001.private') }], scan()), /OBJECT_URL_MISMATCH/u);
 });
+
+test('a retained crop original protects a previously queued blob during the fresh worker review', async () => {
+    const f = fixture();
+    f.io.freshReview = async (selected) => {
+        const state = scan();
+        state.references[selected[0].id] = [{ database: 'production', table: 'public.catalog_media', rows: 1, possible: false }];
+        return reviewObjects(config, selected, state);
+    };
+    await assert.rejects(applyApproved(f.value, config, f.events, f.io), /FRESH_REFERENCE_OR_RETENTION_BLOCKER/u);
+    assert.deepEqual(f.calls, [`recover:${f.value.objects[0].id}`]);
+    assert.equal(f.current.size, 1);
+    assert.deepEqual(f.events, []);
+});

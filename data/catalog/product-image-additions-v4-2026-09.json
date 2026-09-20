@@ -1,0 +1,299 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T10:33:48.128Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-root-v4-2026-09.json",
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-materials-v4-2026-09.json",
+    "data/catalog/replacement-sources-uhu-v4-2026-09.json",
+    "data/catalog/replacement-sources-switch-v4-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "trigonir-triso-prednja-stran",
+      "slug": "trigonir",
+      "variantSkus": [
+        "MER-TRI-216-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/trigonir-triso-prednja-stran.png",
+      "sha256": "a72312af7781ffb170546194049846013270f5035bef6881248f35d0f9354a01",
+      "dimensions": {
+        "width": 1026,
+        "height": 1026
+      },
+      "sourcePage": "https://www.hartis.si/sl/p/5351/trigonir-samostojni-z-navodili-triso-12496.html",
+      "sourceUrl": "https://www.hartis.si/uploads/images/products/t/r/trigonir-samostojni-z-navodili-12496-6c0ec0.png",
+      "sourceIdentityEvidence": "Original ATEHNA product https://atehna.si/product/trigonir-216/ explicitly includes physical product photograph https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg . The photograph visibly identifies TRISO and matches the white transparent round-cornered plate, black circular angle scale, red/black axes, central pivot and long diagonal pointer shown by Hartis TRISO12496. This visual and named product match resolves the previously unproven identity;216 is retained as the existing catalog label and not asserted to be a separate manufacturer part number. Both views show the same product and its included instructions.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-complete-product-in-original-packaging",
+      "altText": "Trigonir — sprednja stran pripomočka TRISO s kotnimi lestvicami in premičnim kazalcem",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trigonir/images/a72312af7781ffb1-trigonir-triso-prednja-stran.png",
+      "hostedBlobPathname": "catalog-items/trigonir/images/a72312af7781ffb1-trigonir-triso-prednja-stran.png"
+    },
+    {
+      "id": "trigonir-triso-navodila",
+      "slug": "trigonir",
+      "variantSkus": [
+        "MER-TRI-216-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/trigonir-triso-navodila.png",
+      "sha256": "4f3756d5b3e5e3e5ed717038d20330aeb1c5a17f0a5a996dc32a9ceb82aa4d8c",
+      "dimensions": {
+        "width": 1026,
+        "height": 1026
+      },
+      "sourcePage": "https://www.hartis.si/sl/p/5351/trigonir-samostojni-z-navodili-triso-12496.html",
+      "sourceUrl": "https://www.hartis.si/uploads/images/products/t/r/trigonir-samostojni-z-navodili-12496-187f02.png",
+      "sourceIdentityEvidence": "Original ATEHNA product https://atehna.si/product/trigonir-216/ explicitly includes physical product photograph https://atehna.si/wp-content/uploads/2015/03/MjAxNC0wNC0yMyAxNToxMToxNy4w.jpg . The photograph visibly identifies TRISO and matches the white transparent round-cornered plate, black circular angle scale, red/black axes, central pivot and long diagonal pointer shown by Hartis TRISO12496. This visual and named product match resolves the previously unproven identity;216 is retained as the existing catalog label and not asserted to be a separate manufacturer part number. Both views show the same product and its included instructions.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "rear-with-included-instructions-and-formulas",
+      "altText": "Trigonir — zadnja stran z vključenimi navodili in formulami",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trigonir/images/4f3756d5b3e5e3e5-trigonir-triso-navodila.png",
+      "hostedBlobPathname": "catalog-items/trigonir/images/4f3756d5b3e5e3e5-trigonir-triso-navodila.png"
+    },
+    {
+      "id": "zlatarske-skarje-10-stojalo-wiemann-v4",
+      "slug": "zlatarske-skarje-za-plocevino",
+      "variantSkus": [
+        "ROC-ZLA-SKARJE-ZA-PLOCEVINO-ZLATARSKE-10-KOSOV-V-STOJALU"
+      ],
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-10-stojalo-wiemann-v4.jpg",
+      "sha256": "93c25383e152a8fe7e0545c9bbda690b6305b49d9c958fabf26aed56efdb3330",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "sourcePage": "https://www.wiemann-lehrmittel.de/holzblock-mit-10-goldschmiedescheren/w-91431",
+      "sourceUrl": "https://www.wiemann-lehrmittel.de/media/46/5a/8e/1611245656/temp91431x5isqftrr8swk.jpg",
+      "sourceIdentityEvidence": "ATEHNA original title names goldsmith tin snips,10pieces in a stand(SKU32102); no brand, length, steel grade or stand shape is published. Wiemann W-91431 explicitly names Holzblock mit10 Goldschmiedescheren and shows10straight forged-steel scissors180mm long in the included wooden block. Product type, quantity and included stand agree, with no contradictory ATEHNA specification. Matching basis is public product name and set contents per user clarification; no unsupported brand or length specification is added to the catalog.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-three-quarter-complete-set",
+      "altText": "Zlatarske škarje za pločevino — komplet desetih škarij v lesenem stojalu",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/zlatarske-skarje-za-plocevino/images/93c25383e152a8fe-zlatarske-skarje-10-stojalo-wiemann-v4.jpg",
+      "hostedBlobPathname": "catalog-items/zlatarske-skarje-za-plocevino/images/93c25383e152a8fe-zlatarske-skarje-10-stojalo-wiemann-v4.jpg"
+    },
+    {
+      "id": "solska-tehtnica-wissner-070110-v4",
+      "slug": "solska-tehtnica",
+      "variantSkus": [
+        "MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG"
+      ],
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-070110-v4.png",
+      "sha256": "62b76faa4eb1c2047cfb5f7697dcd0ebede0ce83a04ddeb3e090c72377d24705",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600
+      },
+      "sourcePage": "https://www.wissner-aktiv-lernen.com/en/Balance/070110.000",
+      "sourceUrl": "https://www.wissner-aktiv-lernen.com/media/54/52/88/1719384530/Wissner_070110.000.png?ts=1761808111",
+      "sourceIdentityEvidence": "Original ATEHNA sourceSKU070110 and nameWissner identify manufacturer model070110.000. Canonical optionSelections.izvedba070110 maps only to variant MER-SOL-TEHTNICA-WISSNER-KOVINSKA-MAX-2-KG. Original ATEHNA gray-photo body, shallow rectangular pans, central raised beam/pointer and ivory housing match manufacturer. ATEHNA source description explicitly says made of plastic, robust as metal, wall thickness10mm, manually adjusted, five-year warranty, weighing0.5g–2kg and±0.5g; these identify this manufacturer model despite inaccurate existing variantwording.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-three-quarter",
+      "altText": "Tehtnica Wissner 070110 — celoten pogled. Prikazane utežne kocke niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/solska-tehtnica/images/62b76faa4eb1c204-solska-tehtnica-wissner-070110-v4.png",
+      "hostedBlobPathname": "catalog-items/solska-tehtnica/images/62b76faa4eb1c204-solska-tehtnica-wissner-070110-v4.png"
+    },
+    {
+      "id": "solska-tehtnica-65108-z-utezmi-v4",
+      "slug": "solska-tehtnica",
+      "variantSkus": [
+        "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-Z-UTEZMI-MAX-2-KG"
+      ],
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-65108-z-utezmi-v4.jpg",
+      "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+      "dimensions": {
+        "width": 1800,
+        "height": 1800
+      },
+      "sourcePage": "https://www.walmart.com/ip/Learning-Resources-Precision-Balance-with-Weights/24886366",
+      "sourceUrl": "https://i5.walmartimages.com/asr/12e7769c-ba09-407c-8a96-7b467891162f.c8822eba21c2608897049e85bd933392.jpeg",
+      "sourceIdentityEvidence": "Exact same photographic capture as original ATEHNA SKU65108 image plastična-tehtnica-5.jpg: red base, deep gray pans, central pointer, open built-in weights compartment, brass weights on left and coloured cubes on right. Original ATEHNA variant explicitly includes weights. Original source photograph establishes exact pictured model despite current family Wissner brand label. Map only SKU65108; never assign to gray070110 or unweighted070112.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-three-quarter-with-included-metal-weights",
+      "altText": "Šolska tehtnica 65108 s priloženimi kovinskimi utežmi. Prikazane barvne kocke niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/solska-tehtnica/images/ea7020b72a6c4217-solska-tehtnica-65108-z-utezmi-v4.jpg",
+      "hostedBlobPathname": "catalog-items/solska-tehtnica/images/ea7020b72a6c4217-solska-tehtnica-65108-z-utezmi-v4.jpg"
+    },
+    {
+      "id": "penjeni-pvc-beli-300x200x3-celoten-pogled-v4",
+      "slug": "penjeni-pvc-komateks",
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "sha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+      "dimensions": {
+        "width": 4240,
+        "height": 2303
+      },
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/2_a2d4958f-cd68-45a9-b57f-4eee7a43126c.jpg?v=1757403556",
+      "sourceIdentityEvidence": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole sheet, oblique front",
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/5ab85173c6f845f1-penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "hostedBlobPathname": "catalog-items/penjeni-pvc-komateks/images/5ab85173c6f845f1-penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg"
+    },
+    {
+      "id": "penjeni-pvc-beli-300x200x3-rob-v4",
+      "slug": "penjeni-pvc-komateks",
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "sha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+      "dimensions": {
+        "width": 3717,
+        "height": 2454
+      },
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/4_08152fda-7cee-4e40-9419-343ced986970.jpg?v=1757403556",
+      "sourceIdentityEvidence": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "oblique edge and surface",
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — poševni pogled na rob in površino.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/a5a3ddda94a342d2-penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "hostedBlobPathname": "catalog-items/penjeni-pvc-komateks/images/a5a3ddda94a342d2-penjeni-pvc-beli-300x200x3-rob-v4.jpg"
+    },
+    {
+      "id": "penjeni-pvc-beli-300x200x3-struktura-v4",
+      "slug": "penjeni-pvc-komateks",
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "sha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+      "dimensions": {
+        "width": 4608,
+        "height": 3456
+      },
+      "sourcePage": "https://kunststoff-store.com/products/pvc-hartschaumplatte-3mm-zuschnitt-weiss-300-x-200-mm-excel-kunststoff-platte",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0653/9162/4428/files/6_ce52f292-3f4d-4637-8050-f8206ea420c2.jpg?v=1757403557",
+      "sourceIdentityEvidence": "Converging public commodity name, white colour, 3 mm thickness, 300 × 200 mm cut, and historical ATEHNA appearance; user explicitly allows name/image matching without a required supplier directory link. https://atehna.si/product/penjeni-pvc-komateks-300-x-200-x-3-mm/ https://atehna.si/wp-content/uploads/2015/04/pvc.png Penjeni PVC (komateks); tags foreks, komateks, penjeni, PVC. Description gives general material and dimensions; no manufacturer, density or branded model. White foamed PVC 300 × 200 × 3 mm, sold as Excel by this source. No Excel manufacturer or density claim is transferred to ATEHNA. Historical white matte sheets with thin homogeneous foam edge agree in known colour, material and construction. No conflicting colour, laminate or component observed. Not assigned to 150 × 200, 400 × 300 or 500 × 500 variants. tmp/product-image-audit/materials-v4/pvc-primary-side-by-side.jpg",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "foam core structure and cut edge",
+      "altText": "Bela plošča iz penjenega PVC, 300 × 200 × 3 mm — bližnji pogled na penjeno strukturo prereza.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/19bccb8e10b8369f-penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "hostedBlobPathname": "catalog-items/penjeni-pvc-komateks/images/19bccb8e10b8369f-penjeni-pvc-beli-300x200x3-struktura-v4.jpg"
+    },
+    {
+      "id": "vgradno-stikalo-prednji-pogled-textilkabel-v4",
+      "slug": "vgradno-stikalo",
+      "variantSkus": [
+        "ELE-VGR-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg",
+      "sha256": "9ea6889f161347ef65f4e7c4bcc12b053cd549e35e7a7b5a100faac255bb7c3e",
+      "dimensions": {
+        "width": 1565,
+        "height": 1562
+      },
+      "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+      "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i370c90661f10b2a3/version/1521728593/image.jpg",
+      "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "three-quarter front",
+      "altText": "Vgradno stikalo – celoten pogled na bel gumb, rebrasto matico in črno ohišje.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vgradno-stikalo/images/9ea6889f161347ef-vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg",
+      "hostedBlobPathname": "catalog-items/vgradno-stikalo/images/9ea6889f161347ef-vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg"
+    },
+    {
+      "id": "vgradno-stikalo-navoj-matica-textilkabel-v4",
+      "slug": "vgradno-stikalo",
+      "variantSkus": [
+        "ELE-VGR-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-navoj-matica-textilkabel-v4.jpg",
+      "sha256": "103aa5045e089ab8ce92f4a06919f5e3fb22a8096946cff6093e23af12b090e8",
+      "dimensions": {
+        "width": 1706,
+        "height": 1708
+      },
+      "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+      "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i68fae69aa7464030/version/1521728593/image.jpg",
+      "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "mounting thread and removable included nut",
+      "altText": "Vgradno stikalo – prikaz pritrdilnega navoja in priložene odvite matice.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vgradno-stikalo/images/103aa5045e089ab8-vgradno-stikalo-navoj-matica-textilkabel-v4.jpg",
+      "hostedBlobPathname": "catalog-items/vgradno-stikalo/images/103aa5045e089ab8-vgradno-stikalo-navoj-matica-textilkabel-v4.jpg"
+    },
+    {
+      "id": "vgradno-stikalo-prikljucki-textilkabel-v4",
+      "slug": "vgradno-stikalo",
+      "variantSkus": [
+        "ELE-VGR-OSNOVNA-IZVEDBA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prikljucki-textilkabel-v4.jpg",
+      "sha256": "91b37ffd3e43f4ab747fe4e15c9a8a61142bbd66281da20d678cc9ea2cbbc591",
+      "dimensions": {
+        "width": 1374,
+        "height": 1375
+      },
+      "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+      "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i0f21f63d89afb0bf/version/1521728593/image.jpg",
+      "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "straight case and terminal openings with mounting thread exposed",
+      "altText": "Vgradno stikalo – raven pogled na ohišje, odprtine priključkov in pritrdilni navoj.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vgradno-stikalo/images/91b37ffd3e43f4ab-vgradno-stikalo-prikljucki-textilkabel-v4.jpg",
+      "hostedBlobPathname": "catalog-items/vgradno-stikalo/images/91b37ffd3e43f4ab-vgradno-stikalo-prikljucki-textilkabel-v4.jpg"
+    }
+  ]
+}

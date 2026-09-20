@@ -1,0 +1,786 @@
+{
+  "version": 7,
+  "reviewedAt": "2026-09-14T13:36:24.339Z",
+  "status": "Accepted originals saved in canonical, local and production catalogs; remaining source gaps retained",
+  "scope": {
+    "families": 4,
+    "missingVariants": 15,
+    "excludedAlreadyCovered": [
+      "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+    ]
+  },
+  "constraints": [
+    "Native width and height each at least1024; no upscaling,padding,AI or humans.",
+    "Use exact source-format/variant mapping and preserve source bytes.",
+    "Commodity identity may be demonstrated by original name,appearance,material,colour,cut and grade; no conflicting grade or colour may be substituted.",
+    "Do not add source-only grammage,maker or package quantity to ATEHNA product specifications."
+  ],
+  "summary": {
+    "acceptedPhotographs": 2,
+    "newlyCoveredVariants": 2,
+    "remainingVariants": 13,
+    "rejectedMeasuredAssetRecords": 20,
+    "potentialDetailOnlyNotStaged": 1,
+    "downloadedAssetRecords": 26,
+    "distinctDownloadedHashes": 24,
+    "savedSupplierOrOriginalPageRecords": 21
+  },
+  "products": [
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "accepted": [],
+      "rejected": [
+        {
+          "name": "papercutz-a3-main",
+          "url": "https://papercutz.co.uk/media/catalog/product/i/c/ice-white-paper_3_1_3.jpg",
+          "path": "tmp/product-image-audit/paper-v7/papercutz-a3-main.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 11662,
+          "sha256": "be2cadfd6cc91016d7b8f8aac67b543cfbc42642a4fe96a82a0aa638000f172b",
+          "reason": "native-resolution",
+          "explanation": "The untransformed Magento product image is only500×500, below both-axis minimum.",
+          "accepted": false
+        },
+        {
+          "name": "papercutz-a3-second",
+          "url": "https://papercutz.co.uk/media/catalog/product/i/c/ice-white-paper_3_1-a3-200gsm.jpg",
+          "path": "tmp/product-image-audit/paper-v7/papercutz-a3-second.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 33111,
+          "sha256": "7ac71f8ce1bdcba9db169677816b30498a377188e13a4e826c27cb533b160763",
+          "reason": "native-resolution",
+          "explanation": "Second original only500×500; no enlarged cache variant used.",
+          "accepted": false
+        },
+        {
+          "name": "seawhite-a3-largest-offered",
+          "url": "https://seawt-seawhite-gob2b.b-cdn.net/imagecache/45b6c968-81a3-465e-970a-a9ce00c89425/CDW4SA-fan_1000x1000.jpg",
+          "path": "tmp/product-image-audit/paper-v7/seawhite-a3-largest-offered.jpg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 60591,
+          "sha256": "cfac594d497b3513c82f4840af309418a9907b5f2e187b7a422121a4e69c0a73",
+          "reason": "native-resolution",
+          "explanation": "Largest gallery image actually offered by manufacturer is1000×1000. No larger native original was established.",
+          "accepted": false
+        },
+        {
+          "name": "kitaeinkauf-drawing-a3-200",
+          "url": "https://www.kitaeinkauf.de/media/78/ec/ee/1782952881/24934-zeichenpapier-din-a3--weiss--200-g-m2--250-blatt93cf13.jpg?ts=1782996214",
+          "path": "tmp/product-image-audit/paper-v7/kitaeinkauf-drawing-a3-200.jpg",
+          "width": 425,
+          "height": 600,
+          "bytes": 83791,
+          "sha256": "43d64033c2a768e59eba3a1e1ef72d831016ccc353d7b86889af52664f112591",
+          "reason": "native-resolution",
+          "explanation": "Shopware /media original is425×600. Indexed other gallery filenames refer to90gsm stock and are not200gsm.",
+          "accepted": false
+        },
+        {
+          "name": "photopoint-vatman-big",
+          "url": "https://static2.nordic.pictures/49231331-product_big/drawing-paper-a3-vatman-200g-100-sheets.jpg",
+          "path": "tmp/product-image-audit/paper-v7/photopoint-vatman-big.jpg",
+          "width": 660,
+          "height": 384,
+          "bytes": 7883,
+          "sha256": "c7dec8d44e61d1b52701cf754e30e6f1802ceb09fdc5bba805eae2e8d1e78b58",
+          "reason": "native-resolution",
+          "explanation": "Largest non-square product photo660×384.",
+          "accepted": false
+        },
+        {
+          "name": "photopoint-vatman-large",
+          "url": "https://static3.nordic.pictures/49231331-thickbox_default/drawing-paper-a3-vatman-200g-100-sheets.jpg",
+          "path": "tmp/product-image-audit/paper-v7/photopoint-vatman-large.jpg",
+          "width": 800,
+          "height": 800,
+          "bytes": 18313,
+          "sha256": "cbae07c3c78ad607cf6f30b07368d6fdf92024acf599a9d98fe02246c1ccc2ed",
+          "reason": "native-resolution",
+          "explanation": "Square gallery version800×800 also fails1024each dimension.",
+          "accepted": false
+        },
+        {
+          "name": "teamkids-a3-main",
+          "url": "https://www.tkshop.com.au/web/image/product.product/3166/image_1024/%5BTK-1617%5D%20A3%20Cover%20Paper%20-%20200gsm%20White?unique=6f0ef7d",
+          "path": "tmp/product-image-audit/paper-v7/teamkids-a3-main.jpg",
+          "width": 1000,
+          "height": 849,
+          "bytes": 36442,
+          "sha256": "a69a31be6036157bf6fb4822efb65e29fbd736c7036ded43f8d0f2c065b63fc4",
+          "reason": "native-resolution",
+          "explanation": "Displayed original resolves1000×849.",
+          "accepted": false
+        },
+        {
+          "name": "teamkids-a3-largest",
+          "url": "https://www.tkshop.com.au/web/image/product.template/2157/image_1920?unique=88dc386",
+          "path": "tmp/product-image-audit/paper-v7/teamkids-a3-largest.jpg",
+          "width": 1000,
+          "height": 849,
+          "bytes": 36442,
+          "sha256": "a69a31be6036157bf6fb4822efb65e29fbd736c7036ded43f8d0f2c065b63fc4",
+          "reason": "native-resolution",
+          "explanation": "Explicit image_1920 source also resolves identical1000×849/SHA; requesting a larger display size does not create a native qualifying source.",
+          "accepted": false
+        },
+        {
+          "name": "redoljub-white-a3-native",
+          "url": "https://www.redoljub.si/media/catalog/product/k/a/karton_seleshamer_a3_125pol.jpg",
+          "path": "tmp/product-image-audit/paper-v7/redoljub-white-a3-native.jpg",
+          "width": 452,
+          "height": 452,
+          "bytes": 25902,
+          "sha256": "bffa25b6759c115f7c934d6aa453add9bb287464e9355eaf23bdb0a240127a0c",
+          "reason": "native-resolution",
+          "explanation": "Original452×452 fails. Supplier additionally contradicts itself with297×420title and297×410description; no substituted cut accepted.",
+          "accepted": false
+        },
+        {
+          "name": "rca-white200-native",
+          "url": "https://cdn.shopify.com/s/files/1/0440/8983/5680/products/CDW4SA410.jpg?v=1599142385",
+          "path": "tmp/product-image-audit/paper-v7/rca-white200-native.jpg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 48775,
+          "sha256": "46bc3fb19e485885da8109090d3c512260754fbb3956f42cd7fd26c20598fb15",
+          "reason": "native-resolution",
+          "explanation": "Shopify untransformed original1000×1000 fails. Source gallery uses an A4-named asset acrossA3/A4 options; no exact alternateA3 photograph established.",
+          "accepted": false
+        }
+      ],
+      "pending": [
+        {
+          "name": "acco-a3-hires",
+          "url": "https://hub.accobrands.com/api/downloadassets/download/549667",
+          "path": "tmp/product-image-audit/paper-v7/acco-a3-hires.jpg",
+          "width": 2500,
+          "height": 2500,
+          "bytes": 1074130,
+          "sha256": "a575e91a391b68e909feecebbdb069c32236b4fe4307b2932d2543045a03d42f",
+          "role": "detail-only; not staged",
+          "reason": "Sharp native2500² whiteA3/200gsm pasteboard with useful real fine surface/edges, but photograph clips outer sheets and does not provide a complete main view. Retained as potential secondary only until suitable matching whole main exists.",
+          "sourcePage": "https://au.accopartner.com/p/paper-products/other-paper-products/cardboard-and-coloured-paper/colourful-days-pasteboard-200gsm-a3-297-x-420mm-white-pack-50/",
+          "exactVariantSkus": [
+            "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3"
+          ],
+          "identityEvidence": "Manufacturer ColourfulDays WB003A3 explicitly A3,297×420mm,white,200gsm. Source hi-res download549667 served unchanged2500²JPEG; manufacturer brand alone is not a disqualifier for the unbranded commodity."
+        }
+      ],
+      "screenedSources": [
+        {
+          "sourcePage": "https://www.bakerross.co.uk/a3-white-card",
+          "reason": "Already-reviewed supplier has200gsm title versus220gsm description/package; not retried."
+        },
+        {
+          "sourcePage": "https://clydepaperandprint.com/products/a3-cartridge-paper-200gsm-white/1611/",
+          "reason": "Search result carries200gsm title but140gsm item description. No exact200g image accepted."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        }
+      ],
+      "additionalViewsStillMissing": []
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "accepted": [],
+      "rejected": [],
+      "pending": [],
+      "screenedSources": [
+        {
+          "sourcePage": "https://www.donikaholding.com/catalogue?cat=professional-drawing",
+          "reason": "Exact Grafopak350g source offered onlyB1,71×101 or72×102cm; no gallery proof of A3/A4cut."
+        },
+        {
+          "sourcePage": "https://digi.mm-karton.com/static/MM_Qualitaetenuebersicht_240619.pdf",
+          "reason": "Manufacturer grade table distinguishes GRAFOPAK GD2 from GRAFOPAK KRAFT GT4, BelpakGT2 and AlaskaGC1. Those alternative grades cannot substitute for named Grafopak; table supplies no exactA3/A4photograph."
+        },
+        {
+          "sourcePage": "https://www.europapier.hr/hr/shop%2520-%2520po%25C4%258Detna%2520stranica/kartoni-ljepenka-i-kraft-papiri/gd-kartoni/grafopak-gd2~p3091996",
+          "reason": "Previously measured representative GD2packaging source lacks useful clarity and exact350gA3/A4cut; no repeat download or acceptance."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        }
+      ],
+      "additionalViewsStillMissing": []
+    },
+    {
+      "slug": "lepenka",
+      "itemName": "Lepenka",
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "variantName": "Bela lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A3",
+            "Format": "A3",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "variantName": "Siva lepenka A2",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Siva lepenka A2",
+            "Format": "A2",
+            "Debelina": "0,7 mm",
+            "Barva": "Siva"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "variantName": "Bela lepenka A4",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Bela lepenka A4",
+            "Format": "A4",
+            "Barva": "Bela"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "variantName": "1,2 mm B1",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Lepenka 1,2 mm B1",
+            "Format": "B1",
+            "Debelina": "1,2 mm"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "variantName": "Papir lepenka A3",
+          "specifications": {
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir lepenka A3",
+            "Format": "A3",
+            "Debelina": "0,8 mm"
+          }
+        }
+      ],
+      "variantSkus": [
+        "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+        "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+        "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+        "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+        "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3"
+      ],
+      "accepted": [],
+      "rejected": [
+        {
+          "name": "giclees-white-board",
+          "url": "https://cdn.shopify.com/s/files/1/0730/5206/1980/files/backing-boards-6575734.jpg?v=1780822455",
+          "path": "tmp/product-image-audit/paper-v7/giclees-white-board.jpg",
+          "width": 1080,
+          "height": 1440,
+          "bytes": 102536,
+          "sha256": "0bfaa07517b17355a7108b407d026e773343fa7295675bdfb16ad23567fedb42",
+          "reason": "human-content",
+          "explanation": "Actual Shopify bright-white mountboard variant image contains a person, arms and gloved hands holding the sheet; cannot be used unchanged.",
+          "accepted": false
+        },
+        {
+          "name": "giclees-boards-main",
+          "url": "https://cdn.shopify.com/s/files/1/0730/5206/1980/files/backing-boards-8943850.jpg?v=1780822411",
+          "path": "tmp/product-image-audit/paper-v7/giclees-boards-main.jpg",
+          "width": 1003,
+          "height": 1201,
+          "bytes": 159949,
+          "sha256": "195bbf5077820d40bd221a3ce0343df449892f67c0bcf982b1bb16abed0e98ed",
+          "reason": "native-resolution",
+          "explanation": "Original family gallery image1003×1201 fails width, and no exact0.7/0.8mm greyboard identity established; grey source is650gsm while0.7mm source is pale cream conservation board.",
+          "accepted": false
+        },
+        {
+          "name": "slanchogled-white-a4-detail",
+          "url": "https://www.slanchogled.com/wp-content/uploads/2022/02/product_36774.jpg",
+          "path": "tmp/product-image-audit/paper-v7/slanchogled-white-a4-detail.jpg",
+          "width": 355,
+          "height": 509,
+          "bytes": 86630,
+          "sha256": "eed116ca632bd4557ac76abde694ac2119f455b03645057bd3ac55eba98798e9",
+          "reason": "native-resolution",
+          "explanation": "Supplier second original only355×509.",
+          "accepted": false
+        },
+        {
+          "name": "slanchogled-white-a4-main",
+          "url": "https://www.slanchogled.com/wp-content/uploads/2018/03/123123123123.jpg",
+          "path": "tmp/product-image-audit/paper-v7/slanchogled-white-a4-main.jpg",
+          "width": 3024,
+          "height": 3024,
+          "bytes": 618384,
+          "sha256": "5478d51f232045c449220d5a196c4219e8a94fe9a163ce9758beef4440947a16",
+          "reason": "stock-identity-unresolved",
+          "explanation": "3024² photograph is sharp and full-sheet, but depicts explicitly labelled1mm,390gsm highly absorbent beer-mat/coaster pulpboard. Original ATEHNA whiteA4 specifies only white lepenka/A4 and has empty image metadata; no evidence establishes this particular absorbent grade/thickness as actual stock. Held out rather than assigning a new grade.",
+          "accepted": false
+        }
+      ],
+      "pending": [],
+      "screenedSources": [
+        {
+          "sourcePage": "https://www.slanchogled.com/en/product-cat/papers/mount-board-grey-board-foam-board/",
+          "reason": "Heyda0.7mm source is50×70cm, not A2; other grey sources1/2/3mm conflict with requested0.7/0.8mm thickness. No resizing/cutting photo claimed."
+        },
+        {
+          "sourcePage": "https://allapackaging.com/accessories/greyboard-1mm/",
+          "reason": "Generic manufacturer1mm page lists custom0.6/0.8/1.2mm and A-formats but no photograph is tied to exactA3/0.8 orA2/0.7 stock. Generic photograph not assigned."
+        },
+        {
+          "sourcePage": "https://www.kraftpaper-rolls.com/sale-14484011-format-640-x-970mm-100-recycled-thick-grey-cardboard-1mm-2mm-sheet.html",
+          "reason": "Generic1/2mm product with broad custom thickness/cut table; cannot assert picturedsheet is exact requested variant."
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/155449546884",
+          "reason": "Read-only page returned403. Prior v5 same seller grey/white-coated source already failed exact greyboard identity; no bypass or repeat low-res assets used."
+        },
+        {
+          "sourcePage": "https://atehna.si/product/lepenka-12-mm-b1/",
+          "reason": "Original ATEHNA explicitly specifies707×1000mm. Prior700×1000/1.2mm Allegro photo remains rejected for concrete cut mismatch; not a nominal-format-only normalization case."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "variantName": "Bela lepenka A3",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "variantName": "Siva lepenka A2",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "variantName": "Bela lepenka A4",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "variantName": "1,2 mm B1",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "variantName": "Papir lepenka A3",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        }
+      ],
+      "additionalViewsStillMissing": []
+    },
+    {
+      "slug": "risalni-list",
+      "itemName": "Risalni list",
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-RIS-594x420-A2",
+          "variantName": "A2",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-297x210-A4",
+          "variantName": "A4",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-210x148-A5",
+          "variantName": "A5",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A5",
+            "Format": "A5"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-420x297-A3",
+          "variantName": "A3",
+          "specifications": {
+            "Formati": "A5, A4, A3, A2",
+            "Izvedba": "Risalni list A3",
+            "Format": "A3"
+          }
+        }
+      ],
+      "variantSkus": [
+        "MAT-PAP-RIS-594x420-A2",
+        "MAT-PAP-RIS-297x210-A4",
+        "MAT-PAP-RIS-210x148-A5",
+        "MAT-PAP-RIS-420x297-A3"
+      ],
+      "accepted": [
+        {
+          "id": "risalni-list-a3-celoten-cc-v7",
+          "slug": "risalni-list",
+          "variantSkus": [
+            "MAT-PAP-RIS-420x297-A3"
+          ],
+          "variantNames": [
+            "A3"
+          ],
+          "blobUrl": "/images/catalog/2026-09/risalni-list-a3-celoten-cc-v7.jpg",
+          "sourcePage": "https://www.cc-craft.co.uk/drawing-paper-a3-sheet-297x420-mm-130-g-white-250-sheet-1-pack",
+          "sourceUrl": "https://www.cc-craft.co.uk/media/catalog/product/2/3/23503_1.jpg",
+          "imageUrl": "https://www.cc-craft.co.uk/media/catalog/product/2/3/23503_1.jpg",
+          "sha256": "6b470a222b120bf8138ebf124e84770458a427d1d379a179ee0b8114fc1279b0",
+          "width": 1024,
+          "height": 1024,
+          "dimensions": {
+            "width": 1024,
+            "height": 1024
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "complete-sheet-three-quarter",
+          "altText": "Risalni list A3 — celoten pogled na bele liste. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Original ATEHNA https://atehna.si/product/risalni-list-a3-2/ identifies Risalni list A3 and shows a plain white fine-surface sheet (risalnilist.png). No grammage, maker, finish or one-sided texture is specified in the original/canonical product. Manufacturer Creativ Company SKU23503 explicitly identifies white loose drawing paper A3,297×420mm for pencils,graphite,charcoal/crayons. The native manufacturer image has the identical SHA to the CreaKnutselen reseller original; whole-sheet shape,white colour and fine drawing surface are compatible. Mapping is only exact A3 SKU; no brand or new grammage claim is added to ATEHNA. Manufacturer currently says130g, reseller says120g; this source discrepancy is disclosed rather than asserted as an ATEHNA specification.",
+          "review": {
+            "exactIdentity": "Compatible unbranded commodity drawing-paper match by original visual appearance, material, white colour and exact A3 cut; no conflicting original stock claim found.",
+            "quality": "Native1024×1024 photograph. Entire top sheet visible, tight but intact left/right corners, irregular fine sheet edges visible, natural plain white surface. No humans, padding, generated views or edits.",
+            "independentRootReview": "Root visually reviewed native file: full top sheet technically visible, very tight2px side margins but sharp irregular sheet edges and no upscaling signs; accepted conditional on original texture compatibility, subsequently confirmed against original ATEHNA sheet image and descriptions."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "originalAtehnaImage": "https://atehna.si/wp-content/uploads/2015/04/risalnilist.png",
+          "supportingSourcePages": [
+            "https://creaknutselen.nl/tekenpapier-a3-wit-120-gr-250-vellen/"
+          ],
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/6b470a222b120bf8-risalni-list-a3-celoten-cc-v7.jpg",
+          "hostedBlobPathname": "catalog-items/risalni-list/images/6b470a222b120bf8-risalni-list-a3-celoten-cc-v7.jpg"
+        },
+        {
+          "id": "risalni-list-a2-celoten-heutink-v7",
+          "slug": "risalni-list",
+          "variantSkus": [
+            "MAT-PAP-RIS-594x420-A2"
+          ],
+          "variantNames": [
+            "A2"
+          ],
+          "blobUrl": "/images/catalog/2026-09/risalni-list-a2-celoten-heutink-v7.jpg",
+          "sourcePage": "https://www.heutinkvoorthuis.nl/nl/tekenpapier-wit-offsetkwaliteit-120-grams-500-vel-a2/product/9161/",
+          "sourceUrl": "https://www.heutinkvoorthuis.nl/cmsdata/artikelen/fotos/1/0/100_120085/100_120085_main_or_1.jpg",
+          "imageUrl": "https://www.heutinkvoorthuis.nl/cmsdata/artikelen/fotos/1/0/100_120085/100_120085_main_or_1.jpg",
+          "sha256": "8ce539866de5501a8e1980f87f2d3c6654145760d2170ea2924883560116ddbc",
+          "width": 2400,
+          "height": 2400,
+          "dimensions": {
+            "width": 2400,
+            "height": 2400
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "complete-sheet-three-quarter",
+          "altText": "Risalni list A2 — celoten pogled na bele liste. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "Original ATEHNA https://atehna.si/product/risalni-list-a2/ identifies white Risalni list A2 and uses the same plain fine-surface white-sheet photograph as its other formats. No grammage,maker or special finish stated. Heutink120085 lists white loose drawing paper, exactA2(42×59.4cm); its source120gsm and CIE150 are retailer specifications only, not new ATEHNA claims. Source image belongs to actual120085 product gallery; untransformed original retains visible true sheet edges and whole top sheet. Compatible commodity match by material,white colour,plain fine surface and exact cut, onlyA2 association.",
+          "review": {
+            "exactIdentity": "White unbranded commodity drawing-paper stock; exactA2 cut verified source42×59.4cm vs canonical594×420mm, original contains no conflicting grade/finish. Source-only120gsm is not imported as an ATEHNA specification.",
+            "quality": "Native2400² with intact whole topface/corners, natural subtle white surface and fine irregular stack/edge detail. Original white square background retained; no artificial padding or enlargement.",
+            "independentRootReview": "Root reviewed original and passed complete sheet/topface allcorners, fineedge detail, real irregular stack, nohumans; larger square background acceptable for whole main."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja po listih; dodatni prikazani listi niso vključeni.",
+          "originalAtehnaImage": "https://atehna.si/wp-content/uploads/2015/04/risalnilist.png",
+          "supportingSourcePages": [],
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/8ce539866de5501a-risalni-list-a2-celoten-heutink-v7.jpg",
+          "hostedBlobPathname": "catalog-items/risalni-list/images/8ce539866de5501a-risalni-list-a2-celoten-heutink-v7.jpg"
+        }
+      ],
+      "rejected": [
+        {
+          "name": "ddd-drawing-a3-main",
+          "url": "https://dddmaterial.com/cdn/shop/files/Drawing_Paper_A3_12pcs.jpg?v=1759905821",
+          "path": "tmp/product-image-audit/paper-v7/ddd-drawing-a3-main.jpg",
+          "width": 3209,
+          "height": 3209,
+          "bytes": 217880,
+          "sha256": "7da1c4d67d5a026effc1fb0fb78f7a3fbca064f60f11889001a0b9001a449296",
+          "reason": "framing-and-clarity",
+          "explanation": "Native3209² file shows only a soft, smeared corner crop with large A3(12pcs) title band, not a complete sheet; not useful native zoom.",
+          "accepted": false
+        },
+        {
+          "name": "ddd-drawing-white-detail",
+          "url": "https://dddmaterial.com/cdn/shop/files/Drawing_Paper_White.jpg?v=1759905774",
+          "path": "tmp/product-image-audit/paper-v7/ddd-drawing-white-detail.jpg",
+          "width": 3209,
+          "height": 3209,
+          "bytes": 200430,
+          "sha256": "e4c4cba697c3ad62a5de313a55b97b9c5a7e9e9b7611a06dbb4c67f23fea5807",
+          "reason": "duplicate-and-clarity",
+          "explanation": "Same soft cropped corner photograph as DDD A3 main, with White replacing the title. Not a distinct view and no complete main.",
+          "accepted": false
+        },
+        {
+          "name": "crea-drawing-a2-main",
+          "url": "https://creaknutselen.nl/files/15336/webshopartikelen/1837313/tekenpapier-a2-420x600-mm-170-gr-250-vellen.jpg",
+          "path": "tmp/product-image-audit/paper-v7/crea-drawing-a2-main.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 65504,
+          "sha256": "64457567928d35186a3c14d065adad1432eed1966b9fdfc7d3ece70502ffab86",
+          "reason": "clarity-and-source-ambiguity",
+          "explanation": "1024² A2 photo has flat low-detail surface and sparse smoothed layer detail; source states420×600 with inconsistent190g title/170g asset name. Prefer accepted exact594×420 Heutink original forA2; no second angle added.",
+          "accepted": false
+        },
+        {
+          "name": "heutink-drawing-a2-second",
+          "url": "https://www.heutinkvoorthuis.nl/cmsdata/artikelen/fotos/1/0/100_120085/100_120085_main_or_2.jpg",
+          "path": "tmp/product-image-audit/paper-v7/heutink-drawing-a2-second.jpg",
+          "width": 2400,
+          "height": 2400,
+          "bytes": 294557,
+          "sha256": "c319953ef781d6d5512ea8b116f2d33db47bf6adc6791b3b463c7a68cf448fd9",
+          "reason": "mixed-variants",
+          "explanation": "2400² second image is a tall stack of different sheet sizes. It does not isolate the exactA2 product and is not an informative distinct view of that one variant.",
+          "accepted": false
+        },
+        {
+          "name": "vbs-drawing-a4-native",
+          "url": "https://www.vbs-hobby.com/media/prodimg/10/prodimg/1006740_12060_P-20200220.jpg",
+          "path": "tmp/product-image-audit/paper-v7/vbs-drawing-a4-native.jpg",
+          "width": 1670,
+          "height": 2362,
+          "bytes": 2972922,
+          "sha256": "fe03818193a70901aa1eabc787eab3187404578930366d8c74ca1bf5374e8305",
+          "reason": "packaging-artwork",
+          "explanation": "1670×2362 original is flat artwork for a Folia50-sheet packet with illustrations/markers; no actual blank sheet/material shown and that branded package is not the ATEHNA single-sheet product.",
+          "accepted": false
+        },
+        {
+          "name": "heutink-drawing-a4-main",
+          "url": "https://www.heutinkvoorthuis.nl/cmsdata/artikelen/fotos/1/0/100_120087/100_120087_main_or_1.jpg",
+          "path": "tmp/product-image-audit/paper-v7/heutink-drawing-a4-main.jpg",
+          "width": 2400,
+          "height": 2400,
+          "bytes": 94427,
+          "sha256": "0cfc934908afbd4393f3a285aad91c72ffb39145cea855fd87672e4fa23a80bf",
+          "reason": "excessive-empty-space",
+          "explanation": "Native2400² source places the product in a small central area about1150×600px surrounded by excessive blank canvas. Product detail/framing does not satisfy useful main-image quality; not cropped/upscaled to manufacture compliance.",
+          "accepted": false
+        }
+      ],
+      "pending": [],
+      "screenedSources": [
+        {
+          "sourcePage": "https://www.faber-castell.co.uk/products/SketchpadA560sheets80gm2/212051",
+          "reason": "A5 source is microperforated bound sketchpad with covers; not the loose drawing sheet being sold."
+        },
+        {
+          "sourcePage": "https://www.desertcart.in/products/150710147-1557-extra-white-120gsm-a5-sketch-paper-light-grain-50",
+          "reason": "A5 Canson branded pad/retail listing did not provide verified native full loose-sheet image tied to original commodity; not substituted."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-RIS-297x210-A4",
+          "variantName": "A4",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        },
+        {
+          "variantSku": "MAT-PAP-RIS-210x148-A5",
+          "variantName": "A5",
+          "missingViews": [
+            "native sharp whole-sheet main",
+            "distinct useful edge/surface detail where available"
+          ]
+        }
+      ],
+      "additionalViewsStillMissing": [
+        "Distinct useful exact-variant detail photographs; no crops/rotations counted as extra views."
+      ]
+    }
+  ],
+  "evidenceFiles": [
+    "tmp/product-image-audit/paper-v7/pages.json",
+    "tmp/product-image-audit/paper-v7/probes.json",
+    "tmp/product-image-audit/paper-v7/giclees-product.json",
+    "tmp/product-image-audit/paper-v7/rca-white200-product.json",
+    "tmp/product-image-audit/paper-v5/atehna-bela-a4.html",
+    "tmp/product-image-audit/paper-v5/atehna-grey12-b1.html"
+  ],
+  "priorEvidenceLedger": [
+    "data/catalog/replacement-sources-paper-v5-2026-09.json",
+    "data/catalog/replacement-sources-paper-v6-2026-09.json"
+  ],
+  "mutationSummary": {
+    "databaseWrites": 0,
+    "canonicalWrites": 0,
+    "runtimeEdits": 0,
+    "unchangedOriginalAssetsStaged": 2
+  },
+  "evidenceNotes": [
+    "OriginalA3 drawing native supplier and reseller hash-identical: both records are provenance for one accepted photograph, not two angles.",
+    "TeamKids displayed/largest records hash-identical and both fail.",
+    "atehna-risalni-original is670² identity-only reference, not publishable.",
+    "Probe named atehna-white-board-original was discovered to be a related-product brayer A130-300 from original page footer; it is NOT a whiteboard photograph and has no product-image association. Original whiteA4 Product schema image is empty.",
+    "No DB, canonical, runtime, source geometry, labels, colours or pixels changed. Source original photos staged unchanged only for two accepted exact drawing formats."
+  ],
+  "appliedAt": "2026-09-14T13:40:32.062Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T13-35-12-924Z"
+}

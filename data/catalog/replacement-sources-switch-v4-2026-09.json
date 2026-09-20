@@ -1,0 +1,384 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T10:32:50.500Z",
+  "status": "three-native-photos-accepted-by-root",
+  "slug": "vgradno-stikalo",
+  "identityEvidence": [
+    {
+      "sourcePage": "https://atehna.si/product/vgradno-stikalo/",
+      "localSource": "public/images/catalog/2026-09/vgradno-stikalo.jpg",
+      "dimensions": {
+        "width": 500,
+        "height": 500
+      },
+      "note": "Original visual identity anchor; black case broad-face snap tab and narrow-end screw terminal, white long plunger and ribbed bell nut."
+    },
+    {
+      "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+      "productModule": "11082686794",
+      "note": "Explicit white12mm single-pole250V/2A product. HTML lists original image dimensions1565×1562,1706×1708,1374×1375,1015×1015. First three untransformed original JPEGs accepted; fourth under minimum."
+    },
+    {
+      "sourcePage": "https://www.radiokoelsch.de/Lampen-Einbauschalter-Einbau-Druckschalter-weiss-250V-2A-12-mm-Achse-1-polig",
+      "productCode": "2014-1337",
+      "note": "Same dealer product and identical physical photos; largest exposed gallery sources800×800. Its12mm product differs visibly from the8mm switch previously rejected."
+    },
+    {
+      "sourcePage": "https://www.arditi.de/part/037195/",
+      "productCode": "037195 / 468/12",
+      "note": "Manufacturer photograph corroborates case geometry; Eltric exact variant page calls it white037195/468/12 and maps to057115."
+    },
+    {
+      "sourcePage": "https://www.elektrokuchorz.de/Druckschalter-Einbau-weiss-2A-1-polig-M10-x-1-L-12-mm/552502",
+      "note": "Dealer specifies Arditi white12mm neck and21×12.5×30mm overall size, matching ATEHNA21×12×30mm rounded dimensions."
+    }
+  ],
+  "rejectedSources": [
+    {
+      "id": "stingl-0",
+      "url": "https://cdn.shopify.com/s/files/1/0885/6033/7243/files/057115-01.jpg?v=1742563268",
+      "file": "tmp/product-image-audit/switch-v4/stingl-0.jpeg",
+      "width": 500,
+      "height": 500,
+      "bytes": 13032,
+      "sha256": "29fc1b0115286fad2ada6d1a326c5808829e832abaf0debdbbdf526a0d952420",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0885/6033/7243/files/057115-01.jpg?v=1742563268",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Correct case and white12mm neck identity, original500×500 only."
+    },
+    {
+      "id": "stingl-1",
+      "url": "https://cdn.shopify.com/s/files/1/0885/6033/7243/files/057115.jpg?v=1742563268",
+      "file": "tmp/product-image-audit/switch-v4/stingl-1.jpeg",
+      "width": 512,
+      "height": 512,
+      "bytes": 21133,
+      "sha256": "bad61a12a036e224b14a5588cf8fdfd41159b19f6ca9ec1dcdff6d40922d53db",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0885/6033/7243/files/057115.jpg?v=1742563268",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Original512×512 only; cannot count as a qualifying source."
+    },
+    {
+      "id": "arditi",
+      "url": "https://www.arditi.de/wp-content/uploads/2022/09/037195.png",
+      "file": "tmp/product-image-audit/switch-v4/arditi.png",
+      "width": 750,
+      "height": 750,
+      "bytes": 183818,
+      "sha256": "9f7ce8769e35a1cc203c5b2998bfc5077aaa83e668e1403f39bef1b87e9e7aa9",
+      "sourceUrl": "https://www.arditi.de/wp-content/uploads/2022/09/037195.png",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Correct manufacturer037195/468/12 case, original750×750; watermark retained in research but source is under minimum."
+    },
+    {
+      "id": "rev",
+      "url": "https://rev.de/storage/rev/images/55/0509020555/0509020555_2.webp?v=1788333361",
+      "file": "tmp/product-image-audit/switch-v4/rev.webp",
+      "width": 1226,
+      "height": 1226,
+      "bytes": 163696,
+      "sha256": "581c144154d8a0553d39a34440a7972465ea1f365b9d7c734c2e7b3d25d4857a",
+      "sourceUrl": "https://rev.de/storage/rev/images/55/0509020555/0509020555_2.webp?v=1788333361",
+      "reason": "wrong-case-variant",
+      "notes": "Native1226×1226 but clear/white body, different nut and terminals; wrong case, no exact product match."
+    },
+    {
+      "id": "kuchorz-front",
+      "url": "https://www.elektrokuchorz.de/media/d1/36/1e/1707738424/552502-A.jpg",
+      "file": "tmp/product-image-audit/switch-v4/kuchorz-front.jpeg",
+      "width": 850,
+      "height": 850,
+      "bytes": 92003,
+      "sha256": "1c24cd88f4a58e36b395a74767c2116426847d983c590133e82fe60e16d08dbc",
+      "sourceUrl": "https://www.elektrokuchorz.de/media/d1/36/1e/1707738424/552502-A.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "kuchorz-angle",
+      "url": "https://www.elektrokuchorz.de/media/85/a6/f6/1707738424/552502-A-1.jpg",
+      "file": "tmp/product-image-audit/switch-v4/kuchorz-angle.jpeg",
+      "width": 850,
+      "height": 850,
+      "bytes": 87761,
+      "sha256": "e53f8d38a57387234956da8fafe5633cbe9fd7bce606c2b1178b85e738f79041",
+      "sourceUrl": "https://www.elektrokuchorz.de/media/85/a6/f6/1707738424/552502-A-1.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "kuchorz-diagram",
+      "url": "https://www.elektrokuchorz.de/media/2a/4b/1d/1707738424/552502-A-mass.jpg",
+      "file": "tmp/product-image-audit/switch-v4/kuchorz-diagram.jpeg",
+      "width": 850,
+      "height": 850,
+      "bytes": 86328,
+      "sha256": "6cb199b48e534f5db2a7f8318b0068eb9083f1f4f5467410c235f0c0814f9bf9",
+      "sourceUrl": "https://www.elektrokuchorz.de/media/2a/4b/1d/1707738424/552502-A-mass.jpg",
+      "reason": "technical-evidence-only-not-counted-as-photograph",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "radiokoelsch-0",
+      "url": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig.jpg",
+      "file": "tmp/product-image-audit/switch-v4/radiokoelsch-0.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 33537,
+      "sha256": "58945688b03eb49d4220ec746c5c90dfdbeccda93edbed15c471f6459e4de8af",
+      "sourceUrl": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "radiokoelsch-1",
+      "url": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~2.jpg",
+      "file": "tmp/product-image-audit/switch-v4/radiokoelsch-1.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 36386,
+      "sha256": "8788f6fa306a8c1b626486bc31cec3bc41daf42bad930270a011445be95d9f67",
+      "sourceUrl": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~2.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "radiokoelsch-2",
+      "url": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~3.jpg",
+      "file": "tmp/product-image-audit/switch-v4/radiokoelsch-2.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 38846,
+      "sha256": "59a788b0ac64571bf5dad922a45ede2fa2e1176a094b4c5e6321bdcad720f344",
+      "sourceUrl": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~3.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "radiokoelsch-3",
+      "url": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~4.jpg",
+      "file": "tmp/product-image-audit/switch-v4/radiokoelsch-3.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 66513,
+      "sha256": "846e9f331211335886097bf6e74e4688443d1fe09dc96236d70cb1fd179707d0",
+      "sourceUrl": "https://www.radiokoelsch.de/media/image/product/341/lg/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig~4.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "elektroportaal",
+      "url": "https://elektroportaal.nl/app/uploads/2024/11/ec057115.jpg",
+      "file": "tmp/product-image-audit/switch-v4/elektroportaal.jpeg",
+      "width": 512,
+      "height": 512,
+      "bytes": 23278,
+      "sha256": "8af63534985607aefa3657d316a210ee0d56d2e416d1a0caa62a35d29f6f374a",
+      "sourceUrl": "https://elektroportaal.nl/app/uploads/2024/11/ec057115.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "muekra",
+      "url": "https://cdn.myshoptet.com/usr/www.muekra.de/user/shop/big/21192_druck-einbau-schalter-hals-12mm-druckschalter-lh.jpg",
+      "file": "tmp/product-image-audit/switch-v4/muekra.jpeg",
+      "width": 1024,
+      "height": 768,
+      "bytes": 22599,
+      "sha256": "3a8f86b41a7d6f116ca2334a9d6b93e9375c50813dc0a59197c72890f89ff42e",
+      "sourceUrl": "https://cdn.myshoptet.com/usr/www.muekra.de/user/shop/big/21192_druck-einbau-schalter-hals-12mm-druckschalter-lh.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original is below1024 pixels on at least one axis. Not enlarged, padded or assigned."
+    },
+    {
+      "id": "eltric-original",
+      "url": "https://entitys-public.b-cdn.net/01/460/media/3166/original/ADRQ/FILADRQH1213/shared/1ccb6584-e68e-44c2-8e0e-71dc98a7da4e/057115-std-01.webp",
+      "file": "tmp/product-image-audit/switch-v4/eltric-original.webp",
+      "width": 1485,
+      "height": 2000,
+      "bytes": 170994,
+      "sha256": "ca86f599dbb6165dc0b76568207847348a0805b78724d4bbba2ada1a24ea150a",
+      "sourceUrl": "https://entitys-public.b-cdn.net/01/460/media/3166/original/ADRQ/FILADRQH1213/shared/1ccb6584-e68e-44c2-8e0e-71dc98a7da4e/057115-std-01.webp",
+      "reason": "insufficient-native-detail-apparent-source-upscale",
+      "notes": "Actual public CDN original is1485×2000, but full-size visual review shows coarse stepped cutout edges, visibly enlarged low-detail texture and blurred ribs/screw. Appears enlarged from the same smaller stock photograph; fails useful native-detail requirement despite pixel dimensions."
+    },
+    {
+      "id": "radiokoelsch-original",
+      "url": "https://www.radiokoelsch.de/media/image/product/341/org/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig.jpg",
+      "error": "HTTP 404",
+      "sourceUrl": "https://www.radiokoelsch.de/media/image/product/341/org/lampen-einbauschalter-einbau-druckschalter-weiss-250v-2a-12-mm-achse-1-polig.jpg",
+      "reason": "source-unavailable",
+      "notes": "Public original-size URL unavailable404; advertised largest gallery source800×800 only."
+    },
+    {
+      "id": "textilkabel-extra",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i4e6aa4c889dca5be/version/1521728593/image.jpg",
+      "file": "tmp/product-image-audit/switch-v4/textilkabel-extra.jpeg",
+      "width": 1015,
+      "height": 1015,
+      "bytes": 544995,
+      "sha256": "b05a87bae6aac89d2ac507f71cbd6385a50cb4ed7c3ec9493e42e1e2561f03af",
+      "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i4e6aa4c889dca5be/version/1521728593/image.jpg",
+      "reason": "native-resolution-below-minimum",
+      "notes": "Genuinely useful underside-label view of the same product, but original1015×1015 is below1024 on both axes. Not upscaled or added."
+    }
+  ],
+  "additionalRejectedLeads": [
+    {
+      "sourcePage": "https://rev.de/category/einbauschalter/126770",
+      "productCode": "0509003555",
+      "ean": "4008297090038",
+      "reason": "wrong-product-category",
+      "note": "Manufacturer identifies a round rocker switch, not this panel push switch."
+    },
+    {
+      "sourcePage": "https://www.lampe-bauen.de/wp-json/wp/v2/media?search=Druckschalter&per_page=100",
+      "reason": "no-exact12mm-original-found",
+      "note": "Reviewed public108matching media entries across two pages; only prior8mm models, series switches, metal nuts and related context. Did not substitute."
+    }
+  ],
+  "missingViews": [
+    "Native>=1024 underside label photograph; available exact underside source is1015×1015",
+    "Additional rear/top view only if genuinely informative and exact"
+  ],
+  "mutationSummary": {
+    "acceptedAssetsAdded": 3,
+    "catalogRowsChanged": 0,
+    "canonicalChanged": false,
+    "productionChanged": false,
+    "schematicsChanged": false
+  },
+  "products": [
+    {
+      "slug": "vgradno-stikalo",
+      "itemName": "Vgradno stikalo",
+      "variantSkus": [
+        "ELE-VGR-OSNOVNA-IZVEDBA"
+      ],
+      "status": "three-native-photos-accepted-by-root",
+      "accepted": [
+        {
+          "id": "vgradno-stikalo-prednji-pogled-textilkabel-v4",
+          "slug": "vgradno-stikalo",
+          "variantSkus": [
+            "ELE-VGR-OSNOVNA-IZVEDBA"
+          ],
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg",
+          "sha256": "9ea6889f161347ef65f4e7c4bcc12b053cd549e35e7a7b5a100faac255bb7c3e",
+          "dimensions": {
+            "width": 1565,
+            "height": 1562
+          },
+          "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+          "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i370c90661f10b2a3/version/1521728593/image.jpg",
+          "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "three-quarter front",
+          "altText": "Vgradno stikalo – celoten pogled na bel gumb, rebrasto matico in črno ohišje.",
+          "edits": [],
+          "qualityReview": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i370c90661f10b2a3/version/1521728593/image.jpg",
+          "width": 1565,
+          "height": 1562,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "review": {
+            "exactIdentity": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+            "quality": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+            "independentRootReview": "Passed: sharp plastic texture, thread and terminal edges; complete product main view; useful mounting nut removed and straight-case details. Exact old ATEHNA body latch, end screw and plunger shape."
+          }
+        },
+        {
+          "id": "vgradno-stikalo-navoj-matica-textilkabel-v4",
+          "slug": "vgradno-stikalo",
+          "variantSkus": [
+            "ELE-VGR-OSNOVNA-IZVEDBA"
+          ],
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-navoj-matica-textilkabel-v4.jpg",
+          "sha256": "103aa5045e089ab8ce92f4a06919f5e3fb22a8096946cff6093e23af12b090e8",
+          "dimensions": {
+            "width": 1706,
+            "height": 1708
+          },
+          "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+          "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i68fae69aa7464030/version/1521728593/image.jpg",
+          "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "mounting thread and removable included nut",
+          "altText": "Vgradno stikalo – prikaz pritrdilnega navoja in priložene odvite matice.",
+          "edits": [],
+          "qualityReview": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i68fae69aa7464030/version/1521728593/image.jpg",
+          "width": 1706,
+          "height": 1708,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "review": {
+            "exactIdentity": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+            "quality": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+            "independentRootReview": "Passed: sharp plastic texture, thread and terminal edges; complete product main view; useful mounting nut removed and straight-case details. Exact old ATEHNA body latch, end screw and plunger shape."
+          }
+        },
+        {
+          "id": "vgradno-stikalo-prikljucki-textilkabel-v4",
+          "slug": "vgradno-stikalo",
+          "variantSkus": [
+            "ELE-VGR-OSNOVNA-IZVEDBA"
+          ],
+          "variantNames": [
+            "Osnovna izvedba"
+          ],
+          "blobUrl": "/images/catalog/2026-09/vgradno-stikalo-prikljucki-textilkabel-v4.jpg",
+          "sha256": "91b37ffd3e43f4ab747fe4e15c9a8a61142bbd66281da20d678cc9ea2cbbc591",
+          "dimensions": {
+            "width": 1374,
+            "height": 1375
+          },
+          "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+          "sourceUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i0f21f63d89afb0bf/version/1521728593/image.jpg",
+          "sourceIdentityEvidence": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "straight case and terminal openings with mounting thread exposed",
+          "altText": "Vgradno stikalo – raven pogled na ohišje, odprtine priključkov in pritrdilni navoj.",
+          "edits": [],
+          "qualityReview": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i0f21f63d89afb0bf/version/1521728593/image.jpg",
+          "width": 1374,
+          "height": 1375,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "review": {
+            "exactIdentity": "Textilkabel-Fachhandel / Radio Kölsch explicitly lists white single-pole250V/2A panel push switch with12mm neck. Its full original photos show the same long white plunger, tapered ribbed white bell nut, black rectangular case, broad-face snap tab and narrow-end screw terminals as ATEHNA vgradno-stikalo.jpg; independently corroborated by Radio Kölsch2014-1337 and Arditi037195/468/12 case and21×12.5×30mm dealer dimensions. Exact visible geometry and component placement match the existing ATEHNA21×12×30mm basic variant. No brand/model code is invented for the catalog.",
+            "quality": "Original untransformed JPEG bytes match source HTML original dimensions. Sharp case edges, moulding texture, screw slot, nut ribs and mounting threads remain useful at full size; entire depicted product/component arrangement visible, neutral real background, no humans. Temporary WebP inspection previews were generated only for tool transfer; catalog assets are unchanged original JPEGs.",
+            "independentRootReview": "Passed: sharp plastic texture, thread and terminal edges; complete product main view; useful mounting nut removed and straight-case details. Exact old ATEHNA body latch, end screw and plunger shape."
+          }
+        }
+      ],
+      "missingViews": [
+        "Native>=1024 underside label photograph; available exact underside source is1015×1015",
+        "Additional rear/top view only if genuinely informative and exact"
+      ]
+    }
+  ]
+}

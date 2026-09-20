@@ -1,6 +1,7 @@
 import type { HandleUploadPresignedBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
-import { parsePublicMediaUploadPayload } from '@/shared/domain/media/publicMediaUpload';
+import { validateStoredCatalogImage } from '@/shared/server/catalogImageQuality';
+import { getPublicMediaUploadPolicy, parsePublicMediaUploadPayload } from '@/shared/domain/media/publicMediaUpload';
 import { topLevelCatalogCategoryExistsInDatabase } from '@/shared/server/categoryShowcase';
 import { handlePublicMediaUpload } from '@/shared/server/publicMediaUpload';
 
@@ -8,7 +9,17 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as HandleUploadPresignedBody;
+    const requestBody = await request.json();
+    if (requestBody?.type === 'catalog-image.validate') {
+      const payload = parsePublicMediaUploadPayload(requestBody.clientPayload, 'catalog-item');
+      const policy = getPublicMediaUploadPolicy(payload);
+      if (policy.mediaKind !== 'image' || policy.pathname !== requestBody.pathname || typeof requestBody.url !== 'string') {
+        return NextResponse.json({ message: 'Podatki naložene slike niso veljavni.' }, { status: 400 });
+      }
+      const image = await validateStoredCatalogImage(requestBody.url, policy.pathname, policy.contentType);
+      return NextResponse.json({ ok: true, ...image });
+    }
+    const body = requestBody as HandleUploadPresignedBody;
     if (body.type !== 'blob.generate-presigned-url') {
       return NextResponse.json({ message: 'Vrsta zahtevka za nalaganje ni veljavna.' }, { status: 400 });
     }

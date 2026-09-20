@@ -75,6 +75,7 @@ export function patterns(objects: ObjectInfo[]) {
     }
     return result;
 }
+// Scan nested metadata too: a crop's image_dimensions.originalUrl keeps its native blob alive.
 export function referenceSql(source: string) {
     return `with records as materialized (${source}),
     leaves as materialized (select r.ordinal, v #>> '{}' as value from records r cross join lateral jsonb_path_query(r.payload,'strict $.** ? (@.type() == "string")') v

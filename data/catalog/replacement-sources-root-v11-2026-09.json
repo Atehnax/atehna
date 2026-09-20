@@ -1,0 +1,31 @@
+{
+  "version": 11,
+  "reviewedAt": "2026-09-14T16:10:51.848Z",
+  "status": "No qualifying source; production remains at verified V10 state",
+  "products": [
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "accepted": [],
+      "sourcePage": "https://www.merkur.si/univerzalno-lepilo-uhu-super-glue-jumbo-3-ml/",
+      "sourceUrl": "https://www.merkur-static.si/media/catalog/product/cache/a68cd95282f629852e6b9e296b7a5618/u/n/univerzalno-lepilo-uhu-super-glue-jumbo-3-ml-1043934-64c973d77002a.jpg",
+      "dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "88d7ba3c6c999b196f6f36e92c65752c7e4d835b2453a5bab361ea01262dffef",
+      "bytes": 122189,
+      "strictDecodePassed": true,
+      "visuallyReviewed": true,
+      "decision": "Slovenian source title says Jumbo3ml, but native1200² photograph depicts a hanging display of12 modern3g Super Glue packs. Tube/card/logo differ from original ATEHNA legacy3ml red italic-lettered tube/Arabic-English card. Do not substitute or crop a modern display pack to mimic a single old product.",
+      "otherSource": "Uncached1200² JPEG decoded metadata but failed strict image decode; no repaired/re-encoded asset published.",
+      "missingViews": [
+        "Exact legacy3ml whole package or tube main",
+        "Exact rear label/nozzle details"
+      ]
+    }
+  ],
+  "mutationSummary": "Research only; no public assets or catalog changes."
+}

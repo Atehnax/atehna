@@ -6,6 +6,14 @@ import {
   type PublicMediaUploadContext
 } from '@/shared/domain/media/publicMediaUpload';
 
+import { assertCatalogImageDimensions } from '@/shared/domain/media/catalogImageQuality';
+
+export async function validateCatalogImageFile(file: Blob): Promise<void> {
+  let image: ImageBitmap;
+  try { image = await createImageBitmap(file); } catch { throw new Error('Slike ni mogoče prebrati. Uporabite izvirno rastrsko fotografijo.'); }
+  try { assertCatalogImageDimensions(image.width, image.height); } finally { image.close(); }
+}
+
 const HANDLE_UPLOAD_URL = '/api/admin/media';
 
 function createUploadId(): string {
@@ -35,6 +43,10 @@ export async function uploadAdminPublicMedia(
   if (file.size > policy.maximumSizeInBytes) {
     const maximumMegabytes = Math.floor(policy.maximumSizeInBytes / (1024 * 1024));
     throw new Error(`Datoteka je prevelika. Dovoljena velikost je največ ${maximumMegabytes} MB.`);
+  }
+
+  if (context.scope === 'catalog-item' && context.mediaKind === 'image') {
+    await validateCatalogImageFile(file);
   }
 
   const authorizationResponse = await fetch(HANDLE_UPLOAD_URL, {
@@ -72,6 +84,15 @@ export async function uploadAdminPublicMedia(
   }
   if (blob.pathname !== policy.pathname) {
     throw new Error('Shranjena pot medija se ne ujema z odobreno potjo.');
+  }
+
+  if (context.scope === 'catalog-item' && context.mediaKind === 'image') {
+    const validationResponse = await fetch(HANDLE_UPLOAD_URL, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'catalog-image.validate', clientPayload: JSON.stringify(payload), url: blob.url, pathname: blob.pathname })
+    });
+    const validation = await validationResponse.json().catch(() => ({})) as { message?: string };
+    if (!validationResponse.ok) throw new Error(validation.message || 'Naložene slike ni mogoče preveriti.');
   }
 
   return {

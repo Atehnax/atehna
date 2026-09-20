@@ -1,0 +1,996 @@
+{
+  "version": 8,
+  "reviewedAt": "2026-09-14T14:07:06.381Z",
+  "status": "pass-finished-with-source-gaps",
+  "policy": "Untouched real original photographs at least 1024 pixels on both axes, with useful native detail; no humans, AI, enlargement, padding or misleading model/variant substitutions. Native dimension checks alone do not establish clarity or product accuracy. Existing schematics untouched.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v7-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantSkus": [
+        "STR-KRI-OSNOVNA"
+      ],
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "identityEvidence": "Exact original model THERMOFORM 400; 400 mm heating wire, 440×165 mm working surface, 230 V / 5 V, 160 VA. Replacement THERMOFORM 580S is not the same product.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "bender-a4-original",
+          "url": "https://www.a4.fr/pub/media/catalog/product/7/0/700x560_PROFI-125400.jpg",
+          "sourcePage": "https://www.a4.fr/thermo-plieuse-plastiform-400.html",
+          "status": "rejected",
+          "file": "tmp/tools-v8/bender-a4-original.jpg",
+          "bytes": 32408,
+          "sha256": "db9894c43884bb315139ff427952e780abf3e3837aa6895e08e8e7da4878e07e",
+          "width": 700,
+          "height": 413,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.a4.fr/pub/media/catalog/product/7/0/700x560_PROFI-125400.jpg",
+          "sourceUrl": "https://www.a4.fr/pub/media/catalog/product/7/0/700x560_PROFI-125400.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 700×413; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "bender-profiform400-original",
+          "url": "https://www.profiform.com/img/fot_plastiform400.jpg",
+          "sourcePage": "https://www.profiform.com/en/products/plastiform.html",
+          "status": "rejected",
+          "file": "tmp/tools-v8/bender-profiform400-original.jpg",
+          "bytes": 16443,
+          "sha256": "609afc4ac8244afc8cd3c5bd804395b23e007ed462bae38a95581c3cb47aab0a",
+          "width": 300,
+          "height": 189,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.profiform.com/img/fot_plastiform400.jpg",
+          "sourceUrl": "https://www.profiform.com/img/fot_plastiform400.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 300×189; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "bender-jeulin-original",
+          "url": "https://jeulin.com/media/catalog/product/I/M/IMG_181044_99d3.jpg",
+          "sourcePage": "https://jeulin.com/polytech_en/181044.html",
+          "status": "rejected",
+          "file": "tmp/tools-v8/bender-jeulin-original.jpg",
+          "bytes": 126565,
+          "sha256": "6d94ad60eb20918c70402f2c281243d993e2cf0417435f3f828cab081cea1d12",
+          "width": 3426,
+          "height": 2702,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://jeulin.com/media/catalog/product/I/M/IMG_181044_99d3.jpg",
+          "sourceUrl": "https://jeulin.com/media/catalog/product/I/M/IMG_181044_99d3.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Good large photograph, but wrong supplied model/configuration: original ATEHNA THERMOFORM 400 has adjustment arms, full-width end rail, right-side degree scale and locking control, plus a different switch/fuse arrangement. Jeulin Plastiform 400 omits the bending fixture and angle scale. Do not substitute based only on 400 mm working length.",
+          "visualReview": "Full product photograph inspected; clean background, no humans. Root independently compared against original ATEHNA and rejected the model/component match.",
+          "peerReview": "Rejected by root after original-photo comparison.",
+          "reference": "tmp/tools-v8/bender-atehna-old.jpg"
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "bender-eika",
+          "url": "https://www.eika.net/Famos_1",
+          "sourcePage": "https://www.eika.net/Famos_1",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-eika.html",
+          "bytes": 12651,
+          "sha256": "2a56a76f4f587390a72da30ea1ebe9236e8084281a876f1afe8a0bf4ab119f93",
+          "sourceUrl": "https://www.eika.net/Famos_1",
+          "result": "Ordinary public response was a Sicherheitspruefung challenge. No gallery retrieved and no access bypass attempted."
+        },
+        {
+          "id": "bender-famos2021",
+          "url": "https://famos-gmbh.de/wp-content/uploads/2021/11/Famos_Katalog_2021_Pdf.pdf",
+          "sourcePage": "https://famos-gmbh.de/wp-content/uploads/2021/11/Famos_Katalog_2021_Pdf.pdf",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-famos2021.pdf",
+          "bytes": 31092728,
+          "sha256": "f17b55d1cd1002995068ab29fdadb2d2b43e5fe43b62e3cc2e5b754d8f1bbd20",
+          "sourceUrl": "https://famos-gmbh.de/wp-content/uploads/2021/11/Famos_Katalog_2021_Pdf.pdf",
+          "result": "New 2021 supplier catalogue identifies Plastiform 400/125400. Relevant native embedded photographs are all below 1024 pixels on at least one axis; a page render would not qualify."
+        },
+        {
+          "id": "bender-famos-gallery",
+          "url": "https://famos-gmbh.de/portfolio-item/maschinen-fuer-kunststoffverarbeitung/",
+          "sourcePage": "https://famos-gmbh.de/portfolio-item/maschinen-fuer-kunststoffverarbeitung/",
+          "status": 404,
+          "file": "tmp/tools-v8/bender-famos-gallery.html",
+          "bytes": 78558,
+          "sha256": "2ff55133790448c4f72e64768f7348eec6f4eda3f461a30966892a56d7a4167d",
+          "sourceUrl": "https://famos-gmbh.de/portfolio-item/maschinen-fuer-kunststoffverarbeitung/",
+          "result": "Candidate gallery URL returned 404; no usable source."
+        },
+        {
+          "id": "bender-journal",
+          "url": "https://download.neckar-verlag-vs.de/SCHULE/tu/tu_Sonderausgabe.pdf",
+          "sourcePage": "https://download.neckar-verlag-vs.de/SCHULE/tu/tu_Sonderausgabe.pdf",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-journal.pdf",
+          "bytes": 13305899,
+          "sha256": "e18e67243bb2b5b89c326a5b424be9067ecc297a0b9fdd46ac2e8bb5575078a0",
+          "sourceUrl": "https://download.neckar-verlag-vs.de/SCHULE/tu/tu_Sonderausgabe.pdf",
+          "result": "Historical teaching publication contains THERMOFORM 400 text. Native embedded raster images on the relevant page are all below 1024 pixels on at least one axis. This publication had been identified earlier; v8 explicitly rechecked its native object sizes, not a new source discovery."
+        },
+        {
+          "id": "bender-profiform",
+          "url": "https://www.profiform.com/en/products/plastiform.html",
+          "sourcePage": "https://www.profiform.com/en/products/plastiform.html",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-profiform.html",
+          "bytes": 31389,
+          "sha256": "ed4a114c3de8e6f8be4a6c1704aa231338147f7f9798ab9fc86487600981ca5a",
+          "sourceUrl": "https://www.profiform.com/en/products/plastiform.html",
+          "result": "Manufacturer identifies Plastiform 400 / 125400, with a separate linked photo popup. Photo is 300×189; different supplied machine configuration from original ATEHNA THERMOFORM 400."
+        },
+        {
+          "id": "bender-a4",
+          "url": "https://www.a4.fr/thermo-plieuse-plastiform-400.html",
+          "sourcePage": "https://www.a4.fr/thermo-plieuse-plastiform-400.html",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-a4.html",
+          "bytes": 142227,
+          "sha256": "b43ded41672ab37aecd2e8f502da2f39f202b00836385a403d5c044734ed6d4b",
+          "sourceUrl": "https://www.a4.fr/thermo-plieuse-plastiform-400.html",
+          "result": "Distributor PROFI-125400 gallery exposes a 700×413 master. Plastiform photo lacks the original ATEHNA bending fixture and angle controls."
+        },
+        {
+          "id": "bender-jeulin",
+          "url": "https://jeulin.com/polytech_en/polytech/fablab/line-bender-machine.html",
+          "sourcePage": "https://jeulin.com/polytech_en/polytech/fablab/line-bender-machine.html",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-jeulin.html",
+          "bytes": 421333,
+          "sha256": "74836578e10802db8234e298d7ce5969e3f00d67666a40d39878f0e5af22f2eb",
+          "sourceUrl": "https://jeulin.com/polytech_en/polytech/fablab/line-bender-machine.html",
+          "result": "Public category links Plastiform 400 to SKU 181044; followed that exact product page."
+        },
+        {
+          "id": "bender-profiform400",
+          "url": "https://www.profiform.com/en/products/pop_plastiform400.html",
+          "sourcePage": "https://www.profiform.com/en/products/pop_plastiform400.html",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-profiform400.html",
+          "bytes": 2278,
+          "sha256": "c8425b1182fed5971f4c6071bde85cd3a307005c47c17dbd40b45270f242092a",
+          "sourceUrl": "https://www.profiform.com/en/products/pop_plastiform400.html",
+          "result": "Linked manufacturer photo popup exposes only a 300×189 original. No artificial enlargement requested."
+        },
+        {
+          "id": "bender-jeulin400",
+          "url": "https://jeulin.com/polytech_en/181044.html",
+          "sourcePage": "https://jeulin.com/polytech_en/181044.html",
+          "status": 200,
+          "file": "tmp/tools-v8/bender-jeulin400.html",
+          "bytes": 347342,
+          "sha256": "3d76ec35d3475a0a4a3f2dee5efeaa5709af3428127ce5306490b15b2c4d5f33",
+          "sourceUrl": "https://jeulin.com/polytech_en/181044.html",
+          "result": "Untransformed product original is 3426×2702. Independently compared against ATEHNA original; rejected for materially different supplied fixtures, controls and scale arrangement."
+        }
+      ],
+      "missingViews": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ],
+      "researchSearches": [],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 1,
+        "accepted": 0,
+        "rejectedImages": 3,
+        "sourceResponses": 9
+      },
+      "nativePdfInspections": [
+        {
+          "evidenceFile": "tmp/tools-v8/famos-native-evidence.json",
+          "method": "Inspect actual embedded raster dimensions; never count a PDF page render as a native product photograph."
+        },
+        {
+          "evidenceFile": "tmp/tools-v8/journal-native-evidence.json",
+          "method": "Inspect actual embedded raster dimensions; never count a PDF page render as a native product photograph."
+        }
+      ]
+    },
+    {
+      "slug": "kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "identityEvidence": "Original ATEHNA source SKUs 32113 and 32114 (300 g single and ten in stand) use 343066-02-x1.jpg. SKUs 32211 and 32210 (200 g) use an Unior stock photograph visibly marked 812-300; that inconsistent family photograph does not establish the exact 200 g model.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "hammer-tbs-native",
+          "url": "https://media.tbs-aachen.de/images/BGS-1852_tbsaachen.jpg",
+          "sourcePage": "https://www.tbs-aachen.de/BGS_technic/Haemmer_c4882.htm",
+          "status": "rejected",
+          "file": "tmp/tools-v8/hammer-tbs-native.jpg",
+          "bytes": 23741,
+          "sha256": "a77cc929034aba1c45efd2500c3a3120acacdae3e1e7aca3377f6446852a5a6c",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://media.tbs-aachen.de/images/BGS-1852_tbsaachen.jpg",
+          "sourceUrl": "https://media.tbs-aachen.de/images/BGS-1852_tbsaachen.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 800×800; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "unior-serbia-front",
+          "url": "https://cdn.szk.rs/images/big/15691.jpg",
+          "sourcePage": "https://svezakucu.rs/cekici/unior-cekic-zakovni-nasadjeni-200-g-art-812-601799-15691",
+          "status": "rejected",
+          "file": "tmp/tools-v8/unior-serbia-front.jpg",
+          "bytes": 49018,
+          "sha256": "81f4983159c88133248e3ffb25c871784b66b01fa9b480dd6ca4ae7100acdab1",
+          "width": 800,
+          "height": 600,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://cdn.szk.rs/images/big/15691.jpg",
+          "sourceUrl": "https://cdn.szk.rs/images/big/15691.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 800×600; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "unior-serbia-other",
+          "url": "https://cdn.szk.rs/images/big2/15691.jpg",
+          "sourcePage": "https://svezakucu.rs/cekici/unior-cekic-zakovni-nasadjeni-200-g-art-812-601799-15691",
+          "status": "rejected",
+          "file": "tmp/tools-v8/unior-serbia-other.jpg",
+          "bytes": 43041,
+          "sha256": "b671393ab55757aea99d82fc1fb38e1df5b0d0235a78db810d24271bd4881e1b",
+          "width": 800,
+          "height": 600,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://cdn.szk.rs/images/big2/15691.jpg",
+          "sourceUrl": "https://cdn.szk.rs/images/big2/15691.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 800×600; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "unior-mirror-native",
+          "url": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/katimages/328517.jpg",
+          "sourcePage": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cms298d.html?doc=10780&prod=14933",
+          "status": "rejected",
+          "file": "tmp/tools-v8/unior-mirror-native.jpg",
+          "bytes": 10385,
+          "sha256": "83ee7b716c714e581fdb0a95bbef18a3653a41c387d465fd5c49e1d6e922c9e5",
+          "width": 200,
+          "height": 70,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/katimages/328517.jpg",
+          "sourceUrl": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/katimages/328517.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 200×70; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "hammer-tbs",
+          "url": "https://www.tbs-aachen.de/BGS_technic/Haemmer_c4882.htm",
+          "sourcePage": "https://www.tbs-aachen.de/BGS_technic/Haemmer_c4882.htm",
+          "status": 200,
+          "file": "tmp/tools-v8/hammer-tbs.html",
+          "bytes": 183181,
+          "sha256": "c3761cbfae29c81b25cd03eace49d6a497e3d85bc70ed28df445adcd20539503",
+          "sourceUrl": "https://www.tbs-aachen.de/BGS_technic/Haemmer_c4882.htm",
+          "result": "Dealer BGS 1852 gallery exposes an 800×800 native original, below minimum. No revision evidence resolves the historical red-hammer conflict."
+        },
+        {
+          "id": "unior-mirror",
+          "url": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cms298d.html?doc=10780&prod=14933",
+          "sourcePage": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cms298d.html?doc=10780&prod=14933",
+          "status": 200,
+          "file": "tmp/tools-v8/unior-mirror.html",
+          "bytes": 36352,
+          "sha256": "aabe8ef31d159bf4349ee4ad21e93b2787d148eff293629590191065189219f0",
+          "sourceUrl": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cms298d.html?doc=10780&prod=14933",
+          "result": "A public 2016 Unior website mirror provides a small stock image and a linked enlargement route. The route is missing; thumbnail is only 200×70."
+        },
+        {
+          "id": "hammer-serbia",
+          "url": "https://svezakucu.rs/cekici/unior-cekic-zakovni-nasadjeni-200-g-art-812-601799-15691",
+          "sourcePage": "https://svezakucu.rs/cekici/unior-cekic-zakovni-nasadjeni-200-g-art-812-601799-15691",
+          "status": 200,
+          "file": "tmp/tools-v8/hammer-serbia.html",
+          "bytes": 595993,
+          "sha256": "b97f2f40ed4a00c4b7683abc69671bcc850ed80b19a5f439f35ae5b166ed860f",
+          "sourceUrl": "https://svezakucu.rs/cekici/unior-cekic-zakovni-nasadjeni-200-g-art-812-601799-15691",
+          "result": "Exact Unior 812 / 601799 / 200 g listing exposes two 800×600 images. These fail native dimensions; original ATEHNA 200 g stock-photo marking remains inconsistent."
+        },
+        {
+          "id": "unior-mirror-popup",
+          "url": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cmscc7c-4.html?doc=11958&prod=14933&num=",
+          "sourcePage": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cmscc7c-4.html?doc=11958&prod=14933&num=",
+          "status": 404,
+          "file": "tmp/tools-v8/unior-mirror-popup.html",
+          "bytes": 94049,
+          "sha256": "7457ec54f1f2e1dd20d1aa012664515fb3f79c1cc8d2e570474d955ddb99f023",
+          "sourceUrl": "https://boltsandtools.com/wp-content/uploads/2016/02/Unior%20Tools%20cat/www.uniortools.com/cgi-bin/cmscc7c-4.html?doc=11958&prod=14933&num=",
+          "result": "The enlargement URL discovered in the historical mirror returned 404."
+        },
+        {
+          "id": "hammer-leroy200",
+          "url": "https://www.leroymerlin.es/productos/unior-601799-martillo-para-mecanico-con-mango-de-madera-200-gr-serie-812-86346314.html",
+          "sourcePage": "https://www.leroymerlin.es/productos/unior-601799-martillo-para-mecanico-con-mango-de-madera-200-gr-serie-812-86346314.html",
+          "status": 403,
+          "file": "tmp/tools-v8/hammer-leroy200.html",
+          "bytes": 774,
+          "sha256": "6ce8ac717503bfcb3e1547c7f8032e602d7dc0337f230239f2bac8bf8c068ffa",
+          "sourceUrl": "https://www.leroymerlin.es/productos/unior-601799-martillo-para-mecanico-con-mango-de-madera-200-gr-serie-812-86346314.html",
+          "result": "Public Unior 601799 listing returned 403; no access bypass attempted."
+        }
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ],
+      "researchSearches": [
+        {
+          "query": "MMXX 75331 / 4016092753317 / TUeV GS 300 g hammer",
+          "sourcePage": "https://www.gsk-baumaschinen.de/Baubedarf/Werkzeuge/Allgemeines-Handwerkzeug/MMXX-Schlosserhammer-mit-Holzstiel-TUeV/GS-geprueft-300-g/",
+          "evidenceLevel": "public-search-result",
+          "result": "Fresh model lead is explicitly described with a 30% black-painted grip, conflicting with the original burgundy/red grip. Not an exact replacement."
+        },
+        {
+          "query": "Historical 200 g Unior 601799 and 2016 Unior image mirror",
+          "result": "New dealer originals are below the required native resolution; mirror enlargement missing. Existing 812-300 stock image cannot prove the 200 g variant."
+        }
+      ],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 4,
+        "accepted": 0,
+        "rejectedImages": 4,
+        "sourceResponses": 5
+      },
+      "originalArchiveRecheck": {
+        "evidenceFile": "tmp/tools-v8/original-identity-check.json",
+        "result": "Unassigned original ATEHNA attachment 1695 is already-known 328516.jpg, 322×417, visibly the Unior 812-300 stock photo. No new 200 g identification or real ten-hammer stand photograph was found."
+      }
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "identityEvidence": "Exact 40 cm handled TM Kovine RAGR040S1, EAN 3838853200080, 60×4.4 mm profile. Do not substitute other lengths or handle geometry.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "ruler-kupka-catalog",
+          "url": "https://www.kupka.hr/web_prospekti/15_TM_Kovine_prodajni_katalog.pdf",
+          "sourcePage": "https://www.kupka.hr/web_prospekti/15_TM_Kovine_prodajni_katalog.pdf",
+          "status": 200,
+          "file": "tmp/tools-v8/ruler-kupka-catalog.pdf",
+          "bytes": 2108889,
+          "sha256": "0fe6adb17259b1e776194d7db85a882c399e0c1900b998841f78a8951f0b7239",
+          "sourceUrl": "https://www.kupka.hr/web_prospekti/15_TM_Kovine_prodajni_katalog.pdf",
+          "result": "Historical Croatian TM catalogue positively identifies RAGR040S1 / 3838853200080 / 40 cm. All native embedded images on the ruler page are below 1024 pixels on at least one axis."
+        }
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "researchSearches": [
+        {
+          "query": "RAGR040S1 / 3838853200080 / original handled 40 cm aluminium ruler",
+          "result": "Fresh historical Kupka catalogue yields native ruler images below minimum. Search results mostly return previously exhausted TM/Merkur/Instal sources."
+        },
+        {
+          "query": "C.K T3531 40 handled aluminium ruler",
+          "sourcePage": "https://cpc.farnell.com/ck-tools/t3531-100/straight-edge-rule-1000mm-40/dp/TL22478",
+          "evidenceLevel": "public-search-result",
+          "result": "Same-country/OEM lead is 40 inches / 100 cm, not 40 cm. Length substitution excluded."
+        },
+        {
+          "query": "Koh-I-Noor aluminium ruler 40 cm with handle",
+          "sourcePage": "https://shop.kohinoordeutschland.de/Aluminium-Lineal-40-cm-mit-Griff",
+          "evidenceLevel": "public-search-result",
+          "result": "Integrated bent-metal handle and branded design differ from the TM separate black handle. Not an exact visual match."
+        }
+      ],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 1,
+        "accepted": 0,
+        "rejectedImages": 0,
+        "sourceResponses": 1
+      },
+      "nativePdfInspections": [
+        {
+          "evidenceFile": "tmp/tools-v8/ruler-native-evidence.json",
+          "method": "Inspect actual embedded raster dimensions; never count a PDF page render as a native product photograph."
+        }
+      ],
+      "originalArchiveRecheck": {
+        "evidenceFile": "tmp/tools-v8/original-identity-check.json",
+        "result": "Attachment 1589 is the existing 342×342 1RAG.jpg. Original attachment metadata supplies no higher native file."
+      }
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "identityEvidence": "Original ATEHNA source SKU 30151 specifies only 100 g and shows a tall bare blue spool embossed TIN-WIRE / LOT-ZINN. No confirmed alloy, wire diameter or manufacturer. Tentative Felder attribution from earlier photography is not independent proof.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "solder-schwarte-original",
+          "url": "https://www.schwarte-shop.de/media/i/p/popup/felder-fittinglot.jpg",
+          "sourcePage": "https://www.schwarte-shop.de/felder-fittinglot-spule-s-sn97cu3-3-mm-100g",
+          "status": "rejected",
+          "file": "tmp/tools-v8/solder-schwarte-original.jpg",
+          "bytes": 25794,
+          "sha256": "1ed39787917db21241df7afec1c1e82bf79e401695df138fde5f8847f75b5d9b",
+          "width": 522,
+          "height": 315,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.schwarte-shop.de/media/i/p/popup/felder-fittinglot.jpg",
+          "sourceUrl": "https://www.schwarte-shop.de/media/i/p/popup/felder-fittinglot.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 522×315; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "solder-interdiskont-other",
+          "url": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-spajkalna-zica.jpg",
+          "sourcePage": "https://www.interdiskont.si/izdelek/cin-za-spajkanje-1-5mm-100g-20941510/",
+          "status": "rejected",
+          "file": "tmp/tools-v8/solder-interdiskont-other.jpg",
+          "bytes": 35047,
+          "sha256": "0217c1907164f29eb6a7d66582fd8322148725b34210dba52dd5f461beff7ef7",
+          "width": 500,
+          "height": 447,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-spajkalna-zica.jpg",
+          "sourceUrl": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-spajkalna-zica.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 500×447; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "solder-interdiskont-original",
+          "url": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-2.jpg",
+          "sourcePage": "https://www.interdiskont.si/izdelek/cin-za-spajkanje-1-5mm-100g-20941510/",
+          "status": "rejected",
+          "file": "tmp/tools-v8/solder-interdiskont-original.jpg",
+          "bytes": 275224,
+          "sha256": "991bcf5c202685f401dd33a1bb772265d9f08a830e1a5f96a2d0a1367bb684ce",
+          "width": 1007,
+          "height": 1035,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-2.jpg",
+          "sourceUrl": "https://www.interdiskont.si/wp-content/uploads/2025/01/20941010-2.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 1007×1035; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "solder-varez-original",
+          "url": "https://www.varez.si/wp-content/uploads/2025/09/ESTANO-1MM-ZURICH-2.png",
+          "sourcePage": "https://www.varez.si/izdelek/zica-za-spajkanje-100g/",
+          "status": "rejected",
+          "file": "tmp/tools-v8/solder-varez-original.png",
+          "bytes": 343190,
+          "sha256": "dd352a7342dccc1afbd1f671a715d86809139e0b09f363acd003f4f86e958d30",
+          "width": 1200,
+          "height": 1200,
+          "format": "png",
+          "httpStatus": 200,
+          "imageUrl": "https://www.varez.si/wp-content/uploads/2025/09/ESTANO-1MM-ZURICH-2.png",
+          "sourceUrl": "https://www.varez.si/wp-content/uploads/2025/09/ESTANO-1MM-ZURICH-2.png",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Transparent short Zurich REST00100 spool with a printed 1 mm / 60:40 label differs from the original tall solid-blue embossed reel. No exact sold alloy/diameter evidence connects this product to ATEHNA 100 g.",
+          "visualReview": "Full 1200×1200 original inspected. Label and reel geometry clearly differ from the original ATEHNA photograph; no humans."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "solder-schwarte",
+          "url": "https://www.schwarte-shop.de/felder-fittinglot-spule-s-sn97cu3-3-mm-100g",
+          "sourcePage": "https://www.schwarte-shop.de/felder-fittinglot-spule-s-sn97cu3-3-mm-100g",
+          "status": 200,
+          "file": "tmp/tools-v8/solder-schwarte.html",
+          "bytes": 17295,
+          "sha256": "6d250affbd449318fd273fb9197bc99a5d9e2ef46e63f68c47d35ade3d674f23",
+          "sourceUrl": "https://www.schwarte-shop.de/felder-fittinglot-spule-s-sn97cu3-3-mm-100g",
+          "result": "New dealer lists Felder Cu-Rotin 3 / 2.7 mm / 100 g, but exposes only a 522×315 image. Neither weight alone nor blue spool colour establishes the exact ATEHNA reel."
+        },
+        {
+          "id": "solder-varez",
+          "url": "https://www.varez.si/izdelek/zica-za-spajkanje-100g/",
+          "sourcePage": "https://www.varez.si/izdelek/zica-za-spajkanje-100g/",
+          "status": 200,
+          "file": "tmp/tools-v8/solder-varez.html",
+          "bytes": 581500,
+          "sha256": "311dc66b1b9fb14eabe2fe20caf1b723b47f18fa6684ea7470e60a3ff1442d74",
+          "sourceUrl": "https://www.varez.si/izdelek/zica-za-spajkanje-100g/",
+          "result": "New local dealer exposes a 1200×1200 Zurich REST00100 / 1 mm / 60:40 image reused across its diameter choices. Visual review shows a transparent reel and printed label, different from the tall solid-blue embossed ATEHNA spool."
+        },
+        {
+          "id": "solder-interdiskont",
+          "url": "https://www.interdiskont.si/izdelek/cin-za-spajkanje-1-5mm-100g-20941510/",
+          "sourcePage": "https://www.interdiskont.si/izdelek/cin-za-spajkanje-1-5mm-100g-20941510/",
+          "status": 200,
+          "file": "tmp/tools-v8/solder-interdiskont.html",
+          "bytes": 313707,
+          "sha256": "6bfc1b5c35dbe4cd5693bad992293c67fd6f02365832661178e566bd6b62a48a",
+          "sourceUrl": "https://www.interdiskont.si/izdelek/cin-za-spajkanje-1-5mm-100g-20941510/",
+          "result": "New local dealer lists HM Muellner 20941510 / 1.5 mm / 100 g. Actual original gallery files are 1007×1035 and 500×447, both below minimum. The original ATEHNA alloy and wire diameter remain unconfirmed."
+        }
+      ],
+      "missingViews": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ],
+      "researchSearches": [
+        {
+          "query": "Löt-Zinn TIN-WIRE / Zinn-Weichlot 100 g blue spool; Slovenian cin / žica za spajkanje 100 g",
+          "result": "New local dealer originals inspected. No matching embossed tall blue spool or converging alloy/diameter/brand evidence obtained. Weight and blue colour alone were not used for acceptance."
+        },
+        {
+          "query": "100 g blue solder spool native manufacturer/dealer galleries",
+          "result": "Fresh image results for SMA, Dedra, Cynel, Kraft&Dele, Nimo, Stannol and Zurich show differing printed labels/reel proportions or unconfirmed alloys. No substitute was staged."
+        }
+      ],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 1,
+        "accepted": 0,
+        "rejectedImages": 4,
+        "sourceResponses": 3
+      }
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "identityEvidence": "ATEHNA source 32460 fine, 32461 medium and 32462 coarse: hardened 130 mm, 12-blade packs. Historical Pebaro package evidence maps 135-0 fine, 135-3 medium and 135-7 coarse; current 134-series is spiral wood/soft-metal and must not be substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "metal-warberger-original",
+          "url": "https://warberger.com/media/image/product/6106/lg/12-stk-laubsaegeblaetter-wera-z0.jpg",
+          "sourcePage": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "status": "rejected",
+          "file": "tmp/tools-v8/metal-warberger-original.jpg",
+          "bytes": 17760,
+          "sha256": "cbacc385122d70c6f919f02359d36ad5090a98f81a6d07a889634834c997f998",
+          "width": 600,
+          "height": 600,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://warberger.com/media/image/product/6106/lg/12-stk-laubsaegeblaetter-wera-z0.jpg",
+          "sourceUrl": "https://warberger.com/media/image/product/6106/lg/12-stk-laubsaegeblaetter-wera-z0.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 600×600; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "metal-bauhaus0-native",
+          "url": "https://media.cdn.bauhaus/m/214273/13.jpg",
+          "sourcePage": "https://www.bauhaus.at/metallsaegen/pebaro-laubsaegeblaetter-nr-0/p/21993031",
+          "status": "rejected",
+          "file": "tmp/tools-v8/metal-bauhaus0-native.jpg",
+          "bytes": 6160,
+          "sha256": "4f71ded5deb36317dd278a49f60d71528ff8b6b17112b46deb03f6ba58538822",
+          "width": 174,
+          "height": 174,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://media.cdn.bauhaus/m/214273/13.jpg",
+          "sourceUrl": "https://media.cdn.bauhaus/m/214273/13.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 174×174; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "metal-bauhaus0-gallery",
+          "url": "https://media.cdn.bauhaus/m/214273/12.jpg",
+          "sourcePage": "https://www.bauhaus.at/metallsaegen/pebaro-laubsaegeblaetter-nr-0/p/21993031",
+          "status": "rejected",
+          "file": "tmp/tools-v8/metal-bauhaus0-gallery.jpg",
+          "bytes": 27165,
+          "sha256": "7306a1e3d54e12847c54243c30a64e904f3d4ba99ed59a76562d2e8a484fd6fc",
+          "width": 696,
+          "height": 696,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://media.cdn.bauhaus/m/214273/12.jpg",
+          "sourceUrl": "https://media.cdn.bauhaus/m/214273/12.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 696×696; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "metal-moebel-original",
+          "url": "https://product-images-cdn.moebel.de/371d1dbe-655f-492e-b025-bdf7e46f612f/d94058dcf8316771fe07620d272ba8c1-1c6a900.jpg",
+          "sourcePage": "https://www.moebel.de/p/ce0011879c3e77c805beee2ae9fb10e6",
+          "status": "rejected",
+          "file": "tmp/tools-v8/metal-moebel-original.jpg",
+          "bytes": 105345,
+          "sha256": "43b985121510cc8906f1ef19f9ad67079f89a6ca72a2239409445a8cd1a3d815",
+          "width": 476,
+          "height": 2560,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://product-images-cdn.moebel.de/371d1dbe-655f-492e-b025-bdf7e46f612f/d94058dcf8316771fe07620d272ba8c1-1c6a900.jpg",
+          "sourceUrl": "https://product-images-cdn.moebel.de/371d1dbe-655f-492e-b025-bdf7e46f612f/d94058dcf8316771fe07620d272ba8c1-1c6a900.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 476×2560; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "metal-warberger",
+          "url": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "sourcePage": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "status": 200,
+          "file": "tmp/tools-v8/metal-warberger.html",
+          "bytes": 972697,
+          "sha256": "92f30cb7566b6397ef8dcce866a31b60a04b99bd211b9f95b97009c574357f75",
+          "sourceUrl": "https://warberger.com/12-Stk-Laubsaegeblaetter-Wera-Z0mm",
+          "result": "Exact 135-0 EAN 4006094135006 is sold under Wera/Schiessel wording, with a 600×600 original. Does not meet minimum."
+        },
+        {
+          "id": "metal-shoepping",
+          "url": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RKN6",
+          "sourcePage": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RKN6",
+          "status": 500,
+          "file": "tmp/tools-v8/metal-shoepping.html",
+          "bytes": 1273811,
+          "sha256": "d920f5eb65b4aecc251076b2dd986911ce3321b25046c921f2cbd360ae1003c3",
+          "sourceUrl": "https://www.shoepping.at/p/saegezubehoer/laubsaegeblaetter-wera-fuer-metall-groe-m00003RKN6",
+          "result": "Exact-grade listing was publicly indexed but ordinary retrieval returned HTTP 500; no original bytes exposed."
+        },
+        {
+          "id": "metal-bauhaus",
+          "url": "https://www.bauhaus.at/metallsaegen/pebaro-laubsaegeblaetter-nr-0/p/21993031",
+          "sourcePage": "https://www.bauhaus.at/metallsaegen/pebaro-laubsaegeblaetter-nr-0/p/21993031",
+          "status": 403,
+          "file": "tmp/tools-v8/metal-bauhaus.html",
+          "bytes": 782097,
+          "sha256": "e0bf881d98d459fd9b791c70cf5441f921b0d35ae8d5d00054ab513112ce2f41",
+          "sourceUrl": "https://www.bauhaus.at/metallsaegen/pebaro-laubsaegeblaetter-nr-0/p/21993031",
+          "result": "Ordinary product-page retrieval returned 403. Public web result exposed gallery links; only those observed public image URLs were checked, yielding 174×174 and 696×696."
+        },
+        {
+          "id": "metal-vardakas",
+          "url": "https://vardakas-tools.gr/?s=135-0&post_type=product",
+          "sourcePage": "https://vardakas-tools.gr/?s=135-0&post_type=product",
+          "status": 200,
+          "file": "tmp/tools-v8/metal-vardakas.html",
+          "bytes": 983235,
+          "sha256": "d2d47f44e19242b2b9e09102071ba94958201a82a94a4c1a0333214de1119e51",
+          "sourceUrl": "https://vardakas-tools.gr/?s=135-0&post_type=product",
+          "result": "Greek retailer search lead for Pebaro 135-0 resolves to a legacy homepage rather than the exact product gallery; no useful native original exposed."
+        },
+        {
+          "id": "metal-moebel",
+          "url": "https://www.moebel.de/baumarkt/werkzeug/saegen?data-sheet=ce0011879c3e77c805beee2ae9fb10e6",
+          "sourcePage": "https://www.moebel.de/baumarkt/werkzeug/saegen?data-sheet=ce0011879c3e77c805beee2ae9fb10e6",
+          "status": 200,
+          "file": "tmp/tools-v8/metal-moebel.html",
+          "bytes": 409012,
+          "sha256": "48fbee141d0303eb968e7203aaa3650a59685df88f5ec8583bab486236a2f0eb",
+          "sourceUrl": "https://www.moebel.de/baumarkt/werkzeug/saegen?data-sheet=ce0011879c3e77c805beee2ae9fb10e6",
+          "result": "Exact 135-7 / EAN 4006094135709 listing reveals Amazon ASIN B09G6NXQ34 and an untransformed CDN original. Actual original is only 476 pixels wide despite 2560 height."
+        },
+        {
+          "id": "metal-amazon1357",
+          "url": "https://www.amazon.de/dp/B09G6NXQ34",
+          "sourcePage": "https://www.amazon.de/dp/B09G6NXQ34",
+          "status": 200,
+          "file": "tmp/tools-v8/metal-amazon1357.html",
+          "bytes": 3817,
+          "sha256": "13c50b17e4245529eaed93c2d63f497a5832ca51495542dba1b6536306f9a7ae",
+          "sourceUrl": "https://www.amazon.de/dp/B09G6NXQ34",
+          "result": "Public ASIN page returned the continue-shopping interstitial, with no product gallery. No access bypass attempted."
+        }
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ],
+      "researchSearches": [],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 3,
+        "accepted": 0,
+        "rejectedImages": 4,
+        "sourceResponses": 6
+      },
+      "originalArchiveRecheck": {
+        "evidenceFile": "tmp/tools-v8/original-identity-check.json",
+        "result": "Attachments 1623/1622/1620/1617/1615/1613 remain the historical 600×600 metal/spiral/wood package images. No larger native source or additional grade marking was exposed by metadata."
+      }
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "variantNames": [
+        "UHU super glue 3 ml"
+      ],
+      "identityEvidence": "Old ATEHNA 3 ml product photo has yellow/red card, italic white superglue lettering, red tube with tall black cap, English/Arabic print and setting-time chart. Modern 3 g, Ultra Fast or Control packaging is not automatically the same sold variant.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "uhu-united-original",
+          "url": "https://www.unitedoc.com.au/Images/ProductImages/523695.jpeg",
+          "sourcePage": "https://www.unitedoc.com.au/products/uhu-super-glue-3ml",
+          "status": "rejected",
+          "file": "tmp/tools-v8/uhu-united-original.jpg",
+          "bytes": 444970,
+          "sha256": "4ad8f32ea8133abc6f062b874c52838b3c0d9a4a8ab1e07f6786225bc2510c95",
+          "width": 2000,
+          "height": 2000,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.unitedoc.com.au/Images/ProductImages/523695.jpeg",
+          "sourceUrl": "https://www.unitedoc.com.au/Images/ProductImages/523695.jpeg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Wrong historical product representation: current Ultra Fast liquid 3 g blister with elephant logo, different typography and tube. The page title says 3 ml but the photographed label is 3 g.",
+          "visualReview": "Full native original inspected. Real sharp photograph, whole product and no humans; fails exact historical packaging/variant match."
+        },
+        {
+          "id": "uhu-util-original",
+          "url": "https://cdn.shopify.com/s/files/1/0555/9078/1015/products/tienda_000396_99adf01fa1152033f1279eb52450e2c692c0816e_producto_large_90.png?v=1753117949",
+          "sourcePage": "https://util.com.pe/products/pegamento-uhu-super-glue-x-3-ml",
+          "status": "rejected",
+          "file": "tmp/tools-v8/uhu-util-original.png",
+          "bytes": 604199,
+          "sha256": "8152ebde2b000d1761729cb0f105f65782283868f9b12de5a63f3e076caf5824",
+          "width": 1280,
+          "height": 1280,
+          "format": "png",
+          "httpStatus": 200,
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0555/9078/1015/products/tienda_000396_99adf01fa1152033f1279eb52450e2c692c0816e_producto_large_90.png?v=1753117949",
+          "sourceUrl": "https://cdn.shopify.com/s/files/1/0555/9078/1015/products/tienda_000396_99adf01fa1152033f1279eb52450e2c692c0816e_producto_large_90.png?v=1753117949",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Wrong historical package and tube: modern Ultra Fast / 3 g design and household-object graphics. Does not match original italic superglue / English-Arabic / setting-time-chart package.",
+          "visualReview": "Full photograph inspected. No humans; the quality/dimensions do not cure the variant mismatch."
+        },
+        {
+          "id": "uhu-oriente-original",
+          "url": "https://erp.papeleradeloriente.pe/static/media/imagenes/producto/zsGq125zc1qIoQun-zoom.jpg",
+          "sourcePage": "https://papeleradeloriente.pe/producto/pegamento-uhu-super-glue-instantaneo-3-ml-4372",
+          "status": "rejected",
+          "file": "tmp/tools-v8/uhu-oriente-original.webp",
+          "bytes": 38690,
+          "sha256": "e3fd13cf894977e37fbcd3cf886b762a9a5a3167312ee0c541a4f062e909e1e9",
+          "width": 1000,
+          "height": 1000,
+          "format": "webp",
+          "httpStatus": 200,
+          "imageUrl": "https://erp.papeleradeloriente.pe/static/media/imagenes/producto/zsGq125zc1qIoQun-zoom.jpg",
+          "sourceUrl": "https://erp.papeleradeloriente.pe/static/media/imagenes/producto/zsGq125zc1qIoQun-zoom.jpg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 1000×1000; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        },
+        {
+          "id": "uhu-limes-original",
+          "url": "https://www.limes.hr/_cache/super-glue-e70b32be.jpeg",
+          "sourcePage": "https://www.limes.hr/uredski-pribor/ljepila/super-glue.21415/",
+          "status": "rejected",
+          "file": "tmp/tools-v8/uhu-limes-original.jpg",
+          "bytes": 44849,
+          "sha256": "6418c0523ed2ad397eae0305887463474bf87ef20285b1dc1c3d810de58e8458",
+          "width": 960,
+          "height": 720,
+          "format": "jpeg",
+          "httpStatus": 200,
+          "imageUrl": "https://www.limes.hr/_cache/super-glue-e70b32be.jpeg",
+          "sourceUrl": "https://www.limes.hr/_cache/super-glue-e70b32be.jpeg",
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reason": "Actual downloaded image is 960×720; original width and height must both be at least 1024. No enlarged or padded copy was created.",
+          "visualReview": "Rejected on native dimensions before acceptance; no claim of full visual/identity approval."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "id": "uhu-attwoods",
+          "url": "https://www.attwoods.co.nz/files/file/5637/catalogue2012.pdf",
+          "sourcePage": "https://www.attwoods.co.nz/files/file/5637/catalogue2012.pdf",
+          "status": 404,
+          "file": "tmp/tools-v8/uhu-attwoods.html",
+          "bytes": 584698,
+          "sha256": "b46e3c5d6f5ee8d40155a3cf8e006988d30bbd4fa3399e32406e28cc742ee4a4",
+          "sourceUrl": "https://www.attwoods.co.nz/files/file/5637/catalogue2012.pdf",
+          "result": "Historical 2012 catalogue link now returns a 404 storefront page; no original package image available from that path."
+        },
+        {
+          "id": "uhu-united",
+          "url": "https://www.unitedoc.com.au/products/uhu-super-glue-3ml",
+          "sourcePage": "https://www.unitedoc.com.au/products/uhu-super-glue-3ml",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-united.html",
+          "bytes": 248832,
+          "sha256": "6c56e606ec713ccf036ae1e1892ed104be76b49b955c6b331d0039a46fc99b09",
+          "sourceUrl": "https://www.unitedoc.com.au/products/uhu-super-glue-3ml",
+          "result": "3 ml-titled dealer listing exposes a 2000×2000 original. Visual review shows a newer Ultra Fast liquid 3 g elephant-logo package, not the old ATEHNA product."
+        },
+        {
+          "id": "uhu-util",
+          "url": "https://util.com.pe/products/pegamento-uhu-super-glue-x-3-ml.js",
+          "sourcePage": "https://util.com.pe/products/pegamento-uhu-super-glue-x-3-ml.js",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-util.html",
+          "bytes": 6340,
+          "sha256": "af6b2432a1e655875554198fa11922cd968c884e90dc9d630ce66a24a5b2e1bb",
+          "sourceUrl": "https://util.com.pe/products/pegamento-uhu-super-glue-x-3-ml.js",
+          "result": "Public Shopify product data for a 3 ml-titled listing exposes a 1280×1280 original. Visual review shows modern Ultra Fast / 3 g packaging with different tube and graphics, not the old ATEHNA package."
+        },
+        {
+          "id": "uhu-oriente",
+          "url": "https://papeleradeloriente.pe/producto/pegamento-uhu-super-glue-instantaneo-3-ml-4372",
+          "sourcePage": "https://papeleradeloriente.pe/producto/pegamento-uhu-super-glue-instantaneo-3-ml-4372",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-oriente.html",
+          "bytes": 147580,
+          "sha256": "e824631e63aca23b72c8250b26b634ace0d6c3d928f55ff9e8a6e1a4abe365ec",
+          "sourceUrl": "https://papeleradeloriente.pe/producto/pegamento-uhu-super-glue-instantaneo-3-ml-4372",
+          "result": "New 3 ml-titled dealer listing exposes an actual 1000×1000 WebP original, below minimum."
+        },
+        {
+          "id": "uhu-sharp",
+          "url": "https://sharpofficemc.com.au/products.aspx?catcode=9084_3&page=3&view=compact",
+          "sourcePage": "https://sharpofficemc.com.au/products.aspx?catcode=9084_3&page=3&view=compact",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-sharp.html",
+          "bytes": 102186,
+          "sha256": "9df0fcf82830d5863dd98bed89ca21cec2a05bb21c007e4eafa48d9f97c2666e",
+          "sourceUrl": "https://sharpofficemc.com.au/products.aspx?catcode=9084_3&page=3&view=compact",
+          "result": "Indexed old 305.040.500 / 3 ml stock-code lead; retrieved category did not expose that exact item or a usable original."
+        },
+        {
+          "id": "uhu-limes",
+          "url": "https://www.limes.hr/uredski-pribor/ljepila/super-glue.21415/",
+          "sourcePage": "https://www.limes.hr/uredski-pribor/ljepila/super-glue.21415/",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-limes.html",
+          "bytes": 53508,
+          "sha256": "053deaec24e7f1a033e52205231cd71ac35c50583da55e59a582574142776db8",
+          "sourceUrl": "https://www.limes.hr/uredski-pribor/ljepila/super-glue.21415/",
+          "result": "Croatian 3 ml listing exposes a 960×720 image, below minimum."
+        },
+        {
+          "id": "uhu-nuprint",
+          "url": "https://nuprint.com.au/categories/office-stationery/",
+          "sourcePage": "https://nuprint.com.au/categories/office-stationery/",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-nuprint.html",
+          "bytes": 243823,
+          "sha256": "40182c37ebb586611f83df20b7e5cabdbd4b9921ea475bf9bfefcfe1bd148399",
+          "sourceUrl": "https://nuprint.com.au/categories/office-stationery/",
+          "result": "Indexed historical FAB-3340820 / 3 ml listing; current category does not contain that exact product gallery."
+        },
+        {
+          "id": "uhu-nuprint-search",
+          "url": "https://nuprint.com.au/search.php?search_query=3340820",
+          "sourcePage": "https://nuprint.com.au/search.php?search_query=3340820",
+          "status": 200,
+          "file": "tmp/tools-v8/uhu-nuprint-search.html",
+          "bytes": 83420,
+          "sha256": "25e3b48088951ec7634c3cfc09967b48e096b311141e33ba6d9c822cde0fa303",
+          "sourceUrl": "https://nuprint.com.au/search.php?search_query=3340820",
+          "result": "Read-only public search for old FAB-3340820 did not expose an original exact-package image."
+        }
+      ],
+      "missingViews": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ],
+      "researchSearches": [
+        {
+          "query": "Historical UHU 3 ml FAB-3340820 dealer stock code",
+          "sourcePages": [
+            "https://nuprint.com.au/categories/office-stationery/",
+            "https://melbourneofficesupplies.com.au/office-stationery/tapes-adhesives/?limit=24"
+          ],
+          "result": "Historical SKU search supplied no qualifying original. Current retailer wording explicitly says Control replaces FAB-3340820; the replacement package was not treated as exact old stock."
+        }
+      ],
+      "status": "source-gap-remains",
+      "counts": {
+        "variants": 1,
+        "accepted": 0,
+        "rejectedImages": 4,
+        "sourceResponses": 8
+      }
+    }
+  ],
+  "summary": {
+    "familiesReviewed": 6,
+    "variantsReviewed": 11,
+    "acceptedOriginals": 0,
+    "stagedAssets": 0,
+    "sourceResponses": 32,
+    "rejectedImageFiles": 19,
+    "downloadedEvidenceFiles": 51,
+    "remainingFamilies": 6,
+    "remainingVariants": 11
+  },
+  "scopeNote": "Source research and untouched diagnostic downloads only. No runtime, canonical catalog, database, gallery association, storage upload, or schematic changes in this pass. All six assigned families were investigated; none has a newly accepted exact native photograph."
+}

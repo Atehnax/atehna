@@ -1,0 +1,56 @@
+{
+  "version": 12,
+  "reviewedAt": "2026-09-14T16:18:37.194Z",
+  "status": "One reviewed original staged; existing detail relink pending guarded helper support",
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "accepted": [
+        {
+          "id": "aluminijasta-plosca-300x200x05-artloco-v12",
+          "slug": "aluminijasta-plosca",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x300x200"
+          ],
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-300x200x05-artloco-v12.jpg",
+          "sourcePath": "tmp/root-v12/artloco.jpg",
+          "sha256": "ab8612ed641a897fad1fb84875c71ad159b79cb7e6c6940542e92aa822c96aed",
+          "dimensions": {
+            "width": 1200,
+            "height": 1200
+          },
+          "sourcePage": "https://item.rakuten.co.jp/artloco/117204/",
+          "sourceUrl": "https://shop.r10s.jp/artloco/cabinet/item10/117204.jpg",
+          "sourceIdentityEvidence": "Artloco supplier item117204 explicitly specifies one plain aluminium sheet200×300×0.5mm, sold for engraving and craft. Complete3:2 rectangular sheet is visible with all corners and a thin front edge. ATEHNA specifies unbranded plain silver aluminium and the same exact dimensions, with no alloy/temper/manufacturer to import. Natural surface scratches/grain are visible; no protective-film, alloy or polished-finish inference is made.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Complete200×300×0.5mm aluminium sheet with natural surface and front edge",
+          "altText": "Aluminijasta plošča, 200 × 300 × 0,5 mm – celoten pogled na ploščo, površino in rob.",
+          "reviewedBy": [
+            "root",
+            "quality_validation"
+          ],
+          "review": {
+            "quality": "Unchanged native1200×1200. Complete3:2 sheet, irregular natural surface detail and crisp lower edge, no people or obvious interpolation. Some far-edge softness; suitable whole main, not pristine surface macro.",
+            "limitations": "One real viewing photograph, no added angles or supplier-only alloy/film claims."
+          }
+        }
+      ],
+      "decision": "New native whole main for exact300×200×0.5mm. Existing accepted0.5mm Modulor edge detail can be linked after main without duplicate file."
+    },
+    {
+      "slug": "vezana-plosca",
+      "accepted": [],
+      "decision": "Fresh exact-format poplar sources under native review. No wood species inferred for unnamed variants."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "accepted": [],
+      "decision": "Seeking native whole300×200×0.5mm; prior representative-series image remains held."
+    }
+  ]
+}

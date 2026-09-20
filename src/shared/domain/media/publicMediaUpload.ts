@@ -2,7 +2,7 @@ export const PUBLIC_MEDIA_UPLOAD_TOKEN_TTL_MS = 5 * 60 * 1000;
 export const PUBLIC_MEDIA_CACHE_CONTROL_SECONDS = 365 * 24 * 60 * 60;
 
 export const PUBLIC_MEDIA_UPLOAD_LIMITS = {
-  catalogImage: 4 * 1024 * 1024,
+  catalogImage: 20 * 1024 * 1024,
   catalogVideo: 100 * 1024 * 1024,
   catalogDocument: 5 * 1024 * 1024,
   categoryImage: 5 * 1024 * 1024,
@@ -175,7 +175,7 @@ function mediaPolicyForPayload(payload: PublicMediaUploadPayload) {
   if (payload.scope === 'catalog-item') {
     if (payload.mediaKind === 'image') {
       return {
-        allowedContentTypes: [...PUBLIC_MEDIA_CONTENT_TYPES.image],
+        allowedContentTypes: PUBLIC_MEDIA_CONTENT_TYPES.image.filter((type) => type !== 'image/svg+xml' && type !== 'image/bmp'),
         maximumSizeInBytes: PUBLIC_MEDIA_UPLOAD_LIMITS.catalogImage,
         mediaFolder: 'images' as const,
         mediaKind: 'image' as const

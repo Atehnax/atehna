@@ -1,0 +1,794 @@
+{
+  "version": 12,
+  "reviewedAt": "2026-09-14T16:23:22.862Z",
+  "status": "bounded-pass-complete-with-source-gaps",
+  "scope": "Fresh public supplier sources for EPS, expanded PVC, acrylic, Grafopak and white200gsm Šeleshamer; no catalogue mutations.",
+  "authoritativeAudit": "data/catalog/product-image-audit-v10-2026-09.json",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "unchangedOriginalBytes": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "exactMaterialColourThicknessCut": true,
+    "whiteProductsPreferNaturalContrastingBackground": true,
+    "detailsRequireCompatibleWholeMain": true
+  },
+  "summary": {
+    "families": 5,
+    "variants": 21,
+    "variantsWithoutPhotosAtV10": 19,
+    "acceptedImages": 0,
+    "htmlPageProbes": 17,
+    "successfulPageProbes": 14,
+    "priorRouteConfirmationsWithoutImageRefetch": 1,
+    "decodedSourceAssets": 26,
+    "decodedAssetsBelowMinimum": 22,
+    "largeAssetsRejectedForContent": 4,
+    "unavailableAssetProbes": 3,
+    "productionWrites": 0,
+    "canonicalWrites": 0,
+    "publicAssetsAdded": 0
+  },
+  "products": [
+    {
+      "slug": "stiropor",
+      "itemName": "Stiropor",
+      "variantSkus": [
+        "MAT-UME-STI-10x300x200",
+        "MAT-UME-STI-210x148-A5",
+        "MAT-UME-STI-10x400x300",
+        "MAT-UME-STI-20x330x160-CM"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-UME-STI-10x300x200",
+          "variantName": "200 x 300 x 10 mm",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-STI-210x148-A5",
+          "variantName": "A5",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-STI-10x400x300",
+          "variantName": "300 x 400 x 10 mm",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-STI-20x330x160-CM",
+          "variantName": "16 x 33 x 2 cm",
+          "existingQualifyingPhotographs": 0
+        }
+      ],
+      "accepted": [],
+      "sourceChecks": [
+        {
+          "id": "descom-eps",
+          "sourcePage": "https://www.grupodescom.es/plancha-de-porex",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/descom-eps.html",
+          "evidence": "Fontorpin 90176 is EPS 20×30×1 cm and 90177 is 30×40×1 cm, matching two catalogue cuts. The actual untransformed 90176.png is only674×675; no original could be retrieved for90177. Do not use the1200×1200 adjusted/padded zoom derivative."
+        }
+      ],
+      "rejections": [
+        {
+          "id": "descom-eps-original",
+          "sourcePage": "https://www.grupodescom.es/plancha-de-porex",
+          "imageUrl": "https://www.grupodescom.es/imatges/90176",
+          "status": "unavailable",
+          "nativeDimensions": null,
+          "sha256": null,
+          "evidencePath": "tmp/white-materials-v12/probes.json",
+          "reason": "Original source unavailable: HTTP 404"
+        },
+        {
+          "id": "descom-native-png",
+          "sourcePage": "https://www.grupodescom.es/plancha-de-porex",
+          "imageUrl": "https://www.grupodescom.es/imatges/90176.png",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 674,
+            "height": 675
+          },
+          "sha256": "e20f2d71a90b83ad969ad9070f9ac41017450dec2e5dd29ef0a35c13307b6595",
+          "evidencePath": "tmp/white-materials-v12/descom-native-png.png",
+          "reason": "Delivered original/largest offered asset 674×675; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "descom-native-jpg",
+          "sourcePage": "https://www.grupodescom.es/plancha-de-porex",
+          "imageUrl": "https://www.grupodescom.es/imatges/90176.jpg",
+          "status": "unavailable",
+          "nativeDimensions": null,
+          "sha256": null,
+          "evidencePath": "tmp/white-materials-v12/probes.json",
+          "reason": "Original source unavailable: HTTP 404"
+        },
+        {
+          "id": "descom-30x40-original",
+          "sourcePage": "https://www.grupodescom.es/plancha-de-porex",
+          "imageUrl": "https://www.grupodescom.es/imatges/90177.png",
+          "status": "unavailable",
+          "nativeDimensions": null,
+          "sha256": null,
+          "evidencePath": "tmp/white-materials-v12/probes.json",
+          "reason": "Original source unavailable: HTTP 404"
+        }
+      ],
+      "missingVariantSkus": [
+        "MAT-UME-STI-10x300x200",
+        "MAT-UME-STI-210x148-A5",
+        "MAT-UME-STI-10x400x300",
+        "MAT-UME-STI-20x330x160-CM"
+      ],
+      "missingViews": "All listed variants still need complete exact-stock main photographs; compatible real edge/surface details remain desirable after a main is available."
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "itemName": "Penjeni PVC (komateks)",
+      "variantSkus": [
+        "MAT-UME-PEN-3x200x300",
+        "MAT-UME-PEN-3x200x150",
+        "MAT-UME-PEN-3x300x400",
+        "MAT-UME-PEN-3x500x500"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-UME-PEN-3x200x300",
+          "variantName": "300 x 200 x 3 mm",
+          "existingQualifyingPhotographs": 3
+        },
+        {
+          "variantSku": "MAT-UME-PEN-3x200x150",
+          "variantName": "150 x 200 x 3 mm",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PEN-3x300x400",
+          "variantName": "400 x 300 x 3 mm",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PEN-3x500x500",
+          "variantName": "500 x 500 x 3 mm",
+          "existingQualifyingPhotographs": 0
+        }
+      ],
+      "accepted": [],
+      "sourceChecks": [
+        {
+          "id": "prealpina-pvc-500",
+          "sourcePage": "https://laprealpina.com/ferramenta/10397-lastra-multiuso-bianco-50x50-sp3-8032636440440.html",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/prealpina-pvc-500.html",
+          "evidence": "White expanded PVC500×500×3. Largest offered1100×1422 image was visually inspected: most of the canvas is empty; the small soft sheet stack has insufficient resolvable detail. Canvas dimensions alone do not qualify."
+        },
+        {
+          "id": "manomano-pvc-500",
+          "sourcePage": "https://www.manomano.fr/p/pvc-expanse-comacel-plusieurs-epaisseurs-plusieurs-tailles-matiere-premiere-bricolage-isolation-pvc-mousse-80534667?model_id=85018250",
+          "status": "unavailable",
+          "httpStatus": null,
+          "fetchError": "HTTP 403",
+          "evidencePath": "tmp/white-materials-v12/pages.json",
+          "evidence": "Indexed Comacel white500×500×3 specifications match; HTTP403. No access-control workaround attempted."
+        },
+        {
+          "id": "signaletique-pvc",
+          "sourcePage": "https://www.signaletique.biz/decoupe-de-pvc/34128-plaque-komacel.html",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/signaletique-pvc.html",
+          "evidence": "Primary Comacel supplier lists white expanded PVC and500×500×3 selection. Three untransformed PrestaShop source images are1000×1000."
+        },
+        {
+          "id": "cocorn-white",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/cocorn-white.html",
+          "evidence": "Explicit white expanded PVC500×500×3 selection514. All eight public data-img_high_res URLs inspected; largest offered dimensions are349–541 pixels wide,249–540 high."
+        }
+      ],
+      "rejections": [
+        {
+          "id": "prealpina-native",
+          "sourcePage": "https://laprealpina.com/ferramenta/10397-lastra-multiuso-bianco-50x50-sp3-8032636440440.html",
+          "imageUrl": "https://laprealpina.com/16151-thickbox_default/lastra-multiuso-bianco-50x50-sp3.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 1100,
+            "height": 1422
+          },
+          "sha256": "79151c28de58d390afffab12ce81daee4937cb9408d60f99c9eb4da44a1759b8",
+          "evidencePath": "tmp/white-materials-v12/prealpina-native.jpg",
+          "reason": "Visually inspected: excessive empty canvas around small soft object; insufficient native product detail."
+        },
+        {
+          "id": "signaletique-original-32486",
+          "sourcePage": "https://www.signaletique.biz/decoupe-de-pvc/34128-plaque-komacel.html",
+          "imageUrl": "https://www.signaletique.biz/img/p/3/2/4/8/6/32486.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "sha256": "b8d3f7467f4b6d46c68ede99b2a823a1b53c6428b072bbea2b0178f734599aca",
+          "evidencePath": "tmp/white-materials-v12/signaletique-original-32486.jpg",
+          "reason": "Delivered original/largest offered asset 1000×1000; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "signaletique-original-32480",
+          "sourcePage": "https://www.signaletique.biz/decoupe-de-pvc/34128-plaque-komacel.html",
+          "imageUrl": "https://www.signaletique.biz/img/p/3/2/4/8/0/32480.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "sha256": "e2faa2c0b06e243673040f73b1a9f8bb182160e5bf6685354c0ebaa350e8361b",
+          "evidencePath": "tmp/white-materials-v12/signaletique-original-32480.jpg",
+          "reason": "Delivered original/largest offered asset 1000×1000; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "signaletique-original-32482",
+          "sourcePage": "https://www.signaletique.biz/decoupe-de-pvc/34128-plaque-komacel.html",
+          "imageUrl": "https://www.signaletique.biz/img/p/3/2/4/8/2/32482.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 1000,
+            "height": 1000
+          },
+          "sha256": "b88502a437e44799dddfea696db2c1eba8a8bac61c8ab5750a2fbd6a6564b140",
+          "evidencePath": "tmp/white-materials-v12/signaletique-original-32482.jpg",
+          "reason": "Delivered original/largest offered asset 1000×1000; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-1",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/157d5944d37aab0317d7c623d84d98f7/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_2.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 540,
+            "height": 467
+          },
+          "sha256": "e043b80cffcaa54b5e36aeb8b7f31b8c7acff8db29e1fc7c1a93e340be6e5676",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-1.jpg",
+          "reason": "Delivered original/largest offered asset 540×467; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-2",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/1643c68e6c364646130be0a3469ab961/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_3.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 393,
+            "height": 249
+          },
+          "sha256": "a1ed6d28c4edbf6a78635532f16a3b15e3dd12da92eab733e5facc6025cf118a",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-2.jpg",
+          "reason": "Delivered original/largest offered asset 393×249; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-3",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/6ad1153a87f322a280eaa455eb774844/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_4.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 503,
+            "height": 442
+          },
+          "sha256": "b5d9f1f621dae1331a02977892d150a68e26e647500249b041a21bcf0c5737de",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-3.jpg",
+          "reason": "Delivered original/largest offered asset 503×442; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-4",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/b04be2de68da8337e4ede86fcb022261/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_5.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 537,
+            "height": 540
+          },
+          "sha256": "215040d6666a9446d18702b99e15d26cfc58d5e801f0faff60e64c6b786a834d",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-4.jpg",
+          "reason": "Delivered original/largest offered asset 537×540; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-0",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/051185371495345d6e4e18b05d4101e1/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_1.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 541,
+            "height": 465
+          },
+          "sha256": "8e6afc1017114f7293e2429cd5a921412b874d2b9fd4d4692b3f861623874f7c",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-0.jpg",
+          "reason": "Delivered original/largest offered asset 541×465; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-5",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/e2562b52db6b4f12476d4e0882e0ca5d/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_6.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 349,
+            "height": 314
+          },
+          "sha256": "eb3dd0054760f373c8b22709356ae4ca530fe7d2d44906ee60fab6871815af23",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-5.jpg",
+          "reason": "Delivered original/largest offered asset 349×314; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-7",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/10af5a32595c55e2011d75c6bafa34e7/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_8.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 495,
+            "height": 471
+          },
+          "sha256": "f1244b798286dd09cab9aca7e2a7f9d31264bfedae38113aab666ca1db9d7a67",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-7.jpg",
+          "reason": "Delivered original/largest offered asset 495×471; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "cocorn-white-highres-6",
+          "sourcePage": "https://cocorn.pl/pl/products/spienione-pcv-500x500-3-mm-bialy-514.html",
+          "imageUrl": "https://cocorn.pl/hpeciai/c17ccea2cb27e8bb7b4ffe5b5ecbca82/pol_pl_Spienione-PCV-500x500-3-mm-bialy-514_7.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 533,
+            "height": 474
+          },
+          "sha256": "e197b5821eb9f2f3ba4957d0fb0f86def35dafbdc9f069da0a91ce09cfcd562d",
+          "evidencePath": "tmp/white-materials-v12/cocorn-white-highres-6.jpg",
+          "reason": "Delivered original/largest offered asset 533×474; does not meet1024 pixels on both axes."
+        }
+      ],
+      "missingVariantSkus": [
+        "MAT-UME-PEN-3x200x150",
+        "MAT-UME-PEN-3x300x400",
+        "MAT-UME-PEN-3x500x500"
+      ],
+      "missingViews": "Exact white3mm150×200,400×300 and500×500 complete mains remain missing. Existing300×200 gallery is preserved."
+    },
+    {
+      "slug": "pleksi-steklo",
+      "itemName": "Pleksi steklo",
+      "variantSkus": [
+        "MAT-UME-PLE-3x200x150-BELO",
+        "MAT-UME-PLE-3x200x150-BARVNO",
+        "MAT-UME-PLE-3x200x150-PROZORNO",
+        "MAT-UME-PLE-3x300x200-BELO",
+        "MAT-UME-PLE-3x300x200",
+        "MAT-UME-PLE-3x300x400-PROZORNO",
+        "MAT-UME-PLE-3x400x300"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-UME-PLE-3x200x150-BELO",
+          "variantName": "150 x 200 x 3 mm, belo",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "variantName": "150 x 200 x 3 mm, barvno",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "variantName": "150 x 200 x 3 mm, prozorno",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x300x200-BELO",
+          "variantName": "200 x 300 x 3 mm, belo",
+          "existingQualifyingPhotographs": 2
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x300x200",
+          "variantName": "200 x 300 x 3 mm",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "variantName": "400 x 300 x 3 mm, prozorno",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-UME-PLE-3x400x300",
+          "variantName": "300 x 400 x 3 mm",
+          "existingQualifyingPhotographs": 0
+        }
+      ],
+      "accepted": [],
+      "sourceChecks": [
+        {
+          "id": "acriglow-white",
+          "sourcePage": "https://www.acriglow.es/products/metacrilato-blanco-3mm",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/acriglow-white.html",
+          "evidence": "Exact300×200×3 white opaque PMMA listing. Gallery filenames explicitly begin ChatGPTImage. Excluded for synthetic-image provenance; no asset accepted or edited."
+        },
+        {
+          "id": "aluplexi-white",
+          "sourcePage": "https://aluplexi.pl/pl/p/Plexi-3mm-biala-300x200mm/1622",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/aluplexi-white.html",
+          "evidence": "AP9003 white opaque glossy3mm300×200mm PMMA. All four _0_0 gallery originals decode968×968; no enlargement accepted."
+        },
+        {
+          "id": "cm-white",
+          "sourcePage": "https://cm-maquinas-laser.pt/product/acrilico-branco-opaco-3mm-300x200/",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/cm-white.html",
+          "evidence": "Exact acrylic opaque white3mm300×200 listing; untransformed WordPress original507×431."
+        },
+        {
+          "id": "flux-white",
+          "sourcePage": "https://flux3dp.com.au/products/s001-white-matt",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/flux-white.html",
+          "evidence": "Three unchanged2048×2048 images inspected. All show circular acrylic colour samples on a display base, not rectangular sheets. The linked supplier describes those circles as illustrative samples. Shape conflicts with required stock; matte finish also is not a proven replacement for ordinary glossy white."
+        }
+      ],
+      "rejections": [
+        {
+          "id": "cm-white-native",
+          "sourcePage": "https://cm-maquinas-laser.pt/product/acrilico-branco-opaco-3mm-300x200/",
+          "imageUrl": "https://cm-maquinas-laser.pt/wp-content/uploads/2025/02/acrilico-branco-opaco.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 507,
+            "height": 431
+          },
+          "sha256": "10e3c3685cd4f6802861620c7d3a512810d670eb28aa8209d121650d285eddb5",
+          "evidencePath": "tmp/white-materials-v12/cm-white-native.jpg",
+          "reason": "Delivered original/largest offered asset 507×431; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "aluplexi-white-2",
+          "sourcePage": "https://aluplexi.pl/pl/p/Plexi-3mm-biala-300x200mm/1622",
+          "imageUrl": "https://aluplexi.pl/environment/cache/images/productGfx_11173_0_0/Plexi-biala-polysk-do-dekoracji-3mm-300x200mm--ALUPLEXI.webp",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 968,
+            "height": 968
+          },
+          "sha256": "8ffef6c406c7ba6e7d91d5c10f0466ddf4aabe7a8b6a3e03006f3f7ba0367848",
+          "evidencePath": "tmp/white-materials-v12/aluplexi-white-2.jpg",
+          "reason": "Delivered original/largest offered asset 968×968; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "aluplexi-white-3",
+          "sourcePage": "https://aluplexi.pl/pl/p/Plexi-3mm-biala-300x200mm/1622",
+          "imageUrl": "https://aluplexi.pl/environment/cache/images/productGfx_11174_0_0/Plexi-biala-obustronnie-polysk-3mm-300x200mm--ALUPLEXI.webp",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 968,
+            "height": 968
+          },
+          "sha256": "7bcaa09fa5a374fc684cc329ac151b0d556a6a20b793a23a0683a5371ab11d45",
+          "evidencePath": "tmp/white-materials-v12/aluplexi-white-3.jpg",
+          "reason": "Delivered original/largest offered asset 968×968; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "aluplexi-white-0",
+          "sourcePage": "https://aluplexi.pl/pl/p/Plexi-3mm-biala-300x200mm/1622",
+          "imageUrl": "https://aluplexi.pl/environment/cache/images/productGfx_11171_0_0/Plexi-biala-polysk-3mm-300x200mm--ALUPLEXI.webp",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 968,
+            "height": 968
+          },
+          "sha256": "7d02356524223544543cec7d64f36b0a6518d4c07d7d93e7a127fdb19a8a480d",
+          "evidencePath": "tmp/white-materials-v12/aluplexi-white-0.jpg",
+          "reason": "Delivered original/largest offered asset 968×968; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "aluplexi-white-1",
+          "sourcePage": "https://aluplexi.pl/pl/p/Plexi-3mm-biala-300x200mm/1622",
+          "imageUrl": "https://aluplexi.pl/environment/cache/images/productGfx_11172_0_0/Plexi-biala-polysk-do-ciecia-3mm-300x200mm--ALUPLEXI.webp",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 968,
+            "height": 968
+          },
+          "sha256": "9ccfee0cab351394377a1464d2e8c7c1e5bdf556208b60bff31e106cd29f7132",
+          "evidencePath": "tmp/white-materials-v12/aluplexi-white-1.jpg",
+          "reason": "Delivered original/largest offered asset 968×968; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "flux-original-1",
+          "sourcePage": "https://flux3dp.com.au/products/s001-white-matt",
+          "imageUrl": "https://flux3dp.com.au/cdn/shop/files/S001-side-profile_47fe39e6-c7f9-4119-b121-20f742d067b7.png?v=1776423211",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 2048,
+            "height": 2048
+          },
+          "sha256": "c2053170c0350a4f4f4504b4efe2bb15511108f73ef7ff4f7c4f7ed1187a9b25",
+          "evidencePath": "tmp/white-materials-v12/flux-original-1.png",
+          "reason": "Visually inspected: circular acrylic sample and display stand, incompatible with rectangular product geometry; not a whole-sheet view."
+        },
+        {
+          "id": "flux-original-2",
+          "sourcePage": "https://flux3dp.com.au/products/s001-white-matt",
+          "imageUrl": "https://flux3dp.com.au/cdn/shop/files/S001-gloss-back_97fa0aa2-1434-45b2-b731-03e8ac1fb448.png?v=1776423211",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 2048,
+            "height": 2048
+          },
+          "sha256": "95d612bcf1db6d4dcf739dceeb0182c5d491d63cc9f085c08329bcbfe63dc798",
+          "evidencePath": "tmp/white-materials-v12/flux-original-2.png",
+          "reason": "Visually inspected: circular acrylic sample and display stand, incompatible with rectangular product geometry; not a whole-sheet view."
+        },
+        {
+          "id": "flux-original-0",
+          "sourcePage": "https://flux3dp.com.au/products/s001-white-matt",
+          "imageUrl": "https://flux3dp.com.au/cdn/shop/files/S001-gloss-front_88818c2a-67eb-40a0-8de6-c2b8826d6a9d.png?v=1776423211",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 2048,
+            "height": 2048
+          },
+          "sha256": "138da32add4a22a0bc296593a87031be7d760d3a1570302b6482840c6546dcce",
+          "evidencePath": "tmp/white-materials-v12/flux-original-0.png",
+          "reason": "Visually inspected: circular acrylic sample and display stand, incompatible with rectangular product geometry; not a whole-sheet view."
+        }
+      ],
+      "missingVariantSkus": [
+        "MAT-UME-PLE-3x200x150-BELO",
+        "MAT-UME-PLE-3x200x150-BARVNO",
+        "MAT-UME-PLE-3x200x150-PROZORNO",
+        "MAT-UME-PLE-3x300x200",
+        "MAT-UME-PLE-3x300x400-PROZORNO",
+        "MAT-UME-PLE-3x400x300"
+      ],
+      "missingViews": "Six variants still need a complete exact-cut main; white300×200×3 additionally needs a clearer full main with natural contrast to replace its weak white-on-white main. Existing compatible detail does not close that main-view gap."
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "existingQualifyingPhotographs": 0
+        }
+      ],
+      "accepted": [],
+      "sourceChecks": [
+        {
+          "id": "europapier-grafopak",
+          "sourcePage": "https://www.europapier.hr/hr/shop%2520-%2520po%25C4%258Detna%2520stranica/kartoni-ljepenka-i-kraft-papiri/gd-kartoni/grafopak-gd2~p3091996",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/europapier-grafopak.html",
+          "evidence": "Prior-route confirmation only: already-measured Europapier Grafopak gallery recognized in prior-source ledger and not downloaded again. No newly suitable A3/A4 original."
+        },
+        {
+          "id": "fuchs-gd2",
+          "sourcePage": "https://www.fuchs-verpackungen.de/fuchs-verpackungen.de/fix-verpackt/kartons--kartonagen--wellpappe",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/fuchs-gd2.html",
+          "evidence": "GD2 white/grey stock350gsm is80×120cm; supplier mentions cut services but does not establish that pictured stock is A3/A4. No conflicting full-sheet image substituted."
+        },
+        {
+          "id": "allegro-gd2",
+          "sourcePage": "https://allegro.pl/produkt/karton-z-szarym-spodem-350g-a4-a3-sra3-b2-b1-f39173c3-42b8-4d57-8411-3c26b9c2d2d5",
+          "status": "unavailable",
+          "httpStatus": null,
+          "fetchError": "HTTP 403",
+          "evidencePath": "tmp/white-materials-v12/pages.json",
+          "evidence": "Indexed unbranded grey-backed white-coated recycled350gsm 350KSS/20 explicitly offers A3/A4. HTTP403 prevented normal gallery retrieval; no bypass attempted."
+        },
+        {
+          "id": "warta-gd2",
+          "sourcePage": "https://si-warta.pl/116-karton-papier-tektura",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/warta-gd2.html",
+          "evidence": "White-coated grey-backed recycled GD2 350gsm, named A4 but explicitly approximately210×300mm. Untransformed source1000×1009 already fails minimum. Not silently treated as precisely210×297."
+        }
+      ],
+      "rejections": [
+        {
+          "id": "warta-original",
+          "sourcePage": "https://si-warta.pl/116-karton-papier-tektura",
+          "imageUrl": "https://si-warta.pl/img/p/6/1/5/9/6159.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 1000,
+            "height": 1009
+          },
+          "sha256": "f0e1cb8ddd79e175c0734ec121e23680c1d1dbee1706e6fdca587c00ee2de9a2",
+          "evidencePath": "tmp/white-materials-v12/warta-original.jpg",
+          "reason": "Delivered original/largest offered asset 1000×1009; does not meet1024 pixels on both axes."
+        }
+      ],
+      "missingVariantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "missingViews": "All listed variants still need complete exact-stock main photographs; compatible real edge/surface details remain desirable after a main is available."
+    },
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "existingQualifyingPhotographs": 0
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "existingQualifyingPhotographs": 0
+        }
+      ],
+      "accepted": [],
+      "sourceChecks": [
+        {
+          "id": "calder-white",
+          "sourcePage": "https://www.calderartsupplies.co.uk/calder.php/view/seawhite-white-card/id/0009050000000/var/true",
+          "status": "unavailable",
+          "httpStatus": null,
+          "fetchError": "fetch failed",
+          "evidencePath": "tmp/white-materials-v12/pages.json",
+          "evidence": "Public listing establishes Seawhite smooth white200gsm A2/A3/A4. Normal page fetch failed; known Seawhite1000×1000 fan source was not repeated."
+        },
+        {
+          "id": "antalis-white-a3",
+          "sourcePage": "https://www.antalis.co.uk/eshop/paper-boards-envelopes/office-paper/color-copy-original-white-paper-for-digital-colour-printing-a3-200gsm-pack-250-sheets-pdp-hq00981/sku-606842",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/antalis-white-a3.html",
+          "evidence": "Exact A3 white uncoated200gsm copier paper listing; both largest offered LOSQL gallery assets400×400. Native larger source not established. No brand or special paper-treatment claims imported."
+        },
+        {
+          "id": "earlyyears-paper",
+          "sourcePage": "https://www.earlyyearsdirect.com/product/class-paper-pack/",
+          "status": "reviewed",
+          "httpStatus": 200,
+          "fetchError": null,
+          "evidencePath": "tmp/white-materials-v12/earlyyears-paper.html",
+          "evidence": "Pack includes white A4 200gsm card alongside other colours/materials. Its two original image paths are both720×720; unrelated recommended-product images on page were excluded."
+        }
+      ],
+      "rejections": [
+        {
+          "id": "antalis-original-0",
+          "sourcePage": "https://www.antalis.co.uk/eshop/paper-boards-envelopes/office-paper/color-copy-original-white-paper-for-digital-colour-printing-a3-200gsm-pack-250-sheets-pdp-hq00981/sku-606842",
+          "imageUrl": "https://www.antalis.co.uk/mediashare/g4media/images/LOSQL_MI2_COLOR_COPY_ORIGINAL_FSC_REAM_A3_200_STANDING_00_20240407.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 400,
+            "height": 400
+          },
+          "sha256": "7c3ad988f41dcc0fc6e0148c6f42d938e7cfb3c188b7217d767e0cc9f85dc7f9",
+          "evidencePath": "tmp/white-materials-v12/antalis-original-0.jpg",
+          "reason": "Delivered original/largest offered asset 400×400; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "antalis-original-1",
+          "sourcePage": "https://www.antalis.co.uk/eshop/paper-boards-envelopes/office-paper/color-copy-original-white-paper-for-digital-colour-printing-a3-200gsm-pack-250-sheets-pdp-hq00981/sku-606842",
+          "imageUrl": "https://www.antalis.co.uk/mediashare/g4media/images/LOSQL_MI2_COLOR_COPY_ORIGINAL_FSC_REAM_A3_200_LAYING_00_20240407.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 400,
+            "height": 400
+          },
+          "sha256": "cc1481909ec8cf424491c01d361744a035e2c871da237906554b661efdb3a0d7",
+          "evidencePath": "tmp/white-materials-v12/antalis-original-1.jpg",
+          "reason": "Delivered original/largest offered asset 400×400; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "earlyyears-original-1",
+          "sourcePage": "https://www.earlyyearsdirect.com/product/class-paper-pack/",
+          "imageUrl": "https://www.earlyyearsdirect.com/content-files/product/images/1/original/28d9bb6c31f94c3cb394db6bbcef6ea0.png",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 720,
+            "height": 720
+          },
+          "sha256": "74cc965d7a6d906e09b0cc909487cecb29519c593cff600df17c3eb9634be847",
+          "evidencePath": "tmp/white-materials-v12/earlyyears-original-1.png",
+          "reason": "Delivered original/largest offered asset 720×720; does not meet1024 pixels on both axes."
+        },
+        {
+          "id": "earlyyears-original-0",
+          "sourcePage": "https://www.earlyyearsdirect.com/product/class-paper-pack/",
+          "imageUrl": "https://www.earlyyearsdirect.com/content-files/product/images/1/original/6c4ef107cf0046ed80e17a56a8866e5d.jpg",
+          "status": "rejected",
+          "nativeDimensions": {
+            "width": 720,
+            "height": 720
+          },
+          "sha256": "9528a948d9c1944d34cce4a78165e6b15a7edc2b09f1e85f55195d6ad40d1572",
+          "evidencePath": "tmp/white-materials-v12/earlyyears-original-0.jpg",
+          "reason": "Delivered original/largest offered asset 720×720; does not meet1024 pixels on both axes."
+        }
+      ],
+      "missingVariantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "missingViews": "All listed variants still need complete exact-stock main photographs; compatible real edge/surface details remain desirable after a main is available."
+    }
+  ],
+  "evidence": {
+    "sourcePages": "tmp/white-materials-v12/pages.json",
+    "sourceAssetMeasurements": "tmp/white-materials-v12/probes.json",
+    "priorSourcesChecked": "tmp/white-materials-v12/prior-sources.json"
+  },
+  "additionalSearchFindings": [
+    {
+      "sourcePage": "https://koenigmachinery.com.au/products/white-acrylic",
+      "reason": "Supplier explicitly states circular product photographs are illustrative, while actual sheets are square/rectangular. Confirms Flux sample geometry cannot be used as exact complete main."
+    },
+    {
+      "sourcePage": "https://www.yeahlaser.com/shop/p/frost-midnight-white",
+      "reason": "Opaque matt textured acrylic is not a proven same-finish replacement for ordinary white acrylic."
+    },
+    {
+      "sourcePage": "https://en.acrylopmaat.nl/acrylic/opal/",
+      "reason": "Opal translucent gloss/satin stock and generated ratio preview differ from an actual plain opaque whole-sheet photograph."
+    }
+  ],
+  "completion": "No newly qualifying original found in this bounded pass. Existing accepted media and all technical schematics are untouched. Gaps are reported rather than filled with low-resolution, synthetic, padded or geometrically conflicting sources."
+}

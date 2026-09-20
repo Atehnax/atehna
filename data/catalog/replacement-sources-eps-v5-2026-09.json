@@ -1,0 +1,217 @@
+{
+  "version": 5,
+  "reviewedAt": "2026-09-14T11:46:05.112Z",
+  "status": "reviewed-with-source-gaps",
+  "scope": "Four exact white bare EPS sheet variants. No XPS, coated foamboard, arbitrary size substitutions, added padding or enlargement. Read-only research: no canonical, runtime or database changes.",
+  "products": [
+    {
+      "slug": "stiropor",
+      "accepted": [],
+      "variants": [
+        {
+          "variantSku": "MAT-UME-STI-10x300x200",
+          "variantName": "200 x 300 x 10 mm",
+          "accepted": [],
+          "result": "Exact public listings found, but no qualifying native original exposed.",
+          "sourcePages": [
+            "https://shopee.co.id/Styrofoam-Lembaran-Polos-Uk-20-x-30-x-1-cm-isi-5-lembar-i.133520658.9601012786",
+            "https://www.hobbyshopdaantje.nl/product/21383594/styropor-plaat-20-x-30-cm-1-cm",
+            "https://www.10doigts.fr/plaques-en-polystyrene-20-x-30-cm-gp9121.aspx"
+          ]
+        },
+        {
+          "variantSku": "MAT-UME-STI-10x400x300",
+          "variantName": "300 x 400 x 10 mm",
+          "accepted": [],
+          "result": "Exact Shopee sheet listings have undersized originals or require login to expose the gallery. A larger two-size marketing photograph remains ambiguous.",
+          "sourcePages": [
+            "https://shopee.co.id/Styrofoam-polosan-isi-50-lembar-uk-30-x-40-cm-tebal-1cm-i.260375320.56551950496",
+            "https://shopee.co.id/hans.styrofoam",
+            "https://shopee.ph/40x30x1cm-Styrofoam-Board-Cork-Sheet-Styrofoam-40x30-i.1291100943.24132908077",
+            "https://shopee.com.my/Styrofoam-Board-Styrofoam-Sheet-Cork-Board-40x30cm-i.1291085004.29904036960"
+          ]
+        },
+        {
+          "variantSku": "MAT-UME-STI-20x330x160-CM",
+          "variantName": "16 x 33 x 2 cm",
+          "accepted": [],
+          "result": "No exact 160 by 330 by 20 mm bare EPS product photograph found in the bounded public search. Generic custom-cut manufacturers do not prove that a photograph shows this exact size.",
+          "queries": [
+            "stiropor 160 330 20 plošča",
+            "\"stiropor\" \"160 x 330\"",
+            "\"styropor\" \"16x33\""
+          ]
+        },
+        {
+          "variantSku": "MAT-UME-STI-210x148-A5",
+          "variantName": "A5",
+          "accepted": [],
+          "result": "Exact A5 listings found, but their native originals are undersized. Catalog thickness remains unspecified; do not infer it from another supplier.",
+          "sourcePages": [
+            "https://www.10doigts.fr/plaques-en-polystyrene-20-x-30-cm-gp9121.aspx",
+            "https://www.in-the-box.jp/product/7258",
+            "https://www.shop-add.jp/SHOP/3PS-A5.html"
+          ]
+        }
+      ],
+      "pendingCandidates": [
+        {
+          "url": "https://filebroker-cdn.lazada.co.id/kf/S5452a079477445089f8f9c06fcb7131fn.jpg",
+          "file": "tmp/eps-v5/image-search-2.png",
+          "width": 1080,
+          "height": 1080,
+          "bytes": 664797,
+          "sha256": "0ed54c5f9344d60690123afe5e0682eb5904befe5ec0973ca9cb458bdfc87934",
+          "sourcePage": "https://www.lazada.co.id/tag/styrofoam-lembaran-1-meter/",
+          "status": "pending-exact-size",
+          "visualReview": "The whole fanned stack is visible against a black background, with useful surface detail and no humans. Source text advertises both 40 by 60 by 1 cm and 40 by 30 by 1 cm. The photo does not establish which dimensions belong to the pictured stack. No exact variant association accepted.",
+          "needed": "An originating size-specific product gallery that identifies the pictured stack as 300 by 400 by 10 mm. If later accepted, caption the pictured stack versus the unit sold; retain original bytes and text."
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "url": "https://static.10doigts.fr/assets/products/plaques-en-polystyrene-148-x-21-cm-epaisseur-2-cm-4-plaques-57324.jpg",
+          "file": "tmp/eps-v5/source-0.jpeg",
+          "width": 1500,
+          "height": 1000,
+          "sha256": "064c2173de4fe8452fcd19e535d71e9635b11dbc4ce5768b82cefe41268dee9e",
+          "reason": "Native A5 20 mm supplier original is 1500 by 1000 pixels; fails minimum height."
+        },
+        {
+          "url": "https://static.10doigts.fr/assets/products/plaques-en-polystyrene-21-x-30-cm-epaisseur-2-cm-3-plaques-57325.jpg",
+          "file": "tmp/eps-v5/source-1.jpeg",
+          "width": 1500,
+          "height": 1000,
+          "sha256": "f5c80f67fa05a12dc6ffde2aa2c9fdfdbf60d523b307f1fb5696dbbdb04ae831",
+          "reason": "Native original is 1500 by 1000 pixels and depicts 210 by 300 by 20 mm, which also differs from the exact 200 by 300 by 10 mm variant."
+        },
+        {
+          "url": "https://primary.jwwb.nl/public/p/i/p/temp-iwfdoxqjulqgoqctaeqm/pasted-image-sat-dec-13-2025-10-49-55-gmt-0100-midden-europese-standaardtijd-high.png",
+          "file": "tmp/eps-v5/source-3.png",
+          "width": 500,
+          "height": 144,
+          "sha256": "f4849ff8d2f71e1d5c63db85803e9f075b7a1aee8b8a7792dd06a12d88589968",
+          "reason": "Native is only 500 by 144 pixels. Dealer title says 1 cm but description says 1 mm, adding an unresolved thickness contradiction."
+        },
+        {
+          "url": "https://down-my.img.susercontent.com/file/sg-11134201-22120-3h00zuwsjpkv97",
+          "file": "tmp/eps-v5/image-search-0.jpeg",
+          "width": 800,
+          "height": 800,
+          "bytes": 195058,
+          "sha256": "c463dc6aa049603926c492a240325b20cf302bccc7feb28ba6cf0379425c929e",
+          "reason": "Original public CDN file is only 800 by 800 pixels."
+        },
+        {
+          "url": "https://down-ph.img.susercontent.com/file/id-11134207-7r98t-lr5tidwnja7t1d",
+          "file": "tmp/eps-v5/image-search-1.jpeg",
+          "width": 700,
+          "height": 700,
+          "bytes": 43856,
+          "sha256": "35c09ace09625409616dee121d71b562f779140a1e88f8f78c993746c23390ca",
+          "reason": "Exact 40 by 30 by 1 cm listing original is only 700 by 700 pixels."
+        },
+        {
+          "url": "https://1221129134.rsc.cdn77.org/temp/1753951010_6bd3c0449e0ff92c45ac7d6000cd425d.jpg",
+          "file": "tmp/eps-v5/image-search-3.jpeg",
+          "width": 840,
+          "height": 840,
+          "bytes": 52465,
+          "sha256": "bd96c8206963c2bc5ca9afebec1b8337ddf10dc3909322ff71114508fb1aa4bb",
+          "reason": "Ribrudi/Criscolor 40 by 30 cm original is only 840 by 840 pixels; thickness is not established."
+        },
+        {
+          "url": "https://1221129134.rsc.cdn77.org/temp/1753951010_f8a4a776533919259540a8b359187acd.jpg",
+          "file": "tmp/eps-v5/image-search-4.jpeg",
+          "width": 840,
+          "height": 840,
+          "bytes": 59022,
+          "sha256": "89f5d69426ee8de3cf6ac68ed58b772bbc3807e8bb1be739986814925209c055",
+          "reason": "Ribrudi/Criscolor 20 by 30 cm original is only 840 by 840 pixels; do not infer 10 mm thickness."
+        },
+        {
+          "url": "https://bubblesplastics.co.za/cdn/shop/files/polystyrene-159x_8a74e270-9a16-42cd-bc6b-e224c4e7faff.png?v=1755880514",
+          "file": "tmp/eps-v5/image-search-5.png",
+          "width": 2048,
+          "height": 2048,
+          "bytes": 81193,
+          "sha256": "ce8ae2317406c0a38fdbbd2fa9b12375527012bcb1e18c13cfb9bafdcc55db22",
+          "reason": "Despite a 2048 by 2048 canvas, the board is visibly blurred and appears enlarged from a tiny photograph, with excessive blank background. Fails useful native detail; do not accept based on dimensions."
+        },
+        {
+          "url": "https://www.in-the-box.jp/data/on-the-table/product/4100/4100-sty-a5-20.jpg",
+          "file": "tmp/eps-v5/japan-0.jpeg",
+          "width": 700,
+          "height": 700,
+          "sha256": "79d77913c33f1e1d9e1f4f80e1f1c81cd23220b96572da95efd6ebe644ed4439",
+          "reason": "Public native file is below 1024 pixels on at least one axis. No enlargement accepted."
+        },
+        {
+          "url": "https://www.in-the-box.jp/data/on-the-table/product/4100/4100-sty_3.jpg",
+          "file": "tmp/eps-v5/japan-1.jpeg",
+          "width": 400,
+          "height": 294,
+          "sha256": "b916909768651440917c512c42af4bd51d4654acea4b2ef3c658cd6516eaa147",
+          "reason": "Public native file is below 1024 pixels on at least one axis. No enlargement accepted."
+        },
+        {
+          "url": "https://www.in-the-box.jp/data/on-the-table/product/4100/4100-sty_2.jpg",
+          "file": "tmp/eps-v5/japan-2.jpeg",
+          "width": 700,
+          "height": 536,
+          "sha256": "21160f41ad3522e08133caec13f21fbf5f19e3192ed79df1fe68a653f3495d15",
+          "reason": "Public native file is below 1024 pixels on at least one axis. No enlargement accepted."
+        },
+        {
+          "url": "https://image1.shopserve.jp/shop-add.jp/pic-labo/3hb-a5.jpg?t=20230302153027",
+          "file": "tmp/eps-v5/japan-3.jpeg",
+          "width": 700,
+          "height": 700,
+          "sha256": "bae8d4e6530671d1132885cf4cebeb4a7841388c219ce191c6b86d2276d9ad52",
+          "reason": "Public native file is below 1024 pixels on at least one axis. No enlargement accepted."
+        },
+        {
+          "url": "https://www.shop-add.jp/pic-labo/3hb-a5-01.jpg",
+          "file": "tmp/eps-v5/japan-4.jpeg",
+          "width": 700,
+          "height": 700,
+          "sha256": "441350719d8015cb324f9a1a2f0282a5a5d758b547543643110b1f8de319f9d3",
+          "reason": "Public native file is below 1024 pixels on at least one axis. No enlargement accepted."
+        },
+        {
+          "sourcePage": "https://www.ebay.com/itm/395329745802",
+          "reason": "Exact dimensions 300 by 400 by 10 mm but explicitly XPS, not bare EPS."
+        },
+        {
+          "sourcePage": "https://woldecor.co.uk/products/woldecor-xps-foam-sheets-premium-extruded-polystyrene-boards-craft-modelling-diorama-diy-paintable-made-in-uk",
+          "reason": "A5 and other sizes are explicitly extruded XPS. Wrong material."
+        },
+        {
+          "sourcePage": "https://lilihomepiera.com/it/products/plancha-porexpan-20-30cm-6pcs",
+          "reason": "20 by 30 by 0.9 cm; thickness differs from the exact 10 mm variant."
+        },
+        {
+          "sourcePage": "https://magicperlas.com/product/styro-rectangle/",
+          "reason": "Bare EPS but listed thicknesses start at 2 cm and generic custom-size image does not identify any target variant."
+        }
+      ],
+      "missingViews": [
+        "Sharp original whole-sheet main photograph for each exact variant",
+        "Natural close-up showing EPS bead texture and the actual sheet thickness, if suitable source exists"
+      ]
+    }
+  ],
+  "accessNotes": [
+    {
+      "source": "https://shopee.co.id/Styrofoam-polosan-isi-50-lembar-uk-30-x-40-cm-tebal-1cm-i.260375320.56551950496",
+      "result": "Public HTML contained only the app shell. A fresh unauthenticated browser rendered Halaman Tidak Tersedia and asked for login. No login or access-control bypass attempted.",
+      "evidence": "tmp/eps-v5/shopee-public-render.json"
+    }
+  ],
+  "summary": {
+    "acceptedOriginals": 0,
+    "coveredVariants": 0,
+    "pendingExactSizeCandidates": 1,
+    "variantsStillWithoutQualifyingSource": 4
+  }
+}

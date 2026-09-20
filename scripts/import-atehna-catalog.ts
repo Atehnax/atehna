@@ -11,6 +11,7 @@ import { readFile, mkdir, writeFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import nextEnv from '@next/env';
+import { isProtectedTechnicalImage, rejectedPhotoIdentities, removeRejectedPayloadMedia, type RejectedPhotoIdentity, type RejectedPhotoPolicy } from './catalog-rejected-photos';
 import type {
   CatalogItemEditorPayload, CatalogItemEditorHydration, CatalogItemEditorVariantPayload,
   CatalogItemMediaPayload, CatalogItemOptionAxisPayload
@@ -18,6 +19,8 @@ import type {
 
 export type CatalogImportProduct = CatalogItemEditorPayload & {
   sourceUrls?: string[];
+  /** Explicit reviewed equivalences preserve already-published immutable media URLs. */
+  mediaSourceAliases?: Array<{ localBlobUrl: string; hostedBlobUrl: string; hostedBlobPathname: string }>;
   /** Retain omitted variants and their history, but remove them from publication. */
   deactivateUnlistedVariants?: boolean;
   /** Preserve old image rows while replacing the visible gallery. */
@@ -48,6 +51,23 @@ const hasDimensions = (variant: CatalogItemEditorVariantPayload) =>
 const mediaIdentity = (media: CatalogItemMediaPayload) =>
   [media.mediaKind, media.sourceKind, media.blobPathname || media.blobUrl || media.externalUrl || ''].join('|');
 const gallery = (media: CatalogItemMediaPayload) => media.mediaKind === 'image' && media.role === 'gallery';
+
+function validateMediaSourceAliases(product: CatalogImportProduct): void {
+  const aliases = product.mediaSourceAliases ?? [];
+  ensure(Array.isArray(aliases), product.slug + ': mediaSourceAliases must be an array.');
+  for (const alias of aliases) {
+    ensure(alias && typeof alias.localBlobUrl === 'string' && product.media.some(media => gallery(media) && media.blobUrl === alias.localBlobUrl), product.slug + ': alias must name an existing canonical gallery image.');
+    let url: URL;
+    try { url = new URL(alias.hostedBlobUrl); } catch { throw new Error(product.slug + ': invalid hosted media alias URL.'); }
+    ensure(url.protocol === 'https:' && /^[a-z0-9-]+\.public\.blob\.vercel-storage\.com$/u.test(url.hostname)
+      && !url.username && !url.password && !url.port && !url.search && !url.hash, product.slug + ': invalid hosted media alias origin.');
+    ensure(typeof alias.hostedBlobPathname === 'string' && /^catalog-items\/[^/]+\/images\/[^/]+$/u.test(alias.hostedBlobPathname)
+      && !/[\\?#%\r\n]/u.test(alias.hostedBlobPathname) && !alias.hostedBlobPathname.split('/').some(segment => segment === '.' || segment === '..')
+      && decodeURIComponent(url.pathname.slice(1)) === alias.hostedBlobPathname, product.slug + ': hosted media alias URL/pathname mismatch.');
+  }
+  unique(aliases.map(alias => alias.localBlobUrl), product.slug + ' local media aliases');
+  unique(aliases.map(alias => alias.hostedBlobUrl), product.slug + ' hosted media aliases');
+}
 
 export function validateCatalogImportManifest(value: unknown): CatalogImportManifest {
   ensure(isRecord(value) && value.version === 1 && Array.isArray(value.products) && value.products.length > 0, 'Expected version: 1 and a nonempty products array.');
@@ -81,6 +101,7 @@ export function validateCatalogImportManifest(value: unknown): CatalogImportMani
       ensure(media.variantIndex == null || (Number.isInteger(media.variantIndex) && Number(media.variantIndex) >= 0 && Number(media.variantIndex) < entry.variants.length), `${label}: invalid image variantIndex.`);
     }
     const typed = entry as CatalogImportProduct;
+    validateMediaSourceAliases(typed);
     unique(typed.media.map(mediaIdentity), `${label} media`);
     unique(typed.variants.map(variant => variant.variantName), `${label} variant names`);
 
@@ -170,15 +191,40 @@ function mergeAxes(before: CatalogItemOptionAxisPayload[], incoming: CatalogItem
   return output;
 }
 
-export function planCatalogImportProduct(product: CatalogImportProduct, before: CatalogItemEditorHydration | null): CatalogImportPlan {
-  const { sourceUrls, deactivateUnlistedVariants, hideUnlistedGalleryImages, ...incoming } = structuredClone(product);
+/** Canonical manifests omit separately managed schematics; retain their variant associations, including hidden diagrams. */
+function retainTechnicalAssignments(payload: CatalogItemEditorPayload, before: CatalogItemEditorHydration): CatalogItemEditorPayload {
+  if (!before.media.some(isProtectedTechnicalImage)) return payload;
+  const oldGallery = before.media.filter(gallery);
+  const allGallery = payload.media.filter(gallery);
+  const visibleGallery = allGallery.filter(row => !row.hidden);
+  for (const variant of payload.variants) {
+    const previous = before.variants.find(row => row.id && row.id === variant.id);
+    const currentSlots = (variant.imageAssignments ?? []).flatMap(index => {
+      const image = visibleGallery[index]; const slot = image ? allGallery.indexOf(image) : -1;
+      return slot < 0 ? [] : [slot];
+    });
+    const technicalSlots = (previous?.imageAssignments ?? []).flatMap(index => {
+      const image = oldGallery[index];
+      if (!image || !isProtectedTechnicalImage(image)) return [];
+      const slot = allGallery.findIndex(row => row.id === image.id);
+      ensure(slot >= 0, payload.slug + ': existing technical diagram was removed.');
+      return [slot];
+    });
+    variant.imageAssignments = [...new Set([...currentSlots, ...technicalSlots])];
+  }
+  return { ...payload, imageAssignmentScope: 'all-gallery' };
+}
+
+export function planCatalogImportProduct(product: CatalogImportProduct, before: CatalogItemEditorHydration | null, rejected: RejectedPhotoIdentity[] = []): CatalogImportPlan {
+  validateMediaSourceAliases(product);
+  const { sourceUrls, mediaSourceAliases = [], deactivateUnlistedVariants, hideUnlistedGalleryImages, ...incoming } = structuredClone(product);
   const warnings: string[] = [];
   const sourceNote = sourceUrls?.length ? `Viri za pripravo artikla:\n${sourceUrls.join('\n')}` : '';
   const notes = [before?.adminNotes, incoming.adminNotes, sourceNote].filter((note): note is string => Boolean(note?.trim()));
   const adminNotes = [...new Set(notes)].filter((note, index, all) => !all.some((other, otherIndex) => index !== otherIndex && other.includes(note))).join('\n\n');
   if (!before) {
     return {
-      payload: { ...incoming, adminNotes, status: 'inactive', variants: incoming.variants.map((variant, index) => ({ ...variant, status: 'inactive', position: index })) },
+      payload: removeRejectedPayloadMedia({ ...incoming, adminNotes, status: 'inactive', variants: incoming.variants.map((variant, index) => ({ ...variant, status: 'inactive' as const, position: index })) }, rejected),
       before, warnings: ['New item and variants are inactive until commercial/shipping details are reviewed.'],
       addedVariants: incoming.variants.length, retainedExtraVariants: 0
     };
@@ -225,14 +271,24 @@ export function planCatalogImportProduct(product: CatalogImportProduct, before: 
   if (addedVariants) warnings.push(`${addedVariants} new variant(s) are inactive pending review.`);
   const oldIndexToNew = new Map(before.variants.map((variant, index) => [index, variants.findIndex(candidate => candidate.id === variant.id)]));
   const media: CatalogItemMediaPayload[] = incoming.media.map(entry => {
-    const prior = before.media.find(candidate => mediaIdentity(candidate) === mediaIdentity(entry));
+    const alias = mediaSourceAliases.find(alias => alias.localBlobUrl === entry.blobUrl);
+    const matches = before.media.filter(candidate => {
+      if (mediaIdentity(candidate) === mediaIdentity(entry)) return true;
+      if (!alias || candidate.blobUrl !== alias.hostedBlobUrl) return false;
+      ensure(gallery(candidate) && candidate.sourceKind === 'upload' && candidate.blobPathname === alias.hostedBlobPathname, incoming.slug + ': existing hosted alias identity differs.');
+      return true;
+    });
+    ensure(matches.length <= 1, incoming.slug + ': ambiguous existing media alias for ' + entry.blobUrl);
+    const prior = matches[0];
+    const preservedSource = alias && prior?.blobUrl === alias.hostedBlobUrl
+      ? { blobUrl: prior.blobUrl, blobPathname: prior.blobPathname, externalUrl: prior.externalUrl } : {};
     return { ...prior,
       variantIndex: prior?.variantIndex == null ? null : oldIndexToNew.get(prior.variantIndex) ?? null,
-      ...entry, id: prior?.id };
+      ...entry, ...preservedSource, id: prior?.id };
   });
   for (const entry of before.media) {
     if (!media.some(candidate => mediaIdentity(candidate) === mediaIdentity(entry))) {
-      const hidden = hideUnlistedGalleryImages && gallery(entry) ? true : entry.hidden;
+      const hidden = hideUnlistedGalleryImages && gallery(entry) && !isProtectedTechnicalImage(entry) ? true : entry.hidden;
       media.push({ ...structuredClone(entry), hidden,
         variantIndex: hidden || entry.variantIndex == null ? null : oldIndexToNew.get(entry.variantIndex) ?? null });
     }
@@ -261,7 +317,7 @@ export function planCatalogImportProduct(product: CatalogImportProduct, before: 
     quantityDiscounts: before.quantityDiscounts,
     defaultVariantId: before.defaultVariantId, defaultVariantIndex: undefined
   };
-  return { payload, before, warnings, addedVariants, retainedExtraVariants: extras.length };
+  return { payload: retainTechnicalAssignments(removeRejectedPayloadMedia(payload, rejected), before), before, warnings, addedVariants, retainedExtraVariants: extras.length };
 }
 
 export type CatalogImportOptions = {
@@ -332,7 +388,15 @@ async function main() {
   const options = parseCatalogImportArgs(process.argv.slice(2));
   const { apply } = options;
   const manifestPath = path.resolve(options.manifestPath ?? 'data/catalog/atehna-2026-09.json');
-  const manifest = validateCatalogImportManifest(JSON.parse(await readFile(manifestPath, 'utf8')));
+  const policyFiles = ['data/catalog/product-image-remediation-2026-09.json', 'data/catalog/product-image-remediation-v3-2026-09.json'];
+  const policies: RejectedPhotoPolicy[] = [];
+  for (const filename of policyFiles) {
+    try { policies.push(JSON.parse(await readFile(filename, 'utf8')) as RejectedPhotoPolicy); }
+    catch (error) { if (filename.includes('-v3-') && (error as NodeJS.ErrnoException).code === 'ENOENT') continue; throw error; }
+  }
+  const rejected = policies.flatMap(policy => rejectedPhotoIdentities(policy, options.production ? 'production' : 'local'));
+  const rawManifest = validateCatalogImportManifest(JSON.parse(await readFile(manifestPath, 'utf8')));
+  const manifest = validateCatalogImportManifest({ ...rawManifest, products: rawManifest.products.map(product => removeRejectedPayloadMedia(product, rejected)) });
   await validateCatalogImportAssets(manifest);
   const target = resolveCatalogImportTarget(options);
   const { getPool } = await import('../src/shared/server/db');
@@ -344,7 +408,7 @@ async function main() {
     const plans: CatalogImportPlan[] = [];
     for (const product of manifest.products) {
       const before = await fetchCatalogItemEditorBySlug(product.slug);
-      const plan = planCatalogImportProduct(product, before);
+      const plan = planCatalogImportProduct(product, before, rejected);
       let parentId: string | null = null;
       for (const segment of plan.payload.categoryPath) {
         const category: { id: string } | undefined = (await pool.query("select id from catalog_categories where coalesce(parent_id, '') = coalesce($1::text, '') and lower(trim(title)) = lower(trim($2::text)) order by position,id limit 1", [parentId, segment])).rows[0];

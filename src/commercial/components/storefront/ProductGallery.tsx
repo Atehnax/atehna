@@ -564,10 +564,13 @@ export default function ProductGallery({
 
       <ImagePreviewDialog
         open={isZoomOpen && selected.kind === 'image'}
-        src={selected.url}
+        src={selected.originalUrl ?? selected.url}
         alt={selected.altText || productName}
-        aspectRatio={selectedImageAspectRatio}
-        originalHref={isDimensionDiagram(selected) ? selected.url : undefined}
+        aspectRatio={selected.originalWidth && selected.originalHeight
+          ? selected.originalWidth / selected.originalHeight
+          : selectedImageAspectRatio}
+        originalHref={selected.originalUrl ?? selected.url}
+        originalLabel={isDimensionDiagram(selected) ? 'Odpri skico v polni velikosti' : 'Odpri izvirno sliko v polni velikosti'}
         onClose={closeZoom}
       />
     </>

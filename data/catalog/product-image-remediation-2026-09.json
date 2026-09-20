@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-13",
+  "policy": "Exact genuine product photographs, no humans, native minimum1024x1024 for additions. Existing authentic low-resolution originals retained only as documented unresolved exceptions. No invented views, crops, rotations or duplicates count as separate views. Files and rows retained for rollback; only associations/visibility/captions are modified.",
+  "removals": [
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-v-roki.jpg",
+      "sha256": "55edd064e26c33beccd43c1169c1692ab1960ae7ef08cf918fa474fc20124641",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+      "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/0.5mm-aluminium-sheet-metal-hand-image.jpg"
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+      "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+    },
+    {
+      "slug": "barvni-papir",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+      "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-ustvarjalni-projekt.jpg",
+      "sha256": "5c646c91b2257a2de3407338881ad4ec78ed8a36ccf74ad1877e80dc281823e9",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.pexels.com/photo/children-doing-crafting-7869797/",
+      "sourceUrl": "https://images.pexels.com/photos/7869797/pexels-photo-7869797.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869797.jpg&fm=jpg"
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/barvni-papir-ustvarjanje-v-razredu.jpg",
+      "sha256": "cfa43506e165476be9cd3a7d3acd98fb3caba4119f0fb8777109b347a3eb798c",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.pexels.com/photo/a-children-using-scissors-7869788/",
+      "sourceUrl": "https://images.pexels.com/photos/7869788/pexels-photo-7869788.jpeg?cs=srgb&dl=pexels-vanessa-loring-7869788.jpg&fm=jpg"
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-real-uporaba-unior.jpg",
+      "sha256": "3a25ef9622c9498c8429414d86b8faf3cc8736c5af4cbd4b3732e351e1239d3b",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://uniortools.com/eng/product/812-locksmiths-hammer",
+      "sourceUrl": "https://uniortools.com/res/katimages/812%23usage@1_1024.jpg"
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-rezanje-plocevine.jpg",
+      "sha256": "1cdccd20439bbb5d1ab005fa72fb5785a22b0af0e91f5af1eede4148a7010652",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.praktiker.gr/p/psalidi-lamarinas-isio-lux-comfort-180mm-119420",
+      "sourceUrl": "https://s3.praktiker.gr/myPraktiker.Images/Products/119420/gallery/26530/PS_374634_01_L.jpg"
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-wissner-v-ucilnici.jpg",
+      "sha256": "ae10fff37244b32fc636e4e45e9f72430dfb86dedb99c3d7f916e65fad299fc5",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://abcschoolsupplies.ie/products/balance-2kg",
+      "sourceUrl": "https://abcschoolsupplies.ie/cdn/shop/files/balance-2kg-5019131.jpg?v=1771001529"
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "blobUrl": "/images/catalog/2026-09/otroski-zascitni-predpasnik-real-primer-nosenja.jpg",
+      "sha256": "6b6bf76c6259de7fc285c84d36118157edc074dc1312d87fbb8b48bcf5e6a136",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.apronwarehouse.com/products/navy-recycled-youth-bib-apron-no-pockets",
+      "sourceUrl": "https://www.apronwarehouse.com/cdn/shop/files/RP149_qtr_navy_SCALE_1200x1200.jpg?v=1716754815"
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-ustvarjanje.jpg",
+      "sha256": "7d4d8cb6cdd2e81000b1e625fd8a94ac2bcd6977c32d73a937709b9ec06d368e",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.opitec.com/de-de/schneidunterlage-450-x-600-mm/375040",
+      "sourceUrl": "https://www.opitec.com/media/43/e1/ea/1773741630/375040-000-000-VO-02a02_v_5.jpg?ts=1773741630"
+    },
+    {
+      "slug": "ploscata-baterija",
+      "blobUrl": "/images/catalog/2026-09/baterija-ploscata-ucilnica.jpg",
+      "sha256": "c5945642f60b6da19bb6ad9f1b459cb1b5592f877e0c593469e4ed4344f0e5c9",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-4-5v/204019",
+      "sourceUrl": "https://www.opitec.com/media/60/98/68/1764756171/204019-000-000-VO-03a01_v_9.jpg?ts=1764756171"
+    },
+    {
+      "slug": "ploscata-baterija",
+      "blobUrl": "/images/catalog/2026-09/baterija-ploscata-elektricni-krog.jpg",
+      "sha256": "dde93256f5c86807f83303c28c5f956198fe0009a59054e9ef12cf60fcdca2fe",
+      "reason": "human-body-present",
+      "reviewNotes": "Visually reviewed 2026-09-13: people or human body parts are visible.",
+      "sourcePage": "https://www.opitec.com/de-de/opitec-flachbatterie-12-stueck-4-5-v/204112",
+      "sourceUrl": "https://www.opitec.com/media/f1/7a/27/1764707780/204112-000-000-VO-08a01_v_9.jpg?ts=1764707780"
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-real-pogled.jpg",
+      "sha256": "323b008b0f0aa80ca5d3cfdfb7ecf7bbb2126a56bc5cd62695a50df14383cf5c",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Authentic supplier studio photograph, three fully visible plain aluminium sheets; clean edges and neutral silver surface. Source product explicitly 0.5 mm. Generic material view, not proof of one exact selected cut size or package count. No generated texture, no new edits. Also serves the existing local 300 × 200 × 1 mm test/legacy variant as a general aluminium material photograph only, without asserting pictured sheet thickness. This selector neither creates a format nor changes catalog measurements.",
+      "sourcePage": "https://www.smetals.co.uk/product/0-5mm-thick-1050-grade-aluminium-plate/",
+      "sourceUrl": "https://www.smetals.co.uk/wp-content/uploads/2023/04/Aluminium-0.5mm-Thick-Sheet-Metal-Panels-Image-1.jpg"
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-na-podlagi.jpg",
+      "sha256": "66ca41e3ae62de70b41baf86abd63a14d7ff8f2b6a5b7a2e57423d0e3d895bad",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Sharp real photograph: copper sheets fanned on a used green cutting mat; natural scratches, fine edges and copper colour visible. Supplier page explicitly 0.5 mm, source cuts 200 × 400 mm. Framing is a source detail, not a complete plate; do not claim source cut dimensions equal the offered variant. Native 900 × 837 photograph has stronger true detail than the old 600px RCM source. No edits.",
+      "sourcePage": "https://www.modellbau-profi.de/Werkstoffe-Halbzeug-Profile/Metall/Kupfer/Kupferplatten/Kupferblech-halbhart-0-5mm-x-200mm-x-400mm.htm?ProdNr=031231005002000400&a=article&p=1174",
+      "sourceUrl": "https://www.modellbau-profi.de/modellprofi/prodpic/Kupferblech-halbhart-0-5mm-x-200mm-x-400mm-031231005002000400_b_0.JPG"
+    },
+    {
+      "slug": "bakrena-plosca",
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-real-povrsina.png",
+      "sha256": "70a570dd72da98fda43573763ff6fe15e480d3ec1aed48c897ba82899b773af3",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native transparent PNG original of retailer product photograph. The same source render was visually inspected at 1360 × 1700; real copper surface has subtle scratches and tiny natural marks, intact lower corner. Source is a 495 × 195 mm sheet at 0.5 mm; use as material detail only, not exact full-size variant view. PNG original fetched without transformation parameters; no upscale or edits.",
+      "sourcePage": "https://www.slojd-detaljer.com/fi/puu-metalli/metallilevyt-folio/kuparilevy-495x195-mm?p=2714-2004",
+      "sourceUrl": "https://slojddetaljer.cdn-norce.tech/c9d7a5b8-7bd9-433f-aa54-6a9c28c023e0"
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-rob.webp",
+      "sha256": "c802d093a4a735e5e1bc600fbc2e2041e292b89f2090faa61ff1ff70236affa4",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real supplier sheet close-up, visible irregular zinc texture. Source explicitly0.5mm. Material view across cut formats, no size claims. Original1024px WebP, no edits.",
+      "sourcePage": "https://www.schmiedekult.de/05mm-verzinktes-Stahlblech-DX51-nach-Mass?btgsterne=5",
+      "sourceUrl": "https://www.schmiedekult.de/media/image/product/31876/lg/05mm-verzinktes-stahlblech-dx51-nach-mass~3.webp"
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-real-pogled.jpg",
+      "sha256": "f7b70f5a8d142b2733b5c30a2634545fee5feb514abf9a98b650db467601eb0a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Authentic retailer photograph of galvanized steel sheet. Family material view, not exact selected dimensions; source offers0.5mm thickness but photograph is reused across formats.768px native delivery; no upscale or edits.",
+      "sourcePage": "https://www.modulor.de/stahl-feinblech-verzinkt-zuschnitt-moeglich.html",
+      "sourceUrl": "https://cdn.modulor.de/products/eaib/1_768_768_r_stahl_feinblech_verzinkt.jpg"
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-rob.webp",
+      "sha256": "f3d947f692b59980e38849b36b336cc94802945968f3d2269978004ee53aa4ed",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real supplier close-up on the 0.5 mm product page. Material view shared with cut sizes; does not depict a specified selected format. Native1024px; no edits.",
+      "sourcePage": "https://bestell-dein-lochblech.de/products/messingblech-t-0-5-mm",
+      "sourceUrl": "https://bestell-dein-lochblech.de/cdn/shop/products/Messingblech_5mm_7mm_1mm_dick.webp?v=1745335158&width=1946"
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-real-povrsina.jpg",
+      "sha256": "fba8da908ded30136f3337c97a3fdf1220855fc2378e04d07dded61f4ed7397f",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real close-up of brass sheet surface from supplier offering0.5mm thickness. Natural marks retained; material detail without size claims. Original JPEG, no edits.",
+      "sourcePage": "https://wilmsmetall.de/shop/messing/bleche-messing/glatte-bleche-bleche-messing/ms63-glatte-bleche-bleche-messing/21500050-m/",
+      "sourceUrl": "https://www.wilmsmetall.de/wp-content/uploads/2025/04/ms63_messing-17-rotated.jpg"
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "blobUrl": "/images/catalog/2026-09/penjeni-pvc-komateks-real-rob-materiala.jpg",
+      "sha256": "fba6a5efdc3ea98603a6157c2f8849374a9b5ffb23cf1421f3748765bf3dcbe6",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged supplier material detail used on its 3 mm listing. Image filename says 5 mm; do not infer measured thickness from photo. Catalog dimensions remain authoritative.",
+      "sourcePage": "https://displaypro.co.uk/products/white-pvc-foam-sheet-cut-to-size-3mm",
+      "sourceUrl": "https://displaypro.co.uk/cdn/shop/products/white-pvc-foam-sheet-cut-to-size-5mm-115954_1ff4eeca-5f99-4224-abae-046b80bc17a2.jpg?v=1743758648"
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-beli-akril.webp",
+      "sha256": "10b221de64aa7b0d99233c6e41e897de88828519153abd3c0ab51bdbdd2bcfcf",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real white 3mm acrylic supplier photograph; generic material representation, no claim of matching delivered cut dimensions or brand.",
+      "sourcePage": "https://www.theacrylicwarehouse.co.uk/product/white-gloss-acrylic-sheet-cut-to-size-3mm/",
+      "sourceUrl": "https://www.theacrylicwarehouse.co.uk/wp-content/uploads/2025/03/White-Gloss-Accrylic-Sheets-Cut-To-Size-at-The-Acrylic-Warehouse.webp"
+    },
+    {
+      "slug": "pleksi-steklo",
+      "blobUrl": "/images/catalog/2026-09/pleksi-steklo-real-barvni-vzorci.jpg",
+      "sha256": "e8c375511f129f7984af9af5b10e286125fa2d016d637792aa506e2bd4963c39",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual 3mm acrylic sample selection; not a supplied set. For variants 4 and 6 this is only a family material selection because exact color is unspecified (source4 allows clear/colored). Rounded sample corners do not describe delivered sheet shape.",
+      "sourcePage": "https://en.acrylopmaat.nl/acrylic/colored/",
+      "sourceUrl": "https://en.acrylopmaat.nl/wp-content/uploads/2024/02/Gekleurd-Acryl-Acrylaat-3mm-1.jpg"
+    },
+    {
+      "slug": "stiropor",
+      "blobUrl": "/images/catalog/2026-09/stiropor-real-eps-plosce.webp",
+      "sha256": "084add128e4776d55f8942e30615d3b911b4f0e7bf6505b5cb9afc18fabc7b52",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual supplier 10mm EPS sheet photo, representative material view; displayed sheet sizes differ from catalog cuts.",
+      "sourcePage": "https://schottpackaging.co.uk/product/eps-polystyrene-sheets-600x400x10mm/",
+      "sourceUrl": "https://schottpackaging.co.uk/wp-content/uploads/2025/10/EPS-Sheets.webp"
+    },
+    {
+      "slug": "seleshamer",
+      "blobUrl": "/images/catalog/2026-09/seleshamer-real-beli-listi-v2.jpg",
+      "sha256": "87b1578895e1aa9ebc72bed49454b5ea12994e4762ef435e358201598cb53b1f",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph from the Muflon A4 white 200 g paper listing. Representative white 200 g material view across the catalog formats, not evidence of the supplied brand, exact sheet dimensions or stack quantity. Native 658 x 606 pixels. The complete stack, bent top sheet and visible edge shadows are clearer at card size than the earlier flat format collage. Retain the original format image and older files for rollback.",
+      "sourcePage": "https://go2school.com/product/seleshamer-bel-200g-a4/",
+      "sourceUrl": "https://go2school.com/wp-content/uploads/2026/04/775112-KOS_1.jpg"
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-real-belo-siv-material-v2.jpg",
+      "sha256": "e4a0543970b879bf74f577d3be6ed90a84bc2c1701ea5ea71c92304b666e0b56",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph of white-coated, gray-backed GD2 card samples. Generic material representation: the supplier listing is approximately 400 g Igepa card, whereas the catalog Grafopak is 350 g; do not infer exact brand, weight, thickness or cut size from the photo. Two complete samples show the white front, gray reverse and natural shadows. Actual downloaded dimensions are 800 x 600 pixels despite the 1920 URL label; no upscaling or local image edits. Retain the original Grafopak-specific Velpapir detail and older files for rollback.",
+      "sourcePage": "https://www.modulor.de/en/chromo-duplex-board-gd-2-white-greyish.html",
+      "sourceUrl": "https://cdn.modulor.de/products/daag/1_1920_1920_r_chromoduplexkarton_gd_2_weiss_graulich.jpg"
+    },
+    {
+      "slug": "grafopak",
+      "blobUrl": "/images/catalog/2026-09/grafopak-real-primer-uporabe.jpg",
+      "sha256": "a6507d86015b82eda9e14f59c60ad53d9b25758e63af545877e9d4d3a26896fa",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged real supplier photograph from the Grafopak product page, showing a folded gray board tray with strawberries on a wooden surface. Application example only: not the sold A3/A4 format, not an included tray or food, and not evidence of food-contact certification. Native 450×390 resolution retained without upscaling; independent view from the existing material photograph.",
+      "sourcePage": "https://bumaga--karton.ru/karton-grafopak/",
+      "sourceUrl": "https://bumaga--karton.ru/userfiles/editor/before_price/417_mm_grafopak.jpg"
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-real-izbor-barv.png",
+      "sha256": "eb19b360f87dc3f9313c733e0ba6dfd8cd73a76ce81a01d5799b0c3086b459f5",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real Antus photograph of300g B2 cardstock color assortment. Used honestly as family selection, not a calibrated proof of individual shade or a delivered assortment. Native705×675px. Exact tiny ATEHNA color chips are research references only, not gallery heroes.",
+      "sourcePage": "https://www.antus.si/sl/shop/papirji-kartoni/fotokarton--300-g/fotokarton-300g-b2-1-pola.html",
+      "sourceUrl": "https://www.antus.si/assets/shop_product/fotokarton_300_g_b2_50_x_70_cm.png"
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton-real-zlati-srebrni-karton.jpg",
+      "sha256": "ee31ed4252cb8282b8794a569af206546c285d9f8fcf5bd370bc2471ef9e63c7",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real supplier metallic300g cardstock photo with both gold and silver. Represents both selected finishes, not a delivered set or exact cut format.",
+      "sourcePage": "https://www.wl-versand.de/shop/basteln-werken/papier-karton/tonzeichenpapier-fotokarton/metallic-fotokarton2",
+      "sourceUrl": "https://www.wl-versand.de/shop/media/images/org/98475M-Metallic-Fotokarton-Gold-Silber.jpg"
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-real-bela-povrsina.png",
+      "sha256": "86855307681dfd495a07a50706a5cc19a4f73a3864dfe673508c46b393d6a978",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real unbranded white board material photograph; only explicitly white variants assigned. Supplier board thickness1.25mm is not applied to catalog, whose white thickness is unknown.",
+      "sourcePage": "https://www.papermilldirect.co.uk/paper-card/white-mount-board-1250-micron-2",
+      "sourceUrl": "https://s3-eu-west-1.amazonaws.com/cdn.papermilldirect.co.uk/paper-card-images/981W-1DR-single-sided-white-mount-board_2025-04-16-123552_dfbi.png"
+    },
+    {
+      "slug": "lepenka",
+      "blobUrl": "/images/catalog/2026-09/lepenka-real-beli-rob.png",
+      "sha256": "710fbbb6206acf5262b01fd5320fb184b2da6f43f56933fe7ae2e1496f068061",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Second actual white board detail; representative material photo, not proof of exact thickness or format.",
+      "sourcePage": "https://www.papermilldirect.co.uk/paper-card/white-mount-board-1250-micron-2",
+      "sourceUrl": "https://s3-eu-west-1.amazonaws.com/cdn.papermilldirect.co.uk/paper-card-images/981W-1DR-single-sided-white-mount-board-inside.png"
+    },
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list-real-robovi-v2.jpg",
+      "sha256": "c73793227d9c3d30e5535dbd441aa56b68a70784aa8f5e25e1cf503ed5c41e4d",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Unchanged authentic supplier photograph of white uncoated drawing-paper sheets. Three-quarter material detail makes sheet edges and surface legible at card size. General material representation; supplier brand, 170 gsm, pack quantity and cut dimensions are not catalog specifications. ATEHNA sells the selected format per sheet. No bitmap edits, artificial upscaling, added shadows or generated content.",
+      "sourcePage": "https://artway.co.uk/artway-studio-170gsm-cartridge-paper-packs-a1-a2-a3/",
+      "sourceUrl": "https://cdn11.bigcommerce.com/s-xoo1uq/images/stencil/original/products/2901/17174/Artway-STUDIO-170gsm-White-Cartridge-Paper-A1-A2-A3_14561__13754.1729768382.jpg?c=2"
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-bukev-povrsina.jpg",
+      "sha256": "dd3fd23a81d795cd5c436d198dca1dad27781c21f7f5a9b058f3d5d6d909990c",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual beech plywood supplier photo. Species matched; image is a material reference, not a claim of displayed cut dimensions.",
+      "sourcePage": "https://www.atmowood.si/bukova-vezana-plosca-4-x-400-x-300-mm/",
+      "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/86806_4-mm-buk.jpg?ff=1&x=1024&y=768&q=85&ts=663197ac&sg=161563f2"
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-povrsina.jpg",
+      "sha256": "746c3f54308f6aef69af311166e4c1386054faa7d6c65759fc7b77dd60455267",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual poplar plywood closeup on textile, preserved unchanged. Species matched; representative material rather than exact thickness/format.",
+      "sourcePage": "https://www.atmowood.si/vezana-plosca-a3-topol-3-mm--bb-bb-/",
+      "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-1_preklizka-topol-struktura--1.jpg?ff=1&x=1024&y=768&q=85&ts=65ca2b35&sg=161563f2"
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-real-topol-rob.jpg",
+      "sha256": "9c6ad461cdb7e2c8a88f989cee16df45a3b965e99de38772d821cc9d4731ae87",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Distinct actual closeup from same poplar supplier, no edits.",
+      "sourcePage": "https://www.atmowood.si/vezana-plosca-a3-topol-3-mm--bb-bb-/",
+      "sourceUrl": "https://cdn.myshoptet.com/usr/www.atmowood.si/user/shop/big/85779-2_preklizka-topol-hrany--1.jpg?ff=1&x=1024&y=768&q=85&ts=65ca2b35&sg=161563f2"
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "blobUrl": "/images/catalog/2026-09/krivilnik-real-primer-akrilnega-izdelka.jpg",
+      "sha256": "34e408ef3448ea017fa31f245680937f7772945ace28a0352cae74004cb6daea",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Real completed classroom project photograph. Winkler101377 description explicitly specifies drilling and heat-bending clear3mm acrylic using a thermo-bender. It illustrates a suitable application outcome, not proof that the pictured project was made on this exactTHERMOFORM400 machine. Exact original machine photo remains first. Native600×600; pens and paper are example context only.",
+      "sourcePage": "https://www.winklerschulbedarf.com/de/i/plexi-zettelbox-per-stk-101377",
+      "sourceUrl": "https://www.winklerschulbedarf.com/images/items/51265_1_PLEXI_Zettelbox_l.jpg"
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-1.jpg",
+      "sha256": "6a8948ecc822536800be6dc792ceead2e9be20c2baf9bd99af235692ba0d64cd",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred.",
+      "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+      "sourceUrl": "https://www.opitec.com/media/1b/21/9d/1776316559/343055-000-000-VO-03_v_5.jpg?ts=1776316559"
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo-200-real-opitec-2.jpg",
+      "sha256": "d1aaf8bda790de0d3e94f64186abe7e0b25f857a2b06601defa9122a61af7f2a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Actual 200 g wooden-handle locksmith hammer, head stamp DIN1041 200g visible. Two genuine angles, native2560px. Catalog family has no fixed brand; supplier BGS image used as representative matching mass/tool type under user preference for better real photographs. No ten-piece stand is depicted or inferred.",
+      "sourcePage": "https://www.opitec.com/de-de/schlosserhammer-200-g/343055",
+      "sourceUrl": "https://www.opitec.com/media/d0/00/51/1776316560/343055-000-000-VO-04_v_5.jpg?ts=1776316560"
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "blobUrl": "/images/catalog/2026-09/zlatarske-skarje-za-plocevino-real-lux-180.jpg",
+      "sha256": "2fb54ac4f401d381053b3def76ae2c65a6289878658855d4ed880e84839afb9a",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native 1200×821 real retailer photograph of LUX Comfort 180mm, EAN4007875388307 matching the existing OBI representative individual tool. Higher-resolution replacement for the existing415px view; not counted as a separate capture from that old hero. Intended ten-piece stand is not pictured and its brand is not inferred.",
+      "sourcePage": "https://www.praktiker.gr/p/psalidi-lamarinas-isio-lux-comfort-180mm-119420",
+      "sourceUrl": "https://s3.praktiker.gr/myPraktiker.Images/Products/119420/gallery/26530/PP_374634.jpg"
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "blobUrl": "/images/catalog/2026-09/zica-za-lotanje-real-kolut-detajl.jpg",
+      "sha256": "fdfaa64329fe6c7797291a0043613ed452e56d87886434cfdff18a62c2cfedcc",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Supplementary real representative view of a100g solder spool showing the wire winding. OPITEC alloy/diameter on label is NOT verified for the catalog item and must not become a product specification. Original actual supplier blue-spool photograph remains first and the sole exact product hero.",
+      "sourcePage": "https://www.opitec.com/de-de/opitec-elektroniklot-sn95-5ag3-8cu0-7-1-mm-100g/328722",
+      "sourceUrl": "https://www.opitec.com/media/81/44/50/1764939613/328722-000-000-VO-01d01_v_9.jpg?ts=1764939613"
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "blobUrl": "/images/catalog/2026-09/zagice-za-kovine-real-detajl-zob.jpg",
+      "sha256": "3ecd518bca9e0216b166a5100e3e488641ebe89f806184a1957c9042972ca927",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native600×600 close-up from the Pebaro metal-blade supplier page, showing real dark blade edge and natural shadow. The source is No5; exact numeric grade mapping to the catalog fine/medium/coarse labels is not verified, so this is a qualified family detail only. Existing grade-neutral genuine pack photo remains the shared variant hero. No tooth counts or package quantity are transferred.",
+      "sourcePage": "https://www.winklerschulbedarf.com/de/i/laubsageblatter-fur-metall-no-5-pebaro-12-stk-pkg-200101",
+      "sourceUrl": "https://www.winklerschulbedarf.com/images/items/3034_1_Laubsaegeblaetter_Metall_l.jpg"
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-celoten-pogled.jpg",
+      "sha256": "4caf19cf1bf546d3a4e9530fa0ff666af4be258aae83fd03fca8cc809d4b9006",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native900px genuine TTS product family1032927 gallery photo (035049). Matches the planned TTS catalog family; supplier sourcing remains unconfirmed against historical ATEHNA45002. No certification inferred.",
+      "sourcePage": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "sourceUrl": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dw84debe55/images/hi-res/1032927_00_035049_01.jpg"
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "blobUrl": "/images/catalog/2026-09/otroska-ocala-tts-detajl-rocice.jpg",
+      "sha256": "339c18bbe2b0cfe571b327744602a8c83fc39b33933a9840492a252d883d61fe",
+      "reason": "unverified-surrogate-model-material-or-variant",
+      "reviewNotes": "Native900px genuine TTS product family1032927 gallery photo (035049). Matches the planned TTS catalog family; supplier sourcing remains unconfirmed against historical ATEHNA45002. No certification inferred.",
+      "sourcePage": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+      "sourceUrl": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dwcaa029eb/images/hi-res/1032927_00_035049_3.jpg"
+    },
+    {
+      "slug": "vezana-plosca",
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-2.png",
+      "sha256": "7eb60a9c1b1aea774c511ad49645410080e150566474419d2c1eea3e503ed0e9",
+      "reason": "byte-identical-duplicate",
+      "reviewNotes": "Exact SHA-256 duplicate of retained vezana-plosca.png; does not add a new view."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminij-200-100-delavnica.png",
+      "sha256": "0eedf6b98773840f6f50c8c45c481d2123b1543bcdec5c6944c5a9d97628b78f",
+      "target": "local",
+      "reason": "known-generated-image",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminij-300-100-delavnica.png",
+      "sha256": "901019ffbecae3ef0939ccd2f60a2543fa899668f1add6de2afd359a285f4dae",
+      "target": "local",
+      "reason": "known-generated-image",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-kvadrat.png",
+      "sha256": "827e7bc7e46330b94b4a3edb135d755528f7e449ea74b6d74941216566c33983",
+      "target": "local",
+      "reason": "known-generated-image",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-pravokotnik.png",
+      "sha256": "ac05d534a98c6a35e2196337c2c90dd2e9f973267a798170bfdea8025e6b66a2",
+      "target": "local",
+      "reason": "known-generated-image",
+      "reviewNotes": "Previously generated aluminium product images remain visible only in local fixture catalog; source registry proves synthetic provenance."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/categories/materiali.png",
+      "sha256": "3460a20f3aa8cc681171ea94af677f927a80bdab6ca4faf6505cc2d18d05526a",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "blobUrl": "/images/categories/materiali.webp",
+      "sha256": "bfbf1d45b1a6339c7b47f91ede915b77a0110a20ee41dfa33c2096498879d2dd",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    },
+    {
+      "slug": "jeklena-merilna-letvica",
+      "blobUrl": "/images/categories/materiali.png",
+      "sha256": "3460a20f3aa8cc681171ea94af677f927a80bdab6ca4faf6505cc2d18d05526a",
+      "target": "local",
+      "reason": "unrelated-category-illustration",
+      "reviewNotes": "Category illustration shows assorted sheet materials/rods, not the exact product. Local fixture association only. File remains for legitimate category use."
+    }
+  ],
+  "restores": [
+    {
+      "slug": "risalni-list",
+      "blobUrl": "/images/catalog/2026-09/risalni-list.png",
+      "sha256": "265441b6a248c66d0b4ef9561ef2e5fcf2bd2bd603d0e508710990373bc1210d",
+      "dimensions": {
+        "width": 670,
+        "height": 670
+      },
+      "variantNames": [],
+      "altText": "Risalni list – izvirna fotografija dobavitelja.",
+      "imageType": "product",
+      "sourcePage": "https://atehna.si/product/risalni-list-a4/",
+      "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/risalnilist.png",
+      "reason": "Restore existing authentic supplier original; native resolution remains below minimum and is explicitly unresolved."
+    },
+    {
+      "slug": "fotokarton",
+      "blobUrl": "/images/catalog/2026-09/fotokarton.png",
+      "sha256": "33ea728c867ae8b47463a5ac7ea1455a965552d58b67dd7a5cfdaa3dc686037d",
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      },
+      "variantNames": [],
+      "altText": "Fotokarton – izvirni pregled barv dobavitelja.",
+      "imageType": "product",
+      "sourcePage": "https://atehna.si/product/fotokarton-b2-300-g-razlicnih-barv/",
+      "sourceUrl": "https://atehna.si/wp-content/uploads/2015/04/fotokarton.png",
+      "reason": "Restore existing authentic supplier original; native resolution remains below minimum and is explicitly unresolved."
+    },
+    {
+      "slug": "kladivo",
+      "blobUrl": "/images/catalog/2026-09/kladivo.jpg",
+      "sha256": "d694e9a0bbfc3139765ecd885f8dd755bc585fd5a9bd435345bbce14a7da2be0",
+      "dimensions": {
+        "width": 322,
+        "height": 417
+      },
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu"
+      ],
+      "altText": "Kladivo 200 g – izvirna fotografija posameznega orodja dobavitelja.",
+      "imageType": "product",
+      "sourcePage": "https://atehna.si/product/kladivo-200-g/",
+      "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/328516.jpg",
+      "reason": "Restore existing authentic supplier original; native resolution remains below minimum and is explicitly unresolved."
+    }
+  ],
+  "captions": [
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "blobUrl": "/images/catalog/2026-09/digitalno-pomicno-merilo-delavnica.jpg",
+      "sha256": "bc4e7eed96ec1fb13e2fea68475ecca96b63affd623638cc7d214b977c1211e0",
+      "imageType": "context",
+      "altText": "Primer uporabe digitalnega pomičnega merila 150 mm na delovni mizi. Druga merila in orodja niso vključena."
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "blobUrl": "/images/catalog/2026-09/podlaga-za-rezanje-delovna-miza.jpg",
+      "sha256": "086f0f4a69bf39268e4f06c683a03a9422fd1a372fa8c9683bf24e7fa290b0d4",
+      "imageType": "context",
+      "altText": "Primer uporabe podlage za rezanje 220 × 300 mm. Prikazani dodatki niso vključeni."
+    },
+    {
+      "slug": "magnetni-trinog",
+      "blobUrl": "/images/catalog/2026-09/magnetni-trinog.jpg",
+      "sha256": "d146720c78a410320bfb1482b87ea08de3ee996330bb0dfdc783985c920a699d",
+      "imageType": "context",
+      "altText": "Magnetni trinog, nameščen na šestilu. Šestilo ni vključeno."
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-zaprta.jpg",
+      "sha256": "e733e2cc0410ec0c64dcd95583562517ebd9d69d3971637cf6bdb0eed6a2d3ea",
+      "imageType": "product",
+      "altText": "Šolska tehtnica z zaprtim prostorom za uteži. Prikazane barvne kocke niso vključene."
+    },
+    {
+      "slug": "solska-tehtnica",
+      "blobUrl": "/images/catalog/2026-09/solska-tehtnica-rdeca-z-utezmi.jpg",
+      "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+      "imageType": "product",
+      "altText": "Šolska tehtnica z utežmi. Prikazane barvne kocke niso vključene."
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "blobUrl": "/images/catalog/2026-09/proxxon-dsh-proizvajalec.png",
+      "sha256": "ef218e0c5afed1af6f85d2dce988bd44234947ab76fef9b279c99eb32820966c",
+      "imageType": "context",
+      "altText": "Proxxon DSH 28092 s primerom obdelovanca na mizi. Obdelovanec ni vključen."
+    },
+    {
+      "slug": "objemka-za-motorcek-re260",
+      "blobUrl": "/images/catalog/2026-09/objemka-motorcek-24mm-tehnicna-risba.jpg",
+      "sha256": "b7143457965be8b479c263e9878f3931bc7a8ee352570046e3ecf57667fcca66",
+      "imageType": "dimension-diagram",
+      "altText": "Tehnična risba objemke za motorček, premer 24 mm."
+    },
+    {
+      "slug": "trigonir",
+      "blobUrl": "/images/catalog/2026-09/trigonir.jpg",
+      "sha256": "1d0d16904fa1a4e148b73b2b6360d9f6e8ccd02e0c7da43aee808e64e511d86a",
+      "imageType": "dimension-diagram",
+      "altText": "Shema enotske krožnice – matematični diagram, ne fotografija izdelka."
+    }
+  ],
+  "replacements": [
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-ekspres-500g.jpg",
+      "fromSha256": "4bf0b908fdf0c7b9db97bab62ef1240149f14454da5d471b8930bfe835915c9e",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-500g-v2.jpg",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200
+      },
+      "sha256": "7500aca4199ec52c76d25fe1a0b878625c411d23e30d50f3aa50aff0ba7bff05",
+      "sourcePage": "https://www.lionpic.co.uk/p/40961/Mekol-Ekspres-PVA-Wood-Glue-500g",
+      "sourceUrl": "https://lionpic-cdn.b-cdn.net/products/10155/Mekol-EKSPRES-PVA-Wood-Glue-10155-001.jpg",
+      "altText": "Mekol Ekspres 500 g – izvirna fotografija steklenice.",
+      "imageType": "product",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "distinctViewGroup": "mekol-ekspres-bottle",
+      "notes": "Native original1600x1200 downloaded directly without CDN size transform, replacing975x731 delivery of the same capture. Sharp label/nozzle, same500g variant. No upscaling, padding, recoloring, or AI edits. Bottle hero retains original wide white side margins; framing is not claimed perfect.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/7500aca4199ec52c-mekol-ekspres-500g-v2.jpg",
+      "hostedBlobPathname": "catalog-items/mekol/images/7500aca4199ec52c-mekol-ekspres-500g-v2.jpg"
+    },
+    {
+      "slug": "mekol",
+      "fromBlobUrl": "/images/catalog/2026-09/mekol-ekspres-uporaba-les.jpg",
+      "fromSha256": "6ca73b1c91f0e6cd883d2d0e83585852a9b4a149c91b0cd6b25aec7667c688d3",
+      "blobUrl": "/images/catalog/2026-09/mekol-ekspres-nanos-v2.jpg",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200
+      },
+      "sha256": "152716f7bc02ee2aded33431fda69c25d2bd228316a322dad43ba3bdd85387d9",
+      "sourcePage": "https://www.lionpic.co.uk/p/40961/Mekol-Ekspres-PVA-Wood-Glue-500g",
+      "sourceUrl": "https://lionpic-cdn.b-cdn.net/products/10155/Mekol-EKSPRES-PVA-Wood-Glue-10155-Insitu.jpg",
+      "altText": "Primer uporabe lepila Mekol Ekspres 500 g na lesenem spoju. Les in podlaga nista vključena.",
+      "imageType": "context",
+      "visuallyReviewed": true,
+      "humanFree": true,
+      "originalBytes": true,
+      "distinctViewGroup": "mekol-ekspres-nozzle-application",
+      "notes": "Native original1600x1200 downloaded directly without CDN size transform, replacing975x731 delivery of the same capture. Sharp label/nozzle, same500g variant. No upscaling, padding, recoloring, or AI edits. Bottle hero retains original wide white side margins; framing is not claimed perfect.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/mekol/images/152716f7bc02ee2a-mekol-ekspres-nanos-v2.jpg",
+      "hostedBlobPathname": "catalog-items/mekol/images/152716f7bc02ee2a-mekol-ekspres-nanos-v2.jpg"
+    }
+  ],
+  "partialUnassignments": [
+    {
+      "slug": "sestilo",
+      "blobUrl": "/images/catalog/2026-09/sestilo.jpg",
+      "variantNames": [
+        "Šestilo z magnetnimi nogami"
+      ],
+      "reason": "Existing source was verified only for vacuum feet; magnetic variant retains its own exact magnetic original."
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "blobUrl": "/images/catalog/2026-09/ravnila-za-tablo.jpg",
+      "variantNames": [
+        "100 cm, decimetrska skala",
+        "100 cm, decimetrska skala, magnetno"
+      ],
+      "reason": "Plain scale photograph is not the red decimal-scale variant; those variants retain their own reviewed source."
+    }
+  ]
+}

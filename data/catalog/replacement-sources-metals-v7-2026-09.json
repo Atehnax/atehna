@@ -1,0 +1,144 @@
+{
+  "version": 7,
+  "createdAt": "2026-09-14T13:27:48.827Z",
+  "status": "Accepted originals saved in canonical, local and production catalogs; remaining source gaps retained",
+  "scope": "Remaining aluminium, copper, brass and galvanised sheet cuts",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "unchangedSourceBytes": true,
+    "schematicsPreserved": true
+  },
+  "products": [
+    {
+      "slug": "medeninasta-plosca",
+      "accepted": [
+        {
+          "id": "medeninasta-plocevina-200x200x05-celoten-pogled-v7",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+          "assetPath": "public/images/catalog/2026-09/medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+          "sourcePath": "tmp/product-image-audit/metals-v7/brass200-0.jpg",
+          "variantSkus": [
+            "MAT-KOV-MED-0P5x200x200"
+          ],
+          "sourcePage": "https://www.ebay.com.au/itm/287578979275",
+          "corroboratingSourcePages": [
+            "https://www.walmart.com/ip/15650663785",
+            "https://www.bedbathandbeyond.com/Home-Garden/Door-Handle-Covers-Silicone-Safety-Doors-Knob-Handle-Protector-Covers-Anti-Collision-Soft-Doors-Pull-Cover-Gold/43532288/product.html"
+          ],
+          "sourceUrl": "https://i.ebayimg.com/images/g/DP4AAeSwiRRqozdu/s-l1600.jpg",
+          "sha256": "dd95e0fddceafb693d2256866ed4d7fff394b6f79f27248115a687677e25d6d4",
+          "dimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "bytes": 99882,
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "realPhotograph": true,
+          "role": "main",
+          "view": "Complete square brass sheet, slight three-quarter view showing natural surface and edges",
+          "imageType": "product",
+          "altText": "Medeninasta pločevina, 200 × 200 × 0,5 mm — celoten pogled.",
+          "sourceIdentityEvidence": "The source seller specification explicitly identifies brass, 200 × 200 mm, 0.5 mm thickness; the gallery dimension image corroborates the metric cut and thickness. Whole square, plain golden metal, sharp unrounded corners and visible fine natural surface grain match the unbranded ATEHNA brass sheet specification and original appearance. The supplier has a copied Copper Sheets package-content/graphic label despite brass title, brass material field, brass description and golden main; this copy conflict is recorded and no supplier graphics or purity/alloy claims are imported. Walmart and the Unique Bargains BBB listing independently expose the same brass product family. ATEHNA sale quantity, model/specifications and inactive status are unchanged.",
+          "reviewedBy": [
+            "root",
+            "catalog_audit"
+          ],
+          "review": {
+            "quality": "Native1600×1600 unchanged source bytes; whole sheet with all corners visible, natural fine grain/irregularities, no obvious upscale, padding or synthetic appearance; no humans. Independent peer review passed.",
+            "excludedGallery": "Dimension and marketing graphics repeat/crop the main; later images contain gloved and bare hands or unrelated laser processes. None is added.",
+            "supplierCopyConflict": "Copper Sheets text copied into package-content/dimension graphic conflicts with explicit Brass material field; source title, material description and visible golden brass corroborate correct material.",
+            "evidenceFile": "tmp/product-image-audit/metals-v7/brass-description-extract.txt"
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/medeninasta-plosca/images/dd95e0fddceafb69-medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+          "hostedBlobPathname": "catalog-items/medeninasta-plosca/images/dd95e0fddceafb69-medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.ebay.com.au/itm/287578979275",
+          "nativeEvidence": "tmp/product-image-audit/metals-v7/brass200-natives.json",
+          "decision": "Accept only complete main after source identity and independent visual review; reject6remaining marketing/application images."
+        },
+        {
+          "sourcePage": "https://theclockpartstore.com/0701000515/",
+          "nativeEvidence": "tmp/product-image-audit/metals-v7/brass-clock-original.jpg",
+          "decision": "Exact200square0.5; untouched BigCommerce original300×300 fails minimum."
+        },
+        {
+          "sourcePage": "https://horo-depot.com/fournitures-pour-horlogers-tarauds-bouchons/toles-en-laiton/feuille-de-laiton-0-5mm/",
+          "decision": "Same300square image as ClockPartStore; no distinct suitable source."
+        },
+        {
+          "sourcePage": "https://www.etsy.com/uk/listing/4404795505/brass-sheet-guillotine-cut-strips-200mm",
+          "decision": "200mm strips with narrow widths; wrong cut for200square and300mm target cuts."
+        },
+        {
+          "sourcePage": "https://ejwinter.com.au/products/brass-sheet",
+          "sourceUrl": "https://cdn.shopify.com/s/files/1/0076/2504/8119/products/brass_sheet.jpg?v=1566723281",
+          "nativeDimensions": {
+            "width": 225,
+            "height": 225
+          },
+          "decision": "Exact300-square0.5 offered, native225square original fails; single image sharedallthicknesses."
+        },
+        {
+          "sourcePage": "https://www.ebay.co.uk/itm/366642275262",
+          "decision": "Exact300×200×0.5 listing discovered, publicfetch403 and webcachedgallery unavailable; no qualifying native source obtained."
+        }
+      ]
+    },
+    {
+      "slug": "aluminijasta-plosca",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.ebay.com/itm/157397274298",
+          "nativeEvidence": "tmp/product-image-audit/metals-v7/ebay-al-natives.json",
+          "decision": "1500square main is marketing composite shared0.5–10mm and multiple sheet sizes; selected exact thickness/cut not established. Other two originals800square and1000square fail. No acceptance."
+        }
+      ]
+    },
+    {
+      "slug": "bakrena-plosca",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://homediyer.com/products/copper-sheet-square-plate-0-1-0-2-0-3-0-5-0-8-1-1-5-2-3-4-5mm-100-200-300mm",
+          "nativeEvidence": "tmp/product-image-audit/metals-v7/copper-native-batch1.json",
+          "decision": "Five native1600square files shared0.1–5mm; rolled/collage/soft stack views or thickness/cut unassigned. No exact300square0.5 match confirmed."
+        },
+        {
+          "sourcePage": "https://metallstore24.de/Kupfer-Blech-Cu-DHP-Staerke-0-5-mm/50.10.005.100.200",
+          "nativeEvidence": "tmp/product-image-audit/metals-v7/copper-native-batch1.json",
+          "decision": "600square native cropped corner fails size and whole-main framing."
+        },
+        {
+          "sourcePage": "https://uk.rs-online.com/web/p/metal-sheets/2857471",
+          "sourceUrl": "https://res.cloudinary.com/rsc/image/upload/Y2857471-01",
+          "nativeDimensions": {
+            "width": 600,
+            "height": 336
+          },
+          "decision": "Untransformed native retrieved, fails both minimum axes."
+        },
+        {
+          "sourcePage": "https://allegro.pl/oferta/blacha-miedziana-miedz-0-5mm-30x30cm-300x300x0-5mm-folia-ochronna-6857003143",
+          "decision": "Actual exact-cut offer found, public fetch403; no retrievable native origin yet."
+        },
+        {
+          "sourcePage": "https://homediyer.com/products/copper-sheet-t2-pure-cu-flat-stock-plate",
+          "decision": "New62image gallery but0.5variants only200×300 and150square, notmissing300square; no automatic transfer fromothercuts."
+        }
+      ]
+    }
+  ],
+  "appliedAt": "2026-09-14T13:40:32.060Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T13-35-12-924Z"
+}

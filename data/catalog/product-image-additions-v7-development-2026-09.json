@@ -1,0 +1,90 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T13:31:40.210Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-wood-plastics-v7-2026-09.json",
+    "data/catalog/replacement-sources-tools-v7-2026-09.json",
+    "data/catalog/replacement-sources-metals-v7-2026-09.json",
+    "data/catalog/replacement-sources-paper-v7-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "medeninasta-plocevina-200x200x05-celoten-pogled-v7",
+      "slug": "medeninasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-MED-0P5x200x200"
+      ],
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+      "sha256": "dd95e0fddceafb693d2256866ed4d7fff394b6f79f27248115a687677e25d6d4",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.com.au/itm/287578979275",
+      "sourceUrl": "https://i.ebayimg.com/images/g/DP4AAeSwiRRqozdu/s-l1600.jpg",
+      "sourceIdentityEvidence": "The source seller specification explicitly identifies brass, 200 × 200 mm, 0.5 mm thickness; the gallery dimension image corroborates the metric cut and thickness. Whole square, plain golden metal, sharp unrounded corners and visible fine natural surface grain match the unbranded ATEHNA brass sheet specification and original appearance. The supplier has a copied Copper Sheets package-content/graphic label despite brass title, brass material field, brass description and golden main; this copy conflict is recorded and no supplier graphics or purity/alloy claims are imported. Walmart and the Unique Bargains BBB listing independently expose the same brass product family. ATEHNA sale quantity, model/specifications and inactive status are unchanged.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete square brass sheet, slight three-quarter view showing natural surface and edges",
+      "altText": "Medeninasta pločevina, 200 × 200 × 0,5 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/medeninasta-plosca/images/dd95e0fddceafb69-medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+      "hostedBlobPathname": "catalog-items/medeninasta-plosca/images/dd95e0fddceafb69-medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg"
+    },
+    {
+      "id": "risalni-list-a3-celoten-cc-v7",
+      "slug": "risalni-list",
+      "variantSkus": [
+        "MAT-PAP-RIS-420x297-A3"
+      ],
+      "blobUrl": "/images/catalog/2026-09/risalni-list-a3-celoten-cc-v7.jpg",
+      "sha256": "6b470a222b120bf8138ebf124e84770458a427d1d379a179ee0b8114fc1279b0",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "sourcePage": "https://www.cc-craft.co.uk/drawing-paper-a3-sheet-297x420-mm-130-g-white-250-sheet-1-pack",
+      "sourceUrl": "https://www.cc-craft.co.uk/media/catalog/product/2/3/23503_1.jpg",
+      "sourceIdentityEvidence": "Original ATEHNA https://atehna.si/product/risalni-list-a3-2/ identifies Risalni list A3 and shows a plain white fine-surface sheet (risalnilist.png). No grammage, maker, finish or one-sided texture is specified in the original/canonical product. Manufacturer Creativ Company SKU23503 explicitly identifies white loose drawing paper A3,297×420mm for pencils,graphite,charcoal/crayons. The native manufacturer image has the identical SHA to the CreaKnutselen reseller original; whole-sheet shape,white colour and fine drawing surface are compatible. Mapping is only exact A3 SKU; no brand or new grammage claim is added to ATEHNA. Manufacturer currently says130g, reseller says120g; this source discrepancy is disclosed rather than asserted as an ATEHNA specification.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "complete-sheet-three-quarter",
+      "altText": "Risalni list A3 — celoten pogled na bele liste. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/6b470a222b120bf8-risalni-list-a3-celoten-cc-v7.jpg",
+      "hostedBlobPathname": "catalog-items/risalni-list/images/6b470a222b120bf8-risalni-list-a3-celoten-cc-v7.jpg"
+    },
+    {
+      "id": "risalni-list-a2-celoten-heutink-v7",
+      "slug": "risalni-list",
+      "variantSkus": [
+        "MAT-PAP-RIS-594x420-A2"
+      ],
+      "blobUrl": "/images/catalog/2026-09/risalni-list-a2-celoten-heutink-v7.jpg",
+      "sha256": "8ce539866de5501a8e1980f87f2d3c6654145760d2170ea2924883560116ddbc",
+      "dimensions": {
+        "width": 2400,
+        "height": 2400
+      },
+      "sourcePage": "https://www.heutinkvoorthuis.nl/nl/tekenpapier-wit-offsetkwaliteit-120-grams-500-vel-a2/product/9161/",
+      "sourceUrl": "https://www.heutinkvoorthuis.nl/cmsdata/artikelen/fotos/1/0/100_120085/100_120085_main_or_1.jpg",
+      "sourceIdentityEvidence": "Original ATEHNA https://atehna.si/product/risalni-list-a2/ identifies white Risalni list A2 and uses the same plain fine-surface white-sheet photograph as its other formats. No grammage,maker or special finish stated. Heutink120085 lists white loose drawing paper, exactA2(42×59.4cm); its source120gsm and CIE150 are retailer specifications only, not new ATEHNA claims. Source image belongs to actual120085 product gallery; untransformed original retains visible true sheet edges and whole top sheet. Compatible commodity match by material,white colour,plain fine surface and exact cut, onlyA2 association.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "complete-sheet-three-quarter",
+      "altText": "Risalni list A2 — celoten pogled na bele liste. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/8ce539866de5501a-risalni-list-a2-celoten-heutink-v7.jpg",
+      "hostedBlobPathname": "catalog-items/risalni-list/images/8ce539866de5501a-risalni-list-a2-celoten-heutink-v7.jpg"
+    }
+  ]
+}

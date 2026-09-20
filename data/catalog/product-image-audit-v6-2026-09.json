@@ -1,0 +1,967 @@
+{
+  "version": 6,
+  "auditedAt": "2026-09-14T12:54:28.097Z",
+  "summary": {
+    "items": 43,
+    "activeItems": 40,
+    "variants": 185,
+    "imageRows": 206,
+    "photographRows": 55,
+    "visiblePhotographRows": 55,
+    "visibleUniquePhotographs": 55,
+    "visibleRowsBelowMinimum": 0,
+    "hiddenPhotographRows": 0,
+    "dimensionDiagrams": 151,
+    "unreadableVisible": 0,
+    "familiesWithoutPhotos": 16,
+    "variantsWithoutPhotos": 135,
+    "newPhotographs": 2,
+    "newVariantAssociations": 3,
+    "existingPhotographsReassociated": 1,
+    "improvedFamilies": 2,
+    "improvedVariants": 2
+  },
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "name": "Aluminijasta plošča",
+      "variants": 7,
+      "photos": 4,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-KOV-ALU-0P5x300x200",
+          "name": "0,5 × 300 × 200 mm"
+        },
+        {
+          "sku": "MAT-KOV-ALU-0P5x200x200",
+          "name": "0,5 × 200 × 200 mm"
+        },
+        {
+          "sku": "MAT-KOV-ALU-0P5x300x100",
+          "name": "0,5 × 300 × 100 mm"
+        },
+        {
+          "sku": "MAT-KOV-ALU-0P3x200x200",
+          "name": "0,3 × 200 × 200 mm"
+        }
+      ]
+    },
+    {
+      "slug": "bakrena-plosca",
+      "name": "Bakrena plošča",
+      "variants": 4,
+      "photos": 2,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-KOV-BAK-0P5x300x300",
+          "name": "0,5 × 300 × 300 mm"
+        }
+      ]
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "name": "Pocinkana pločevina",
+      "variants": 4,
+      "photos": 0,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-KOV-POC-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm"
+        },
+        {
+          "sku": "MAT-KOV-POC-0P5x300x300",
+          "name": "300 × 300 × 0,5 mm"
+        },
+        {
+          "sku": "MAT-KOV-POC-0P5x200x200",
+          "name": "200 × 200 × 0,5 mm"
+        },
+        {
+          "sku": "MAT-KOV-POC-0P5x100x100",
+          "name": "100 × 100 × 0,5 mm"
+        }
+      ]
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "name": "Medeninasta plošča",
+      "variants": 4,
+      "photos": 1,
+      "missingVariantCount": 3,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-KOV-MED-0P5x300x200",
+          "name": "300 × 200 × 0,5 mm"
+        },
+        {
+          "sku": "MAT-KOV-MED-0P5x300x300",
+          "name": "300 × 300 × 0,5 mm"
+        },
+        {
+          "sku": "MAT-KOV-MED-0P5x200x200",
+          "name": "200 × 200 × 0,5 mm"
+        }
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "name": "Penjeni PVC (komateks)",
+      "variants": 4,
+      "photos": 3,
+      "missingVariantCount": 3,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-UME-PEN-3x200x150",
+          "name": "150 x 200 x 3 mm"
+        },
+        {
+          "sku": "MAT-UME-PEN-3x300x400",
+          "name": "400 x 300 x 3 mm"
+        },
+        {
+          "sku": "MAT-UME-PEN-3x500x500",
+          "name": "500 x 500 x 3 mm"
+        }
+      ]
+    },
+    {
+      "slug": "pleksi-steklo",
+      "name": "Pleksi steklo",
+      "variants": 7,
+      "photos": 1,
+      "missingVariantCount": 6,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-UME-PLE-3x200x150-BELO",
+          "name": "150 x 200 x 3 mm, belo"
+        },
+        {
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "name": "150 x 200 x 3 mm, barvno"
+        },
+        {
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "name": "150 x 200 x 3 mm, prozorno"
+        },
+        {
+          "sku": "MAT-UME-PLE-3x300x200",
+          "name": "200 x 300 x 3 mm"
+        },
+        {
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "name": "400 x 300 x 3 mm, prozorno"
+        },
+        {
+          "sku": "MAT-UME-PLE-3x400x300",
+          "name": "300 x 400 x 3 mm"
+        }
+      ]
+    },
+    {
+      "slug": "stiropor",
+      "name": "Stiropor",
+      "variants": 4,
+      "photos": 0,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-UME-STI-10x300x200",
+          "name": "200 x 300 x 10 mm"
+        },
+        {
+          "sku": "MAT-UME-STI-210x148-A5",
+          "name": "A5"
+        },
+        {
+          "sku": "MAT-UME-STI-10x400x300",
+          "name": "300 x 400 x 10 mm"
+        },
+        {
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "name": "16 x 33 x 2 cm"
+        }
+      ]
+    },
+    {
+      "slug": "seleshamer",
+      "name": "Šeleshamer",
+      "variants": 4,
+      "photos": 0,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "name": "Papir šeleshamer 200 g, A4"
+        },
+        {
+          "sku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "name": "Papir šeleshamer 200 g, A2"
+        },
+        {
+          "sku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "name": "Papir šeleshamer 200 g, A3"
+        },
+        {
+          "sku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "name": "Papir šeleshamer 200 g, B1"
+        }
+      ]
+    },
+    {
+      "slug": "barvni-papir",
+      "name": "Barvni papir",
+      "variants": 27,
+      "photos": 0,
+      "missingVariantCount": 27,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "name": "strukturno bela"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "name": "svetlo rjava"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "name": "temno rjava"
+        },
+        {
+          "sku": "MAT-PAP-BAR-RJAVA",
+          "name": "rjava"
+        },
+        {
+          "sku": "MAT-PAP-BAR-LILA",
+          "name": "lila"
+        },
+        {
+          "sku": "MAT-PAP-BAR-VIJOLICASTA",
+          "name": "vijoličasta"
+        },
+        {
+          "sku": "MAT-PAP-BAR-CRNA",
+          "name": "črna"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SIVA",
+          "name": "siva"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ROZA",
+          "name": "roza"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-LILA",
+          "name": "temno lila"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "name": "travno zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "name": "temno zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ZELENA",
+          "name": "zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "name": "svetlo zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ORANZNA",
+          "name": "oranžna"
+        },
+        {
+          "sku": "MAT-PAP-BAR-MODRA",
+          "name": "modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "name": "nebesno modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "name": "kalifornijsko modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "name": "svetlo modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "name": "temno rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "name": "vinsko rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "name": "karmin rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-RDECA",
+          "name": "rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "name": "koruzno rumena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-MARELICNA",
+          "name": "marelična"
+        },
+        {
+          "sku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "name": "intenzivno rumena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-RUMENA",
+          "name": "rumena"
+        }
+      ]
+    },
+    {
+      "slug": "grafopak",
+      "name": "Grafopak",
+      "variants": 2,
+      "photos": 0,
+      "missingVariantCount": 2,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "name": "polkarton A3"
+        },
+        {
+          "sku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "name": "polkarton A4"
+        }
+      ]
+    },
+    {
+      "slug": "fotokarton",
+      "name": "Fotokarton",
+      "variants": 20,
+      "photos": 2,
+      "missingVariantCount": 18,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-FOT-SREBRNA",
+          "name": "srebrna"
+        },
+        {
+          "sku": "MAT-PAP-FOT-SIVA",
+          "name": "siva"
+        },
+        {
+          "sku": "MAT-PAP-FOT-ZLATA",
+          "name": "zlata"
+        },
+        {
+          "sku": "MAT-PAP-FOT-SVETLO-RJAVA",
+          "name": "svetlo rjava"
+        },
+        {
+          "sku": "MAT-PAP-FOT-RJAVA",
+          "name": "rjava"
+        },
+        {
+          "sku": "MAT-PAP-FOT-VIJOLICASTA",
+          "name": "vijoličasta"
+        },
+        {
+          "sku": "MAT-PAP-FOT-LILA",
+          "name": "lila"
+        },
+        {
+          "sku": "MAT-PAP-FOT-TEMNO-ZELENA",
+          "name": "temno zelena"
+        },
+        {
+          "sku": "MAT-PAP-FOT-ZELENA",
+          "name": "zelena"
+        },
+        {
+          "sku": "MAT-PAP-FOT-ORANZNA",
+          "name": "oranžna"
+        },
+        {
+          "sku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+          "name": "kraljevsko modra"
+        },
+        {
+          "sku": "MAT-PAP-FOT-MODRA",
+          "name": "modra"
+        },
+        {
+          "sku": "MAT-PAP-FOT-TEMNO-MODRA",
+          "name": "temno modra"
+        },
+        {
+          "sku": "MAT-PAP-FOT-TEMNO-RDECA",
+          "name": "temno rdeča"
+        },
+        {
+          "sku": "MAT-PAP-FOT-RDECA",
+          "name": "rdeča"
+        },
+        {
+          "sku": "MAT-PAP-FOT-KORUZNO-RUMENA",
+          "name": "koruzno rumena"
+        },
+        {
+          "sku": "MAT-PAP-FOT-MARELICNA",
+          "name": "marelična"
+        },
+        {
+          "sku": "MAT-PAP-FOT-RUMENA",
+          "name": "rumena"
+        }
+      ]
+    },
+    {
+      "slug": "lepenka",
+      "name": "Lepenka",
+      "variants": 6,
+      "photos": 2,
+      "missingVariantCount": 5,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-LEP-420x297-BELA-LEPENKA-A3",
+          "name": "Bela lepenka A3"
+        },
+        {
+          "sku": "MAT-PAP-LEP-0P7x594x420-SIVA-LEPENKA-A2",
+          "name": "Siva lepenka A2"
+        },
+        {
+          "sku": "MAT-PAP-LEP-297x210-BELA-LEPENKA-A4",
+          "name": "Bela lepenka A4"
+        },
+        {
+          "sku": "MAT-PAP-LEP-1P2x1000x707-1P2-MM-B1",
+          "name": "1,2 mm B1"
+        },
+        {
+          "sku": "MAT-PAP-LEP-0P8x420x297-PAPIR-LEPENKA-A3",
+          "name": "Papir lepenka A3"
+        }
+      ]
+    },
+    {
+      "slug": "risalni-list",
+      "name": "Risalni list",
+      "variants": 4,
+      "photos": 0,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-PAP-RIS-594x420-A2",
+          "name": "A2"
+        },
+        {
+          "sku": "MAT-PAP-RIS-297x210-A4",
+          "name": "A4"
+        },
+        {
+          "sku": "MAT-PAP-RIS-210x148-A5",
+          "name": "A5"
+        },
+        {
+          "sku": "MAT-PAP-RIS-420x297-A3",
+          "name": "A3"
+        }
+      ]
+    },
+    {
+      "slug": "vezana-plosca",
+      "name": "Vezana plošča",
+      "variants": 31,
+      "photos": 0,
+      "missingVariantCount": 31,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "name": "Bukev / 6 x 300 x 400"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "name": "Bukev / 4 x 500 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "name": "Bukev / 4 x 250 x 250"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "name": "Topol / 6 x 2520 x 1720"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "name": "Topol / 4 x 2520 x 1720"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "name": "Topol / 4 x 250 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "name": "Topol / 3 x 250 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300"
+        },
+        {
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300"
+        },
+        {
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200"
+        },
+        {
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150"
+        },
+        {
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60"
+        },
+        {
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250"
+        },
+        {
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300"
+        }
+      ]
+    },
+    {
+      "slug": "motorcek",
+      "name": "Motorček",
+      "variants": 3,
+      "photos": 1,
+      "missingVariantCount": 2,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "ELE-MOT-R23",
+          "name": "Motorček R23"
+        },
+        {
+          "sku": "ELE-MOT-R21",
+          "name": "Motorček R21"
+        }
+      ]
+    },
+    {
+      "slug": "geotrikotnik",
+      "name": "Geotrikotnik za tablo",
+      "variants": 4,
+      "photos": 3,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "name": "Trikotniki za tablo",
+      "variants": 4,
+      "photos": 4,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "name": "Ravnila za tablo",
+      "variants": 4,
+      "photos": 1,
+      "missingVariantCount": 2,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MER-RAV-100-CM",
+          "name": "100 cm"
+        },
+        {
+          "sku": "MER-RAV-100-CM-MAGNETNO",
+          "name": "100 cm, magnetno"
+        }
+      ]
+    },
+    {
+      "slug": "trigonir",
+      "name": "Trigonir 216",
+      "variants": 1,
+      "photos": 2,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "magnetni-trinog",
+      "name": "Magnetni trinog",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "tracni-meter",
+      "name": "Tračni meter",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "sestilo",
+      "name": "Šestilo za tablo",
+      "variants": 2,
+      "photos": 2,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "name": "Krivilnik za plastične mase THERMOFORM 400",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "STR-KRI-OSNOVNA",
+          "name": "Krivilnik za plastične mase - THERMOFORM 400"
+        }
+      ]
+    },
+    {
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "name": "Vibracijska žaga Proxxon DSH",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "kladivo",
+      "name": "Kladivo",
+      "variants": 4,
+      "photos": 0,
+      "missingVariantCount": 4,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "ROC-KLA-200-G-1-KOS",
+          "name": "200 g, 1 kos"
+        },
+        {
+          "sku": "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+          "name": "200 g, 10 kosov v stojalu"
+        },
+        {
+          "sku": "ROC-KLA-300-G-1-KOS",
+          "name": "300 g, 1 kos"
+        },
+        {
+          "sku": "ROC-KLA-300-G-10-KOSOV-V-STOJALU",
+          "name": "300 g, 10 kosov v stojalu"
+        }
+      ]
+    },
+    {
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "name": "Električarske klešče za snemanje izolacije (10 kosov v stojalu)",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "name": "Zlatarske škarje za pločevino (10 kosov v stojalu)",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "digitalno-pomicno-merilo",
+      "name": "Digitalno pomično merilo",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "name": "Žica za lotanje",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "DOD-ZIC-100-G",
+          "name": "Žica za lotanje - 100 g"
+        }
+      ]
+    },
+    {
+      "slug": "solska-tehtnica",
+      "name": "Šolska tehtnica",
+      "variants": 3,
+      "photos": 2,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "name": "Spiralne žagice za les in mehke kovine",
+      "variants": 3,
+      "photos": 2,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "DOD-SPI-GROBI-ROBOVI",
+          "name": "Grobi robovi"
+        }
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "name": "Žagice za rezanje kovin",
+      "variants": 3,
+      "photos": 0,
+      "missingVariantCount": 3,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "DOD-ZAG-FINI-ROBOVI",
+          "name": "Fini robovi"
+        },
+        {
+          "sku": "DOD-ZAG-SREDNJI-ROBOVI",
+          "name": "Srednji robovi"
+        },
+        {
+          "sku": "DOD-ZAG-GROBI-ROBOVI",
+          "name": "Grobi robovi"
+        }
+      ]
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "name": "Aluminijasto ravnilo z ročajem (40 cm)",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM",
+          "name": "Ravnilo alu, z ročajem, 40 cm"
+        }
+      ]
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "name": "Otroški zaščitni predpasnik",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI",
+          "name": "Zaščitni predpasnik - otroški"
+        }
+      ]
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "name": "Otroška očala za zaščito oči",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "ZAS-OTR-OCA-OSNOVNA-IZVEDBA",
+          "name": "Osnovna izvedba"
+        }
+      ]
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "name": "Očala za zaščito oči",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "ZAS-OCA-OSNOVNA-IZVEDBA",
+          "name": "Osnovna izvedba"
+        }
+      ]
+    },
+    {
+      "slug": "podlaga-za-rezanje",
+      "name": "Podlaga za rezanje",
+      "variants": 4,
+      "photos": 5,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "uhu-kraft",
+      "name": "UHU Kraft",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "uhu-super-glue",
+      "name": "UHU Super glue",
+      "variants": 1,
+      "photos": 0,
+      "missingVariantCount": 1,
+      "variantsWithoutPhotos": [
+        {
+          "sku": "MAT-LEP-UHU-SUP-3-ML",
+          "name": "UHU super glue 3 ml"
+        }
+      ]
+    },
+    {
+      "slug": "mekol",
+      "name": "Mekol",
+      "variants": 5,
+      "photos": 6,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "ploscata-baterija",
+      "name": "Ploščata baterija 4,5 V",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "vgradno-stikalo",
+      "name": "Vgradno stikalo",
+      "variants": 1,
+      "photos": 3,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    },
+    {
+      "slug": "objemka-za-motorcek-re260",
+      "name": "Objemka za motorček RE260",
+      "variants": 1,
+      "photos": 1,
+      "missingVariantCount": 0,
+      "variantsWithoutPhotos": []
+    }
+  ],
+  "sourceManifest": "data/catalog/product-image-additions-v6-2026-09.json",
+  "reviewedReassociation": "data/catalog/replacement-sources-tools-v6-2026-09.json",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-wood-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-materials-v6-2026-09.json",
+    "data/catalog/replacement-sources-paper-v6-2026-09.json"
+  ],
+  "transactions": [
+    "tmp/catalog-refinements/reassociate-scale-production-2026-09-14T12-52-30-623Z",
+    "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T12-53-34-774Z"
+  ],
+  "originalAssetInventory": "tmp/product-image-audit/production/inventory.json",
+  "browserVerification": "tmp/product-image-audit/production-browser-v6/report.json",
+  "independentScaleReview": "tmp/product-image-audit/tools-v6-scale-independent-review.json",
+  "fullProductionVariantVerification": "tmp/product-image-audit/production-browser-v6/all-production-variants-report.json",
+  "verification": {
+    "focusedTests": 38,
+    "productionVariantStates": 10,
+    "explicitReloadReselections": 4,
+    "fullResolutionZoomDialogs": 3,
+    "errors": 0,
+    "visuallyReviewed": [
+      "desktop aluminium main",
+      "desktop aluminium edge",
+      "desktop scale070112 after reload",
+      "mobile aluminium",
+      "mobile scale070112"
+    ],
+    "noRuntimeChangesThisPass": true
+  }
+}

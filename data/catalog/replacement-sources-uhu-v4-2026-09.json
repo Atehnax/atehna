@@ -1,0 +1,211 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T10:18:20.360Z",
+  "status": "no-qualifying-source-found",
+  "scope": {
+    "slug": "uhu-super-glue",
+    "variantName": "UHU super glue 3 ml",
+    "originalAtehnaSku": "15025",
+    "identityAnchorPage": "https://atehna.si/product/uhu-super-glue-3-ml/",
+    "identityAnchorUrl": "https://atehna.si/wp-content/uploads/2014/08/uhusuperglue.png",
+    "identityAnchorSha256": "10e828d0ae95bf17759fea4d418648c8abb56bc57ac015bf4ef22c8bca4aca29",
+    "requirements": "Native original >=1024 pixels on both axes; no humans; complete exact legacy3ml tube/pack. No upscale, padding or substitution of3g Control/Supergel/Ultra Fast without verified equivalence."
+  },
+  "accepted": [],
+  "rejectedSources": [
+    {
+      "id": "atehna",
+      "sourcePage": "https://atehna.si/product/uhu-super-glue-3-ml/",
+      "sourceUrl": "https://atehna.si/wp-content/uploads/2014/08/uhusuperglue.png",
+      "dimensions": {
+        "width": 400,
+        "height": 400
+      },
+      "sha256": "10e828d0ae95bf17759fea4d418648c8abb56bc57ac015bf4ef22c8bca4aca29",
+      "bytes": 80597,
+      "researchFile": "tmp/product-image-audit/uhu-v4/atehna.png",
+      "visualReview": true,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Original ATEHNA identity anchor visually inspected: narrow yellow/red rectangular card, italic white super glue / instant bond, English/Arabic text, setting-time chart, red tube with white italic lettering and tall black cap; package marked 3ml. Actual source is only400×400."
+    },
+    {
+      "id": "jarir-19921",
+      "sourcePage": "https://www.jarir.com/ae-en/uhu-glue-19921.html",
+      "sourceUrl": "https://ak-asset.jarir.com/akeneo-prod/asset/m1images/1/9/19921.jpg",
+      "dimensions": {
+        "width": 1110,
+        "height": 1110
+      },
+      "sha256": "181318f941b1d2e6c015be5ce1f26db91eb15c652b7403ed48d24fa96b65eb93",
+      "bytes": 104847,
+      "researchFile": "tmp/product-image-audit/uhu-v4/jarir-19921.jpeg",
+      "visualReview": true,
+      "reason": "unverified-different-model-or-variant",
+      "notes": "Native1110square decoded and visually inspected. Newer Ultra Fast liquid3g package and differently labelled tube. No supplier/manufacturer equivalence proof to ATEHNA legacy3ml variant. Do not substitute."
+    },
+    {
+      "id": "rogers",
+      "sourcePage": "https://rogersstationery.com/glu05uhusuper3ml.html",
+      "sourceUrl": "https://rogersstationery.com/media/catalog/product/GLU05UHUSUPER3ML.jpg",
+      "dimensions": {
+        "width": 1000,
+        "height": 1000
+      },
+      "sha256": "5c83b80d08323aba959919bf8f395465c698b0c7b7b627b170428e5ff0c019a5",
+      "bytes": 408639,
+      "researchFile": "tmp/product-image-audit/uhu-v4/rogers.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "monotaro",
+      "sourcePage": "https://www.monotaro.id/p107440897.html",
+      "sourceUrl": "https://media.monotaro.id/mid01/big/Kebutuhan%20Kantor/Produk%20Kantor/Lem/Lem%20Cair/UHU%20Super%20Glue%20Jumbo%20Card/oxP107440897-1.jpg",
+      "dimensions": {
+        "width": 1000,
+        "height": 1000
+      },
+      "sha256": "ad3eed9a963e07230290c8aef0a48cceb165dc867e330c58c9eae03496217496",
+      "bytes": 69372,
+      "researchFile": "tmp/product-image-audit/uhu-v4/monotaro.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "sodimac",
+      "sourcePage": "https://www.sodimac.com.uy/sodimac-uy/product/2209160/pegamento-super-glue-instantaneo-3-g/2209160/",
+      "sourceUrl": "https://media.falabella.com/sodimacUY/2209160/public",
+      "dimensions": {
+        "width": 768,
+        "height": 768
+      },
+      "sha256": "e5b41f5fd6331a7086c36fa2975f11a789ea1f729daf5214da5f4603020944a4",
+      "bytes": 41954,
+      "researchFile": "tmp/product-image-audit/uhu-v4/sodimac.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "polipapel",
+      "sourcePage": "https://www.polipapel.com/arte-y-manualidades-pegamentos-y16097/p",
+      "sourceUrl": "https://polipapel.vteximg.com.br/arquivos/ids/155513/Goma-super-Y16097-1.jpg?v=636419318407100000",
+      "dimensions": {
+        "width": 650,
+        "height": 650
+      },
+      "sha256": "961af769c68cae2d157b33eae12c55c5d01ff58f9babf1b71ffcdd2dcf74f81b",
+      "bytes": 34535,
+      "researchFile": "tmp/product-image-audit/uhu-v4/polipapel.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "jarir-478175",
+      "sourcePage": "https://www.jarir.com/sa-en/uhu-glue-478175.html",
+      "sourceUrl": "https://ak-asset.jarir.com/akeneo-prod/asset/m1images/4/7/478175.jpg",
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      },
+      "sha256": "b71b77169e061ed477f9f6d74af2365eae99145312a8ef303bed8c2be9627054",
+      "bytes": 75492,
+      "researchFile": "tmp/product-image-audit/uhu-v4/jarir-478175.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "art-uri",
+      "sourcePage": "https://www.art-uri.co.il/product-page/%D7%93%D7%91%D7%A7-%D7%9E%D7%94%D7%99%D7%A8-uhu-super-glue-%D7%A0%D7%95%D7%96%D7%9C%D7%99-3-%D7%92%D7%A8%D7%9D",
+      "sourceUrl": "https://static.wixstatic.com/media/9a7714_32473455459442709876c2d70146dd08~mv2.jpg",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "sha256": "2a35ad23f4da0e74923478186441fc58b1ac7b0a7c288fe9efc8aae36e17b86b",
+      "bytes": 77118,
+      "researchFile": "tmp/product-image-audit/uhu-v4/art-uri.jpeg",
+      "visualReview": true,
+      "reason": "unverified-different-model-or-variant",
+      "notes": "Native1024square original decoded and visually inspected. Hebrew-labelled 3g liquid tube and rounded modern card. Tube artwork/cap/card differ from ATEHNA legacy3ml. No exact-variant proof."
+    },
+    {
+      "id": "lenehans",
+      "sourcePage": "https://www.lenehans.ie/uhu-superglue-5g.html",
+      "sourceUrl": "https://www.lenehans.ie/media/catalog/product/g/l/glue07.jpg",
+      "dimensions": {
+        "width": 800,
+        "height": 800
+      },
+      "sha256": "ac1aee41a0c3e846a476fe9f700b2d317bf238ca9d26d5e606ec838b290f9dfe",
+      "bytes": 31368,
+      "researchFile": "tmp/product-image-audit/uhu-v4/lenehans.jpeg",
+      "visualReview": false,
+      "reason": "native-resolution-below-minimum",
+      "notes": "Downloaded original bytes do not meet1024px on both axes. Page describes a3g product or modern variant; no exact legacy3ml equivalence established. Not assigned."
+    },
+    {
+      "id": "avrupa",
+      "sourcePage": "https://www.avrupatedarik.com/uhu-super-glue-japon-yapistirici-3-gram",
+      "sourceUrl": "https://www.avrupatedarik.com/image/data/resimler/uhu-super-glue-japon-yapistirici-3-gram-2266.jpg",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "sha256": "3e11d8dfe5b816848627f47cb7b5cdeed3e4df2d388d9079794c261296415e92",
+      "bytes": 63294,
+      "researchFile": "tmp/product-image-audit/uhu-v4/avrupa.jpeg",
+      "visualReview": true,
+      "reason": "unverified-different-model-or-variant",
+      "notes": "Native1024square original decoded and visually inspected. 3g blister with English/Slovenian/Croatian suitable-material text; yellow-and-red tube, different lettering and card layout from ATEHNA legacy3ml. Product detail also visibly soft; no exact-variant proof."
+    }
+  ],
+  "additionalChecks": [
+    {
+      "sourcePage": "https://usltt.com/shop/page/32/",
+      "status": "access-unavailable",
+      "notes": "Search index lists UHU Power Super Instant Bond3ml tube, SKU0602-001-0003. Direct public GET returned403; no image could be verified."
+    },
+    {
+      "sourcePage": "https://www.officedepot.co.il/office-equipment/glue-tape-adhesive/glue-super-glue-3-ml-in-tube-uhu",
+      "status": "previously-rejected-low-resolution",
+      "notes": "Image search matches legacy packaging. Root already inspected original/Wolt1200×675 tiny-product canvas; fails both-axis/native detail. Additional direct page GET returned403; not retried through access bypass."
+    },
+    {
+      "sourcePage": "https://www.uhu.com/hr-ba/proizvodi/uhu-super-glue-tekuce-trenutno-ljepilo-3g-bli",
+      "status": "different-or-unproven-variant",
+      "notes": "Manufacturer current liquid3g listing, item62671/EAN4026700407556. Does not establish equivalence to original ATEHNA3ml package; not substituted."
+    },
+    {
+      "sourcePage": "https://www.jarir.com/sa-en/uhu-glue-478175.html",
+      "status": "inconsistent-capacity-description",
+      "notes": "Dealer page lists both3.00ml and3.00g; manufacturer36015. Image800square cannot qualify anyway, and mixed capacity text does not prove the old tube is the same model."
+    },
+    {
+      "sourcePage": "https://www.carousell.sg/p/mrt-card-uhu-super-glue-1431337217/",
+      "status": "not-a-product-photo",
+      "notes": "Image search located a collectible MRT advertisement card with similar old artwork. It does not show the complete sold tube and is not eligible."
+    },
+    {
+      "sourcePage": "https://www.amazon.de/",
+      "status": "no-exact-source-discovered",
+      "notes": "Targeted public search for UHU super glue3ml on Amazon.de returned no verified native original matching the legacy3ml packaging."
+    }
+  ],
+  "missingViews": [
+    "Complete exact legacy3ml front or three-quarter main photograph >=1024×1024",
+    "A genuinely different useful side/rear view of the same exact tube/package",
+    "Useful nozzle/cap or product-marking detail from a distinct real photograph"
+  ],
+  "mutationSummary": {
+    "catalogRowsChanged": 0,
+    "canonicalChanged": false,
+    "productionChanged": false,
+    "acceptedAssetsAdded": 0
+  },
+  "notes": "Research originals retained only in tmp/product-image-audit/uhu-v4 for evidence; no candidate copied into catalog assets or assigned. All technical schematics remain untouched."
+}

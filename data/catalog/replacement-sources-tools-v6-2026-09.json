@@ -1,0 +1,771 @@
+{
+  "version": 6,
+  "reviewedAt": "2026-09-14T13:01:21.193Z",
+  "status": "source-pass-complete-with-reported-gaps",
+  "policy": "Untouched real original photographs at least 1024 pixels on both axes, with useful native detail; no humans, AI, enlargement, padding or misleading model/variant substitutions. Native dimension checks alone do not establish clarity or product accuracy. Existing schematics untouched.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-root-v5-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "solska-tehtnica",
+      "accepted": [],
+      "existingImageReassociations": [
+        {
+          "id": "solska-tehtnica-070112-existing-photo-v6",
+          "status": "accepted-reviewed-reassociation",
+          "existingImageId": "solska-tehtnica-65108-z-utezmi-v4",
+          "existingBlobUrl": "/images/catalog/2026-09/solska-tehtnica-65108-z-utezmi-v4.jpg",
+          "existingHostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/solska-tehtnica/images/ea7020b72a6c4217-solska-tehtnica-65108-z-utezmi-v4.jpg",
+          "sha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+          "width": 1800,
+          "height": 1800,
+          "bytes": 187015,
+          "sourcePage": "https://www.walmart.com/ip/Learning-Resources-Precision-Balance-with-Weights/24886366",
+          "imageUrl": "https://i5.walmartimages.com/asr/12e7769c-ba09-407c-8a96-7b467891162f.c8822eba21c2608897049e85bd933392.jpeg",
+          "addVariantSkus": [
+            "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-MAX-2-KG"
+          ],
+          "addSourceSkus": [
+            "070112"
+          ],
+          "preserveVariantSkus": [
+            "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-Z-UTEZMI-MAX-2-KG"
+          ],
+          "desiredAltText": "Šolska tehtnica s plastičnim ohišjem — celoten pogled. Prikazane kovinske uteži so vključene samo pri izvedbi »plastična, z utežmi«. Barvne kocke niso vključene.",
+          "desiredCaption": "Prikazane kovinske uteži so vključene samo pri izvedbi »plastična, z utežmi«. Barvne kocke niso vključene.",
+          "preserveExistingPhotoRow": true,
+          "preserveExistingImageOrder": true,
+          "preserveAllExistingVariantLinks": true,
+          "insertPhotoRows": 0,
+          "createOrUploadFiles": false,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": false,
+          "countAsNewPhotograph": false,
+          "review": {
+            "exactIdentity": "Two agents compared the original ATEHNA070112 photo directly with the already accepted65108 source. Same red moulded body, front hinged compartment and seams, pan platforms, deep grey pans, grey pointed adjustment/pointer component and red top paddle; only compartment position and demonstration loads differ. Source SKU070112 maps to the bare plastic scale, not grey070110.",
+            "accessories": "Live ATEHNA WooCommerce variation_description specifically says weights are NOT included for070112 and ARE included for65108. Coloured cubes are demonstration props, not included in manufacturer LER2420 package; live070112 does not claim cubes included. Caption valid for BOTH variants explicitly limits brass-weight inclusion to the variant named plastic-with-weights and excludes coloured cubes.",
+            "quality": "Original1800×1800 JPEG from untransformed Walmart asr source URL. Full photograph and native detail reviewed independently by two agents. Moderate grain/compression remains, but body contours, removable pans, pointer and weight compartment retain useful detail and full framing. No evidence of enlargement found; no new scaling, cropping or padding applied. Acceptable photograph, not pristine studio quality.",
+            "reviewers": [
+              "quality_validation",
+              "root"
+            ],
+            "sourceDataCaution": "The historical source snapshot copied the family description into every variant. Fresh live variation-specific descriptions correct that ambiguity. Existing Wissner family branding conflict remains a separate catalog-data issue; no product specifications, prices or statuses changed."
+          },
+          "originalAtehnaReference": {
+            "sourcePage": "https://atehna.si/product/solska-tehtnica/",
+            "sourceSku": "070112",
+            "imageUrl": "https://atehna.si/wp-content/uploads/2017/10/plastična-tehtnica-1.jpg",
+            "localFile": "tmp/tools-v6/original-scale070112.img",
+            "description": "<p>Narejena iz plastike, robustna kot iz kovine. Debelina ohišja do 10 mm z zaobljenimi robovi. Uravnava se jo ročno. Garancija 5 let. <strong>Uteži niso priložene.</strong></p>\n<p>Tehtanje <strong>od 0,5g do 2kg.</strong><br />\nVelikost pladnja 150 x 130 mm.<br />\nMere tehtnice: 380 x 130 x 130 mm.<br />\nNatančnost: +/- 0,5g</p>\n",
+            "evidence": "tmp/tools-v6/atehna-scale-variant-evidence.json",
+            "sourceHtmlSha256": "f0618cb1390150348736185915f0ae656c54751150e185177c6d3553fea361ae"
+          },
+          "implementationGuard": "Find exactly one existing photo row by exact local or reviewed hosted URL plus immutable SHA. Add only the exact070112 variant link if absent, preserve the65108 link and all other image order. Update shared photo alt/caption to the reviewed text; do not duplicate files or rows."
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "scale-exact-closed-compartment",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://www.bodegaaurrera.com.mx/ip/manualidades-y-juguetes-didacticos/balanza-escolar-de-precision-learning-resources-con-pesas-ler2420/00008488500578",
+          "imageUrl": "https://i5.walmartimages.com/asr/c1bfb958-b3d8-4a8f-ab2f-07ff18dec6ef.b8d32465a61da15f16d30660530198e1.jpeg",
+          "file": "tmp/tools-v6/scale-closed.jpeg",
+          "bytes": 58060,
+          "sha256": "e733e2cc0410ec0c64dcd95583562517ebd9d69d3971637cf6bdb0eed6a2d3ea",
+          "width": 1000,
+          "height": 1001,
+          "format": "jpeg",
+          "reason": "Same closed-compartment photograph as original ATEHNA 070112, but native 1000×1001 fails both-axis minimum. No enlargement or padding."
+        },
+        {
+          "id": "scale-retailer-packaging-new-photo",
+          "status": "rejected-native-quality",
+          "sourcePage": "https://www.almacendidactico.com.mx/products/balanza-escolar-de-precision-con-pesa",
+          "imageUrl": "https://www.almacendidactico.com.mx/cdn/shop/files/BALANZA-ESCOLAR-DE-PRESICION-CON-PESAS-ALMACEN-DIDACTICO-DE-MEXICO.png?v=1775871476",
+          "file": "tmp/tools-v6/scale-new.png",
+          "bytes": 520860,
+          "sha256": "90a392b8181760a2b78725fdc924d69868d2c6aef8356809f2613b4aafef5f2e",
+          "width": 2048,
+          "height": 2048,
+          "format": "png",
+          "reason": "Native 2048-square file was inspected at detail scale. Soft/jagged product and printed packaging detail and retailer logo; dimensions alone do not establish useful quality. Not accepted as another view."
+        },
+        {
+          "id": "catalogsolutions-scale-reconfirmed",
+          "status": "rejected-native-resolution",
+          "sourcePage": null,
+          "imageUrl": "https://cdn.catalogsolutions.com/images/s/szsklvmsj7lejm5hqkgf.jpg",
+          "file": "tmp/tools-v6/catalogscale.jpg",
+          "bytes": 243566,
+          "sha256": "17a9189ba8c3340b7b40b03c5a2c83dd5d70b891a7bba4a3dbd0798978516209",
+          "width": 1800,
+          "height": 841,
+          "format": "jpeg",
+          "reason": "1800×841 short axis fails. This is a reconfirmation of a prior v4 source, not a new discovery."
+        }
+      ],
+      "pendingCandidates": [],
+      "missingViews": [
+        "Independent rear/underside or adjustment close-up."
+      ],
+      "variantSkus": [
+        "MER-SOL-TEHTNICA-WISSNER-PLASTICNA-MAX-2-KG"
+      ],
+      "variantNames": [
+        "Wissner, plastična, max 2 kg"
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://atehna.si/product/solska-tehtnica/",
+          "result": "Fresh public variation-specific Woo data explicitly excludes weights for 070112 and includes them for 65108. Same red body confirmed by independent visual comparison; historical snapshot copied family description into all variants.",
+          "evidence": "tmp/tools-v6/atehna-scale-variant-evidence.json"
+        },
+        {
+          "url": "https://www.learningresources.com/precision-school-balance",
+          "result": "Public direct request returned 403. No access bypass."
+        },
+        {
+          "url": "https://www.learningresources.co.uk/media/catalog/product/2/4/2420-precschoolbalance-box_nbr19_rt_sh_web_1.jpg",
+          "result": "Returned non-image bytes; no original photograph obtained."
+        }
+      ]
+    },
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantSkus": [
+        "STR-KRI-OSNOVNA"
+      ],
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "thermoform400-yecla-used-listing",
+          "status": "pending-public-original-access",
+          "sourcePage": "https://www.milanuncios.com/maquinaria-en-murcia/plegadora.htm",
+          "reason": "Exact name is promising but no photograph bytes or current condition could be assessed. Not accepted."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://www.milanuncios.com/maquinaria-en-murcia/plegadora.htm",
+          "result": "Search-index lead for Alton Thermoform 400 in Yecla, Murcia with three photographs. Public direct listing request returned a 405 challenge and web retrieval returned 403. No usable original image exposed and no access bypass.",
+          "evidence": "tmp/tools-v6/milanuncios-list.html"
+        },
+        {
+          "url": "https://www.milanuncios.com/anuncios/plegadora-plasticos.htm",
+          "result": "Same indexed used-machine lead. Original photo bytes unavailable publicly."
+        },
+        {
+          "url": "https://www.wtn-werkzeuge.de/Thermoform-580S/1-500-V",
+          "result": "Manufacturer/dealer wording says 580S replaces 400 and 580. Different model; not an exact replacement image."
+        }
+      ],
+      "missingViews": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ],
+      "identityEvidence": "Exact original model THERMOFORM 400; 400 mm heating wire, 440×165 mm working surface, 230 V / 5 V, 160 VA. Replacement THERMOFORM 580S is not the same product."
+    },
+    {
+      "slug": "kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "pollin-bgs1852-red300-pending-revision",
+          "status": "pending-exact-historical-revision",
+          "sourcePage": "https://www.pollin.de/p/bgs-technic-schlosserhammer-300-g-500240",
+          "imageUrl": "https://www.pollin.de/media/94/39/d0/1700596051/500240-1-bgs-technic-schlosserhammer-300-g.jpg?ts=1719366284",
+          "file": "tmp/tools-v6/pollin-red300.jpg",
+          "bytes": 82233,
+          "sha256": "9263a683e790b7930696cec37dd631ecdd54debca4e92d67515341e6829e9ab4",
+          "width": 2080,
+          "height": 1200,
+          "format": "jpeg",
+          "reason": "Real original 2080×1200 full photograph, no humans, readable woodgrain and GS marking. OPITEC 343066 currently maps to BGS 1852 / GTIN 4026947018522, matching this dealer model. However ATEHNA original appears to show an octagonal TÜV marking and shorter burgundy grip, whereas Pollin shows a triangular mark and longer bright-red grip. Model number alone does not resolve historical revision. Independent review explicitly withheld acceptance; do not assign to either 300 g variant.",
+          "nativeQualityReview": "Whole product sharp enough for useful detail; moderate native compression. Exact identity, not pixel size, prevents acceptance.",
+          "noHumans": true,
+          "unchanged": true,
+          "stagePublicAsset": false,
+          "reviewers": [
+            "quality_validation",
+            "root"
+          ],
+          "originalAtehnaReference": {
+            "imageUrl": "https://atehna.si/wp-content/uploads/2017/10/343066-02-x1.jpg",
+            "file": "tmp/tools-v6/original-red300.jpg",
+            "sourceSkus": [
+              "32113",
+              "32114"
+            ]
+          }
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://www.opitec.com/de-de/schlosserhammer-300-g/343066",
+          "result": "Public product HTML identifies BGS 300 g, DIN 1041, GS-tested curved wooden shaft, GTIN 4026947018522. Current photographs show blue grip, not sold historical red grip.",
+          "evidence": "tmp/tools-v6/opitec343066.html"
+        },
+        {
+          "url": "https://vigorus.lt/files/catalog-kraftman-new.pdf",
+          "result": "2015 Kraftmann catalogue page 34 (printed 31) maps 1852 to 300 g within TÜV/GS DIN 1041 wooden-handle family. Native family image is only 450×188 with no legible certification stamp; cannot resolve historical marking revision.",
+          "evidence": "tmp/tools-v6/kraftmann2015-evidence.json"
+        },
+        {
+          "url": "https://unior.mx/producto/martillo-para-herrero-2/",
+          "result": "Public variation data reuses the same 812.jpg stock photograph for ten weights, including 200 g. Does not establish exact 200 g geometry/marking.",
+          "evidence": "tmp/tools-v6/unior-mx.txt"
+        },
+        {
+          "url": "https://www.uniortools.com/tif/328514.tif",
+          "result": "Public legacy original-media link returned empty bytes; no photograph obtained."
+        },
+        {
+          "url": "https://www.vaz-shop.ch/bilder/BGS-catalog_de.pdf",
+          "result": "Legacy catalogue request failed TLS certificate validation. No validation bypass or download."
+        },
+        {
+          "url": "https://www.onsitecatalog.com/catalogs/305/4555/pdf-file/BGS_catalog_26b.pdf",
+          "result": "Public 2011/2012 catalogue downloaded; indexed manufacturer table confirms 1852 as 300 g and distinguishes gold-protected BGS 852. No additional exact native image approved. Download only; full PDF native-image extraction not performed in this bounded pass.",
+          "evidence": "tmp/tools-v6/bgs2011.pdf"
+        },
+        {
+          "url": "https://www.klopagencies.nl/handgereedschap/slaggereedschap/",
+          "result": "Public old dealer page exposed /files/901852.jpg. Page evidence only; candidate image not downloaded or accepted.",
+          "evidence": "tmp/tools-v6/klop.html"
+        },
+        {
+          "url": "https://www.zweiradteile-shop.de/p3943-bgs-1852-schlosserhammer-300g",
+          "result": "Public dealer page exposed popup image Schlosserhammer-300g-BGS_0_3943.jpg. Page evidence only; no image quality/identity acceptance.",
+          "evidence": "tmp/tools-v6/zweirad.html"
+        },
+        {
+          "url": "https://www.goedkoopgereedschap.nl/bgs-bankhamer-300-gram.html",
+          "result": "Public current 1852 dealer gallery has five original URL references. No new images downloaded or accepted after bounded revision review.",
+          "evidence": "tmp/tools-v6/goedkoop.html"
+        }
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ],
+      "identityEvidence": "Original ATEHNA source SKUs 32113 and 32114 (300 g single and ten in stand) use 343066-02-x1.jpg. SKUs 32211 and 32210 (200 g) use an Unior stock photograph visibly marked 812-300; that inconsistent family photograph does not establish the exact 200 g model."
+    },
+    {
+      "slug": "motorcek",
+      "variantSkus": [
+        "ELE-MOT-R23",
+        "ELE-MOT-R21"
+      ],
+      "variantNames": [
+        "Motorček R23",
+        "Motorček R21"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "bischoff-opitec-r21",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://www.bischoff-ag.ch/de/making/elektronikbedarf/motor-re-260-2670-10-stueck/OP224046",
+          "imageUrl": "https://www.bischoff-ag.ch/media/5f/48/c2/1730257299/OP224046_aec28bbb1a0ec446430e302fbc9334a14dc9971b.jpg",
+          "file": "tmp/tools-v6/bischoff-r21.jpg",
+          "bytes": 125459,
+          "sha256": "86055085936b0f23a43dc268dbbc8b3a9ed7acbe24abc17841c0c6b43b86cc84",
+          "width": 1000,
+          "height": 1000,
+          "format": "jpeg",
+          "reason": "Dealer original is 1000×1000. OPITEC 224046 is a ten-piece package; image would additionally need exact single-product/set caption review. No enlargement."
+        },
+        {
+          "id": "bischoff-opitec-r23",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://www.bischoff-ag.ch/de/making/elektronikbedarf/motor-re-280-20120-r/OP224057",
+          "imageUrl": "https://www.bischoff-ag.ch/media/64/aa/a1/1730257300/OP224057_dc587337cc116a2a97891ddb9551ab1194c439d7.jpg",
+          "file": "tmp/tools-v6/bischoff-r23.jpg",
+          "bytes": 54203,
+          "sha256": "98cde5a40b8fcb6dbd81db8b796a6453546f6fc33228343924bc7d693bbd669c",
+          "width": 1500,
+          "height": 959,
+          "format": "jpeg",
+          "reason": "Dealer original is 1500×959; short axis fails. Thumbnail parameters cannot create native detail."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://opitecshop.co.uk/downloads/opitec_dt_brochure.pdf",
+          "result": "Inspected native embedded image dimensions, not rendered page sizes. Relevant page 5 product images at most 399×265; no qualifying original.",
+          "evidence": "tmp/tools-v6/opitec-uk-native.json"
+        },
+        {
+          "url": "https://atehna.si/wp-content/uploads/2015/04/re21.png",
+          "result": "Downloaded original 500-square identity reference.",
+          "evidence": "tmp/tools-v6/original-r21.img"
+        },
+        {
+          "url": "https://atehna.si/wp-content/uploads/2015/04/re23.png",
+          "result": "Downloaded original 500-square identity reference.",
+          "evidence": "tmp/tools-v6/original-r23.img"
+        }
+      ],
+      "missingViews": [
+        "Sharp complete exact R21 and R23 originals",
+        "Rear contacts and shaft mounting detail"
+      ],
+      "identityEvidence": "R21 / RE260: source 22010, 28 g, Ø24×27 mm can, 2 mm shaft. R23 / RE280R: source 22020, 42 g, Ø24×30 mm can, 2 mm shaft, 1.5–4.5 V. Generic RE280 motors with conflicting length or speed are not equivalent."
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "variantSkus": [
+        "MER-RAV-100-CM",
+        "MER-RAV-100-CM-MAGNETNO"
+      ],
+      "variantNames": [
+        "100 cm",
+        "100 cm, magnetno"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "karl-wissner-archive-0",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=origxorig:format=jpg/path/s2071f04994970792/image/i03c8ad9691c65972/version/1392296278/image.jpg",
+          "file": "tmp/tools-v6/karl-ruler-0.jpg",
+          "bytes": 62675,
+          "sha256": "168327d20dfd4ca1887e0fac670b78ab54cb46ef91b0ecd22f27bb48b6b787d5",
+          "width": 1280,
+          "height": 850,
+          "format": "jpeg",
+          "reason": "Manufacturer archive explicitly exposes origxorig source, but only 1280×850. No padding or enlargement."
+        },
+        {
+          "id": "karl-wissner-archive-1",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=origxorig:format=jpg/path/s2071f04994970792/image/icc2fd4c371ea6165/version/1383577361/art-nr-0300.jpg",
+          "file": "tmp/tools-v6/karl-ruler-1.jpg",
+          "bytes": 39868,
+          "sha256": "56d2b9c5cdbcaffc83a528611fbb959be7363d152b749be690369fada439ba38",
+          "width": 1024,
+          "height": 680,
+          "format": "jpeg",
+          "reason": "Archive 0300/0302 variants are different scales and only 1024×680. They cannot replace the plain centimetre model."
+        },
+        {
+          "id": "karl-wissner-archive-2",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=origxorig:format=jpg/path/s2071f04994970792/image/ib93330baa97d92ac/version/1383577483/art-nr-0302.jpg",
+          "file": "tmp/tools-v6/karl-ruler-2.jpg",
+          "bytes": 41982,
+          "sha256": "0208bebfd3ddaf88cb4966cc84655ed2e38fc670b5181056a1d3db1b816b1c8e",
+          "width": 1024,
+          "height": 680,
+          "format": "jpeg",
+          "reason": "Archive 0300/0302 variants are different scales and only 1024×680. They cannot replace the plain centimetre model."
+        },
+        {
+          "id": "karl-wissner-archive-3",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "imageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=origxorig:format=jpg/path/s2071f04994970792/image/i192f979da486d5f8/version/1386245834/image.jpg",
+          "file": "tmp/tools-v6/karl-ruler-3.jpg",
+          "bytes": 40774,
+          "sha256": "2db2a7a889725a86ce0b7e16fccf7fc09ca123f42c3d967db501913e01d602e4",
+          "width": 1024,
+          "height": 680,
+          "format": "jpeg",
+          "reason": "Archive 0300/0302 variants are different scales and only 1024×680. They cannot replace the plain centimetre model."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://karlwissner.jimdofree.com/wandtafelzeichenger%C3%A4te-blackboard-drawing-instruments/lineale-rulers/",
+          "result": "Older manufacturer archive original gallery URLs inspected; all four files fail short-axis minimum.",
+          "evidence": "tmp/tools-v6/karl-ruler.html"
+        }
+      ],
+      "missingViews": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ],
+      "identityEvidence": "Plain centimetre-scale 100 cm ruler and magnetic equivalent. Source option SKUs 010400 and 01040m. Different decimetre/profi scales are not replacements for these variants."
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "instal40-native",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://www.instal.si/index.php?id=7189",
+          "imageUrl": "https://www.instal.si/web_slike/2344_Ravnilo_alu,_glatko_s_skalo_in_ročajem.webp",
+          "file": "tmp/tools-v6/instal40-original.webp",
+          "bytes": 2748,
+          "sha256": "987e929f5a7eafb7500fb1d0e9f645288a2d924d007909b6355ab22eb6c13bc7",
+          "width": 605,
+          "height": 154,
+          "format": "webp",
+          "reason": "Exact dealer page, native photograph only 605×154."
+        },
+        {
+          "id": "instal40-socialcard",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://www.instal.si/index.php?id=7189",
+          "imageUrl": "https://www.instal.si/web_slike/opengraph/2344_Ravnilo_alu%2C_glatko_s_skalo_in_ro%C4%8Dajem.jpg",
+          "file": "tmp/tools-v6/instal40.img",
+          "bytes": 40474,
+          "sha256": "573802f329d89711bc1b6de068d9341eadcdb759ab83590c452fb7913feb6fa8",
+          "width": 1200,
+          "height": 630,
+          "format": "jpeg",
+          "reason": "1200×630 social card, not a qualifying native product original. No enlargement or padding."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://www.instal.si/index.php?id=7189",
+          "result": "Public exact 40 cm dealer page and original photo exposed; both media sizes fail.",
+          "evidence": "tmp/tools-v6/instal40.html"
+        }
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "identityEvidence": "Exact 40 cm handled TM Kovine RAGR040S1, EAN 3838853200080, 60×4.4 mm profile. Do not substitute other lengths or handle geometry."
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "hepf-dpower100g",
+          "status": "rejected-native-resolution-and-unconfirmed-identity",
+          "sourcePage": "https://hepf.com/LOeTZINN-Spule-100-g",
+          "imageUrl": "https://hepf.com/media/image/product/170952/lg/loetzinn-spule-100-g.jpg",
+          "file": "tmp/tools-v6/hepf-solder.jpg",
+          "bytes": 70150,
+          "sha256": "ce718ca4fff9b9bb8f0e1f463290e1d4e0e125e3edc1c07da227f1ad52a8202a",
+          "width": 1000,
+          "height": 790,
+          "format": "jpeg",
+          "reason": "D-Power DOLZ100 dealer original only 1000×790; exact ATEHNA spool identity not proven. Same mass alone is insufficient."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "result": "Fresh original product JSON/HTML still provides only 100 g, with no exact alloy, diameter or brand.",
+          "evidence": "tmp/tools-v6/atehna-additional-source-details.json"
+        },
+        {
+          "url": "https://hepf.com/LOeTZINN-Spule-100-g",
+          "result": "New exact-mass dealer lead, but original dimensions and identity insufficient.",
+          "evidence": "tmp/tools-v6/hepf-solder.html"
+        }
+      ],
+      "missingViews": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ],
+      "identityEvidence": "Original ATEHNA source SKU 30151 specifies only 100 g and shows a tall bare blue spool embossed TIN-WIRE / LOT-ZINN. No confirmed alloy, wire diameter or manufacturer. Tentative Felder attribution from earlier photography is not independent proof."
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Grobi robovi"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "coarse-numeric-grade-unresolved",
+          "status": "pending-exact-grade-evidence",
+          "reason": "Flat wood blade 131 No.7 and other-brand Pégas spiral No.7 search leads are different products, not evidence for the sold Pebaro coarse spiral."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://shop.pebaro.de/en/Crafts-diy/Fretwork-Tools/Fretsaw-Blades/For-Woods-Plastics-helical-round/",
+          "result": "Current manufacturer gallery exposes 134-1 through 134-6, no 134-7 original. No basis for substituting a current grade as the unidentified historical coarse variant.",
+          "evidence": "tmp/tools-v6/pebaro-coarse.html"
+        },
+        {
+          "url": "https://www.pebaro.de/wp-json/wp/v2/media?search=135&per_page=100",
+          "result": "Public manufacturer media search returned an empty array; no new original asset.",
+          "evidence": "tmp/tools-v6/pebaro-wp.txt"
+        }
+      ],
+      "missingViews": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ],
+      "identityEvidence": "Only coarse source SKU 32473 remains in this scope. Fine 134-1 and historical medium 134-3 were accepted in v5 with converging ATEHNA filenames and readable real package labels; those approvals remain unchanged. Coarse original reuses medium photograph and does not establish a different numbered grade."
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "vbs-assorted-pack-original",
+          "status": "rejected-native-resolution-and-pack-mismatch",
+          "sourcePage": "https://www.vbs-hobby.com/en/saw-blades-wood-metal-a2808/",
+          "imageUrl": "https://www.vbs-hobby.com/media/prodimg/13/prodimg/925992_130295_P-2014.04.01.04.01.jpg",
+          "file": "tmp/tools-v6/vbs-blade-original.jpg",
+          "bytes": 607922,
+          "sha256": "8555bfe1dc9a5062edbab41a17744b12829fc52581619198a229dabd09a476b4",
+          "width": 1417,
+          "height": 498,
+          "format": "jpeg",
+          "reason": "Real camera original metadata, but 1417×498 fails short axis. Assorted wood/metal package is not the exact sold single-grade 12-piece metal pack."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://www.vbs-hobby.com/en/saw-blades-wood-metal-a2808/",
+          "result": "Public JSON-LD exposes untransformed original, checked actual dimensions; insufficient and mixed pack.",
+          "evidence": "tmp/tools-v6/vbs-blades.html"
+        },
+        {
+          "url": "https://www.ebay.de/itm/237056434411",
+          "result": "Public indexed 135-0 lead; ordinary page fetch did not expose original image URLs. No bypass or accepted candidate.",
+          "evidence": "tmp/tools-v6/ebay-blades.html"
+        }
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ],
+      "identityEvidence": "ATEHNA source 32460 fine, 32461 medium and 32462 coarse: hardened 130 mm, 12-blade packs. Historical Pebaro package evidence maps 135-0 fine, 135-3 medium and 135-7 coarse; current 134-series is spiral wood/soft-metal and must not be substituted."
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "variantSkus": [
+        "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI"
+      ],
+      "variantNames": [
+        "Zaščitni predpasnik - otroški"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "child-vs-adult-original-source-conflict",
+          "status": "pending-child-size-identity",
+          "reason": "Need a conclusive sold-child garment source or physical reference; adult 61038 image cannot resolve the child product title."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://atehna.si/product/zascitni-predpasnik/",
+          "result": "Fresh public product JSON/HTML rechecked: child title, blue colour, no SKU. Original 6-1038 photograph retained only as identity evidence, not a qualifying new source.",
+          "evidence": "tmp/tools-v6/atehna-additional-source-details.json"
+        }
+      ],
+      "missingViews": [
+        "Exact child-size apron front and rear without a wearer",
+        "Tie, neck strap and fabric details"
+      ],
+      "identityEvidence": "ATEHNA child apron page names only navy/blue child apron; original filename 6-1038 visually maps to ŠČIT 61038, whose supplier description is adult 100×75 cm. That size contradiction remains unresolved. Do not silently substitute an adult apron."
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "variantSkus": [
+        "ZAS-OTR-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "45002-exact-product-unidentified",
+          "status": "pending-exact-visual-or-model-reference",
+          "reason": "The original catalog number alone does not identify a manufacturer model; searches also return unrelated ISO 45001 and hearing-protector numbers."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+          "result": "Fresh public product JSON/HTML rechecked: image and description empty, no further manufacturer or model identification.",
+          "evidence": "tmp/tools-v6/atehna-additional-source-details.json"
+        }
+      ],
+      "missingViews": [
+        "Exact complete child goggles front or three-quarter view",
+        "Side arms or strap, ventilation and lens details"
+      ],
+      "identityEvidence": "Original ATEHNA 45002 page has no product image or exact model description. Earlier tentative brand association is not independent evidence; an arbitrary child safety-goggle image is not exact-product proof."
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "variantSkus": [
+        "ZAS-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [
+        {
+          "id": "45001-exact-product-unidentified",
+          "status": "pending-exact-visual-or-model-reference",
+          "reason": "The original catalog number alone does not identify a manufacturer model; searches also return unrelated ISO 45001 and hearing-protector numbers."
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "url": "https://atehna.si/product/ocala-za-zascito-oci/",
+          "result": "Fresh public product JSON/HTML rechecked: image and description empty, no further manufacturer or model identification.",
+          "evidence": "tmp/tools-v6/atehna-additional-source-details.json"
+        }
+      ],
+      "missingViews": [
+        "Exact complete adult goggles front or three-quarter view",
+        "Side arms or strap, ventilation and lens details"
+      ],
+      "identityEvidence": "Original ATEHNA 45001 page has no product image or exact model description. Earlier tentative brand association is not independent evidence; an arbitrary adult safety-goggle image is not exact-product proof."
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "variantNames": [
+        "UHU super glue 3 ml"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "uhusamima-0",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://samima.net/products/446519",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/1241/0104/products/UHU_SUPER_GLUE_3G_BLISTER_PACK_37620.jpg?v=1461573899",
+          "file": "tmp/tools-v6/uhusamima-0.jpg",
+          "bytes": 34258,
+          "sha256": "7066fafb2da553234e91b348a58cfcf574634069c7842eb5c95a3d2b5ccdb94f",
+          "width": 400,
+          "height": 400,
+          "format": "jpeg",
+          "reason": "Shopify original is 400×400. Listed as 3 g; exact old 3 ml packaging not accepted."
+        },
+        {
+          "id": "uhupopular-0",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://popular.com.sg/products/uhu-super-glue-3g-liquid-gel",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0574/5662/3823/files/download_3bb2b854-18e1-48ef-ad0c-56e55f9d2a48.jpg?v=1769591642",
+          "file": "tmp/tools-v6/uhupopular-0.jpg",
+          "bytes": 102799,
+          "sha256": "5863bd89667a376044590ff67a16184325a6eb2df2ae9897f1068022dbc1d0cb",
+          "width": 549,
+          "height": 1024,
+          "format": "jpeg",
+          "reason": "Shopify original is 549×1024. Width fails; no enlargement. Current 3 g liquid/gel product listing also does not establish the historical 3 ml variant."
+        },
+        {
+          "id": "uhupopular-1",
+          "status": "rejected-native-resolution",
+          "sourcePage": "https://popular.com.sg/products/uhu-super-glue-3g-liquid-gel",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0574/5662/3823/files/download_dfe283c2-0229-45de-81e2-b192f893d39e.jpg?v=1769591642",
+          "file": "tmp/tools-v6/uhupopular-1.jpg",
+          "bytes": 106273,
+          "sha256": "7b9a80351b32814c13305224a4c051db28b468fc8fb0eaf5b4b2563b036b419a",
+          "width": 549,
+          "height": 1024,
+          "format": "jpeg",
+          "reason": "Shopify original is 549×1024. Width fails; no enlargement. Current 3 g liquid/gel product listing also does not establish the historical 3 ml variant."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "url": "https://samima.net/products/446519",
+          "result": "Public Shopify JSON exposed original CDN photo; actual source 400-square.",
+          "evidence": "tmp/tools-v6/uhusamima.json"
+        },
+        {
+          "url": "https://popular.com.sg/products/uhu-super-glue-3g-liquid-gel",
+          "result": "Public Shopify JSON exposed two untransformed images, both 549×1024.",
+          "evidence": "tmp/tools-v6/uhupopular.json"
+        }
+      ],
+      "missingViews": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ],
+      "identityEvidence": "Old ATEHNA 3 ml product photo has yellow/red card, italic white superglue lettering, red tube with tall black cap, English/Arabic print and setting-time chart. Modern 3 g, Ultra Fast or Control packaging is not automatically the same sold variant."
+    }
+  ],
+  "summary": {
+    "productsScoped": 13,
+    "variantSkusScoped": 20,
+    "acceptedNewPhotographs": 0,
+    "stagedNewAssets": 0,
+    "reviewedExistingPhotoReassociations": 1,
+    "previouslyEmptyVariantsResolvedByReassociation": 1,
+    "rejectedDownloadedCandidates": 16,
+    "pendingDownloadedCandidates": 1,
+    "schematicsChanged": 0,
+    "rootIntegrationStatus": "Root confirmed the reviewed 070112 reassociation applied and independently verified in production, local and canonical on 2026-09-14. This research subtask performed no database, canonical, runtime or upload writes.",
+    "remainingGaps": "Exact qualifying sources still needed for the remaining scoped variants and independent informative views. Pollin hammer remains pending historical revision; it is not an accepted replacement."
+  },
+  "integrityEvidence": "tmp/tools-v6/final-evidence-integrity.json",
+  "reviewedReassociationSha256": "941c24e7774f1387e20cf1f806eb13c1687234fd419f4599a0521ee7b3087f7c"
+}

@@ -1,0 +1,1489 @@
+{
+  "version": 10,
+  "createdAt": "2026-09-14T15:49:06.601Z",
+  "status": "Accepted originals saved and verified in canonical, local and production; remaining gaps recorded.",
+  "scope": {
+    "inventorySnapshotAt": "2026-09-14T15:28:10.541Z",
+    "currentPhotographsReviewedInContactSheets": 65,
+    "currentOriginalFileHashesVerified": 65,
+    "targetedFamilies": [
+      "pleksi-steklo",
+      "penjeni-pvc-komateks",
+      "stiropor",
+      "geotrikotnik",
+      "trikotniki-za-tablo",
+      "ravnila-za-tablo",
+      "fotokarton",
+      "risalni-list"
+    ],
+    "coordinatedOwnership": "Šeleshamer/Grafopak paper agent; scale/Mekol/UHU/switch/caliper/motorclip quality agent."
+  },
+  "constraints": {
+    "nativeMinimumWidth": 1024,
+    "nativeMinimumHeight": 1024,
+    "realOriginalsOnly": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "noColourGeometryOrLabelEdits": true,
+    "exactKnownModelVariantRequired": true,
+    "wholeMainRequired": true,
+    "originalBytesUntouched": true
+  },
+  "summary": {
+    "acceptedNewPhotos": 1,
+    "acceptedDetails": 1,
+    "wholeMainReplacements": 0,
+    "exactVariantLinks": 1,
+    "criticalContrastPhotoIds": [
+      "478"
+    ],
+    "secondaryWeakPhotoIds": [
+      "26"
+    ],
+    "moderateWhiteMaterialPhotoIds": [
+      "479",
+      "484",
+      "485"
+    ],
+    "remainingNeed": "Exact white 300 × 200 × 3 mm acrylic main on naturally contrasting neutral surface. Existing main contrast remains unresolved after adding detail. Exact geometry-tool rear views and paper surface details still unavailable."
+  },
+  "products": [
+    {
+      "slug": "pleksi-steklo",
+      "itemId": "6",
+      "accepted": [
+        {
+          "id": "pleksi-belo-300x200x3-vogal-rob-lasercut-v10",
+          "blobUrl": "/images/catalog/2026-09/pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg",
+          "assetPath": "public/images/catalog/2026-09/pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg",
+          "sourcePath": "tmp/product-image-audit/white-products-v10/lasercut-studio-1.jpg",
+          "variantSkus": [
+            "MAT-UME-PLE-3x300x200-BELO"
+          ],
+          "variantIds": [
+            "26"
+          ],
+          "targetScope": "production-existing-and-canonical",
+          "sourcePage": "https://lasercutstudio.com/products/white-acrylic-with-laser-cutting-only-300x200mm",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0240/0915/files/squarewhiteacrylic_a4c4c878-0ce0-488a-84ae-0a8fb9a716a1.jpg?v=1682510539",
+          "sha256": "d29358ca27ac48632793d748647ae34619ebd12d5dbc2dfa86be2c9493ca0e3a",
+          "width": 1361,
+          "height": 1361,
+          "bytes": 33007,
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "realPhotograph": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "distinctPhoto": true,
+          "role": "detail",
+          "view": "Close corner and cut-edge photograph",
+          "imageType": "product",
+          "altText": "Belo pleksi steklo, debeline 3 mm — podrobnost vogala, površine in roba.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "status": "reviewed-ready-to-integrate",
+          "sourceIdentityEvidence": "Dealer product explicitly offers white acrylic 3 mm in 300 × 200 mm stock format for laser cutting; photo belongs to that exact gallery. No manufacturer or optical-transmission claims added.",
+          "nativeOriginEvidence": "Shopify product JSON identifies original 1361 × 1361 JPEG. URL downloaded without size/crop parameters; copied byte for byte. Fine physical edge irregularities, dust and shadow visible at native pixels.",
+          "review": {
+            "exactIdentity": "Known white acrylic and 3 mm thickness match the ATEHNA variant. Linked only to 300 × 200 × 3 mm white SKU. Source close-up does not claim to display full dimensions.",
+            "quality": "Clear gray cut edge and shadow improve useful thickness/corner detail. Natural fine edge texture survives native review. Background remains white, face has little contrast and other outside bounds leave frame. Supplementary detail only; current whole-product main contrast remains unresolved.",
+            "accessories": "No people or pictured accessories."
+          },
+          "missingViews": [
+            "Exact whole-sheet main on a naturally contrasting neutral surface",
+            "Informative rear/protective-film view"
+          ],
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pleksi-steklo/images/d29358ca27ac4863-pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg",
+          "hostedBlobPathname": "catalog-items/pleksi-steklo/images/d29358ca27ac4863-pleksi-belo-300x200x3-vogal-rob-lasercut-v10.jpg"
+        }
+      ],
+      "currentPhotoAudit": [
+        {
+          "id": "478",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pleksi-steklo/images/90d52fe8bac43877-pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+          "variantIds": [
+            "26"
+          ],
+          "sha256": "90d52fe8bac4387747beacbccf3c6e819f73d25a4db673f65cb541901f4237fa",
+          "severity": "high-priority-main-contrast-gap",
+          "nativeReviewed": true,
+          "note": "White acrylic face and lifted protective film almost merge into white backdrop even at native pixels. Whole outline is present but subtle. Accepted corner detail adds useful edge information, but does not resolve the main-photo contrast gap."
+        }
+      ],
+      "variants": [
+        {
+          "id": "23",
+          "sku": "MAT-UME-PLE-3x200x150-BELO",
+          "name": "150 x 200 x 3 mm, belo",
+          "photoIds": []
+        },
+        {
+          "id": "24",
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "name": "150 x 200 x 3 mm, barvno",
+          "photoIds": []
+        },
+        {
+          "id": "25",
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "name": "150 x 200 x 3 mm, prozorno",
+          "photoIds": []
+        },
+        {
+          "id": "26",
+          "sku": "MAT-UME-PLE-3x300x200-BELO",
+          "name": "200 x 300 x 3 mm, belo",
+          "photoIds": [
+            "478"
+          ]
+        },
+        {
+          "id": "27",
+          "sku": "MAT-UME-PLE-3x300x200",
+          "name": "200 x 300 x 3 mm",
+          "photoIds": []
+        },
+        {
+          "id": "28",
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "name": "400 x 300 x 3 mm, prozorno",
+          "photoIds": []
+        },
+        {
+          "id": "29",
+          "sku": "MAT-UME-PLE-3x400x300",
+          "name": "300 x 400 x 3 mm",
+          "photoIds": []
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "lasercut-studio",
+          "slug": "pleksi-steklo",
+          "sourcePage": "https://lasercutstudio.com/products/white-acrylic-with-laser-cutting-only-300x200mm",
+          "status": "accepted-detail-only",
+          "candidateId": "pleksi-belo-300x200x3-vogal-rob-lasercut-v10",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/lasercut-studio.txt",
+          "notes": "Exact white 3 mm 300 × 200 source yields native 1361-square corner detail with physical edge texture and clear shadow. Other 3024-square photograph contains laser-cut shapes, not sold raw sheet, and is excluded."
+        },
+        {
+          "id": "lasercut-my",
+          "slug": "pleksi-steklo",
+          "sourcePage": "https://lasercut.my/products/white-acrylic-sheet",
+          "status": "rejected-exact-cut-unmatched",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/lasercut-my.txt",
+          "notes": "Large originals and useful dark/gray background found, but product only offers A 4 210 × 297 and A 3 297 × 420; neither equals sold 200 × 300 or 150 × 200. Several photos contain hands or promotional composites. No custom-cut association established."
+        },
+        {
+          "id": "momo-white",
+          "slug": "pleksi-steklo",
+          "sourcePage": "https://www.momoshop.com.tw/TP/TP0000820/goodsDetail/TP00008200000050",
+          "status": "rejected-resolution",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/momo-white.txt",
+          "notes": "Exact 20 × 30 cm 3 mm glossy white source, but original O_m file is 1000 × 1000."
+        },
+        {
+          "id": "plexiglas-decoupe",
+          "slug": "pleksi-steklo",
+          "sourcePage": "https://www.plexiglas-decoupe.fr/products/plaque-plexiglas-blanc-opaque-3-mm-300x200",
+          "status": "rejected-synthetic-provenance",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/plexiglas-decoupe.html",
+          "notes": "Generation-prompt filenames and alt text specify photorealistic product, human hand and realistic proportions. No genuine photographic provenance established; excluded despite apparent background contrast."
+        },
+        {
+          "id": "bt-metall",
+          "slug": "pleksi-steklo",
+          "sourcePage": "https://www.bt-metall.de/acrylglas-weiss.html",
+          "status": "public-fetch-failed",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/new-source-pages-1.json",
+          "notes": "Fresh opaque-white dealer lead did not return a usable page. No photo-quality claim made."
+        }
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "itemId": "5",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "463",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/5ab85173c6f845f1-penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+          "variantIds": [
+            "19"
+          ],
+          "sha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+          "severity": "contrast-adequate",
+          "note": "Whole white PVC board has all four edges clearly separated from brown work surface."
+        },
+        {
+          "id": "465",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/a5a3ddda94a342d2-penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+          "variantIds": [
+            "19"
+          ],
+          "sha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+          "severity": "contrast-adequate",
+          "note": "Oblique PVC edge and white face are distinguishable against brown support."
+        },
+        {
+          "id": "466",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/penjeni-pvc-komateks/images/19bccb8e10b8369f-penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+          "variantIds": [
+            "19"
+          ],
+          "sha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+          "severity": "contrast-adequate",
+          "note": "PVC foam cross-section texture is readable against brown support."
+        }
+      ],
+      "variants": [
+        {
+          "id": "19",
+          "sku": "MAT-UME-PEN-3x200x300",
+          "name": "300 x 200 x 3 mm",
+          "photoIds": [
+            "463",
+            "465",
+            "466"
+          ]
+        },
+        {
+          "id": "20",
+          "sku": "MAT-UME-PEN-3x200x150",
+          "name": "150 x 200 x 3 mm",
+          "photoIds": []
+        },
+        {
+          "id": "21",
+          "sku": "MAT-UME-PEN-3x300x400",
+          "name": "400 x 300 x 3 mm",
+          "photoIds": []
+        },
+        {
+          "id": "22",
+          "sku": "MAT-UME-PEN-3x500x500",
+          "name": "500 x 500 x 3 mm",
+          "photoIds": []
+        }
+      ],
+      "sourceFindings": []
+    },
+    {
+      "slug": "stiropor",
+      "itemId": "7",
+      "accepted": [],
+      "currentPhotoAudit": [],
+      "variants": [
+        {
+          "id": "30",
+          "sku": "MAT-UME-STI-10x300x200",
+          "name": "200 x 300 x 10 mm",
+          "photoIds": []
+        },
+        {
+          "id": "31",
+          "sku": "MAT-UME-STI-210x148-A5",
+          "name": "A5",
+          "photoIds": []
+        },
+        {
+          "id": "32",
+          "sku": "MAT-UME-STI-10x400x300",
+          "name": "300 x 400 x 10 mm",
+          "photoIds": []
+        },
+        {
+          "id": "33",
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "name": "16 x 33 x 2 cm",
+          "photoIds": []
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "fresh-eps-leads",
+          "slug": "stiropor",
+          "status": "no-qualified-new-original",
+          "notes": "Fresh exact 20 × 30 image search found 9 mm Criscolor/Coupang and 20 mm Rayher, not 10 mm. New Bodega two-sheet listing leaves thickness and foam construction unknown. Prior undersized galleries not redownloaded; no near-size or different-foam substitution.",
+          "sourcePage": "https://www.bodegaaurrera.com.mx/ip/papeleria/unbranded-2ud-foam-board-para-de-escena-y-manualidades-facil-de-pegar-y-pintar/00364275245824"
+        }
+      ]
+    },
+    {
+      "slug": "geotrikotnik",
+      "itemId": "16",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "263",
+          "url": "/images/catalog/2026-09/geotrikotnik-60-real-wissner.png",
+          "variantIds": [
+            "131",
+            "132"
+          ],
+          "sha256": "f5eea51ab5d469e222de9cf51a47fd9565e3cc0343f9052512a65fffecbd704d",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        },
+        {
+          "id": "264",
+          "url": "/images/catalog/2026-09/geotrikotnik-80-real-wissner.png",
+          "variantIds": [
+            "133",
+            "134"
+          ],
+          "sha256": "cc10a3e78114cc7089b659a48612ae1f459f1a4935576445be10a113e47dc9dd",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        },
+        {
+          "id": "26",
+          "url": "/images/catalog/2026-09/geotrikotnik.jpg",
+          "variantIds": [
+            "132"
+          ],
+          "sha256": "d17b918cbb2b47a1376922a6a3751ba78dc44cc1574b70dc272c2b75e1c63f68",
+          "severity": "secondary-weak-contrast",
+          "nativeReviewed": true,
+          "note": "Transparent side boundary and yellow peripheral scale fade into near-white backdrop. Red arc and black handle remain readable. Variant132 already has stronger gray-background263 first."
+        }
+      ],
+      "variants": [
+        {
+          "id": "131",
+          "sku": "MER-GEO-60-CM",
+          "name": "60 cm",
+          "photoIds": [
+            "263"
+          ]
+        },
+        {
+          "id": "132",
+          "sku": "MER-GEO-60-CM-MAGNETEN",
+          "name": "60 cm, magneten",
+          "photoIds": [
+            "263",
+            "26"
+          ]
+        },
+        {
+          "id": "133",
+          "sku": "MER-GEO-80-CM",
+          "name": "80 cm",
+          "photoIds": [
+            "264"
+          ]
+        },
+        {
+          "id": "134",
+          "sku": "MER-GEO-80-CM-MAGNETEN",
+          "name": "80 cm, magneten",
+          "photoIds": [
+            "264"
+          ]
+        }
+      ],
+      "sourceFindings": [
+        {
+          "id": "betzold-682",
+          "slug": "geotrikotnik",
+          "sourcePage": "https://www.betzold.de/prod/A_682/",
+          "status": "rejected-wrong-model",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/source-natives-2.json",
+          "notes": "Two 2048-square original URLs are byte-identical and show yellow handle/yellow arc, not sold black handle/red arc. Manufacturer name and 60 cm length alone do not establish exact model."
+        },
+        {
+          "id": "bekius-geo",
+          "slug": "geotrikotnik",
+          "sourcePage": "https://www.schoolmaterialen.nl/geodriehoek-60cm-magnetisch",
+          "status": "rejected-resolution",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/bekius-geo.html",
+          "notes": "Exact magnetic 60 cm EAN 4260414064821, but largest public product original 900 × 900."
+        },
+        {
+          "id": "koma-geo",
+          "slug": "geotrikotnik",
+          "sourcePage": "https://www.koma-kreide.de/de/wandtafel-zeichengeraete/geo-zeichendreieck-60-cm-magnetisch",
+          "status": "rejected-wrong-model",
+          "evidenceFile": "tmp/product-image-audit/white-products-v10/koma-geo.html",
+          "notes": "Two org 1920 × 1280 URLs are identical; show red-handle PROFI-linie. Do not substitute for sold older black handle."
+        }
+      ]
+    },
+    {
+      "slug": "trikotniki-za-tablo",
+      "itemId": "17",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "454",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trikotniki-za-tablo/images/cbef3167c23c57ab-trikotnik-45-50cm-izvirnik-v3.png",
+          "variantIds": [
+            "135"
+          ],
+          "sha256": "cbef3167c23c57ab7653bc6b5892990593a254c6079fc787436b91f5bf157ce6",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        },
+        {
+          "id": "265",
+          "url": "/images/catalog/2026-09/trikotnik-45-60-real-wissner.png",
+          "variantIds": [
+            "136"
+          ],
+          "sha256": "3a6dabb11c4d4b9bbf14f3802b25249bac470d58ad1ea61403ddb27a8b4897ef",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        },
+        {
+          "id": "266",
+          "url": "/images/catalog/2026-09/trikotnik-60-50-real-wissner.png",
+          "variantIds": [
+            "137"
+          ],
+          "sha256": "525d99d9abfeb3ccc1dafd607324013f307064ac8be758cba8c5108c3734430b",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        },
+        {
+          "id": "455",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/trikotniki-za-tablo/images/b6b603d3c4678b67-trikotnik-60-60cm-izvirnik-v3.png",
+          "variantIds": [
+            "138"
+          ],
+          "sha256": "b6b603d3c4678b6788567632dc803401fb37018fd70d0a858cd21d48ec3cd0b6",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        }
+      ],
+      "variants": [
+        {
+          "id": "135",
+          "sku": "MER-TRI-ZA-45-50-CM",
+          "name": "45° / 50 cm",
+          "photoIds": [
+            "454"
+          ]
+        },
+        {
+          "id": "136",
+          "sku": "MER-TRI-ZA-45-60-CM",
+          "name": "45° / 60 cm",
+          "photoIds": [
+            "265"
+          ]
+        },
+        {
+          "id": "137",
+          "sku": "MER-TRI-ZA-60-50-CM",
+          "name": "60° / 50 cm",
+          "photoIds": [
+            "266"
+          ]
+        },
+        {
+          "id": "138",
+          "sku": "MER-TRI-ZA-60-60-CM",
+          "name": "60° / 60 cm",
+          "photoIds": [
+            "455"
+          ]
+        }
+      ],
+      "sourceFindings": []
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "itemId": "18",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "453",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/ravnila-za-tablo/images/09445513513cf84c-ravnilo-decimetrsko-100cm-izvirnik-v3.png",
+          "variantIds": [
+            "141",
+            "142"
+          ],
+          "sha256": "09445513513cf84c0d3f6c60d829d93a09c56f89883bbdc1e1a0c1dc326c2bd2",
+          "severity": "contrast-adequate",
+          "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+        }
+      ],
+      "variants": [
+        {
+          "id": "139",
+          "sku": "MER-RAV-100-CM",
+          "name": "100 cm",
+          "photoIds": []
+        },
+        {
+          "id": "140",
+          "sku": "MER-RAV-100-CM-MAGNETNO",
+          "name": "100 cm, magnetno",
+          "photoIds": []
+        },
+        {
+          "id": "141",
+          "sku": "MER-RAV-100-CM-DECIMETRSKA-SKALA",
+          "name": "100 cm, decimetrska skala",
+          "photoIds": [
+            "453"
+          ]
+        },
+        {
+          "id": "142",
+          "sku": "MER-RAV-100-CM-DECIMETRSKA-SKALA-MAGNETNO",
+          "name": "100 cm, decimetrska skala, magnetno",
+          "photoIds": [
+            "453"
+          ]
+        }
+      ],
+      "sourceFindings": []
+    },
+    {
+      "slug": "fotokarton",
+      "itemId": "11",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "479",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/ae6159f044d9c384-fotokarton-beli-b2-300-kurth-v5.jpg",
+          "variantIds": [
+            "86"
+          ],
+          "sha256": "ae6159f044d9c384eba7692cab2b45fb52ed33f52e8ba33ebbd47482cbcdefaa",
+          "severity": "moderate-but-readable",
+          "note": "White surface has low contrast, but bent form, layered edges and all outer boundaries remain visible. Useful naturally contrasting detail still missing."
+        },
+        {
+          "id": "480",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/a51fd7eca4670578-fotokarton-crni-b2-300-kurth-v5.jpg",
+          "variantIds": [
+            "67"
+          ],
+          "sha256": "a51fd7eca4670578fe402b39c87261100c3c68f9d7bd2f4b8b0f155ee1eaafd7",
+          "severity": "not-white-target"
+        }
+      ],
+      "variants": [
+        {
+          "id": "67",
+          "sku": "MAT-PAP-FOT-CRNA",
+          "name": "črna",
+          "photoIds": [
+            "480"
+          ]
+        },
+        {
+          "id": "68",
+          "sku": "MAT-PAP-FOT-SREBRNA",
+          "name": "srebrna",
+          "photoIds": []
+        },
+        {
+          "id": "69",
+          "sku": "MAT-PAP-FOT-SIVA",
+          "name": "siva",
+          "photoIds": []
+        },
+        {
+          "id": "70",
+          "sku": "MAT-PAP-FOT-ZLATA",
+          "name": "zlata",
+          "photoIds": []
+        },
+        {
+          "id": "71",
+          "sku": "MAT-PAP-FOT-SVETLO-RJAVA",
+          "name": "svetlo rjava",
+          "photoIds": []
+        },
+        {
+          "id": "72",
+          "sku": "MAT-PAP-FOT-RJAVA",
+          "name": "rjava",
+          "photoIds": []
+        },
+        {
+          "id": "73",
+          "sku": "MAT-PAP-FOT-VIJOLICASTA",
+          "name": "vijoličasta",
+          "photoIds": []
+        },
+        {
+          "id": "74",
+          "sku": "MAT-PAP-FOT-LILA",
+          "name": "lila",
+          "photoIds": []
+        },
+        {
+          "id": "75",
+          "sku": "MAT-PAP-FOT-TEMNO-ZELENA",
+          "name": "temno zelena",
+          "photoIds": []
+        },
+        {
+          "id": "76",
+          "sku": "MAT-PAP-FOT-ZELENA",
+          "name": "zelena",
+          "photoIds": []
+        },
+        {
+          "id": "77",
+          "sku": "MAT-PAP-FOT-ORANZNA",
+          "name": "oranžna",
+          "photoIds": []
+        },
+        {
+          "id": "78",
+          "sku": "MAT-PAP-FOT-KRALJEVSKO-MODRA",
+          "name": "kraljevsko modra",
+          "photoIds": []
+        },
+        {
+          "id": "79",
+          "sku": "MAT-PAP-FOT-MODRA",
+          "name": "modra",
+          "photoIds": []
+        },
+        {
+          "id": "80",
+          "sku": "MAT-PAP-FOT-TEMNO-MODRA",
+          "name": "temno modra",
+          "photoIds": []
+        },
+        {
+          "id": "81",
+          "sku": "MAT-PAP-FOT-TEMNO-RDECA",
+          "name": "temno rdeča",
+          "photoIds": []
+        },
+        {
+          "id": "82",
+          "sku": "MAT-PAP-FOT-RDECA",
+          "name": "rdeča",
+          "photoIds": []
+        },
+        {
+          "id": "83",
+          "sku": "MAT-PAP-FOT-KORUZNO-RUMENA",
+          "name": "koruzno rumena",
+          "photoIds": []
+        },
+        {
+          "id": "84",
+          "sku": "MAT-PAP-FOT-MARELICNA",
+          "name": "marelična",
+          "photoIds": []
+        },
+        {
+          "id": "85",
+          "sku": "MAT-PAP-FOT-RUMENA",
+          "name": "rumena",
+          "photoIds": []
+        },
+        {
+          "id": "86",
+          "sku": "MAT-PAP-FOT-BELA",
+          "name": "bela",
+          "photoIds": [
+            "479"
+          ]
+        }
+      ],
+      "sourceFindings": []
+    },
+    {
+      "slug": "risalni-list",
+      "itemId": "13",
+      "accepted": [],
+      "currentPhotoAudit": [
+        {
+          "id": "484",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/6b470a222b120bf8-risalni-list-a3-celoten-cc-v7.jpg",
+          "variantIds": [
+            "96"
+          ],
+          "sha256": "6b470a222b120bf8138ebf124e84770458a427d1d379a179ee0b8114fc1279b0",
+          "severity": "moderate-but-readable",
+          "nativeReviewed": true,
+          "note": "Whole A3 stack appears pale gray with crisp individual sheet edges at native1024. Main shape readable; little visible face texture."
+        },
+        {
+          "id": "485",
+          "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/risalni-list/images/8ce539866de5501a-risalni-list-a2-celoten-heutink-v7.jpg",
+          "variantIds": [
+            "93"
+          ],
+          "sha256": "8ce539866de5501a8e1980f87f2d3c6654145760d2170ea2924883560116ddbc",
+          "severity": "moderate-but-readable",
+          "note": "Whole A2 stack retains a clear boundary through gray edges and shadows. White face has limited visible material detail."
+        }
+      ],
+      "variants": [
+        {
+          "id": "93",
+          "sku": "MAT-PAP-RIS-594x420-A2",
+          "name": "A2",
+          "photoIds": [
+            "485"
+          ]
+        },
+        {
+          "id": "94",
+          "sku": "MAT-PAP-RIS-297x210-A4",
+          "name": "A4",
+          "photoIds": []
+        },
+        {
+          "id": "95",
+          "sku": "MAT-PAP-RIS-210x148-A5",
+          "name": "A5",
+          "photoIds": []
+        },
+        {
+          "id": "96",
+          "sku": "MAT-PAP-RIS-420x297-A3",
+          "name": "A3",
+          "photoIds": [
+            "484"
+          ]
+        }
+      ],
+      "sourceFindings": []
+    }
+  ],
+  "nativeCandidates": [
+    {
+      "id": "lasercut-studio-0",
+      "url": "https://cdn.shopify.com/s/files/1/0240/0915/files/whiteacrylic_83dadb65-fd7f-4d10-bc28-f68945023273.jpg?v=1682510539",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-studio-0.jpg",
+      "width": 3024,
+      "height": 3024,
+      "bytes": 838282,
+      "sha256": "42d4d5d50955cc1686b2403297281aba8671283413650411e57021d8c3d5978f"
+    },
+    {
+      "id": "lasercut-studio-1",
+      "url": "https://cdn.shopify.com/s/files/1/0240/0915/files/squarewhiteacrylic_a4c4c878-0ce0-488a-84ae-0a8fb9a716a1.jpg?v=1682510539",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-studio-1.jpg",
+      "width": 1361,
+      "height": 1361,
+      "bytes": 33007,
+      "sha256": "d29358ca27ac48632793d748647ae34619ebd12d5dbc2dfa86be2c9493ca0e3a"
+    },
+    {
+      "id": "lasercut-my-0",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/WHITE_ACRYLIC_SHEET.png?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-0.png",
+      "width": 2482,
+      "height": 2481,
+      "bytes": 2115256,
+      "sha256": "e9a0ffe944071282d0beacae96608eca3550b543ccdfcb7ef466dfc5a97099dd"
+    },
+    {
+      "id": "lasercut-my-1",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/7._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-1.jpg",
+      "width": 2480,
+      "height": 2480,
+      "bytes": 267276,
+      "sha256": "8ddacb22e50aa5e235667950badcfc5a062bb90db600fb8f65e75429ad9701d0"
+    },
+    {
+      "id": "lasercut-my-2",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/6._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-2.jpg",
+      "width": 2480,
+      "height": 2480,
+      "bytes": 271324,
+      "sha256": "4d6fa9e80373ff53396e4452d6a65e560e77192ba30abd7c07327f898a7110e4"
+    },
+    {
+      "id": "lasercut-my-3",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/1._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-3.jpg",
+      "width": 2480,
+      "height": 2480,
+      "bytes": 258887,
+      "sha256": "522eff9823756bdd4367489c14d58b6fd54038363ba9cfe03725447561e34b49"
+    },
+    {
+      "id": "lasercut-my-4",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/2._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-4.jpg",
+      "width": 1465,
+      "height": 1465,
+      "bytes": 81523,
+      "sha256": "5b88b99f745fa79db6b827265efe8051b73be5e90fe2d684b9b13576c3fde70f"
+    },
+    {
+      "id": "lasercut-my-5",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/3._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-5.jpg",
+      "width": 1465,
+      "height": 1465,
+      "bytes": 183018,
+      "sha256": "03511518f47189d3f9a6452a2635058caa2ea3db711f566ab3f351bcc89ce24a"
+    },
+    {
+      "id": "lasercut-my-6",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/4._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-6.jpg",
+      "width": 1465,
+      "height": 1465,
+      "bytes": 107266,
+      "sha256": "0dae132585805930607e1052b5337d81a588d1f33611537b1e3dcdaeae13cf73"
+    },
+    {
+      "id": "lasercut-my-7",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/5._WHITE_ACRYLIC.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-7.jpg",
+      "width": 1415,
+      "height": 1415,
+      "bytes": 33989,
+      "sha256": "87053b1875ea243fd8553036828e0efc825a50cf260f8d5f31befebaf017a1da"
+    },
+    {
+      "id": "lasercut-my-8",
+      "url": "https://cdn.shopify.com/s/files/1/0889/3261/4433/files/White-Acrylic_Image_02.jpg?v=1773503294",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/lasercut-my-8.jpg",
+      "width": 1490,
+      "height": 1490,
+      "bytes": 121428,
+      "sha256": "5b1b687f7f84ccc72c1982caf08febb46485340ba4bc9cd899257532206861c2"
+    },
+    {
+      "id": "momo-original",
+      "url": "https://i8.momoshop.com.tw/1774267042/goodsimg/TP000/0820/0000/050/TP00008200000050_O_m.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/momo-original.jpg",
+      "width": 1000,
+      "height": 1000,
+      "bytes": 26581,
+      "sha256": "7d5791b64237517f7d1a1ac0e8aa9ca0decb1c7e2444271e9759caba1fac5071"
+    },
+    {
+      "id": "betzold-682",
+      "url": "https://static.betzold.de/fullsize_zoom_new/682_a.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/betzold-682.jpg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 266623,
+      "sha256": "9b1fbea2ff9daaa8f72ad76a11d39646481cb6875754356026f54c428bc41935"
+    },
+    {
+      "id": "betzold-A682",
+      "url": "https://static.betzold.de/fullsize_zoom_new/A_682_a.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/betzold-A682.jpg",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 266623,
+      "sha256": "9b1fbea2ff9daaa8f72ad76a11d39646481cb6875754356026f54c428bc41935"
+    },
+    {
+      "id": "bekius",
+      "url": "https://www.schoolmaterialen.nl/public/data/image/article/11727/48013/large/geodriehoek-60cm-magnetisch.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/bekius.jpg",
+      "width": 900,
+      "height": 900,
+      "bytes": 70376,
+      "sha256": "f1ee01de5ddaf7113b7b670f6b9f2a4cf0aa568b4d9e03d62ceb1f6da522a55d"
+    },
+    {
+      "id": "koma-1",
+      "url": "https://www.koma-kreide.de/media/images/org/w6715_1.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/koma-1.jpg",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 160938,
+      "sha256": "4d71d2a874a55e7743504284271fd147a45f818f12e22437f17b5e137819dc71"
+    },
+    {
+      "id": "koma-2",
+      "url": "https://www.koma-kreide.de/media/images/org/w6715.jpg",
+      "status": 200,
+      "path": "tmp/product-image-audit/white-products-v10/koma-2.jpg",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 160938,
+      "sha256": "4d71d2a874a55e7743504284271fd147a45f818f12e22437f17b5e137819dc71"
+    }
+  ],
+  "overviewPhotoAudit": [
+    {
+      "id": "481",
+      "slug": "aluminijasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+      "sourceSha256": "3c9997aef4829be911e87aebfa05c8a2ce554f6dccbb9f3c777d206718edbee8",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "482",
+      "slug": "aluminijasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/aluminijasta-plosca-100x100x05-rob-v6.jpg",
+      "sourceSha256": "d93234d7905fa858f8dae05114707e48ec65de8b38b4963cbfb6e9f0444684fa",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "476",
+      "slug": "aluminijasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+      "sourceSha256": "de73cf00f66170a205985a4aed0de514530255689879afe5e04d1743feb61c30",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "492",
+      "slug": "aluminijasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/aluminijasta-plosca-05-povrsina-rob-modulor-v9.jpg",
+      "sourceSha256": "0d64ec2d0f52b1d9a2adffe277c91c311a790aeb4d906ae06c620a1c8d1e41da",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "477",
+      "slug": "aluminijasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/aluminijasta-plosca-200x100x05-celoten-pogled-v5.jpg",
+      "sourceSha256": "4dd8615eddbec664e349de3d95c45456700223bb274f3f9146fe5a129a31720e",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "473",
+      "slug": "bakrena-plosca",
+      "sourcePath": "public/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+      "sourceSha256": "f982f2b4e80990402b7f54719ec9cc8d8a6f97a860fff102ae312973fbd3e7d1",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "474",
+      "slug": "bakrena-plosca",
+      "sourcePath": "public/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+      "sourceSha256": "13928545c44be1ae337b3a0f2aa611bb110763f9da091c68bea5fe34955b1cd3",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "487",
+      "slug": "pocinkana-plocevina",
+      "sourcePath": "public/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp",
+      "sourceSha256": "4558d16f426c5854d431f1a55dd5c4938f6fdc0c753eaf36e34b114c2194a3ec",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "488",
+      "slug": "pocinkana-plocevina",
+      "sourcePath": "public/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp",
+      "sourceSha256": "530496d5d82ebadbdf9b904ab8fd3d73e8c43dc417b0dcad9b8ed16c43804cc8",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "483",
+      "slug": "medeninasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/medeninasta-plocevina-200x200x05-celoten-pogled-v7.jpg",
+      "sourceSha256": "dd95e0fddceafb693d2256866ed4d7fff394b6f79f27248115a687677e25d6d4",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "475",
+      "slug": "medeninasta-plosca",
+      "sourcePath": "public/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+      "sourceSha256": "c08f8d88ee4a1771733847bce2230a98c47b77d94ad5c4d8ee9f263a88926935",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "463",
+      "slug": "penjeni-pvc-komateks",
+      "sourcePath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-celoten-pogled-v4.jpg",
+      "sourceSha256": "5ab85173c6f845f1b47c79443ed3adc95048933fcab99779c0fdaad86c688365",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Whole white PVC board has all four edges clearly separated from brown work surface."
+    },
+    {
+      "id": "465",
+      "slug": "penjeni-pvc-komateks",
+      "sourcePath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-rob-v4.jpg",
+      "sourceSha256": "a5a3ddda94a342d2383e366e7e94abdd318f160b2ca892eaeb783e557eaa3ef5",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Oblique PVC edge and white face are distinguishable against brown support."
+    },
+    {
+      "id": "466",
+      "slug": "penjeni-pvc-komateks",
+      "sourcePath": "public/images/catalog/2026-09/penjeni-pvc-beli-300x200x3-struktura-v4.jpg",
+      "sourceSha256": "19bccb8e10b8369f23407ba1b4dfcd758d6c51d942753ee2cfe6f8e195c7c6e7",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "PVC foam cross-section texture is readable against brown support."
+    },
+    {
+      "id": "478",
+      "slug": "pleksi-steklo",
+      "sourcePath": "public/images/catalog/2026-09/pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+      "sourceSha256": "90d52fe8bac4387747beacbccf3c6e819f73d25a4db673f65cb541901f4237fa",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "high-priority-main-contrast-gap",
+      "nativeReviewed": true,
+      "note": "White acrylic face and lifted protective film almost merge into white backdrop even at native pixels. Whole outline is present but subtle. Accepted corner detail adds useful edge information, but does not resolve the main-photo contrast gap."
+    },
+    {
+      "id": "489",
+      "slug": "barvni-papir",
+      "sourcePath": "public/images/catalog/2026-09/barvni-papir-crni-b2-130-kurth-v9.jpg",
+      "sourceSha256": "33ba064f8e33ab35068f75c9176597dec962b46ca04ae637b2b1578fcb8ed38c",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "490",
+      "slug": "barvni-papir",
+      "sourcePath": "public/images/catalog/2026-09/barvni-papir-rdeci-b2-130-kurth-v9.jpg",
+      "sourceSha256": "6da34f0a0fbb9c691e9f1c1f1f535d8c878c3f1205a25cf44b15182739024f3b",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "491",
+      "slug": "barvni-papir",
+      "sourcePath": "public/images/catalog/2026-09/barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg",
+      "sourceSha256": "9d770d81bbaaa077be943ff60d6e053391952a5de9fa0765c14db6c78489d468",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "479",
+      "slug": "fotokarton",
+      "sourcePath": "public/images/catalog/2026-09/fotokarton-beli-b2-300-kurth-v5.jpg",
+      "sourceSha256": "ae6159f044d9c384eba7692cab2b45fb52ed33f52e8ba33ebbd47482cbcdefaa",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "moderate-but-readable",
+      "note": "White surface has low contrast, but bent form, layered edges and all outer boundaries remain visible. Useful naturally contrasting detail still missing."
+    },
+    {
+      "id": "480",
+      "slug": "fotokarton",
+      "sourcePath": "public/images/catalog/2026-09/fotokarton-crni-b2-300-kurth-v5.jpg",
+      "sourceSha256": "a51fd7eca4670578fe402b39c87261100c3c68f9d7bd2f4b8b0f155ee1eaafd7",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "469",
+      "slug": "lepenka",
+      "sourcePath": "public/images/catalog/2026-09/lepenka-a4-08-pogled-mailshack-v5.jpg",
+      "sourceSha256": "76b8dff3887cbba99b5e507492ca3e11b0a3e2978d8c5a2594b5241841d5eddc",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "470",
+      "slug": "lepenka",
+      "sourcePath": "public/images/catalog/2026-09/lepenka-a4-08-povrsina-rob-mailshack-v5.jpg",
+      "sourceSha256": "e70b4eb303c9ce41d9201951f108e49d4f9b402994a817a9f03097f941c966e8",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "484",
+      "slug": "risalni-list",
+      "sourcePath": "public/images/catalog/2026-09/risalni-list-a3-celoten-cc-v7.jpg",
+      "sourceSha256": "6b470a222b120bf8138ebf124e84770458a427d1d379a179ee0b8114fc1279b0",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "moderate-but-readable",
+      "nativeReviewed": true,
+      "note": "Whole A3 stack appears pale gray with crisp individual sheet edges at native1024. Main shape readable; little visible face texture."
+    },
+    {
+      "id": "485",
+      "slug": "risalni-list",
+      "sourcePath": "public/images/catalog/2026-09/risalni-list-a2-celoten-heutink-v7.jpg",
+      "sourceSha256": "8ce539866de5501a8e1980f87f2d3c6654145760d2170ea2924883560116ddbc",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "moderate-but-readable",
+      "note": "Whole A2 stack retains a clear boundary through gray edges and shadows. White face has limited visible material detail."
+    },
+    {
+      "id": "486",
+      "slug": "vezana-plosca",
+      "sourcePath": "public/images/catalog/2026-09/vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+      "sourceSha256": "ab8f188f394bd0022cb0202a4c2bb8ae17d126da3bd2afb50f0aa6b45ec2cd99",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "149",
+      "slug": "motorcek",
+      "sourcePath": "public/images/catalog/2026-09/motorcek-r20-izvirnik.jpg",
+      "sourceSha256": "12e908daad43c4f06fe2a40b1a4a6c4682f44a6ea39a1642c06d131534a870c9",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "263",
+      "slug": "geotrikotnik",
+      "sourcePath": "public/images/catalog/2026-09/geotrikotnik-60-real-wissner.png",
+      "sourceSha256": "f5eea51ab5d469e222de9cf51a47fd9565e3cc0343f9052512a65fffecbd704d",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "264",
+      "slug": "geotrikotnik",
+      "sourcePath": "public/images/catalog/2026-09/geotrikotnik-80-real-wissner.png",
+      "sourceSha256": "cc10a3e78114cc7089b659a48612ae1f459f1a4935576445be10a113e47dc9dd",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "26",
+      "slug": "geotrikotnik",
+      "sourcePath": "public/images/catalog/2026-09/geotrikotnik.jpg",
+      "sourceSha256": "d17b918cbb2b47a1376922a6a3751ba78dc44cc1574b70dc272c2b75e1c63f68",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "secondary-weak-contrast",
+      "nativeReviewed": true,
+      "note": "Transparent side boundary and yellow peripheral scale fade into near-white backdrop. Red arc and black handle remain readable. Variant132 already has stronger gray-background263 first."
+    },
+    {
+      "id": "454",
+      "slug": "trikotniki-za-tablo",
+      "sourcePath": "public/images/catalog/2026-09/trikotnik-45-50cm-izvirnik-v3.png",
+      "sourceSha256": "cbef3167c23c57ab7653bc6b5892990593a254c6079fc787436b91f5bf157ce6",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "265",
+      "slug": "trikotniki-za-tablo",
+      "sourcePath": "public/images/catalog/2026-09/trikotnik-45-60-real-wissner.png",
+      "sourceSha256": "3a6dabb11c4d4b9bbf14f3802b25249bac470d58ad1ea61403ddb27a8b4897ef",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "266",
+      "slug": "trikotniki-za-tablo",
+      "sourcePath": "public/images/catalog/2026-09/trikotnik-60-50-real-wissner.png",
+      "sourceSha256": "525d99d9abfeb3ccc1dafd607324013f307064ac8be758cba8c5108c3734430b",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "455",
+      "slug": "trikotniki-za-tablo",
+      "sourcePath": "public/images/catalog/2026-09/trikotnik-60-60cm-izvirnik-v3.png",
+      "sourceSha256": "b6b603d3c4678b6788567632dc803401fb37018fd70d0a858cd21d48ec3cd0b6",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "453",
+      "slug": "ravnila-za-tablo",
+      "sourcePath": "public/images/catalog/2026-09/ravnilo-decimetrsko-100cm-izvirnik-v3.png",
+      "sourceSha256": "09445513513cf84c0d3f6c60d829d93a09c56f89883bbdc1e1a0c1dc326c2bd2",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate",
+      "note": "Native gray background separates the white/transparent body, scale markings and black handle. No white-background replacement needed solely for contrast."
+    },
+    {
+      "id": "458",
+      "slug": "trigonir",
+      "sourcePath": "public/images/catalog/2026-09/trigonir-triso-prednja-stran.png",
+      "sourceSha256": "a72312af7781ffb170546194049846013270f5035bef6881248f35d0f9354a01",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "461",
+      "slug": "trigonir",
+      "sourcePath": "public/images/catalog/2026-09/trigonir-triso-navodila.png",
+      "sourceSha256": "4f3756d5b3e5e3e5ed717038d20330aeb1c5a17f0a5a996dc32a9ceb82aa4d8c",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "35",
+      "slug": "magnetni-trinog",
+      "sourcePath": "public/images/catalog/2026-09/magnetni-trinog.jpg",
+      "sourceSha256": "d146720c78a410320bfb1482b87ea08de3ee996330bb0dfdc783985c920a699d",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "36",
+      "slug": "tracni-meter",
+      "sourcePath": "public/images/catalog/2026-09/tracni-meter.jpg",
+      "sourceSha256": "4d0fc9408798bb8589eda23d3bdbd9c4a670fdb9347a6d5e9507c954646e2b5b",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "165",
+      "slug": "sestilo",
+      "sourcePath": "public/images/catalog/2026-09/sestilo-magnetno-izvirnik.jpg",
+      "sourceSha256": "349455c4d454036c870e5ae635a2b23eb826367f20747bdcc7a85cc489897777",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "37",
+      "slug": "sestilo",
+      "sourcePath": "public/images/catalog/2026-09/sestilo.jpg",
+      "sourceSha256": "4d92216da3fdb8867fd374d1c9b53caac56c16569b1b3f43311df7e45eab1328",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "456",
+      "slug": "vibracijska-zaga-proxxon-dsh",
+      "sourcePath": "public/images/catalog/2026-09/proxxon-dsh-celoten-pogled-v3.jpg",
+      "sourceSha256": "110637498f77a2ab6be9766e63e7c67bd6f33d4d7b183bc147a4dcb994409ac0",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "172",
+      "slug": "elektricarske-klesce-za-snemanje-izolacije",
+      "sourcePath": "public/images/catalog/2026-09/klesce-za-izolacijo-10-izvirnik.jpg",
+      "sourceSha256": "9493e3932fb84f498bfc36970aaa5bb86bd2bf783be4270d6d4f70da327adb51",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "459",
+      "slug": "zlatarske-skarje-za-plocevino",
+      "sourcePath": "public/images/catalog/2026-09/zlatarske-skarje-10-stojalo-wiemann-v4.jpg",
+      "sourceSha256": "93c25383e152a8fe7e0545c9bbda690b6305b49d9c958fabf26aed56efdb3330",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "178",
+      "slug": "digitalno-pomicno-merilo",
+      "sourcePath": "public/images/catalog/2026-09/digitalno-pomicno-merilo-delavnica.jpg",
+      "sourceSha256": "bc4e7eed96ec1fb13e2fea68475ecca96b63affd623638cc7d214b977c1211e0",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "462",
+      "slug": "solska-tehtnica",
+      "sourcePath": "public/images/catalog/2026-09/solska-tehtnica-65108-z-utezmi-v4.jpg",
+      "sourceSha256": "ea7020b72a6c4217172351d9f76493454e4f254e7069fb33bd78e9e0c6b59dce",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "460",
+      "slug": "solska-tehtnica",
+      "sourcePath": "public/images/catalog/2026-09/solska-tehtnica-wissner-070110-v4.png",
+      "sourceSha256": "62b76faa4eb1c2047cfb5f7697dcd0ebede0ce83a04ddeb3e090c72377d24705",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "contrast-adequate-coordinated-owner",
+      "note": "Cream-white balance retains visible geometry against gray; quality agent owns further native scale review."
+    },
+    {
+      "id": "471",
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "sourcePath": "public/images/catalog/2026-09/spiralne-zagice-fine-pebaro-134-1-v5.png",
+      "sourceSha256": "7944b941aa7b2ccf25060199eb7142ad392dfae636cc8e13c11fa8a3b537298d",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "472",
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "sourcePath": "public/images/catalog/2026-09/spiralne-zagice-medium-pebaro-134-3-v5.jpg",
+      "sourceSha256": "ba1f49e7bb6f396b3f9658bcadc651ca58d214583105218a33b0a8b917d2bdfa",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "198",
+      "slug": "podlaga-za-rezanje",
+      "sourcePath": "public/images/catalog/2026-09/podlaga-za-rezanje-220-300-izvirnik.jpg",
+      "sourceSha256": "9af0e2a27966a2f25c7f9716a4ab2e3dc09d6496d204ccb3e6cff1b92e98751c",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "199",
+      "slug": "podlaga-za-rezanje",
+      "sourcePath": "public/images/catalog/2026-09/podlaga-za-rezanje-300-450-izvirnik.jpg",
+      "sourceSha256": "35ac4897642a42d15d8e277bf23313dc02b060fea2179a241cf43d1d8c9ac89a",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "200",
+      "slug": "podlaga-za-rezanje",
+      "sourcePath": "public/images/catalog/2026-09/podlaga-za-rezanje-450-600-izvirnik.jpg",
+      "sourceSha256": "1fea115ffa1594e28be558a5f449f5c664396551e33671e8b3fc4d598bc64aca",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "201",
+      "slug": "podlaga-za-rezanje",
+      "sourcePath": "public/images/catalog/2026-09/podlaga-za-rezanje-600-900-izvirnik.jpg",
+      "sourceSha256": "e1d096bca4b92b4f9c78468ce02961852b808b058341b26b42f008287661f942",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "202",
+      "slug": "podlaga-za-rezanje",
+      "sourcePath": "public/images/catalog/2026-09/podlaga-za-rezanje-delovna-miza.jpg",
+      "sourceSha256": "086f0f4a69bf39268e4f06c683a03a9422fd1a372fa8c9683bf24e7fa290b0d4",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "457",
+      "slug": "uhu-kraft",
+      "sourcePath": "public/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "sourceSha256": "56de812574c2ed2b21f59c8d04712b08ef7e6c8ae0e6a3f74e275175ebfa7f0a",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "442",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-ekspres-500g-v2.jpg",
+      "sourceSha256": "7500aca4199ec52c76d25fe1a0b878625c411d23e30d50f3aa50aff0ba7bff05",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "451",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-1001-1kg-izvirnik-v3.jpg",
+      "sourceSha256": "1ec2a726f6187ab01d35086e686000d153fcd518b1124a387e6ab2e025d03e97",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "452",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-d3-500g-izvirnik-v3.png",
+      "sourceSha256": "4b8a5fece63b7c3550fda0eb22da9294521ebfc88717edcca6c0147ebefca68f",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "211",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-special-500g.png",
+      "sourceSha256": "15d7875ac7a3df5df4811d641123611e3a63880fe82aefd09fd9762fb85c4241",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "212",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-130g.png",
+      "sourceSha256": "85415203e3c246e2d7a465186f3c6131b18e666a8a786008fdb400dbac0bcdf3",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "moderate-coordinated-owner",
+      "note": "White glue nozzle blends more than the label/body; quality agent owns bottle native assessment and source search."
+    },
+    {
+      "id": "443",
+      "slug": "mekol",
+      "sourcePath": "public/images/catalog/2026-09/mekol-ekspres-nanos-v2.jpg",
+      "sourceSha256": "152716f7bc02ee2aded33431fda69c25d2bd228316a322dad43ba3bdd85387d9",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "214",
+      "slug": "ploscata-baterija",
+      "sourcePath": "public/images/catalog/2026-09/baterija-ploscata-45v-izvirnik.jpg",
+      "sourceSha256": "f99dbe97c24bc57ecbda2671ca58b548c95f485ba7e8558533953c5895f5f593",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "464",
+      "slug": "vgradno-stikalo",
+      "sourcePath": "public/images/catalog/2026-09/vgradno-stikalo-prednji-pogled-textilkabel-v4.jpg",
+      "sourceSha256": "9ea6889f161347ef65f4e7c4bcc12b053cd549e35e7a7b5a100faac255bb7c3e",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "467",
+      "slug": "vgradno-stikalo",
+      "sourcePath": "public/images/catalog/2026-09/vgradno-stikalo-navoj-matica-textilkabel-v4.jpg",
+      "sourceSha256": "103aa5045e089ab8ce92f4a06919f5e3fb22a8096946cff6093e23af12b090e8",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "468",
+      "slug": "vgradno-stikalo",
+      "sourcePath": "public/images/catalog/2026-09/vgradno-stikalo-prikljucki-textilkabel-v4.jpg",
+      "sourceSha256": "91b37ffd3e43f4ab747fe4e15c9a8a61142bbd66281da20d678cc9ea2cbbc591",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    },
+    {
+      "id": "219",
+      "slug": "objemka-za-motorcek-re260",
+      "sourcePath": "public/images/catalog/2026-09/objemka-motorcek-24mm-izvirnik.jpg",
+      "sourceSha256": "a6f608da21bf82d414b250e59a936cfb0b2cb11493b858556183bfcfefb3d4d0",
+      "reviewMethod": "Full original fitted in contact sheet; targeted cases also examined at source pixel scale.",
+      "severity": "no-primary-white-contrast-issue-in-overview"
+    }
+  ],
+  "evidenceBaseDirectory": "tmp/product-image-audit/white-products-v10",
+  "evidenceFiles": [
+    "tmp/product-image-audit/white-products-v10/current-photo-snapshot.json",
+    "tmp/product-image-audit/white-products-v10/current-photos-1.jpg",
+    "tmp/product-image-audit/white-products-v10/current-photos-2.jpg",
+    "tmp/product-image-audit/white-products-v10/current-photos-3.jpg",
+    "tmp/product-image-audit/white-products-v10/current-photos-4.jpg",
+    "tmp/product-image-audit/white-products-v10/source-contact-1.jpg"
+  ],
+  "noDatabaseCanonicalOrRuntimeChanges": true,
+  "appliedAt": "2026-09-14T16:06:23.487Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T16-00-56-927Z"
+}

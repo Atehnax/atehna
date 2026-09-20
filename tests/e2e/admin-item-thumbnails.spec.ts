@@ -1,8 +1,15 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 import { assertAuthenticatedAdmin, E2E_BASE_URL } from './support/auth';
+import { seedRetainedCatalogMediaFixture } from './support/retained-catalog-media-fixture';
 
 const createdSlugs: string[] = [];
+const LOCAL_IMAGE_PATHS = [
+  '/images/catalog/2026-09/aluminijasta-plosca-pravokotnik.png',
+  '/images/catalog/2026-09/bakrena-plosca-pravokotnik-studio.png',
+  '/images/catalog/2026-09/aluminijasta-plosca-kvadrat.png',
+  '/images/catalog/2026-09/bakrena-plosca-kvadrat.png'
+] as const;
 
 async function createArticle(request: APIRequestContext, prefix: string, suffix: string, imageUrl?: string, overrides: Partial<CatalogItemEditorPayload> = {}) {
   const seedResponse = await request.get('/api/admin/artikli/aluminijasta-plosca');
@@ -17,10 +24,31 @@ async function createArticle(request: APIRequestContext, prefix: string, suffix:
     variants: [{ variantName: 'Osnovna', variantSku: `THUMB-VAR-${slug}`, price: 3, inventory: 4, minOrder: 1, discountPct: 0, status: 'active', unit: 'kos' }],
     ...overrides
   };
-  const response = await request.post('/api/admin/artikli', { headers: { origin: E2E_BASE_URL }, data: payload });
+  // Create through the normal byte validation before seeding representative retained external media.
+  const stagedMedia = payload.media.map((media, index) => {
+    if (!media.externalUrl) return media;
+    const blobUrl = LOCAL_IMAGE_PATHS[index];
+    expect(blobUrl).toBeTruthy();
+    return { ...media, externalUrl: null, blobUrl, filename: blobUrl.split('/').at(-1), mimeType: 'image/png' };
+  });
+  const response = await request.post('/api/admin/artikli', { headers: { origin: E2E_BASE_URL }, data: { ...payload, media: stagedMedia } });
   expect(response.status(), await response.text()).toBe(200);
   createdSlugs.push(slug);
-  return { ...await response.json() as { id: number; slug: string }, name: payload.itemName };
+  const created = await response.json() as { id: number; slug: string };
+  if (payload.media.length) {
+    const persistedResponse = await request.get('/api/admin/artikli/' + slug);
+    expect(persistedResponse.status(), await persistedResponse.text()).toBe(200);
+    const persisted = await persistedResponse.json() as CatalogItemEditorHydration;
+    // Hidden input images can be normalized away; replace only the media that was actually retained.
+    const sources = payload.media.flatMap((media, index) => {
+      const expectedBlobUrl = stagedMedia[index].blobUrl;
+      return media.externalUrl && expectedBlobUrl && persisted.media.some(saved => saved.blobUrl === expectedBlobUrl)
+        ? [{ expectedBlobUrl, externalUrl: media.externalUrl, mimeType: media.mimeType || 'image/svg+xml' }]
+        : [];
+    });
+    await seedRetainedCatalogMediaFixture({ id: created.id, slug }, sources);
+  }
+  return { ...created, name: payload.itemName };
 }
 
 test.afterAll(async ({ request }) => {

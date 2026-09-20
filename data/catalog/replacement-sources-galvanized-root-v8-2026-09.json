@@ -1,0 +1,102 @@
+{
+  "version": 8,
+  "reviewedAt": "2026-09-14T13:58:32.976Z",
+  "status": "Accepted originals saved in canonical, local and production catalogs; remaining gaps retained.",
+  "products": [
+    {
+      "slug": "pocinkana-plocevina",
+      "accepted": [
+        {
+          "id": "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+          "slug": "pocinkana-plocevina",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x100x100",
+            "MAT-KOV-POC-0P5x200x200",
+            "MAT-KOV-POC-0P5x300x300"
+          ],
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp",
+          "sourcePath": "tmp/product-image-audit/galvanized-root-v8/ebay227-1.webp",
+          "sha256": "4558d16f426c5854d431f1a55dd5c4938f6fdc0c753eaf36e34b114c2194a3ec",
+          "dimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sourcePage": "https://www.ebay.co.uk/itm/227170982927",
+          "sourceUrl": "https://i.ebayimg.com/images/g/jGQAAeSwhJBpZFu-/s-l1600.webp",
+          "sourceIdentityEvidence": "The public listing explicitly offers unbranded galvanized steel sheet at0.5mm thickness with100×100,200×200 and300×300mm square cuts. The complete top square, neutral silver zinc finish and thin cut edge match the unbranded ATEHNA square sheet specification. The same square-family photograph represents those matching square cuts; the300×200 rectangular variant is excluded. Exact selected dimensions remain stated by the variant and retained schematic. No brand/alloy claim, product geometry or supply quantity is changed. Other sheets in the supplier photograph are explicitly excluded in the visible Slovenian caption.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Complete square sheet, three-quarter view",
+          "altText": "Pocinkana pločevina debeline 0,5 mm — celoten pogled kvadratnega kosa. Dodatne prikazane pločevine niso vključene.",
+          "reviewedBy": [
+            "root",
+            "catalog_audit"
+          ],
+          "review": {
+            "quality": "Unchanged1600×1600 source. Visible natural metallic texture, fine scratches and thin edge; no obvious pixel blocks or enlarged empty canvas. No humans. Watermark preserved. Main has whole top sheet visible; detail is a separate source photograph, not a crop created from main.",
+            "limitations": "Supplier watermark remains visible. Three square cuts share the matching commodity square view; no claim that physical size can be measured from a photograph."
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pocinkana-plocevina/images/4558d16f426c5854-pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp",
+          "hostedBlobPathname": "catalog-items/pocinkana-plocevina/images/4558d16f426c5854-pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp"
+        },
+        {
+          "id": "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8",
+          "slug": "pocinkana-plocevina",
+          "variantSkus": [
+            "MAT-KOV-POC-0P5x100x100",
+            "MAT-KOV-POC-0P5x200x200",
+            "MAT-KOV-POC-0P5x300x300"
+          ],
+          "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp",
+          "sourcePath": "tmp/product-image-audit/galvanized-root-v8/ebay227-3.webp",
+          "sha256": "530496d5d82ebadbdf9b904ab8fd3d73e8c43dc417b0dcad9b8ed16c43804cc8",
+          "dimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sourcePage": "https://www.ebay.co.uk/itm/227170982927",
+          "sourceUrl": "https://i.ebayimg.com/images/g/sygAAeSwoKxpZFu~/s-l1600.webp",
+          "sourceIdentityEvidence": "The public listing explicitly offers unbranded galvanized steel sheet at0.5mm thickness with100×100,200×200 and300×300mm square cuts. The complete top square, neutral silver zinc finish and thin cut edge match the unbranded ATEHNA square sheet specification. The same square-family photograph represents those matching square cuts; the300×200 rectangular variant is excluded. Exact selected dimensions remain stated by the variant and retained schematic. No brand/alloy claim, product geometry or supply quantity is changed. Other sheets in the supplier photograph are explicitly excluded in the visible Slovenian caption.",
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "detail",
+          "view": "Independent close-up of zinc surface and thin sheet edges",
+          "altText": "Pocinkana pločevina debeline 0,5 mm — podrobnost površine in robov. Dodatne prikazane pločevine niso vključene.",
+          "reviewedBy": [
+            "root"
+          ],
+          "review": {
+            "quality": "Unchanged1600×1600 source. Visible natural metallic texture, fine scratches and thin edge; no obvious pixel blocks or enlarged empty canvas. No humans. Watermark preserved. Main has whole top sheet visible; detail is a separate source photograph, not a crop created from main.",
+            "limitations": "Supplier watermark remains visible. Three square cuts share the matching commodity square view; no claim that physical size can be measured from a photograph."
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pocinkana-plocevina/images/530496d5d82ebadb-pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp",
+          "hostedBlobPathname": "catalog-items/pocinkana-plocevina/images/530496d5d82ebadb-pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.ebay.co.uk/itm/227170982927",
+          "nativeEvidence": "tmp/product-image-audit/galvanized-root-v8/native-images.json",
+          "decision": "Accept1 main and1 distinct edge detail. Marketing graphic and near-duplicate square arrangements excluded; do not count them as additional angles."
+        },
+        {
+          "sourcePage": "https://www.orange-book.com/ja/c/products/index.html?itemCd=HZ523+++++++++++++++++++++++++6174",
+          "decision": "Exact0.5×200×300mm HikariHZ523 identified, but main and package original endpoints returned403; no candidate obtained."
+        }
+      ],
+      "missingViews": [
+        "Whole300×200×0.5mm rectangular sheet",
+        "Additional genuinely useful reverse or edge views of the square cuts"
+      ]
+    }
+  ],
+  "appliedAt": "2026-09-14T14:19:20.848Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T14-11-30-914Z"
+}

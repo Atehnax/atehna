@@ -1,0 +1,245 @@
+{
+  "version": 6,
+  "createdAt": "2026-09-14T12:42:48.625Z",
+  "status": "Two native aluminium originals saved in canonical, local and production catalogs; remaining candidates withheld with recorded reasons",
+  "scope": "Remaining metals, acrylic, PVC, EPS and Grafopak cartonboard",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "unchangedSourceBytes": true,
+    "schematicsPreserved": true
+  },
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "accepted": [
+        {
+          "id": "aluminijasta-plosca-100x100x05-celoten-pogled-v6",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+          "assetPath": "public/images/catalog/2026-09/aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v6/al100-0.jpg",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x100x100"
+          ],
+          "sourcePage": "https://www.ebay.com/itm/356659158673",
+          "corroboratingSourcePage": "https://www.walmart.com/ip/5161202143",
+          "sourceUrl": "https://i.ebayimg.com/images/g/cmMAAeSw25Vn0Zcb/s-l1600.jpg",
+          "sha256": "3c9997aef4829be911e87aebfa05c8a2ce554f6dccbb9f3c777d206718edbee8",
+          "dimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "bytes": 326813,
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "realPhotograph": true,
+          "role": "main",
+          "view": "Complete square sheet in a four-sheet arrangement, three-quarter view",
+          "imageType": "product",
+          "altText": "Aluminijasta plošča, 100 × 100 × 0,5 mm — celoten pogled. Prodajna enota je ena plošča; dodatne prikazane plošče niso vključene.",
+          "sourceIdentityEvidence": "Source listing specifies four 100 × 100 × 0.5 mm plain silver aluminium squares, corroborated by its dimension image and Walmart product details. ATEHNA SKU is unbranded aluminium of this exact cut and thickness, with no alloy, temper or coating claim. Natural fine linear grain and thin edges are compatible with the original ATEHNA Aluminij.png. Source 6061 designation is provenance only, not added to catalog specifications.",
+          "reviewedBy": [
+            "root",
+            "catalog_audit"
+          ],
+          "review": {
+            "quality": "Native 1600 × 1600 source bytes. Whole main sheet and all corners clearly visible; fine grain and edge details sharp. Detail has a different two-sheet arrangement, not a crop of the main. No human parts, distortion or excessive empty space.",
+            "sourceProcessing": "Supplier studio compositing history is unknown; supplied image bytes are copied unchanged. No AI evidence or altered product geometry identified.",
+            "accessories": "Four sheets pictured in main and two in detail; sales unit remains one, with visible exclusion caption."
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/3c9997aef4829be9-aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg",
+          "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/3c9997aef4829be9-aluminijasta-plosca-100x100x05-celoten-pogled-v6.jpg"
+        },
+        {
+          "id": "aluminijasta-plosca-100x100x05-rob-v6",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-100x100x05-rob-v6.jpg",
+          "assetPath": "public/images/catalog/2026-09/aluminijasta-plosca-100x100x05-rob-v6.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v6/al100-2.jpg",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x100x100"
+          ],
+          "sourcePage": "https://www.ebay.com/itm/356659158673",
+          "corroboratingSourcePage": "https://www.walmart.com/ip/5161202143",
+          "sourceUrl": "https://i.ebayimg.com/images/g/eAUAAeSwep9n0Zcb/s-l1600.jpg",
+          "sha256": "d93234d7905fa858f8dae05114707e48ec65de8b38b4963cbfb6e9f0444684fa",
+          "dimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "bytes": 392263,
+          "originalBytes": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "realPhotograph": true,
+          "role": "detail",
+          "view": "Independently arranged two-sheet close-up of edge and surface grain",
+          "imageType": "product",
+          "altText": "Aluminijasta plošča, 100 × 100 × 0,5 mm — podrobnost roba in površine. Prodajna enota je ena plošča; dodatne prikazane plošče niso vključene.",
+          "sourceIdentityEvidence": "Source listing specifies four 100 × 100 × 0.5 mm plain silver aluminium squares, corroborated by its dimension image and Walmart product details. ATEHNA SKU is unbranded aluminium of this exact cut and thickness, with no alloy, temper or coating claim. Natural fine linear grain and thin edges are compatible with the original ATEHNA Aluminij.png. Source 6061 designation is provenance only, not added to catalog specifications.",
+          "reviewedBy": [
+            "root",
+            "catalog_audit"
+          ],
+          "review": {
+            "quality": "Native 1600 × 1600 source bytes. Whole main sheet and all corners clearly visible; fine grain and edge details sharp. Detail has a different two-sheet arrangement, not a crop of the main. No human parts, distortion or excessive empty space.",
+            "sourceProcessing": "Supplier studio compositing history is unknown; supplied image bytes are copied unchanged. No AI evidence or altered product geometry identified.",
+            "accessories": "Four sheets pictured in main and two in detail; sales unit remains one, with visible exclusion caption."
+          },
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/d93234d7905fa858-aluminijasta-plosca-100x100x05-rob-v6.jpg",
+          "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/d93234d7905fa858-aluminijasta-plosca-100x100x05-rob-v6.jpg"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.ebay.com/itm/356659158673",
+          "decision": "Two real photographs accepted; dimension composite and promotional-text graphic are repeats, application collage contains a hand."
+        },
+        {
+          "sourcePage": "https://stahlog.de/aluminiumblech/aluminiumblech-05-mm-200-mm-x-200-mm-kaufen-zuschnitt-nach-mass/",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/stahlog-al-native.json",
+          "decision": "Rejected: native1536×1024 gallery graphic has large supplier branding across multiple overlapping plates, no demonstrated exact cut identity, artificial-looking repeated metal surface; not an informative exact-product photograph."
+        },
+        {
+          "sourcePage": "https://www.ebay.es/itm/375403782848",
+          "decision": "Exact200×200×0.5 selectable but public image links unresolved; no retrievable native original established."
+        }
+      ]
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://deepseatimber.co.nz/products/brass-sheet-metal",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/brass-deepsea-natives.json",
+          "decision": "Rejected: shared gallery across0.5–3mm thicknesses and multiple cuts. Native3024×4032 /4032×3024 whole/front photos do not establish0.5mm pictured thickness; detailed edge visibly thick. Other originals crop product corners, show a hand or dirty surface. Low-resolution comparison620×540 excluded."
+        },
+        {
+          "sourcePage": "https://www.omegamix.nl/messing-plaat-300x300x0-5mm",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/omega-brass300-natives.json",
+          "decision": "Rejected:1200×1200 source contains very soft enlarged-looking sheet image, branding/dimension header and excessive empty field; dimensions alone do not qualify."
+        },
+        {
+          "sourcePage": "https://www.flume.de/de/werkzeuge-bedarfsartikel/loeten-schmelzen-giessen-schweissen/lote-und-werkstoffe/messing/messingblech/",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/initial-natives.json",
+          "decision": "Exact200×200×0.5 item4691317; underlying originals575×470 or280×238. Larger generated thumbnails do not qualify."
+        },
+        {
+          "sourcePage": "https://www.harfington.com/en-de/products/p-1467506",
+          "decision": "Indexed exact200×200×0.5 H62 listing; public product endpoints return404 and image origins could not be established. No candidate published."
+        },
+        {
+          "sourcePage": "https://www.tecnimodel.com/en/sheets-plates-grids/19212-1-brass-sheet-05mm-200mm-x-200mm.html",
+          "decision": "Exactaero-naut775502 listing indexed; public fetch unavailable. No retrievable qualifying native image."
+        }
+      ]
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.buymetalonline.co.uk/product/0-5mm-galvanised-steel-sheets/",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/initial-natives.json",
+          "decision": "Exact cuts offered; whole images265×199 and272×185, coil detail1200×798. All fail minimum both axes."
+        },
+        {
+          "sourcePage": "https://www.ebay.com/itm/306689530668",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/steel-new-natives.json",
+          "decision": "Largest supplied original800×800 despite1600 request; shared across0.5–5mm. Reject."
+        },
+        {
+          "sourcePage": "https://www.coupang.com/vp/products/7454522849",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/steel-new-natives.json",
+          "decision": "Exact300-square0.5 listing; native1000×1000 fails."
+        },
+        {
+          "sourcePage": "https://www.ssg.com/item/itemView.ssg?itemId=1000561261865",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/steel-new-natives.json",
+          "decision": "Exact200-square/300×200 listing; only750×750 retrieved; native larger source unavailable."
+        },
+        {
+          "sourcePage": "https://www.ebay.com/itm/186107157140",
+          "decision": "Exact0.5 and required cuts selectable; public web image links failed; no native original acquired."
+        },
+        {
+          "sourcePage": "https://allegro.pl/listing?string=blacha+ocynk+0.5+arkusz",
+          "decision": "Indexed exact200-square/300-square0.5 listings; product origin/image mapping unresolved. No substitute published."
+        }
+      ]
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.pevex.hr/pvc-ploca-gutta-guttagliss-hobbycolor-bijela-500x500x3mm",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/pvc-new-natives.json",
+          "decision": "Native1000×1000 fails."
+        },
+        {
+          "sourcePage": "https://www.hornbach.ro/p/placa-pvc-bravo-500x500x3-mm-alba/12460306/",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/pvc-new-natives.json",
+          "decision": "Public original500×400 fails."
+        },
+        {
+          "sourcePage": "https://www.obi-italia.it/coperture-plastiche-e-lastre-alveolari/lastra-pvc-espanso-multiexel-50x50-cm-sp-3-mm-bianco/p/4226197",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/pvc-new-natives.json",
+          "decision": "Native982×1000 fails."
+        },
+        {
+          "sourcePage": "https://allegro.pl/produkt/formatka-pcv-spienione-3-mm-wymiar-50-x-50-cm-plyta-biala-de7687b4-5a40-478d-b94d-7118b34c3636",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/pvc-new-natives.json",
+          "decision": "2000×2000 is a featureless flat single-corner graphic, all other corners cropped; no real material detail or whole-product main. Reject."
+        }
+      ]
+    },
+    {
+      "slug": "pleksi-steklo",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.mclaser.com.au/products/acrylic-sheets-small",
+          "nativeEvidence": "tmp/product-image-audit/materials-v6/acrylic-small.json",
+          "decision": "Exact200×150×3 white/clear originals1200×948 fail; large other-colour images cannot identify unspecified catalog colour. Reconfirmed prior finding."
+        }
+      ]
+    },
+    {
+      "slug": "grafopak",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.peregocarta.it/prodotto/188037/",
+          "decision": "Public supplier explicitly calls image indicative, with450gsm/71×101 displayed and shared250–450gsm/cut list. Different commercial Duplex Board name; no exact Grafopak350A4/A3 image."
+        },
+        {
+          "sourcePage": "https://www.europapier.hr/hr/shop%2520-%2520po%25C4%258Detna%2520stranica/kartoni-ljepenka-i-kraft-papiri/gd-kartoni/grafopak-gd2~p3091996",
+          "decision": "Exact Grafopak identity/350gsm range supported, but no exact A4/A3 whole-sheet native photograph identified."
+        }
+      ]
+    },
+    {
+      "slug": "stiropor",
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.dala.co.za/0-Foamalite-Sheets-233",
+          "decision": "A5 listed150×200×10 andA4210×300×10; neither establishes sold148×210A5 nor200×300×10. No size substitution."
+        },
+        {
+          "sourcePage": "https://www.ebay.co.uk/str/mrpolystyrene/Polystyrene-Sheets/_i.html?store_cat=166421011",
+          "decision": "New indexed listings300×300×10 and400×300×20 differ from required cuts/thickness. No exact new native source."
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-14T12:50:22.852Z",
+  "appliedAt": "2026-09-14T12:56:01.258Z"
+}

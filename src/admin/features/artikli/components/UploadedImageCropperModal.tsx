@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getNativeCatalogCropSize } from '@/admin/features/artikli/lib/catalogImageCrop';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -43,6 +44,7 @@ export default function UploadedImageCropperModal({
   const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
   const [renderSeed, setRenderSeed] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<'crop' | 'transform'>('crop');
 
   const cleanupPreviewUrl = useCallback(() => {
@@ -233,6 +235,18 @@ export default function UploadedImageCropperModal({
     const selection = cropperRef.current?.getCropperSelection();
     if (!selection) return;
     if (selection.hidden || selection.width < 2 || selection.height < 2) return;
+    const cropperImage = cropperRef.current?.getCropperImage();
+    if (!cropperImage) return;
+    let canvas: HTMLCanvasElement;
+    try {
+      const source = await cropperImage.$ready();
+      const size = getNativeCatalogCropSize(selection, { width: source.naturalWidth, height: source.naturalHeight }, cropperImage.$getTransform());
+      canvas = await selection.$toCanvas(size);
+      setCropError(null);
+    } catch (error) {
+      setCropError(error instanceof Error ? error.message : 'Izreza ni mogoče pripraviti.');
+      return;
+    }
     if (!suppressUndoRecordRef.current) {
       undoStackRef.current.push({
         kind: 'crop',
@@ -246,8 +260,7 @@ export default function UploadedImageCropperModal({
       width: selection.width,
       height: selection.height
     };
-    const canvas = await selection.$toCanvas();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
     if (!blob) return;
     const previewObjectUrl = URL.createObjectURL(blob);
     if (workingImageObjectUrlRef.current && workingImageObjectUrlRef.current !== workingImageUrl) {
@@ -411,6 +424,8 @@ export default function UploadedImageCropperModal({
           </section>
           <aside className="flex min-h-0 flex-col border-l border-slate-200 bg-[#f8fbff] p-3">
             <div className="space-y-3">
+              {cropError ? <p role="alert" className="text-xs text-red-700">{cropError}</p> : null}
+              <p className="text-[11px] leading-relaxed text-slate-500">Izrez ohrani izvirne pike in mora imeti najmanj 1024 × 1024 pik. Izrez ali preobrat ne šteje kot nov pogled izdelka.</p>
               <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Alt besedilo</label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3e67d6]"

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "scope": "Only six production families with zero eligible photographs; remove exact stale photo references, retain all other product facts.",
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "before": "<p>Lahka aluminijasta plošča za tehnični pouk, modelarstvo ter izdelavo manjših izdelkov. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča. Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta.</p>",
+      "after": "<p>Lahka aluminijasta plošča za tehnični pouk, modelarstvo ter izdelavo manjših izdelkov. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča.</p>",
+      "removedText": " Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta."
+    },
+    {
+      "slug": "bakrena-plosca",
+      "before": "<p>Bakrena plošča za oblikovanje, modelarstvo in tehnične projekte. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča. Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta.</p>",
+      "after": "<p>Bakrena plošča za oblikovanje, modelarstvo in tehnične projekte. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča.</p>",
+      "removedText": " Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta."
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "before": "<p>Medeninasta plošča za modelarstvo, oblikovanje in dekorativne tehnične izdelke. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča. Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta.</p>",
+      "after": "<p>Medeninasta plošča za modelarstvo, oblikovanje in dekorativne tehnične izdelke. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča.</p>",
+      "removedText": " Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta."
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "before": "<p>Pocinkana pločevina za izdelavo modelov in manjših delavniških izdelkov. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča. Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta.</p>",
+      "after": "<p>Pocinkana pločevina za izdelavo modelov in manjših delavniških izdelkov. Na voljo v formatih 300 × 200, 300 × 300, 200 × 200 in 100 × 100 mm, pri vseh debelina 0,5 mm.</p><p>Prodajna enota: ena plošča.</p>",
+      "removedText": " Fotografije prikazujejo material; več plošč na fotografiji ne pomeni kompleta."
+    },
+    {
+      "slug": "seleshamer",
+      "before": "<p>Šeleshamer za risanje, likovno ustvarjanje in izdelavo papirnatih modelov. Izberite format A4, A3, A2 ali B1.</p>",
+      "after": "<p>Šeleshamer za risanje, likovno ustvarjanje in izdelavo papirnatih modelov. Izberite format A4, A3, A2 ali B1.</p>",
+      "removedText": ""
+    },
+    {
+      "slug": "zlatarske-skarje-za-plocevino",
+      "before": "<p>Komplet zlatarskih škarij za rezanje pločevine. Deset kosov je shranjenih v skupnem stojalu za uporabo v delavnici.</p><p>Fotografija prikazuje posamezne škarje. Stojalo ni prikazano.</p>",
+      "after": "<p>Komplet zlatarskih škarij za rezanje pločevine. Deset kosov je shranjenih v skupnem stojalu za uporabo v delavnici.</p>",
+      "removedText": "<p>Fotografija prikazuje posamezne škarje. Stojalo ni prikazano.</p>"
+    }
+  ]
+}

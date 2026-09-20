@@ -1,0 +1,310 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T11:49:55.629Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-root-v5-2026-09.json",
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-materials-v5-2026-09.json",
+    "data/catalog/replacement-sources-paper-v5-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "spiralne-zagice-fine-pebaro-134-1-v5",
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-FINI-ROBOVI"
+      ],
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-fine-pebaro-134-1-v5.png",
+      "sha256": "7944b941aa7b2ccf25060199eb7142ad392dfae636cc8e13c11fa8a3b537298d",
+      "dimensions": {
+        "width": 2836,
+        "height": 3274
+      },
+      "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+      "sourceUrl": "https://s.coolbox.ua/static/content/files/c/5c/7515ea7293a5d708b3b93394010535cc.png",
+      "sourceIdentityEvidence": "Original ATEHNA variant 32470 (Fini robovi) explicitly assigns attachment spiralne-1.jpg (WordPress title spiralne 1). The original blue card, PEBARO mark, 12-blade quantity and wood/plastic/soft-metal graphics match this photograph. Its real printed label identifies fein No.1 / Art.134-1. Public grade name, original numbered image and physical package are converging exact-variant evidence. The general family URL ending no-7 does not override the specific variation association. Assigned only to this original SKU; coarse32473 remains unassigned.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-complete-pack-and-blades",
+      "altText": "Spiralne žagice PEBARO 134-1 — fini robovi, komplet 12 žagic",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/spiralne-zagice-za-les-in-mehke-kovine/images/7944b941aa7b2ccf-spiralne-zagice-fine-pebaro-134-1-v5.png",
+      "hostedBlobPathname": "catalog-items/spiralne-zagice-za-les-in-mehke-kovine/images/7944b941aa7b2ccf-spiralne-zagice-fine-pebaro-134-1-v5.png"
+    },
+    {
+      "id": "spiralne-zagice-medium-pebaro-134-3-v5",
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-SREDNJI-ROBOVI"
+      ],
+      "blobUrl": "/images/catalog/2026-09/spiralne-zagice-medium-pebaro-134-3-v5.jpg",
+      "sha256": "ba1f49e7bb6f396b3f9658bcadc651ca58d214583105218a33b0a8b917d2bdfa",
+      "dimensions": {
+        "width": 3024,
+        "height": 3668
+      },
+      "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-3-pebaro",
+      "sourceUrl": "https://s.coolbox.ua/static/content/files/5/46/0ed5647d7f2d90b4b10821f219b98465.jpeg",
+      "sourceIdentityEvidence": "Original ATEHNA variant 32471 (Srednji robovi) explicitly assigns attachment spiralne-3.jpg (WordPress title spiralne 3). The original blue card, PEBARO mark, 12-blade quantity and wood/plastic/soft-metal graphics match this photograph. Its real printed label identifies mittel No.3 / Art.134-3. Public grade name, original numbered image and physical package are converging exact-variant evidence. The general family URL ending no-7 does not override the specific variation association. Assigned only to this original SKU; coarse32473 remains unassigned.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "front-complete-pack-and-blades",
+      "altText": "Spiralne žagice PEBARO 134-3 — srednji robovi, komplet 12 žagic",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/spiralne-zagice-za-les-in-mehke-kovine/images/ba1f49e7bb6f396b-spiralne-zagice-medium-pebaro-134-3-v5.jpg",
+      "hostedBlobPathname": "catalog-items/spiralne-zagice-za-les-in-mehke-kovine/images/ba1f49e7bb6f396b-spiralne-zagice-medium-pebaro-134-3-v5.jpg"
+    },
+    {
+      "id": "aluminijasta-plosca-300x300x05-celoten-pogled-v5",
+      "slug": "aluminijasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-ALU-0P5x300x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+      "sha256": "de73cf00f66170a205985a4aed0de514530255689879afe5e04d1743feb61c30",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.com.au/itm/306015737506",
+      "sourceUrl": "https://i.ebayimg.com/images/g/9vUAAeSw~s9pcXmV/s-l1600.jpg",
+      "sourceIdentityEvidence": "Public uxcell retailer listing explicitly specifies single 300 × 300 × 0.5 mm aluminum sheet, corroborated by gallery dimension image. Existing ATEHNA catalog variant is plain aluminum with the same exact cut and thickness; no alloy or temper or coating specification. Original ATEHNA Aluminij.png shows natural silver reflective sheet stock with fine linear marks, compatible with this plain silver source. Source 6061 specification is provenance only and is not added as a catalog claim.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete single square aluminum sheet, oblique main view",
+      "altText": "Aluminijasta plošča, 300 × 300 × 0,5 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/aluminijasta-plosca/images/de73cf00f66170a2-aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+      "hostedBlobPathname": "catalog-items/aluminijasta-plosca/images/de73cf00f66170a2-aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg"
+    },
+    {
+      "id": "bakrena-plosca-300x200x05-celoten-pogled-v5",
+      "slug": "bakrena-plosca",
+      "variantSkus": [
+        "MAT-KOV-BAK-0P5x300x200"
+      ],
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+      "sha256": "f982f2b4e80990402b7f54719ec9cc8d8a6f97a860fff102ae312973fbd3e7d1",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.harfington.com/en-ca/products/p-1457778",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a23081000ux0841_ux_g03.jpg?v=1776227900",
+      "sourceIdentityEvidence": "Exact unbranded commodity match: copper, natural uncoated copper colour, 300 × 200 × 0.5 mm rectangular cut. Source SKU a23081000ux0841 states those metric dimensions and T2 pure copper; no manufacturer/grade claim is added to ATEHNA. Single sheet, no conflicting geometry or components.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole sheet, oblique front",
+      "altText": "Bakrena plošča, 300 × 200 × 0,5 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/bakrena-plosca/images/f982f2b4e8099040-bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+      "hostedBlobPathname": "catalog-items/bakrena-plosca/images/f982f2b4e8099040-bakrena-plosca-300x200x05-celoten-pogled-v5.jpg"
+    },
+    {
+      "id": "bakrena-plosca-kvadrat-05-celoten-pogled-v5",
+      "slug": "bakrena-plosca",
+      "variantSkus": [
+        "MAT-KOV-BAK-0P5x100x100",
+        "MAT-KOV-BAK-0P5x200x200"
+      ],
+      "blobUrl": "/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+      "sha256": "13928545c44be1ae337b3a0f2aa611bb110763f9da091c68bea5fe34955b1cd3",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.harfington.com/products/p-1457755",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a23081000ux0834_ux_g03.jpg?v=1773949558",
+      "sourceIdentityEvidence": "Supplier explicitly uses this identical original photograph for exact100×100×0.5 SKU a23081000ux0834 and exact200×200×0.5 SKU a23081000ux0840. Both product JSON specifications give metric dimensions. Same plain copper material, natural finish, square outline and thickness; one source asset assigned to these two variants only. No extra view count and no manufacturer/grade claim added.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole square sheet, oblique front",
+      "altText": "Kvadratna bakrena plošča, debeline 0,5 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/bakrena-plosca/images/13928545c44be1ae-bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+      "hostedBlobPathname": "catalog-items/bakrena-plosca/images/13928545c44be1ae-bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg"
+    },
+    {
+      "id": "medeninasta-plosca-100x100x05-celoten-pogled-v5",
+      "slug": "medeninasta-plosca",
+      "variantSkus": [
+        "MAT-KOV-MED-0P5x100x100"
+      ],
+      "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+      "sha256": "c08f8d88ee4a1771733847bce2230a98c47b77d94ad5c4d8ee9f263a88926935",
+      "dimensions": {
+        "width": 2000,
+        "height": 2000
+      },
+      "sourcePage": "https://www.harfington.com/products/p-1065462?variant=45528554176761",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a20112100ux0259_ux_g03_227c80f5-6d16-482b-90c6-76dfe5bb030e.jpg?v=1727600468",
+      "sourceIdentityEvidence": "Exact plain brass commodity, square 100 × 100 × 0.5 mm. Supplier SKU a20112100ux0259 variant45528554176761; metric dimensions confirmed by the same SKU measurement photograph. Natural brass colour and uncoated sheet surface match known product type; no brand claim transferred.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole sheet, oblique front",
+      "altText": "Medeninasta plošča, 100 × 100 × 0,5 mm — celoten pogled.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/medeninasta-plosca/images/c08f8d88ee4a1771-medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+      "hostedBlobPathname": "catalog-items/medeninasta-plosca/images/c08f8d88ee4a1771-medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg"
+    },
+    {
+      "id": "pleksi-belo-300x200x3-celoten-pogled-v5",
+      "slug": "pleksi-steklo",
+      "variantSkus": [
+        "MAT-UME-PLE-3x300x200-BELO"
+      ],
+      "blobUrl": "/images/catalog/2026-09/pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+      "sha256": "90d52fe8bac4387747beacbccf3c6e819f73d25a4db673f65cb541901f4237fa",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.harfington.com/products/p-1680316",
+      "sourceUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a25040200ux3467_ux_g03.jpg?v=1782885044",
+      "sourceIdentityEvidence": "ATEHNA original title and description explicitly specify white acrylic 200 × 300 × 3 mm, SKU 13101. Harfington lists White, Acrylic, 300 × 200 mm, 3 mm and removable protective film. Matched only to white SKU 26; not to clear, unspecified or150 × 200 variants. Original ATEHNA gallery is a placeholder, so no optical transmission claim is established or added.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Whole white sheet, slight oblique front with transport film partially peeled",
+      "altText": "Belo pleksi steklo, 300 × 200 × 3 mm — celoten pogled z delno odmaknjeno zaščitno folijo.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pleksi-steklo/images/90d52fe8bac43877-pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+      "hostedBlobPathname": "catalog-items/pleksi-steklo/images/90d52fe8bac43877-pleksi-belo-300x200x3-celoten-pogled-v5.jpg"
+    },
+    {
+      "id": "fotokarton-beli-b2-300-kurth-v5",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-BELA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-beli-b2-300-kurth-v5.jpg",
+      "sha256": "ae6159f044d9c384eba7692cab2b45fb52ed33f52e8ba33ebbd47482cbcdefaa",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-weiss-300-g-m2-50-x-70-cm/013000",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/bc/dd/25/1612290412/picA013000-1_XL.jpg",
+      "sourceIdentityEvidence": "Original ATEHNA and canonical MAT-PAP-FOT-BELA explicitly specify ordinary bela,300g/m² Fotokarton,B2. Source page independently specifies weiß,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole-sheet-front",
+      "altText": "Beli fotokarton B2,300g/m² — celoten pogled na list. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/ae6159f044d9c384-fotokarton-beli-b2-300-kurth-v5.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/ae6159f044d9c384-fotokarton-beli-b2-300-kurth-v5.jpg"
+    },
+    {
+      "id": "fotokarton-crni-b2-300-kurth-v5",
+      "slug": "fotokarton",
+      "variantSkus": [
+        "MAT-PAP-FOT-CRNA"
+      ],
+      "blobUrl": "/images/catalog/2026-09/fotokarton-crni-b2-300-kurth-v5.jpg",
+      "sha256": "a51fd7eca4670578fe402b39c87261100c3c68f9d7bd2f4b8b0f155ee1eaafd7",
+      "dimensions": {
+        "width": 3000,
+        "height": 3000
+      },
+      "sourcePage": "https://jetzt-kommt-kurth.de/fotokarton-schwarz-300-g-m2-50-x-70-cm/013090",
+      "sourceUrl": "https://jetzt-kommt-kurth.de/media/bf/4a/ab/1612337365/picA013090-1_XL.jpg",
+      "sourceIdentityEvidence": "Original ATEHNA and canonical MAT-PAP-FOT-CRNA explicitly specify ordinary črna,300g/m² Fotokarton,B2. Source page independently specifies schwarz,300g/m²,Fotokarton,DIN B2(ca50×70cm). This is a narrow commodity stock match by material, grammage, ordinary colour and named format; no Folia manufacturer assertion is added to ATEHNA stock and no textured-white or other colour variant is covered. Original ATEHNA title/description specify B2 only, without a measured millimetre size. The import script tmp/catalog-import/research-audit.mjs:5,11-14 explicitly converted B2 through formats.B2=[500,707]; canonical707 is an algorithmic nominal ISO normalization, not a measured source claim. Current storefront does display707×500mm. Both Kurth supplier pages explicitly call this stock DIN B2 (ca.50×70cm), also listing50×70cm. Accepted on matching original named DIN B2 commodity format; do not claim the photographed sheet was measured707mm. Existing canonical dimensions and all customer specifications are unchanged; nominal/trade distinction is recorded for root report.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "whole-sheet-front",
+      "altText": "Črni fotokarton B2,300g/m² — celoten pogled na list. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/fotokarton/images/a51fd7eca4670578-fotokarton-crni-b2-300-kurth-v5.jpg",
+      "hostedBlobPathname": "catalog-items/fotokarton/images/a51fd7eca4670578-fotokarton-crni-b2-300-kurth-v5.jpg"
+    },
+    {
+      "id": "lepenka-a4-08-pogled-mailshack-v5",
+      "slug": "lepenka",
+      "variantSkus": [
+        "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+      ],
+      "blobUrl": "/images/catalog/2026-09/lepenka-a4-08-pogled-mailshack-v5.jpg",
+      "sha256": "76b8dff3887cbba99b5e507492ca3e11b0a3e2978d8c5a2594b5241841d5eddc",
+      "dimensions": {
+        "width": 1500,
+        "height": 1500
+      },
+      "sourcePage": "https://www.mailshack.co.uk/a4-800-microns-08mm-greyboard",
+      "sourceUrl": "https://cdn.ecommercedns.uk/files/3/203003/1/1978071/greyboard-1.jpg",
+      "sourceIdentityEvidence": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "complete-sheet-front",
+      "altText": "Lepenka A4, 0,8 mm — celoten pogled. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/lepenka/images/76b8dff3887cbba9-lepenka-a4-08-pogled-mailshack-v5.jpg",
+      "hostedBlobPathname": "catalog-items/lepenka/images/76b8dff3887cbba9-lepenka-a4-08-pogled-mailshack-v5.jpg"
+    },
+    {
+      "id": "lepenka-a4-08-povrsina-rob-mailshack-v5",
+      "slug": "lepenka",
+      "variantSkus": [
+        "MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4"
+      ],
+      "blobUrl": "/images/catalog/2026-09/lepenka-a4-08-povrsina-rob-mailshack-v5.jpg",
+      "sha256": "e70b4eb303c9ce41d9201951f108e49d4f9b402994a817a9f03097f941c966e8",
+      "dimensions": {
+        "width": 1500,
+        "height": 1500
+      },
+      "sourcePage": "https://www.mailshack.co.uk/a4-800-microns-08mm-greyboard",
+      "sourceUrl": "https://cdn.ecommercedns.uk/files/3/203003/3/1978073/greyboard-3.jpg",
+      "sourceIdentityEvidence": "Canonical MAT-PAP-LEP-0P8x297x210-PAPIR-LEPENKA-A4 and original ATEHNA listing specify plain lepenka, A4,0.8mm. Mailshack listing explicitly specifies A4 (210×297mm),800microns/0.8mm greyboard. Canonical/original contain no conflicting colour/grade; separate ATEHNA white-board variants are explicitly labelled white. Matching is by commodity material, cut and thickness; no manufacturer or extra grade inferred. Root independently approved this narrow assignment and individual-sheet disclosure.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "straight-surface-and-edges",
+      "altText": "Lepenka A4, 0,8 mm — površina in robovi. Prodaja po listih; dodatni prikazani listi niso vključeni.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/lepenka/images/e70b4eb303c9ce41-lepenka-a4-08-povrsina-rob-mailshack-v5.jpg",
+      "hostedBlobPathname": "catalog-items/lepenka/images/e70b4eb303c9ce41-lepenka-a4-08-povrsina-rob-mailshack-v5.jpg"
+    }
+  ],
+  "sourceManifest": "data/catalog/product-image-additions-v5-2026-09.json",
+  "targetScope": "existing local and canonical variants only",
+  "excludedProductionOnly": [
+    {
+      "id": "aluminijasta-plosca-200x100x05-celoten-pogled-v5",
+      "variantSkus": [
+        "MAT-KOV-ALU-0P5x200x100"
+      ],
+      "reason": "This existing production SKU is absent from local and canonical catalogs; no variant is created by this image task."
+    }
+  ]
+}

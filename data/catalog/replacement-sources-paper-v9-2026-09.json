@@ -1,0 +1,1543 @@
+{
+  "version": 9,
+  "reviewedAt": "2026-09-14T15:29:19.135Z",
+  "status": "Accepted originals saved and verified in canonical, local and production; remaining gaps recorded.",
+  "scope": [
+    "seleshamer",
+    "grafopak",
+    "barvni-papir"
+  ],
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "unchangedOriginalBytes": true,
+    "exactStockAndColourOnly": true
+  },
+  "summary": {
+    "families": 3,
+    "variants": 33,
+    "acceptedImages": 3,
+    "acceptedVariants": 3,
+    "remainingVariants": 30,
+    "newSourcePageProbes": 23,
+    "decodedCandidateImages": 34,
+    "failedOriginalRequests": 4,
+    "colourNativePhotographsReviewed": 21,
+    "completion": "Three exact colour variants have staged main photographs. All4 Šeleshamer and2 Grafopak variants plus24 other coloured-paper variants remain without suitable mains; useful extra views still missing."
+  },
+  "products": [
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "independent-a3",
+          "url": "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/25103920/PASTEBAOARD-A3.jpg",
+          "path": "tmp/product-image-audit/paper-v9/independent-a3.jpg",
+          "width": 125,
+          "height": 125,
+          "bytes": 7450,
+          "sha256": "9b3c2a18a56ffd8b9cb0b945613147fa93fa799d86da7e32229b396f4f638568",
+          "status": "rejected",
+          "reason": "Original decodes to 125×125; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "eles-a3-original",
+          "url": "https://m.media-amazon.com/images/I/4148hZvshaL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/eles-a3-original.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 24198,
+          "sha256": "fa4ad5003ff5bceb2897acc102ee4dffda05699d78ded50778448b5fe789958d",
+          "status": "rejected",
+          "reason": "Original decodes to 500×500; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "mondi-a3-original2",
+          "url": "https://m.media-amazon.com/images/I/61TgzB7nzzL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/mondi-a3-original2.jpg",
+          "width": 2560,
+          "height": 1920,
+          "bytes": 113847,
+          "sha256": "83799b3aa47c886296cdbc42554e305fbf069afdf6543280183d822a83887390",
+          "status": "rejected",
+          "reason": "Second branded Mondi package artwork/render with no actual sheet visible; not suitable exact loose-sheet representation."
+        },
+        {
+          "name": "mondi-a3-original1",
+          "url": "https://m.media-amazon.com/images/I/71t7z2G89wL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/mondi-a3-original1.jpg",
+          "width": 2560,
+          "height": 1920,
+          "bytes": 139690,
+          "sha256": "4de2f21dfef332cc6e11412a3d4dd428a7b9773f2c83090015656db8ce3fe8d6",
+          "status": "rejected",
+          "reason": "Native2560×1920 branded Mondi250-sheet package artwork/render, rather than a photograph revealing the sold loose white sheet; exact branded pack is not established as ATEHNA stock. No source sheet view."
+        },
+        {
+          "name": "quill-nova-original",
+          "url": "https://cdn11.bigcommerce.com/s-dz9d7l0zjq/images/products/835/1468/90401__98885.1604554508.1280.1280__56323.1687513426.jpg",
+          "error": "HTTP 404",
+          "status": "rejected",
+          "reason": "Public original retrieval failed: HTTP 404. No substitute or enlarged image used."
+        },
+        {
+          "name": "quill-kmart",
+          "url": "https://www.kmart.com.au/wcsstore/Kmart/images/ncatalog/f/1/110055516-1.jpg",
+          "error": "HTTP 403",
+          "status": "rejected",
+          "reason": "Public original retrieval failed: HTTP 403. No substitute or enlarged image used."
+        },
+        {
+          "name": "quill-nova-offered",
+          "url": "https://cdn11.bigcommerce.com/s-dz9d7l0zjq/images/stencil/1280x1280/products/835/1468/90401__98885.1604554508.1280.1280__56323.1687513426.jpg?c=1%3Fimbypass%3Don",
+          "error": "HTTP 404",
+          "status": "rejected",
+          "reason": "Public original retrieval failed: HTTP 404. No substitute or enlarged image used."
+        },
+        {
+          "name": "pigo-b1-largest",
+          "url": "https://www.pigo.si/pic/product/l/3831024732045.jpg?v=1777900650",
+          "path": "tmp/product-image-audit/paper-v9/pigo-b1-largest.jpg",
+          "width": 524,
+          "height": 455,
+          "bytes": 17042,
+          "sha256": "c5d6d729dc80a1e0ea3cdc24d31d7e5300de22f8d42d19d9a779419db8cf0df5",
+          "status": "rejected",
+          "reason": "Original decodes to 524×455; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "enaa-b1-original",
+          "url": "https://img.enaa.com/oddelki/biroOprema/assets/product_images/najvecje/risalni_papir_seleshamer_b1_bel_brk13085.PNG",
+          "path": "tmp/product-image-audit/paper-v9/enaa-b1-original.png",
+          "width": 360,
+          "height": 360,
+          "bytes": 19932,
+          "sha256": "8e02717d0371ed537107c6e144751fa62c1c5864e35097fc3bf7338c5bbd3dd4",
+          "status": "rejected",
+          "reason": "Original decodes to 360×360; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "espo-a2-native",
+          "url": "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg",
+          "path": "tmp/product-image-audit/paper-v9/espo-a2-native.jpg",
+          "width": 1000,
+          "height": 711,
+          "bytes": 39300,
+          "sha256": "6e39db09cf874f4d2fcaa772faacc44a001ea76d46a09180bf1ed6be924386cb",
+          "status": "rejected",
+          "reason": "Original decodes to 1000×711; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "active-pure200-native",
+          "url": "https://www.active-paper.co.uk/pictures/1479644812pure%20image.jpg",
+          "path": "tmp/product-image-audit/paper-v9/active-pure200-native.jpg",
+          "width": 500,
+          "height": 375,
+          "bytes": 34742,
+          "sha256": "a1cc299754b3724646cd07e83c26652e0320fc6931474e453c41c3027f432fea",
+          "status": "rejected",
+          "reason": "Original decodes to 500×375; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "papercutz-a4-native",
+          "url": "https://papercutz.co.uk/media/catalog/product/a/4/a4-white-extra-thick-box-board-gloss-coated-2-sides-500gsm-50760-p_7_1.jpg",
+          "path": "tmp/product-image-audit/paper-v9/papercutz-a4-native.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 17124,
+          "sha256": "10c9fda1ef24b9693cbaae458efc505eca0148e026b06b948e4cb78ee9189530",
+          "status": "rejected",
+          "reason": "Untransformed original500² is below minimum; filename also shared with another grade, so no quality or exact-photo improvement."
+        },
+        {
+          "name": "officechoice-a3",
+          "url": "https://www.officechoice.com.au/products/colourful-days-pasteboard-a3-200gsm-white-pack-of-50",
+          "error": "HTTP 404",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "officesuppliesperth-a3",
+          "url": "https://www.officesuppliesperth.com.au/products/colourful-days-pasteboard-a3-200gsm-white-pack-of-50",
+          "error": "HTTP 404",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "officemart-a3",
+          "url": "https://www.officemart.com.au/products/colourful-cardboard-white-pasteboard-a3-200gsm-3-sheet-pk50",
+          "error": "HTTP 404",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "dealscav-a3",
+          "url": "https://www.dealscav.com/product/B00CW9B0E2/Premium-Thick-200gsm-Printing-Sheets",
+          "error": "HTTP 403",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "panther-card",
+          "url": "https://pantherstationery.com.au/product/white-card-a3-200gsm-100-sheet-pack/",
+          "error": "HTTP 404",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "kmart-quill",
+          "url": "https://www.kmart.com.au/product/quill-a3-200gsm-board-white-25-pack-110055516/",
+          "error": "HTTP 403",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "name": "nationalarts-whiteb1",
+          "url": "https://nationalartsupplies.co.nz/product/colore-white-200gsm-700x1000mm/",
+          "error": "HTTP 404",
+          "status": "source-unavailable",
+          "reason": "Public source page unavailable in this pass; no original image or exact variant assignment obtained."
+        },
+        {
+          "sourcePage": "https://au.accopartner.com/p/paper-products/other-paper-products/cardboard-and-coloured-paper/colourful-days-pasteboard-200gsm-a3-297-x-420mm-white-pack-50/",
+          "imageUrl": "https://hub.accobrands.com/api/downloadassets/download/549667",
+          "status": "detail-only-already-reviewed",
+          "reason": "Reinspected actual manufacturer gallery HTML: only this existing2500² cropped fan detail is linked; no separate complete main. Dealer followups in v9 returned404 or125². Kept prior detail evidence; do not count family complete.",
+          "evidencePath": "tmp/product-image-audit/paper-v7/acco-a3-200.html"
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A4",
+            "Format": "A4"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A2",
+            "Format": "A2"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1",
+          "specifications": {
+            "Gramatura": "200 g/m²",
+            "Formati": "A4, A3, A2, B1",
+            "Izvedba": "Papir šeleshamer 200 g, B1",
+            "Format": "B1"
+          }
+        }
+      ],
+      "missingViews": "All 4 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing.",
+      "sourceDetailsRetained": [
+        {
+          "id": "prior-acco-a3-native-detail",
+          "sourcePage": "https://au.accopartner.com/p/paper-products/other-paper-products/cardboard-and-coloured-paper/colourful-days-pasteboard-200gsm-a3-297-x-420mm-white-pack-50/",
+          "path": "tmp/product-image-audit/paper-v7/acco-a3-hires.jpg",
+          "width": 2500,
+          "height": 2500,
+          "status": "Useful sharp A3/200 g/m² detail retained as evidence; no complete main was obtained, so it remains unpublished."
+        }
+      ],
+      "gapSummary": "All4 exact white200g formats still lack a qualifying complete main. New WB003A3 dealer gallery routes, native B1 supplier files, ESPO A2 original and A3 package originals yielded low resolution, unavailable sources, or package artwork without actual loose-sheet representation. Existing ACCO A3 detail remains a documented detail-only source, not a completed gallery."
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "name": "perego-unversioned-original",
+          "url": "https://storage.googleapis.com/cdn-peregocartaweb-eu/nomi_commerciali/cartoncino_biancogrigio.jpg",
+          "error": "HTTP 404",
+          "status": "rejected",
+          "reason": "Public original retrieval failed: HTTP 404. No substitute or enlarged image used."
+        },
+        {
+          "name": "ebottega-grey350-native",
+          "url": "https://figure.ebottega.it/figure/bra/bragrigiom.jpg",
+          "path": "tmp/product-image-audit/paper-v9/ebottega-grey350-native.jpg",
+          "width": 475,
+          "height": 475,
+          "bytes": 9959,
+          "sha256": "39acb1e8109f04f6d4cea24f7844b9d7055833b40708c17227aa2ab36afcbca7",
+          "status": "rejected",
+          "reason": "475² image is below minimum; same generic grey-card picture reused across350,450,700g grades, and no exact Grafopak white-front/grey-back identity."
+        },
+        {
+          "sourcePage": "https://www.peregocarta.it/prodotto/188037/",
+          "status": "prior-small-preview-original-route-exhausted",
+          "reason": "Exact requested A3/A4 and350g appear as supplier options, but previously reviewed generic illustrative photo460² has no usable native original through the underlying observed CDN path. No exact photograph claimed for every selectable grade."
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A3",
+            "Format": "A3"
+          }
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4",
+          "specifications": {
+            "Gramatura": "350 g/m²",
+            "Formati": "A4, A3",
+            "Izvedba": "Grafopak polkarton A4",
+            "Format": "A4"
+          }
+        }
+      ],
+      "missingViews": "All 2 listed variants still need a verified native image at least 1024 pixels on both axes showing a sharp complete sheet. Useful separate surface/edge photographs are also missing.",
+      "gapSummary": "Both350g white-front/grey-back A3/A4 Grafopak variants still need actual complete-sheet photographs. New Italian cut-sheet/grade listings and native routes did not yield qualifying exact stock originals: eBottega475² and generic multi-grade greycard; Perego underlying original404, prior460² unchanged. Finished envelopes, pads, industrial cuts and GrafopakKraftGT4 are not substitutes."
+    },
+    {
+      "slug": "barvni-papir",
+      "itemName": "Barvni papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-STRUKTURNO-BELA",
+        "MAT-PAP-BAR-SVETLO-RJAVA",
+        "MAT-PAP-BAR-TEMNO-RJAVA",
+        "MAT-PAP-BAR-RJAVA",
+        "MAT-PAP-BAR-LILA",
+        "MAT-PAP-BAR-VIJOLICASTA",
+        "MAT-PAP-BAR-CRNA",
+        "MAT-PAP-BAR-SIVA",
+        "MAT-PAP-BAR-ROZA",
+        "MAT-PAP-BAR-TEMNO-LILA",
+        "MAT-PAP-BAR-TRAVNO-ZELENA",
+        "MAT-PAP-BAR-TEMNO-ZELENA",
+        "MAT-PAP-BAR-ZELENA",
+        "MAT-PAP-BAR-SVETLO-ZELENA",
+        "MAT-PAP-BAR-ORANZNA",
+        "MAT-PAP-BAR-MODRA",
+        "MAT-PAP-BAR-NEBESNO-MODRA",
+        "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+        "MAT-PAP-BAR-SVETLO-MODRA",
+        "MAT-PAP-BAR-TEMNO-RDECA",
+        "MAT-PAP-BAR-VINSKO-RDECA",
+        "MAT-PAP-BAR-KARMIN-RDECA",
+        "MAT-PAP-BAR-RDECA",
+        "MAT-PAP-BAR-KORUZNO-RUMENA",
+        "MAT-PAP-BAR-MARELICNA",
+        "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+        "MAT-PAP-BAR-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-RJAVA",
+          "variantName": "svetlo rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-CRNA",
+          "variantName": "črna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RDECA",
+          "variantName": "rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "accepted": [
+        {
+          "id": "barvni-papir-crni-b2-130-kurth-v9",
+          "slug": "barvni-papir",
+          "variantSkus": [
+            "MAT-PAP-BAR-CRNA"
+          ],
+          "variantNames": [
+            "črna"
+          ],
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-crni-b2-130-kurth-v9.jpg",
+          "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-schwarz-50-x-70-cm/011390",
+          "sourceUrl": "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+          "imageUrl": "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+          "sha256": "33ba064f8e33ab35068f75c9176597dec962b46ca04ae637b2b1578fcb8ed38c",
+          "width": 3000,
+          "height": 3000,
+          "dimensions": {
+            "width": 3000,
+            "height": 3000
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Celoten črn list z naravno ukrivljenostjo",
+          "altText": "Črn barvni papir B2, 130 g/m²; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "ATEHNA original names unbranded črna, 130 g/m², B2. Supplier identifies black through-coloured Folia6790 130 g/m² DIN B2 approximately50×70cm. Original ATEHNA names only B2; canonical500×707mm is previously traced algorithmic ISO-format normalization, not a measured stock claim. Ordinary black colour, cut and grammage match; no conflicting maker or shade claim. No product specifications changed.",
+          "review": {
+            "exactIdentity": "Commodity paper matching by original product name, black colour, 130gsm and named B2. Supplier approximate trade dimensions recorded separately from nominal imported dimensions.",
+            "quality": "Native3000×3000 unchanged JPEG; complete top sheet with all corners, sharp natural silhouette and slight surface variation. Moderate curve illustrates flexibility, additional lower sheets visibly disclosed. Black surface naturally has limited texture; no invented detail, human, mirroring, padding or upscaling.",
+            "independentRootReview": "2026-09-14 root peer review passed whole-sheet main, sharp natural silhouette/surface and no humans."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/33ba064f8e33ab35-barvni-papir-crni-b2-130-kurth-v9.jpg",
+          "hostedBlobPathname": "catalog-items/barvni-papir/images/33ba064f8e33ab35-barvni-papir-crni-b2-130-kurth-v9.jpg"
+        },
+        {
+          "id": "barvni-papir-rdeci-b2-130-kurth-v9",
+          "slug": "barvni-papir",
+          "variantSkus": [
+            "MAT-PAP-BAR-RDECA"
+          ],
+          "variantNames": [
+            "rdeča"
+          ],
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-rdeci-b2-130-kurth-v9.jpg",
+          "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-rot-50-x-70-cm/011320",
+          "sourceUrl": "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+          "imageUrl": "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+          "sha256": "6da34f0a0fbb9c691e9f1c1f1f535d8c878c3f1205a25cf44b15182739024f3b",
+          "width": 3000,
+          "height": 3000,
+          "dimensions": {
+            "width": 3000,
+            "height": 3000
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Celoten rdeča list z naravno ukrivljenostjo",
+          "altText": "Barvni papir B2, 130 g/m², rdeča barva; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "ATEHNA original names unbranded through-coloured paper (colour added during manufacture), 130g/m², B2, rdeča. Supplier page independently specifies Tonpapier, 130g/m², DIN B2 approximately50×70cm, rot, Folia/MaxBringmann. No manufacturer is claimed for original ATEHNA stock. This is authorized unbranded commodity matching by material, grammage, named format, colour name and original photograph; no claim of identical manufacturer or cross-brand colour-code equivalence. Root and agent compared original ATEHNA image to source and found no obvious conflicting shade/finish; modest saturation/tone difference is consistent with differing photo lighting. Original ATEHNA only names B2; previously documented canonical500×707 is algorithmic nominal ISO-format normalization, supplier trade50×70 recorded separately. No product specifications or brand imported.",
+          "review": {
+            "exactIdentity": "Independent supplier page confirms the exact 130gsm stock and named B2 format. Ordinary named colour compared with original ATEHNA variant photo; no conflicting grade/cut/finish or catalogue manufacturer claim.",
+            "quality": "Unchanged native3000×3000 JPEG. Agent inspected whole image and native-resolution corner/edge crop: complete top sheet, all corners, real fine surface texture and irregular lower sheet edges; natural flexibility, no humans, no template recolouring, no padding/upscaling. Extra sheets visibly excluded.",
+            "independentRootReview": "2026-09-14 root approved original-ATEHNA comparison and whole-sheet/native QA assessment. Ordinary red/lightbrown are close named shades; no obvious contrary colour or finish."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/6da34f0a0fbb9c69-barvni-papir-rdeci-b2-130-kurth-v9.jpg",
+          "hostedBlobPathname": "catalog-items/barvni-papir/images/6da34f0a0fbb9c69-barvni-papir-rdeci-b2-130-kurth-v9.jpg"
+        },
+        {
+          "id": "barvni-papir-svetlo-rjavi-b2-130-kurth-v9",
+          "slug": "barvni-papir",
+          "variantSkus": [
+            "MAT-PAP-BAR-SVETLO-RJAVA"
+          ],
+          "variantNames": [
+            "svetlo rjava"
+          ],
+          "blobUrl": "/images/catalog/2026-09/barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg",
+          "sourcePage": "https://jetzt-kommt-kurth.de/tonpapier-130-g-hellbraun-50-x-70-cm/011375",
+          "sourceUrl": "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+          "imageUrl": "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+          "sha256": "9d770d81bbaaa077be943ff60d6e053391952a5de9fa0765c14db6c78489d468",
+          "width": 3000,
+          "height": 3000,
+          "dimensions": {
+            "width": 3000,
+            "height": 3000
+          },
+          "untouchedOriginal": true,
+          "originalBytes": true,
+          "noHumans": true,
+          "humanFree": true,
+          "visuallyReviewed": true,
+          "exactVariantMatch": true,
+          "imageType": "product",
+          "role": "main",
+          "view": "Celoten svetlo rjava list z naravno ukrivljenostjo",
+          "altText": "Barvni papir B2, 130 g/m², svetlo rjava barva; celoten list in naravna prožnost. Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "sourceIdentityEvidence": "ATEHNA original names unbranded through-coloured paper (colour added during manufacture), 130g/m², B2, svetlo rjava. Supplier page independently specifies Tonpapier, 130g/m², DIN B2 approximately50×70cm, hellbraun, Folia/MaxBringmann. No manufacturer is claimed for original ATEHNA stock. This is authorized unbranded commodity matching by material, grammage, named format, colour name and original photograph; no claim of identical manufacturer or cross-brand colour-code equivalence. Root and agent compared original ATEHNA image to source and found no obvious conflicting shade/finish; modest saturation/tone difference is consistent with differing photo lighting. Original ATEHNA only names B2; previously documented canonical500×707 is algorithmic nominal ISO-format normalization, supplier trade50×70 recorded separately. No product specifications or brand imported.",
+          "review": {
+            "exactIdentity": "Independent supplier page confirms the exact 130gsm stock and named B2 format. Ordinary named colour compared with original ATEHNA variant photo; no conflicting grade/cut/finish or catalogue manufacturer claim.",
+            "quality": "Unchanged native3000×3000 JPEG. Agent inspected whole image and native-resolution corner/edge crop: complete top sheet, all corners, real fine surface texture and irregular lower sheet edges; natural flexibility, no humans, no template recolouring, no padding/upscaling. Extra sheets visibly excluded.",
+            "independentRootReview": "2026-09-14 root approved original-ATEHNA comparison and whole-sheet/native QA assessment. Ordinary red/lightbrown are close named shades; no obvious contrary colour or finish."
+          },
+          "edits": [],
+          "picturedQuantityDisclosure": "Prodaja se posamezen list. Dodatni prikazani listi niso vključeni.",
+          "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/9d770d81bbaaa077-barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg",
+          "hostedBlobPathname": "catalog-items/barvni-papir/images/9d770d81bbaaa077-barvni-papir-svetlo-rjavi-b2-130-kurth-v9.jpg"
+        }
+      ],
+      "rejections": [
+        {
+          "name": "trendmarkt-grey-native",
+          "url": "https://www.trendmarkt24.de/media/image/product/14606/lg/tonpapier-dunkelgrau-steingrau-50x70cm-10-boegen-130-g-m2.jpg",
+          "path": "tmp/product-image-audit/paper-v9/trendmarkt-grey-native.jpg",
+          "width": 600,
+          "height": 600,
+          "bytes": 28980,
+          "sha256": "6b7a436d9101244ede3e5b892f44aabf2b4f3707ff3c41502f8e65c22cb9f4ea",
+          "status": "rejected",
+          "reason": "Original decodes to 600×600; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "als-black130",
+          "url": "https://als-verlag.de/wp-content/uploads/productImages/32.001/00_32.001.jpg",
+          "path": "tmp/product-image-audit/paper-v9/als-black130.jpg",
+          "width": 900,
+          "height": 900,
+          "bytes": 40995,
+          "sha256": "701d9d5f904bbec9472fa77261d7faf4791f153bba8560665de99f64386a2725",
+          "status": "rejected",
+          "reason": "Original decodes to 900×900; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "kurth-orange130",
+          "url": "https://jetzt-kommt-kurth.de/media/4d/8b/af/1612196464/picA011340-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-orange130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 809886,
+          "sha256": "86d74abc8cecf76f6a496e3e6b596fb4b48c91cd478efe5e572ad8979a95bb63",
+          "status": "rejected",
+          "reason": "Native3000² photograph has clearly brighter red-orange saturation than ATEHNA darker ochre-orange; no exact-shade/code equivalence, so do not assign ORANZNA."
+        },
+        {
+          "name": "lms-black400",
+          "url": "https://www.lms.de/media/image/93/ce/73/21309063_21349035_a.jpg",
+          "path": "tmp/product-image-audit/paper-v9/lms-black400.jpg",
+          "width": 350,
+          "height": 273,
+          "bytes": 33114,
+          "sha256": "5c2ccce1b722866e1f51af3764b922100c96724ce3e2ac0e71fa908a412b3879",
+          "status": "rejected",
+          "reason": "Original decodes to 350×273; at least one axis is below1024. No enlargement or empty padding permitted."
+        },
+        {
+          "name": "kurth-darkred130",
+          "url": "https://jetzt-kommt-kurth.de/media/e2/d2/18/1612196460/picA011322-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-darkred130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1022103,
+          "sha256": "b1c3c2b9fdbb7c89ae397c4d2e031b69efdbb47d67a4cb99d6fc4a27708b4bfd",
+          "status": "rejected",
+          "reason": "Wine/burgundy appearance differs from original ATEHNA dark-red stock; no cross-brand shade equivalence proven."
+        },
+        {
+          "name": "kurth-lightgreen130",
+          "url": "https://jetzt-kommt-kurth.de/media/d6/18/72/1612196465/picA011355-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-lightgreen130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 941356,
+          "sha256": "66bee876b7a3eb06802d639768c004a876626c834ba7ee99a30069f1907d779a",
+          "status": "rejected",
+          "reason": "Materially yellower/lime than original light-green; root and agent rejected exact-shade mapping."
+        },
+        {
+          "name": "kurth-grey130",
+          "url": "https://jetzt-kommt-kurth.de/media/90/a2/20/1612196468/picA011384-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-grey130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1758556,
+          "sha256": "0da6248039146e8fc9e9514a2f17d64294ad4194ca03b8cb5c07fc8d56dc4019",
+          "status": "rejected",
+          "reason": "Cool dark grey differs from original warm pale grey; no exact-shade match."
+        },
+        {
+          "name": "kurth-lightblue130",
+          "url": "https://jetzt-kommt-kurth.de/media/3b/91/97/1612196463/picA011333-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-lightblue130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 2049034,
+          "sha256": "1882de52783d6c9ff878b56ea04614e7e7a3215b5bed3747319ff5f8995430d4",
+          "status": "rejected",
+          "reason": "Cyan/teal differs from original pale periwinkle-blue light-blue stock."
+        },
+        {
+          "name": "kurth-redbrown130",
+          "url": "https://jetzt-kommt-kurth.de/media/21/4f/f7/1612196467/picA011374-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-redbrown130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 868449,
+          "sha256": "193f00d5ac63137e30641bc73ff7438cb041ec53837a9d65c5aa7bc680e5f4ad",
+          "status": "rejected",
+          "reason": "Source explicitly rotbraun (red-brown); original ordinary brown comparison is similar but insufficient to assert exact stock shade, held out."
+        },
+        {
+          "name": "kurth-pink130",
+          "url": "https://jetzt-kommt-kurth.de/media/81/9c/bf/1612196461/picA011323-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-pink130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 740755,
+          "sha256": "cfa0a9a67f8da1afe9c2a7452e60e9f711790c531d071029f10a0c691e02f71b",
+          "status": "rejected",
+          "reason": "Bright magenta differs markedly from original pale dusty rose."
+        },
+        {
+          "name": "kurth-lila130",
+          "url": "https://jetzt-kommt-kurth.de/media/60/5d/67/1612196462/picA011328-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-lila130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 992408,
+          "sha256": "1d4144fb03549ce591512942eb78573fdf34604b22608e8799578dc3a7723cf1",
+          "status": "rejected",
+          "reason": "Strong violet differs from original pale lavender lila; cannot silently substitute another purple variant."
+        },
+        {
+          "name": "kurth-lightgrey130",
+          "url": "https://jetzt-kommt-kurth.de/media/b8/20/2d/1612196468/picA011380-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-lightgrey130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 917626,
+          "sha256": "1bfcb36cdbc21b40b0b84cfe48a7f3dccc382e2a350bd2ee472606b03a09d2b8",
+          "status": "rejected",
+          "reason": "Cool lilac-grey differs from original warm pale grey."
+        },
+        {
+          "name": "kurth-darkbrown130",
+          "url": "https://jetzt-kommt-kurth.de/media/48/cb/e3/1612196469/picA011385-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-darkbrown130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1537212,
+          "sha256": "e5ca566b9683a52268e56d535bf095c7f9338bf12d4232dc18e26f39a6e56f3f",
+          "status": "rejected",
+          "reason": "Source dark brown is substantially warmer/reddish than original neutral dark brown; exact shade not established."
+        },
+        {
+          "name": "kurth-bananayellow130",
+          "url": "https://jetzt-kommt-kurth.de/media/ea/eb/12/1611299164/picA011310-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-bananayellow130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 649428,
+          "sha256": "491ba75ca4d2afad77c447f703b736ca694a5a9685c343ea9e6758ad090e6cc3",
+          "status": "rejected",
+          "reason": "Banana/golden yellow differs from original pale corn-yellow; named shade differs and no equivalence proven."
+        },
+        {
+          "name": "kurth-mossgreen130",
+          "url": "https://jetzt-kommt-kurth.de/media/e5/ab/0e/1612196465/picA011353-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-mossgreen130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1003341,
+          "sha256": "27787dfc1712e69742e3a29fcac4a3171b77ead5e3c5af4bcbfee40bd642ad49",
+          "status": "rejected",
+          "reason": "Dark cool green differs from original olive-green stock."
+        },
+        {
+          "name": "kurth-darkgreen130",
+          "url": "https://jetzt-kommt-kurth.de/media/8d/fb/57/1612196466/picA011358-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-darkgreen130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1487687,
+          "sha256": "7a29eb1541d40e1f67ba67ba603867fc8623949d4abe9955729d4b848b98c40a",
+          "status": "rejected",
+          "reason": "Cool deep green differs from original warmer dark green; exact shade not established."
+        },
+        {
+          "name": "kurth-rosa130",
+          "url": "https://jetzt-kommt-kurth.de/media/10/63/ea/1612196461/picA011326-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-rosa130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 895829,
+          "sha256": "0e2fca12143275569e65486956a65000d4eb4826514885f34de3d199fff29947",
+          "status": "rejected",
+          "reason": "Root peer review: original is pale dusty rose; source is more saturated magenta-pink. Difference appears material rather than exposure; excluded."
+        },
+        {
+          "name": "kurth-skyblue130",
+          "url": "https://jetzt-kommt-kurth.de/media/76/57/7f/1612196462/picA011330-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-skyblue130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 2534298,
+          "sha256": "90a8b4b25de25c110f800a0035bd6878d078337fc446d7cf6f6cd1fdb24185b9",
+          "status": "rejected",
+          "reason": "Source more saturated cyan than original pale sky blue; exact shade unproven and root comparison rejected."
+        },
+        {
+          "name": "kurth-strawyellow130",
+          "url": "https://jetzt-kommt-kurth.de/media/89/44/d6/1612196459/picA011311-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-strawyellow130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1706231,
+          "sha256": "9b68ec245998d9bfbf2e556fd5cf9d1a5d473aedfc68f891149f09c843e710f0",
+          "status": "rejected",
+          "reason": "Pale straw/cream differs from original strong yellow; no exact-shade mapping."
+        },
+        {
+          "name": "kurth-lemonyellow130",
+          "url": "https://jetzt-kommt-kurth.de/media/6b/f1/b6/1612196459/picA011312-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-lemonyellow130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 801279,
+          "sha256": "79979adeb1aeca37589a497b40a18bb2728d445a964f2fbab373b25fa933f36e",
+          "status": "rejected",
+          "reason": "Lemon yellow is visibly greener than original warm intense yellow; no exact-shade mapping."
+        },
+        {
+          "name": "kurth-darkblue130",
+          "url": "https://jetzt-kommt-kurth.de/media/68/04/3b/1612196463/picA011336-1_XL.jpg",
+          "path": "tmp/product-image-audit/paper-v9/kurth-darkblue130.jpg",
+          "width": 3000,
+          "height": 3000,
+          "bytes": 1109723,
+          "sha256": "f9a41c6f00952d1f64af4108bbe39bb028543ff87c052e06246061710ba7ed28",
+          "status": "rejected",
+          "reason": "Royal violet-blue differs from original medium cyan-blue; wrong colour variant."
+        }
+      ],
+      "pending": [],
+      "remainingVariants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "missingViews": "24 remaining named colour variants still need a sharp exact-colour whole-sheet main at least1024 pixels on both axes. The3 accepted colours have one complete main each; separate genuinely informative surface/edge photographs are still missing. No crops/rotations counted as additional views.",
+      "gapSummary": "New supplier route provided21 native3000² colour photographs. Exact unbranded commodity review approved black, red and lightbrown only, with original ATEHNA name/material/grammage/format plus direct colour comparison and root peer review. Other candidates had concrete hue/value mismatches or unproven special-shade equivalence. No Folia brand or manufacturer claim imported into product data."
+    }
+  ],
+  "evidence": {
+    "directory": "tmp/product-image-audit/paper-v9",
+    "sourcePageLog": "tmp/product-image-audit/paper-v9/pages.json",
+    "nativeProbeLog": "tmp/product-image-audit/paper-v9/probes.json",
+    "originalVariantImageMap": "tmp/product-image-audit/paper-v9/atehna-variant-image-map.json",
+    "comparisonImages": [
+      "tmp/product-image-audit/paper-v9/colour-comparison-contact.jpg",
+      "tmp/product-image-audit/paper-v9/neutral-comparison-contact.jpg",
+      "tmp/product-image-audit/paper-v9/remaining-colour-comparison-0.jpg",
+      "tmp/product-image-audit/paper-v9/remaining-colour-comparison-1.jpg"
+    ]
+  },
+  "sourcePages": [
+    {
+      "name": "trendmarkt-grey",
+      "url": "https://www.trendmarkt24.de/tonpapier-dunkelgrau/steingrau-50x70cm-10-boegen-130-g/m2",
+      "status": 200,
+      "images": []
+    },
+    {
+      "name": "trendmarkt-brown",
+      "url": "https://www.trendmarkt24.de/tonpapier-schokobraun-nr-85-10er-pack",
+      "status": 200,
+      "images": []
+    },
+    {
+      "name": "officechoice-a3",
+      "url": "https://www.officechoice.com.au/products/colourful-days-pasteboard-a3-200gsm-white-pack-of-50",
+      "error": "HTTP 404"
+    },
+    {
+      "name": "kurth-black130",
+      "url": "https://jetzt-kommt-kurth.de/tonpapier-130-g-schwarz-50-x-70-cm/011390",
+      "status": 200,
+      "images": [
+        "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/a1/4c/5f/1783505108/jkk_logo_whatsapp.jpg",
+        "https://jetzt-kommt-kurth.de/media/09/69/eb/1646124772/jkk_icon_180.png",
+        "https://jetzt-kommt-kurth.de/bundles/emzkurththeme/static/img/Logo_JKK-Prime_small.png?1786444056",
+        "https://jetzt-kommt-kurth.de/media/e4/b9/3a/1612196457/picA0113-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c6/cc/4a/1612196457/picA0113-2_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/71/03/b3/1612196457/picA0113-3_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e6/c1/34/1612196457/picA0113-4_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6f/94/3a/1646691956/pica0113-5_xl.jpg",
+        "https://jetzt-kommt-kurth.de/media/0f/d3/ac/1704272094/suncatcher_schneeflocke_01.jpg",
+        "https://jetzt-kommt-kurth.de/media/d7/3b/0e/1704272094/suncatcher_schneeflocke_02.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/c5/b7/1704272094/suncatcher_schneeflocke_03.jpg",
+        "https://jetzt-kommt-kurth.de/media/9e/28/bb/1704272094/suncatcher_schneeflocke_04.jpg",
+        "https://jetzt-kommt-kurth.de/media/73/d9/ef/1704272094/suncatcher_schneeflocke_05.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/c4/26/1704272094/suncatcher_schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/ab/b8/05/1704272094/suncatcher_schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/6a/5d/1704272094/suncatcher_schneeflocke_08.jpg",
+        "https://jetzt-kommt-kurth.de/media/fc/8b/d5/1704272094/suncatcher_schneeflocke_09.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/65/a4/1698221824/pappteller-adventskranz-schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/8b/66/0f/1698221824/pappteller-adventskranz-schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/96/ff/d7/1698221824/pappteller-adventskranz-schneeflocke_10.jpg",
+        "https://jetzt-kommt-kurth.de/media/27/4f/25/1612196458/picA011300-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/ea/eb/12/1611299164/picA011310-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/89/44/d6/1612196459/picA011311-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6b/f1/b6/1612196459/picA011312-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/49/bf/f4/1612196459/picA011315-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e2/d2/18/1612196460/picA011322-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/81/9c/bf/1612196461/picA011323-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/10/63/ea/1612196461/picA011326-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/5d/67/1612196462/picA011328-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/76/57/7f/1612196462/picA011330-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/3b/91/97/1612196463/picA011333-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/68/04/3b/1612196463/picA011336-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c8/c2/37/1612196464/picA011338-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/4d/8b/af/1612196464/picA011340-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b2/b2/73/1612196464/picA011343-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e5/ab/0e/1612196465/picA011353-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d6/18/72/1612196465/picA011355-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/fb/57/1612196466/picA011358-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/bb/89/1612196466/picA011360-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c0/a7/72/1612196466/picA011365-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/21/4f/f7/1612196467/picA011374-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d4/83/f3/1612196468/picA011376-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b8/20/2d/1612196468/picA011380-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/90/a2/20/1612196468/picA011384-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/48/cb/e3/1612196469/picA011385-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/9b/68/b4/1704272094/suncatcher_schneeflocke_header_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/f3/c0/3f/1698221824/pappteller-adventskranz-schneeflocke_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/b1/ea/98/1694508733/laterne_rakete_regenbogen_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/59/df/1706714168/papmache_huehner_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/86/0c/71/1671636210/schneekugel-mal-anders_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/64/d3/3a/1656654273/header_schultuete-meerjungfrau_Jetzt-kommt-Kurth1.jpg",
+        "https://jetzt-kommt-kurth.de/media/7c/fe/6a/1636631346/header_Adventskalender_Pinguin_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/54/a6/33/1635518032/header_adventskalender_klappbar_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/5a/ff/5b/1612876011/header_Papptellerclowns_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/c7/d6/b0/1611310325/Jetzt-kommt-Kurth_papiertueten_1.jpg"
+      ]
+    },
+    {
+      "name": "als-black130",
+      "url": "https://als-verlag.de/produkt/tonpapier-50-x-70-cm-schwarz-50-bogen/",
+      "status": 200,
+      "images": [
+        "https://als-verlag.de/wp-content/uploads/productImages/32.001/00_32.001.jpg",
+        "https://als-verlag.de/wp-content/uploads/2026/06/ALS_Shop_Herbst_kompakt-scaled.png",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.416/00_32.416-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.101/00_32.101-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.011/00_32.011-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.005/00_32.005-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.005/01_32.005.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.444/00_32.444-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.902/00_32.902-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.003/00_32.003-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.205/00_32.205-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.799/00_32.799-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/productImages/32.121/00_32.121-300x300.jpg",
+        "https://als-verlag.de/wp-content/uploads/2021/09/Papierstruktur-01.jpeg",
+        "https://als-verlag.de/wp-content/uploads/2021/08/PayPal.png",
+        "https://als-verlag.de/wp-content/uploads/2021/08/Sepa.png",
+        "https://als-verlag.de/wp-content/uploads/2022/02/rechnung-icon.png",
+        "https://als-verlag.de/wp-content/uploads/2021/08/dpd.png",
+        "https://als-verlag.de/wp-content/uploads/2021/08/DHL.png",
+        "https://als-verlag.de/wp-content/uploads/2026/08/dhl-gogreen-plus-570x216-1-300x114.png",
+        "https://als-verlag.de/wp-content/uploads/2024/05/DP_GoGreen_KFV_rgb-300x113.png"
+      ]
+    },
+    {
+      "name": "officesuppliesperth-a3",
+      "url": "https://www.officesuppliesperth.com.au/products/colourful-days-pasteboard-a3-200gsm-white-pack-of-50",
+      "error": "HTTP 404"
+    },
+    {
+      "name": "lms-black400",
+      "url": "https://www.lms.de/kunst-basteln/papier/tonpapier/21309063/tonpapier-sortiment-50x70-cm-400-bogen-in-schwarz",
+      "status": 200,
+      "images": [
+        "https://www.lms.de/media/image/93/ce/73/21309063_21349035_a.jpg",
+        "https://www.lms.de/media/image/e0/de/48/logo-tablet.png",
+        "https://www.lms.de/media/image/7f/9b/8c/apple-touch-icon-precomposed.png",
+        "https://www.lms.de/media/image/19/d2/10/win-tile-image.png",
+        "https://www.lms.de/themes/Frontend/LMS_B/frontend/_public/src/img/image1.png",
+        "https://www.lms.de/themes/Frontend/LMS_B/frontend/_public/src/img/image2.png",
+        "https://www.lms.de/themes/Frontend/LMS_B/frontend/_public/src/img/image3.png",
+        "https://www.lms.de/themes/Frontend/LMS_B/frontend/_public/src/img/image5.png",
+        "https://www.lms.de/themes/Frontend/LMS_B/frontend/_public/src/img/home.png",
+        "https://www.lms.de/media/image/menu/blog.png",
+        "https://www.lms.de/media/image/menu/sale.png",
+        "https://www.lms.de/media/image/c4/3e/00/21309063_21349035_a_600x600.jpg",
+        "https://www.lms.de/themes/Frontend/Responsive/frontend/_public/src/img/no-picture.jpg"
+      ]
+    },
+    {
+      "name": "kurth-orange130",
+      "url": "https://jetzt-kommt-kurth.de/tonpapier-130-g-orange-50-x-70-cm/011340",
+      "status": 200,
+      "images": [
+        "https://jetzt-kommt-kurth.de/media/4d/8b/af/1612196464/picA011340-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/a1/4c/5f/1783505108/jkk_logo_whatsapp.jpg",
+        "https://jetzt-kommt-kurth.de/media/09/69/eb/1646124772/jkk_icon_180.png",
+        "https://jetzt-kommt-kurth.de/bundles/emzkurththeme/static/img/Logo_JKK-Prime_small.png?1786444056",
+        "https://jetzt-kommt-kurth.de/media/e4/b9/3a/1612196457/picA0113-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c6/cc/4a/1612196457/picA0113-2_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/71/03/b3/1612196457/picA0113-3_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e6/c1/34/1612196457/picA0113-4_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6f/94/3a/1646691956/pica0113-5_xl.jpg",
+        "https://jetzt-kommt-kurth.de/media/0f/d3/ac/1704272094/suncatcher_schneeflocke_01.jpg",
+        "https://jetzt-kommt-kurth.de/media/d7/3b/0e/1704272094/suncatcher_schneeflocke_02.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/c5/b7/1704272094/suncatcher_schneeflocke_03.jpg",
+        "https://jetzt-kommt-kurth.de/media/9e/28/bb/1704272094/suncatcher_schneeflocke_04.jpg",
+        "https://jetzt-kommt-kurth.de/media/73/d9/ef/1704272094/suncatcher_schneeflocke_05.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/c4/26/1704272094/suncatcher_schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/ab/b8/05/1704272094/suncatcher_schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/6a/5d/1704272094/suncatcher_schneeflocke_08.jpg",
+        "https://jetzt-kommt-kurth.de/media/fc/8b/d5/1704272094/suncatcher_schneeflocke_09.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/65/a4/1698221824/pappteller-adventskranz-schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/8b/66/0f/1698221824/pappteller-adventskranz-schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/96/ff/d7/1698221824/pappteller-adventskranz-schneeflocke_10.jpg",
+        "https://jetzt-kommt-kurth.de/media/27/4f/25/1612196458/picA011300-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/ea/eb/12/1611299164/picA011310-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/89/44/d6/1612196459/picA011311-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6b/f1/b6/1612196459/picA011312-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/49/bf/f4/1612196459/picA011315-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e2/d2/18/1612196460/picA011322-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/81/9c/bf/1612196461/picA011323-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/10/63/ea/1612196461/picA011326-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/5d/67/1612196462/picA011328-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/76/57/7f/1612196462/picA011330-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/3b/91/97/1612196463/picA011333-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/68/04/3b/1612196463/picA011336-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c8/c2/37/1612196464/picA011338-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b2/b2/73/1612196464/picA011343-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e5/ab/0e/1612196465/picA011353-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d6/18/72/1612196465/picA011355-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/fb/57/1612196466/picA011358-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/bb/89/1612196466/picA011360-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c0/a7/72/1612196466/picA011365-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/21/4f/f7/1612196467/picA011374-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d4/83/f3/1612196468/picA011376-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b8/20/2d/1612196468/picA011380-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/90/a2/20/1612196468/picA011384-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/48/cb/e3/1612196469/picA011385-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/9b/68/b4/1704272094/suncatcher_schneeflocke_header_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/f3/c0/3f/1698221824/pappteller-adventskranz-schneeflocke_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/b1/ea/98/1694508733/laterne_rakete_regenbogen_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/59/df/1706714168/papmache_huehner_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/86/0c/71/1671636210/schneekugel-mal-anders_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/64/d3/3a/1656654273/header_schultuete-meerjungfrau_Jetzt-kommt-Kurth1.jpg",
+        "https://jetzt-kommt-kurth.de/media/7c/fe/6a/1636631346/header_Adventskalender_Pinguin_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/54/a6/33/1635518032/header_adventskalender_klappbar_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/5a/ff/5b/1612876011/header_Papptellerclowns_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/c7/d6/b0/1611310325/Jetzt-kommt-Kurth_papiertueten_1.jpg"
+      ]
+    },
+    {
+      "name": "officemart-a3",
+      "url": "https://www.officemart.com.au/products/colourful-cardboard-white-pasteboard-a3-200gsm-3-sheet-pk50",
+      "error": "HTTP 404"
+    },
+    {
+      "name": "independent-a3",
+      "url": "https://www.independentofficesolutions.com.au/product/colourful-cardboard-pasteboard-a3-white-200gsm-pack-50/",
+      "status": 200,
+      "images": [
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121018/australia-white-icon-1.png",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2025/03/18102737/truck-white-e1742254328403-150x150.png",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121015/cropped-favicon-32x32.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121015/cropped-favicon-192x192.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121015/cropped-favicon-180x180.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121015/cropped-favicon-270x270.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121018/tag-icon.png",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/08/25121018/chat-icon.png",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/07/25121033/logo.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/25103920/PASTEBAOARD-A3.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/25103928/CLB05A4-300x300.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/25103930/ROYAL-BLUE.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/22195954/CLBASS-1.jpg",
+        "https://media.independentofficesolutions.com.au/wp-content/uploads/2022/11/25103912/90536-300x300.jpg",
+        "https://www.independentofficesolutions.com.au/wp-content/themes/independent-office-solutions-theme/dist/images/anz-egate.jpg"
+      ]
+    },
+    {
+      "name": "dealscav-a3",
+      "url": "https://www.dealscav.com/product/B00CW9B0E2/Premium-Thick-200gsm-Printing-Sheets",
+      "error": "HTTP 403"
+    },
+    {
+      "name": "panther-card",
+      "url": "https://pantherstationery.com.au/product/white-card-a3-200gsm-100-sheet-pack/",
+      "error": "HTTP 404"
+    },
+    {
+      "name": "kurth-lightbrown130",
+      "url": "https://jetzt-kommt-kurth.de/tonpapier-130-g-hellbraun-50-x-70-cm/011375",
+      "status": 200,
+      "images": [
+        "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/a1/4c/5f/1783505108/jkk_logo_whatsapp.jpg",
+        "https://jetzt-kommt-kurth.de/media/09/69/eb/1646124772/jkk_icon_180.png",
+        "https://jetzt-kommt-kurth.de/bundles/emzkurththeme/static/img/Logo_JKK-Prime_small.png?1786444056",
+        "https://jetzt-kommt-kurth.de/media/e4/b9/3a/1612196457/picA0113-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c6/cc/4a/1612196457/picA0113-2_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/71/03/b3/1612196457/picA0113-3_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e6/c1/34/1612196457/picA0113-4_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6f/94/3a/1646691956/pica0113-5_xl.jpg",
+        "https://jetzt-kommt-kurth.de/media/0f/d3/ac/1704272094/suncatcher_schneeflocke_01.jpg",
+        "https://jetzt-kommt-kurth.de/media/d7/3b/0e/1704272094/suncatcher_schneeflocke_02.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/c5/b7/1704272094/suncatcher_schneeflocke_03.jpg",
+        "https://jetzt-kommt-kurth.de/media/9e/28/bb/1704272094/suncatcher_schneeflocke_04.jpg",
+        "https://jetzt-kommt-kurth.de/media/73/d9/ef/1704272094/suncatcher_schneeflocke_05.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/c4/26/1704272094/suncatcher_schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/ab/b8/05/1704272094/suncatcher_schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/6a/5d/1704272094/suncatcher_schneeflocke_08.jpg",
+        "https://jetzt-kommt-kurth.de/media/fc/8b/d5/1704272094/suncatcher_schneeflocke_09.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/65/a4/1698221824/pappteller-adventskranz-schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/8b/66/0f/1698221824/pappteller-adventskranz-schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/96/ff/d7/1698221824/pappteller-adventskranz-schneeflocke_10.jpg",
+        "https://jetzt-kommt-kurth.de/media/27/4f/25/1612196458/picA011300-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/ea/eb/12/1611299164/picA011310-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/89/44/d6/1612196459/picA011311-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6b/f1/b6/1612196459/picA011312-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/49/bf/f4/1612196459/picA011315-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e2/d2/18/1612196460/picA011322-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/81/9c/bf/1612196461/picA011323-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/10/63/ea/1612196461/picA011326-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/5d/67/1612196462/picA011328-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/76/57/7f/1612196462/picA011330-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/3b/91/97/1612196463/picA011333-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/68/04/3b/1612196463/picA011336-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c8/c2/37/1612196464/picA011338-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/4d/8b/af/1612196464/picA011340-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b2/b2/73/1612196464/picA011343-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e5/ab/0e/1612196465/picA011353-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d6/18/72/1612196465/picA011355-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/fb/57/1612196466/picA011358-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/bb/89/1612196466/picA011360-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c0/a7/72/1612196466/picA011365-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/21/4f/f7/1612196467/picA011374-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d4/83/f3/1612196468/picA011376-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b8/20/2d/1612196468/picA011380-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/90/a2/20/1612196468/picA011384-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/48/cb/e3/1612196469/picA011385-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/9b/68/b4/1704272094/suncatcher_schneeflocke_header_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/f3/c0/3f/1698221824/pappteller-adventskranz-schneeflocke_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/b1/ea/98/1694508733/laterne_rakete_regenbogen_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/59/df/1706714168/papmache_huehner_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/86/0c/71/1671636210/schneekugel-mal-anders_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/64/d3/3a/1656654273/header_schultuete-meerjungfrau_Jetzt-kommt-Kurth1.jpg",
+        "https://jetzt-kommt-kurth.de/media/7c/fe/6a/1636631346/header_Adventskalender_Pinguin_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/54/a6/33/1635518032/header_adventskalender_klappbar_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/5a/ff/5b/1612876011/header_Papptellerclowns_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/c7/d6/b0/1611310325/Jetzt-kommt-Kurth_papiertueten_1.jpg"
+      ]
+    },
+    {
+      "name": "nova-quill-a3",
+      "url": "https://novaschoolsupplies.com.au/quill-board-300gsm-a4-white-pack-50-white/",
+      "status": 200,
+      "images": []
+    },
+    {
+      "name": "kurth-red130",
+      "url": "https://jetzt-kommt-kurth.de/tonpapier-130-g-rot-50-x-70-cm/011320",
+      "status": 200,
+      "images": [
+        "https://jetzt-kommt-kurth.de/media/aa/f9/70/1612196460/picA011320-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/a1/4c/5f/1783505108/jkk_logo_whatsapp.jpg",
+        "https://jetzt-kommt-kurth.de/media/09/69/eb/1646124772/jkk_icon_180.png",
+        "https://jetzt-kommt-kurth.de/bundles/emzkurththeme/static/img/Logo_JKK-Prime_small.png?1786444056",
+        "https://jetzt-kommt-kurth.de/media/e4/b9/3a/1612196457/picA0113-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c6/cc/4a/1612196457/picA0113-2_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/71/03/b3/1612196457/picA0113-3_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e6/c1/34/1612196457/picA0113-4_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6f/94/3a/1646691956/pica0113-5_xl.jpg",
+        "https://jetzt-kommt-kurth.de/media/0f/d3/ac/1704272094/suncatcher_schneeflocke_01.jpg",
+        "https://jetzt-kommt-kurth.de/media/d7/3b/0e/1704272094/suncatcher_schneeflocke_02.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/c5/b7/1704272094/suncatcher_schneeflocke_03.jpg",
+        "https://jetzt-kommt-kurth.de/media/9e/28/bb/1704272094/suncatcher_schneeflocke_04.jpg",
+        "https://jetzt-kommt-kurth.de/media/73/d9/ef/1704272094/suncatcher_schneeflocke_05.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/c4/26/1704272094/suncatcher_schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/ab/b8/05/1704272094/suncatcher_schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/6a/5d/1704272094/suncatcher_schneeflocke_08.jpg",
+        "https://jetzt-kommt-kurth.de/media/fc/8b/d5/1704272094/suncatcher_schneeflocke_09.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/65/a4/1698221824/pappteller-adventskranz-schneeflocke_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/8b/66/0f/1698221824/pappteller-adventskranz-schneeflocke_07.jpg",
+        "https://jetzt-kommt-kurth.de/media/96/ff/d7/1698221824/pappteller-adventskranz-schneeflocke_10.jpg",
+        "https://jetzt-kommt-kurth.de/media/27/4f/25/1612196458/picA011300-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/ea/eb/12/1611299164/picA011310-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/89/44/d6/1612196459/picA011311-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/6b/f1/b6/1612196459/picA011312-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/49/bf/f4/1612196459/picA011315-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e2/d2/18/1612196460/picA011322-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/81/9c/bf/1612196461/picA011323-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/10/63/ea/1612196461/picA011326-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/60/5d/67/1612196462/picA011328-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/76/57/7f/1612196462/picA011330-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/3b/91/97/1612196463/picA011333-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/68/04/3b/1612196463/picA011336-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c8/c2/37/1612196464/picA011338-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/4d/8b/af/1612196464/picA011340-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b2/b2/73/1612196464/picA011343-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/e5/ab/0e/1612196465/picA011353-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d6/18/72/1612196465/picA011355-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/8d/fb/57/1612196466/picA011358-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/87/bb/89/1612196466/picA011360-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/c0/a7/72/1612196466/picA011365-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/21/4f/f7/1612196467/picA011374-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/dd/b9/a1/1612196467/picA011375-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/d4/83/f3/1612196468/picA011376-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/b8/20/2d/1612196468/picA011380-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/90/a2/20/1612196468/picA011384-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/48/cb/e3/1612196469/picA011385-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/bc/65/87/1612196470/picA011390-1_XL.jpg",
+        "https://jetzt-kommt-kurth.de/media/9b/68/b4/1704272094/suncatcher_schneeflocke_header_06.jpg",
+        "https://jetzt-kommt-kurth.de/media/f3/c0/3f/1698221824/pappteller-adventskranz-schneeflocke_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/b1/ea/98/1694508733/laterne_rakete_regenbogen_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/e1/59/df/1706714168/papmache_huehner_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/86/0c/71/1671636210/schneekugel-mal-anders_header.jpg",
+        "https://jetzt-kommt-kurth.de/media/64/d3/3a/1656654273/header_schultuete-meerjungfrau_Jetzt-kommt-Kurth1.jpg",
+        "https://jetzt-kommt-kurth.de/media/7c/fe/6a/1636631346/header_Adventskalender_Pinguin_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/54/a6/33/1635518032/header_adventskalender_klappbar_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/5a/ff/5b/1612876011/header_Papptellerclowns_Jetzt-kommt-Kurth.jpg",
+        "https://jetzt-kommt-kurth.de/media/c7/d6/b0/1611310325/Jetzt-kommt-Kurth_papiertueten_1.jpg"
+      ]
+    },
+    {
+      "name": "kmart-quill",
+      "url": "https://www.kmart.com.au/product/quill-a3-200gsm-board-white-25-pack-110055516/",
+      "error": "HTTP 403"
+    },
+    {
+      "name": "enaa-seleshamer",
+      "url": "https://www.enaa.com/pisarniski-papir/risalni-papir-seleshamer-b1-bel",
+      "status": 200,
+      "images": [
+        "https://static.enaa.com/static/apple-touch-icon.png",
+        "https://static.enaa.com/static/favicon-32x32.png",
+        "https://static.enaa.com/static/favicon-16x16.png",
+        "https://img.enaa.com/oddelki/biroOprema/assets/product_images/risalni_papir_seleshamer_b1_bel_brk13085.PNG",
+        "https://img2.enaa.com/apiImg/image/oddelki/biroOprema/assets/product_images/najvecje/risalni_papir_seleshamer_b1_bel_brk13085.PNG?width=670&height=670",
+        "https://img.enaa.com/oddelki/biroOprema/Assets/product_images/papir_barvni_a4_fabriano_colore_pastelne_barve_vijolicna_80gr_lavanda_vijolicna_lavanda_638001348233992.JPG",
+        "https://img.enaa.com/oddelki/biroOprema/Assets/product_images/papir_barvni_a4_fabriano_colore_pastelne_barve_marelicna_80gr_albicocca_638001348234036.JPG",
+        "https://img.enaa.com/oddelki/biroOprema/Assets/product_images/papir_barvni_a4_fabriano_colore_pastelne_barve_roza_80gr_rosa_638001348234043.JPG",
+        "https://img.enaa.com/oddelki/biroOprema/Assets/product_images/papir_barvni_a4_fabriano_colore_pastelne_barve_svetlo_roza_80gr_cipria_svetlo_roza_cipria_638001348234050.JPG",
+        "https://img.enaa.com/static/images/footer/ico-mastercard3.png",
+        "https://img.enaa.com/static/images/footer/ico-maestro2.png",
+        "https://img.enaa.com/static/images/footer/ico-visa3.png",
+        "https://img.enaa.com/static/images/footer/ico-diners2.png",
+        "https://img.enaa.com/static/images/footer/ico-leanpay.png",
+        "https://img.enaa.com/static/images/footer/ico-nlb.png",
+        "https://img.enaa.com/static/images/footer/ico-prva-trgovina.png",
+        "https://img.enaa.com/static/images/footer/ico-zvami.png",
+        "https://img.enaa.com/static/images/footer/ico-izdelek.png",
+        "https://img.enaa.com/static/images/footer/ico-dostava.png",
+        "https://img.enaa.com/static/images/footer/ico-priporoci.png"
+      ]
+    },
+    {
+      "name": "pigo-seleshamer",
+      "url": "https://www.pigo.si/katalog/papir_in_papirna_galanterija/papir-b1/papir-seleshamer-b1-bel-.html",
+      "status": 200,
+      "images": [
+        "https://www.pigo.si/pic/product/m/3831024732045.png",
+        "https://www.pigo.si/pic/pigo-fb.png",
+        "https://www.pigo.si/pic/logotip-pigo.png",
+        "https://www.pigo.si/pic/product/l/3831024732045.jpg?v=1777900650",
+        "https://www.pigo.si/pic/product/m/3831024732045.jpg?v=1777900650",
+        "https://www.pigo.si/pic/brand-hsm.png",
+        "https://www.pigo.si/pic/brand-gbc.png",
+        "https://www.pigo.si/pic/brand-texas-instruments.png",
+        "https://www.pigo.si/pic/brand-nobo.png",
+        "https://www.pigo.si/pic/brand-expresso.png",
+        "https://www.pigo.si/pic/brand-linc.png",
+        "https://www.pigo.si/pic/brand-leitz.png",
+        "https://www.pigo.si/pic/brand-tfa.png",
+        "https://www.pigo.si/pic/brand-westcott.png",
+        "https://www.pigo.si/pic/brand-acco.png",
+        "https://www.pigo.si/pic/brand-olympia.png",
+        "https://www.pigo.si/pic/brand-levia.png",
+        "https://www.pigo.si/pic/brand-hp.png",
+        "https://www.pigo.si/pic/brand-canon.png",
+        "https://www.pigo.si/pic/brand-rexel.png",
+        "https://www.pigo.si/pic/brand-mediarange.png",
+        "https://www.pigo.si/pic/brand-officepoint.png",
+        "https://www.pigo.si/pic/brand-kensington.png",
+        "https://www.pigo.si/pic/wra-24.png"
+      ]
+    },
+    {
+      "name": "active-pure200",
+      "url": "https://www.active-paper.co.uk/product/smooth-matt-white-card-200gsm",
+      "status": 200,
+      "images": [
+        "https://www.active-paper.co.uk/apple-icon-57x57.png",
+        "https://www.active-paper.co.uk/apple-icon-60x60.png",
+        "https://www.active-paper.co.uk/apple-icon-72x72.png",
+        "https://www.active-paper.co.uk/apple-icon-76x76.png",
+        "https://www.active-paper.co.uk/apple-icon-114x114.png",
+        "https://www.active-paper.co.uk/apple-icon-120x120.png",
+        "https://www.active-paper.co.uk/apple-icon-144x144.png",
+        "https://www.active-paper.co.uk/apple-icon-152x152.png",
+        "https://www.active-paper.co.uk/apple-icon-180x180.png",
+        "https://www.active-paper.co.uk/android-icon-192x192.png",
+        "https://www.active-paper.co.uk/favicon-32x32.png",
+        "https://www.active-paper.co.uk/favicon-96x96.png",
+        "https://www.active-paper.co.uk/favicon-16x16.png",
+        "https://www.active-paper.co.uk/ms-icon-144x144.png",
+        "https://www.active-paper.co.uk/product/images/logo-black-bg.jpg",
+        "https://www.active-paper.co.uk/product/images/sml-logo.png",
+        "https://www.active-paper.co.uk/product/pictures/15023161522-mega.jpg",
+        "https://www.active-paper.co.uk/product/pictures/15023146123-mega.jpg",
+        "https://www.active-paper.co.uk/product/pictures/15023161901-mega.jpg",
+        "https://www.active-paper.co.uk/product/images/half-menu.jpg",
+        "https://www.active-paper.co.uk/product/pictures/1479644812pure%20image.jpg",
+        "https://www.active-paper.co.uk/product/pictures/thumbnails/1479644812pure%20image.jpg",
+        "https://www.active-paper.co.uk/product/images/product-page-bottom.jpg",
+        "https://www.active-paper.co.uk/product/pictures/thumbnails/prod_817_0.jpg",
+        "https://www.active-paper.co.uk/product/pictures/thumbnails/prod_1145_0.jpg",
+        "https://www.active-paper.co.uk/product/pictures/thumbnails/prod_1184_0.jpg",
+        "https://www.active-paper.co.uk/product/pictures/thumbnails/prod_1533_0.jpg",
+        "https://www.active-paper.co.uk/product/images/footer-1a.jpg",
+        "https://www.active-paper.co.uk/product/images/footer-logo.png",
+        "https://www.active-paper.co.uk/product/images/cards-topbar.jpg"
+      ]
+    },
+    {
+      "name": "espo-a2-200",
+      "url": "https://www.espo.org/cartridge-a2-white-heavy-200-gsm-paper-292737.html",
+      "status": 200,
+      "images": [
+        "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg?quality=80&bg-color=255,255,255&fit=bounds&height=350&width=350&canvas=350:350",
+        "https://www.espo.org/media/blog/2021/Sports-brochure-21/Summer-of-Sports-_905-x-493_-1.png",
+        "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg?quality=80&bg-color=255,255,255&fit=bounds&height=265&width=265&canvas=265:265",
+        "https://www.espo.org/media/logo/stores/1/espo-logo.png",
+        "https://www.espo.org/media/pushon/hyvathemeconfiguration/default/logo-mobile.png",
+        "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg?width=1000&height=&canvas=1000,&quality=80&bg-color=255,255,255&fit=bounds",
+        "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg?width=560&height=560&canvas=560,560&quality=80&bg-color=255,255,255&fit=bounds",
+        "https://www.espo.org/media/catalog/product/1/0/102156_304.jpg?width=88&height=88&canvas=88,88&quality=80&bg-color=255,255,255&fit=bounds",
+        "https://www.espo.org/media/wysiwyg/Assets/Icons/Social/ESPO-Facebook-Icon-46px2.png",
+        "https://www.espo.org/media/wysiwyg/Assets/Icons/Social/ESPO-LinkedIn-Icon-46px2.png",
+        "https://www.espo.org/media/wysiwyg/Assets/Icons/Social/ESPO-Instagram-Icon-46px2.png"
+      ]
+    },
+    {
+      "name": "nationalarts-whiteb1",
+      "url": "https://nationalartsupplies.co.nz/product/colore-white-200gsm-700x1000mm/",
+      "error": "HTTP 404"
+    },
+    {
+      "name": "papercutz-white200a4",
+      "url": "https://papercutz.co.uk/a4-card-white-printer-and-crafts-200gsm-250micron",
+      "status": 200,
+      "images": [
+        "https://papercutz.co.uk/media/catalog/product/cache/4cb9dcad923fb82feb01d5f94f469f70/a/4/a4-white-extra-thick-box-board-gloss-coated-2-sides-500gsm-50760-p_7_1.jpg",
+        "https://papercutz.co.uk/media/wysiwyg/papercutz-product-offers-banner.jpg",
+        "https://papercutz.co.uk/media/catalog/product/cache/4cb9dcad923fb82feb01d5f94f469f70/a/4/a4-card-assorted-bright-colours-220gsm-4532-p.jpg",
+        "https://papercutz.co.uk/media/catalog/product/cache/4cb9dcad923fb82feb01d5f94f469f70/a/4/a4-card-assorted-pastel-colours-220gsm-4512-p.jpg",
+        "https://papercutz.co.uk/media/wysiwyg/6655.png"
+      ]
+    },
+    {
+      "name": "ebottega-whitegrey350",
+      "url": "https://www.ebottega.it/catalogo.asp?Cat=10&sito=carta",
+      "status": 200,
+      "images": [
+        "https://www.ebottega.it/interfaccia/compassInUso/compass.webp",
+        "https://figure.ebottega.it/immbrandes.php?image=tob/tobpctyt4/correttore-a-nastro-4-2mmx10m-tombow-mono-correction-tape.jpg",
+        "https://figure.ebottega.it/immbrandes.php?image=bra/avorio/cartonevegetale-avorio--1-5mm--744gr--a4.jpg",
+        "https://figure.ebottega.it/immbrandes.php?image=bra/bra231sra3/similtela-fedrigoni-blunotte--125gr--sra3.png",
+        "https://figure.ebottega.it/immbrandes.php?image=bra/bra548/cartacolorata-mondineusiedler--80grammi--a4--crema20.png"
+      ]
+    }
+  ],
+  "priorLedgers": [
+    "data/catalog/replacement-sources-paper-v8-2026-09.json"
+  ],
+  "mutationSummary": "Research and staging only:3 unchanged accepted JPEG assets plus this source ledger. No DB, canonical, runtime, uploads or external mutations performed by this agent. Root handles integration.",
+  "appliedAt": "2026-09-14T15:32:28.075Z",
+  "productionTransaction": "tmp/catalog-refinements/add-reviewed-photos-production-2026-09-14T15-27-36-299Z"
+}

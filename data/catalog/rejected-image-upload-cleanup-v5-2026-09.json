@@ -1,0 +1,452 @@
+{
+  "version": 1,
+  "checkedAt": "2026-09-14T12:01:06.130Z",
+  "scope": "Exactly two provisional Brack black-paper uploads rejected before catalog association. No other storage objects or database rows were changed.",
+  "status": "retained-unassociated-retention-window",
+  "minimumAgeHours": 24,
+  "authenticatedOwnershipVerified": true,
+  "exactSha256Verified": true,
+  "allConfiguredConnectableDatabasesScanned": true,
+  "databaseCount": 25,
+  "tableCount": 1585,
+  "referencesFound": 0,
+  "outboxIntentsFound": 0,
+  "deletionAttempted": false,
+  "objects": [
+    {
+      "entryId": "barvni-papir-crni-b2-130-pogled-v5",
+      "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/1ee83e5e4ef2aa1c-barvni-papir-crni-b2-130-pogled-v5.jpg",
+      "pathname": "catalog-items/barvni-papir/images/1ee83e5e4ef2aa1c-barvni-papir-crni-b2-130-pogled-v5.jpg",
+      "storeId": "store_CrIncEoWa5EmvIN9",
+      "size": 84763,
+      "sha256": "1ee83e5e4ef2aa1ce5d4ad1c0d1e4c2326923cbe7187b09a04414961074af60b",
+      "etag": "\"7bd3a2bcf55b036cc3a759a01b5b8bb2\"",
+      "uploadedAt": "2026-09-14T11:46:21.000Z",
+      "earliestRoutineCleanupAt": "2026-09-15T11:46:21.000Z",
+      "everAssociatedWithCatalog": false,
+      "status": "retained-unassociated-retention-window",
+      "reason": "Existing storage lifecycle requires a minimum age of 24 hours. Authenticated ownership, exact bytes and absence of references were checked, but the retention gate was preserved.",
+      "referenceCount": 0,
+      "outboxIntentCount": 0,
+      "deletionAttempted": false,
+      "underlyingFileDeleted": false,
+      "recoveryFile": "tmp/product-image-audit/rejected-brack-cleanup/barvni-papir-crni-b2-130-pogled-v5.recovery.jpg"
+    },
+    {
+      "entryId": "barvni-papir-crni-b2-130-rob-v5",
+      "url": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/barvni-papir/images/2495ca1afdc8ab90-barvni-papir-crni-b2-130-rob-v5.jpg",
+      "pathname": "catalog-items/barvni-papir/images/2495ca1afdc8ab90-barvni-papir-crni-b2-130-rob-v5.jpg",
+      "storeId": "store_CrIncEoWa5EmvIN9",
+      "size": 96179,
+      "sha256": "2495ca1afdc8ab901586faabed8e0065575d3245a8ff3f117da43ea9d07ea1ee",
+      "etag": "\"2e1f86de9629cdc81f275d58e298cb2b\"",
+      "uploadedAt": "2026-09-14T11:46:23.000Z",
+      "earliestRoutineCleanupAt": "2026-09-15T11:46:23.000Z",
+      "everAssociatedWithCatalog": false,
+      "status": "retained-unassociated-retention-window",
+      "reason": "Existing storage lifecycle requires a minimum age of 24 hours. Authenticated ownership, exact bytes and absence of references were checked, but the retention gate was preserved.",
+      "referenceCount": 0,
+      "outboxIntentCount": 0,
+      "deletionAttempted": false,
+      "underlyingFileDeleted": false,
+      "recoveryFile": "tmp/product-image-audit/rejected-brack-cleanup/barvni-papir-crni-b2-130-rob-v5.recovery.jpg"
+    }
+  ],
+  "reviews": [
+    {
+      "cluster": "production",
+      "complete": true,
+      "databases": [
+        {
+          "database": "atehna_clean_31c1b28",
+          "tables": 62,
+          "readOnly": true,
+          "tlsVerified": true
+        },
+        {
+          "database": "atehna_preview",
+          "tables": 62,
+          "readOnly": true,
+          "tlsVerified": true
+        },
+        {
+          "database": "atehna_production",
+          "tables": 79,
+          "readOnly": true,
+          "tlsVerified": true
+        },
+        {
+          "database": "neondb",
+          "tables": 61,
+          "readOnly": true,
+          "tlsVerified": true
+        },
+        {
+          "database": "postgres",
+          "tables": 3,
+          "readOnly": true,
+          "tlsVerified": true
+        }
+      ],
+      "issues": [],
+      "exclusions": [
+        {
+          "database": "atehna_clean_31c1b28",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_preview",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_production",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_production",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "neondb",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        }
+      ],
+      "objects": [
+        {
+          "id": "e15684d09e289c173dc026cc2c2dda117b34927ed65359e38895b6f1532bb574",
+          "blockers": [
+            "retention-or-in-flight-window"
+          ],
+          "candidate": false,
+          "references": [],
+          "intents": []
+        },
+        {
+          "id": "2d7196f189f2ae3a700acec1e5633ba88b6512b4202d30fb1d596f4ad7ee3151",
+          "blockers": [
+            "retention-or-in-flight-window"
+          ],
+          "candidate": false,
+          "references": [],
+          "intents": []
+        }
+      ]
+    },
+    {
+      "cluster": "local",
+      "complete": true,
+      "databases": [
+        {
+          "database": "atehna_e2e_admin_release_20260907",
+          "tables": 75,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_20260907_1f7350",
+          "tables": 75,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_final_20260907_1f7350",
+          "tables": 75,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_fresh_preserved_20260907_1f7350",
+          "tables": 72,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350",
+          "tables": 72,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_atomic",
+          "tables": 0,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_baseline",
+          "tables": 72,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_restore",
+          "tables": 72,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_history_20260907_contract",
+          "tables": 72,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_localhost_quote",
+          "tables": 82,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_perf_20260913_253e69",
+          "tables": 82,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_pricing_stock_20260906",
+          "tables": 73,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_product_images_20260913",
+          "tables": 82,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_product_variants_20260910",
+          "tables": 82,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_release_465_10a284d15431",
+          "tables": 82,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_release_final_verification",
+          "tables": 64,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_e2e_release_validation",
+          "tables": 64,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_release_migration_validation_20260902",
+          "tables": 61,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "atehna_release_migration_validation_20260902_sol",
+          "tables": 61,
+          "readOnly": true,
+          "tlsVerified": false
+        },
+        {
+          "database": "postgres",
+          "tables": 0,
+          "readOnly": true,
+          "tlsVerified": false
+        }
+      ],
+      "issues": [],
+      "exclusions": [
+        {
+          "database": "atehna_e2e_admin_release_20260907",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_admin_release_20260907",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_20260907_1f7350",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_20260907_1f7350",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_final_20260907_1f7350",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_final_20260907_1f7350",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_fresh_preserved_20260907_1f7350",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_fresh_preserved_20260907_1f7350",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_baseline",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_baseline",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_restore",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_audit_schema_20260907_1f7350_restore",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_history_20260907_contract",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_history_20260907_contract",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_localhost_quote",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_localhost_quote",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_perf_20260913_253e69",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_perf_20260913_253e69",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_pricing_stock_20260906",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_pricing_stock_20260906",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_product_images_20260913",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_product_images_20260913",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_product_variants_20260910",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_product_variants_20260910",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_release_465_10a284d15431",
+          "table": "public.analytics_geography_references",
+          "reason": "Coordinate leaves verified numeric; all other geography metadata retained in scan."
+        },
+        {
+          "database": "atehna_e2e_release_465_10a284d15431",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_release_final_verification",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_e2e_release_validation",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_release_migration_validation_20260902",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        },
+        {
+          "database": "atehna_release_migration_validation_20260902_sol",
+          "table": "public.gurs_addresses",
+          "reason": "Exact official GURS source schema; address/reference values not inspected."
+        }
+      ],
+      "objects": [
+        {
+          "id": "e15684d09e289c173dc026cc2c2dda117b34927ed65359e38895b6f1532bb574",
+          "blockers": [
+            "retention-or-in-flight-window"
+          ],
+          "candidate": false,
+          "references": [],
+          "intents": []
+        },
+        {
+          "id": "2d7196f189f2ae3a700acec1e5633ba88b6512b4202d30fb1d596f4ad7ee3151",
+          "blockers": [
+            "retention-or-in-flight-window"
+          ],
+          "candidate": false,
+          "references": [],
+          "intents": []
+        }
+      ]
+    }
+  ],
+  "nextStep": "After each earliestRoutineCleanupAt, the normal storage lifecycle must perform fresh reference, metadata, recovery and external-retention checks. This receipt does not authorize later deletion or schedule a cleanup.",
+  "privateDetailedEvidenceDirectory": "tmp/product-image-audit/rejected-brack-cleanup"
+}

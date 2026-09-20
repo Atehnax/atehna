@@ -254,5 +254,8 @@
         "/images/catalog/2026-09/medeninasta-plosca-pravokotnik.png"
       ]
     }
+  ],
+  "supersededBy": [
+    "product-image-remediation-2026-09.json"
   ]
 }

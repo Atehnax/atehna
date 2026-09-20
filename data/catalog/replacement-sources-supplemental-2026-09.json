@@ -1,0 +1,489 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-09-13T20:25:29.787Z",
+  "scope": "Supplemental exact source research for UHU Kraft 42 g, white-plunger Vgradno stikalo and geo-Fennel Rubber Tape 5 m; no database or canonical mutation.",
+  "accepted": [
+    {
+      "slug": "uhu-kraft",
+      "id": "uhu-kraft-42g-front-toom-v3",
+      "file": "public/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "sourcePage": "https://toom.de/p/alleskleber-kraft-flex-tube-42-g/8150308",
+      "imageUrl": "https://static.toom.de/produkte/bilder/8150308/8150308.png",
+      "sourceIdentityEvidence": "TOOM product 8150308 identifies UHU Kraft FlexTube 42 g; linked manufacturer SDS explicitly identifies UHU 45040. Label/model/volume match the current official photo.",
+      "sourceIdentityDocument": "https://static.toom.de/produkte/bilder/8150308/sicherheitsdatenblatt_8150308.pdf",
+      "variantNames": [
+        "UHU Kraft alleskleber - 42g"
+      ],
+      "variantIds": [
+        "175"
+      ],
+      "view": "front-three-quarter",
+      "altText": "UHU Kraft FlexTube, 42 g — celotna tuba in oznake izdelka",
+      "replaceBlobUrls": [
+        "/images/catalog/2026-09/uhu-kraft-42g-izvirnik.png"
+      ],
+      "review": "Unchanged native 2000 × 2000 retailer original PNG. Sharp exact UHU Kraft 42 g FlexTube label, cap and tube surface at original pixel scale; complete product on neutral white background, no humans. Product itself spans 1160 × 1192 pixels (threshold 180 bounds), with natural framing. Higher detail version of the authenticated official front capture; counts as one front photograph, not an additional viewing angle. Root independently visually reviewed and accepted.",
+      "width": 2000,
+      "height": 2000,
+      "bytes": 629496,
+      "sha256": "56de812574c2ed2b21f59c8d04712b08ef7e6c8ae0e6a3f74e275175ebfa7f0a",
+      "blobUrl": "/images/catalog/2026-09/uhu-kraft-42g-front-toom-v3.png",
+      "untouchedOriginal": true,
+      "noHumans": true,
+      "role": "main"
+    }
+  ],
+  "rejectedCandidates": [
+    {
+      "name": "switch-opitec-0",
+      "url": "https://www.opitec.com/media/3a/8a/d8/1764711322/212016-000-000-VO-03_v_9.jpg?ts=1764711322",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-opitec-0.jpeg",
+      "width": 2560,
+      "height": 2000,
+      "bytes": 493024,
+      "sha256": "62c03df491f0ba32a4e63791f75e79c037962c56d377837685dd5fb295cc5604",
+      "accepted": false,
+      "rejectReason": "Different visible model: black plunger and smooth white collar, unlike original ATEHNA white plunger with ribbed nut."
+    },
+    {
+      "name": "switch-opitec-1",
+      "url": "https://www.opitec.com/media/7d/99/44/1764711323/212016-000-000-VO-03d01_v_9.jpg?ts=1764711323",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-opitec-1.jpeg",
+      "width": 2332,
+      "height": 2560,
+      "bytes": 304341,
+      "sha256": "17972f8eb0c81c6bef26fad09eb562b1d10e137a4eda834f606c92ed9d14809d",
+      "accepted": false,
+      "rejectReason": "Different visible model: black plunger and smooth white collar, unlike original ATEHNA white plunger with ribbed nut."
+    },
+    {
+      "name": "uhu-plate",
+      "url": "https://static.plate.de/Product/45040/00_45040_z/jpg/d8c/standard0045040z.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-plate.jpeg",
+      "width": 400,
+      "height": 400,
+      "bytes": 14851,
+      "sha256": "d4eddd60773cb067abcb257e990b00a40fffb29bfca2f2a9464f9fb3bf5f0d8f",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 400 × 400, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-pentagon-front",
+      "url": "https://magazin-online-pentagon.ro/wp-content/uploads/2020/05/Rubber_Tape_geo-fennel.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-pentagon-front.jpeg",
+      "width": 646,
+      "height": 646,
+      "bytes": 21968,
+      "sha256": "275e8acd1f9631e41c9fc442e3be5d63bfff6944d3d37b2a9fd75a3e2977bc42",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 646 × 646, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-pentagon-hook",
+      "url": "https://magazin-online-pentagon.ro/wp-content/uploads/2020/05/geo-fennel-ruleta-rubber-tape-banda.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-pentagon-hook.jpeg",
+      "width": 740,
+      "height": 740,
+      "bytes": 30983,
+      "sha256": "1ab512b660e29092f79a41f2ea190f11559d81692c140f62a7a6c11e03464691",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 740 × 740, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-elektro-0",
+      "url": "https://www.elektro4000.de/images/product_images/popup_images/15179_53380d47b686b3d75e0552c6cff38631_all.webp",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-elektro-0.webp",
+      "width": 376,
+      "height": 380,
+      "bytes": 9822,
+      "sha256": "12ef9253dff10aa011d8ee8928c565b346e1000855ce7b3ce463345874bfd47a",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 376 × 380, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-elektro-1",
+      "url": "https://www.elektro4000.de/images/product_images/popup_images/15179_23edc883b0ee54575609cbd7ec6bca96_all.webp",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-elektro-1.webp",
+      "width": 380,
+      "height": 380,
+      "bytes": 2870,
+      "sha256": "d8a3cc63f3b029023dee487571998ab003ae4f434a5b921f5872d74bbecd12c6",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 380 × 380, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-elektro-2",
+      "url": "https://www.elektro4000.de/images/product_images/popup_images/15179_fd2c7bd3ea044d23b07a6b3f41406b5f_all.webp",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-elektro-2.webp",
+      "width": 380,
+      "height": 380,
+      "bytes": 11566,
+      "sha256": "3b45c8b8d47f23543455f3ff413be152dd2cea25d55592ec3b04cdb2bf743f5e",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 380 × 380, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-elektro-3",
+      "url": "https://www.elektro4000.de/images/product_images/popup_images/15179_245c1ee48ca600c1c19daee8cb87a3ae_all.webp",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-elektro-3.webp",
+      "width": 380,
+      "height": 380,
+      "bytes": 6858,
+      "sha256": "dcc1c3a957a222ae59114f096a3db360bd8f3d55bdf47d14106aff4e7ec8da0a",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 380 × 380, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-elektro-4",
+      "url": "https://www.elektro4000.de/images/product_images/popup_images/15179_d455cb24a23f7f567f8953cec792477a_all.webp",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-elektro-4.webp",
+      "width": 380,
+      "height": 380,
+      "bytes": 6898,
+      "sha256": "107ddc53ae25bfc94753525cae9d6256ed699a1847fd667d44e1d9d97a763893",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 380 × 380, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-conrad-raw",
+      "url": "https://ags71.ba/image/products--1427366160-478764-0.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-conrad-raw.webp",
+      "width": 1000,
+      "height": 1000,
+      "bytes": 56224,
+      "sha256": "39b68ec2cbc6e05a048e0ccd0286edb09fc594e6e0c02bef997f2fcda6f4ad23",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 1000 × 1000, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-paperco-raw",
+      "url": "https://paperco.hu/image/catalog/termekek/15956/7370047003_1_uhu-45040-kraft-flexclean-univerzalis-ragaszto-42g.png",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-paperco-raw.png",
+      "width": 957,
+      "height": 1280,
+      "bytes": 282444,
+      "sha256": "c171ae3a13aa9ceb69493a2a9bf761fc1ff0f517b492d4f7074cb9e2ead9cdd4",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 957 × 1280, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-beton-raw",
+      "url": "https://www.betonavenue.fr/img/p/1/7/6/0/1760.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-beton-raw.png",
+      "width": 800,
+      "height": 800,
+      "bytes": 232099,
+      "sha256": "5ba6dafb371ba3bbb2f72df7f32c3a170d1903f6f6b70eec8f1bbdf9fc6d396c",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 800 × 800, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-csmega-0",
+      "url": "https://csdam.net/digitalcontent/0/5563/55637209.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-csmega-0.jpeg",
+      "width": 800,
+      "height": 600,
+      "bytes": 23896,
+      "sha256": "f128763792e768043f42f2f49e85019dd1641ea90a0425fc07bc3407e9e62623",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 800 × 600, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "uhu-csmega-1",
+      "url": "https://csdam.net/digitalcontent/0/3932/39321528.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/uhu-csmega-1.jpeg",
+      "width": 800,
+      "height": 600,
+      "bytes": 25669,
+      "sha256": "2397f95a9b6ef8aeb0047dd0a9d8aaa2ec683fdef64d3b5e544ef706bb31a234",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 800 × 600, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-profi",
+      "url": "https://www.profi-bau-shop.de/images/stories/virtuemart/product/M3450127.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-profi.jpeg",
+      "width": 600,
+      "height": 600,
+      "bytes": 31420,
+      "sha256": "ac0cc1f2716d63f12ad81590e5f1306c1d718ccbb6aa121a4fe8cf95ab64d1d9",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 600 × 600, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-izmerim-578",
+      "url": "https://izmerim.si/img/p/5/7/8/578.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-izmerim-578.jpeg",
+      "width": 800,
+      "height": 800,
+      "bytes": 82634,
+      "sha256": "0791af410eb191399ab306818578eb7c4149f05105c2ba23464ffaaf31de2b92",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 800 × 800, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "tape-izmerim-579",
+      "url": "https://izmerim.si/img/p/5/7/9/579.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/tape-izmerim-579.jpeg",
+      "width": 600,
+      "height": 600,
+      "bytes": 49845,
+      "sha256": "04b7864de9b47e8314f13d8716e2d528f20b15b9bd326bedfebd51370432f8a3",
+      "accepted": false,
+      "rejectReason": "Native delivered image is only 600 × 600, below 1024 pixels in both dimensions."
+    },
+    {
+      "name": "switch-textil-0",
+      "pageImageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=1820x1280:format=jpg/path/sa0ce1c188da8cf85/image/if2336cf46eaafaea/version/1521728488/image.jpg",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/if2336cf46eaafaea/version/1521728488/image.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-textil-0.jpeg",
+      "width": 1306,
+      "height": 1307,
+      "bytes": 733931,
+      "sha256": "e74c8ae832f4450a05a970e62b5cbda1fe9fa5af193d19928bc1ca00b4163c3e",
+      "accepted": false,
+      "rejectReason": "Different visible construction: two screw terminals on broad face; original ATEHNA has central snap-tab and terminal on narrow end."
+    },
+    {
+      "name": "switch-textil-1",
+      "pageImageUrl": "https://image.jimcdn.com/app/cms/image/transf/dimension=1820x1280:format=jpg/path/sa0ce1c188da8cf85/image/iaf01b1992d2a149c/version/1521728488/image.jpg",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/iaf01b1992d2a149c/version/1521728488/image.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-textil-1.jpeg",
+      "width": 1552,
+      "height": 1553,
+      "bytes": 791696,
+      "sha256": "e57c4406846c59509861ca510b3a083e7342a843eb79ad667fa4212193dab814",
+      "accepted": false,
+      "rejectReason": "Different visible construction: two screw terminals on broad face; original ATEHNA has central snap-tab and terminal on narrow end."
+    },
+    {
+      "name": "switch-textil-2",
+      "pageImageUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i5f3cf736e19411a7/version/1521728488/image.jpg",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i5f3cf736e19411a7/version/1521728488/image.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-textil-2.jpeg",
+      "width": 1133,
+      "height": 1134,
+      "bytes": 598348,
+      "sha256": "ea097dfdc32679736e00c1df9d22b49f5dca5b2b5ac902fc1b66ff99994370a9",
+      "accepted": false,
+      "rejectReason": "Different visible construction: two screw terminals on broad face; original ATEHNA has central snap-tab and terminal on narrow end."
+    },
+    {
+      "name": "switch-textil-3",
+      "pageImageUrl": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i7344bb26f2e5580e/version/1521728546/image.jpg",
+      "url": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i7344bb26f2e5580e/version/1521728546/image.jpg",
+      "path": "tmp/product-image-audit/supplemental-v3/switch-textil-3.jpeg",
+      "width": 1015,
+      "height": 1015,
+      "bytes": 544995,
+      "sha256": "581d68b043c621348585daa20171ef513470547fbae84f71714cfc46441e1460",
+      "accepted": false,
+      "rejectReason": "Different visible construction: two screw terminals on broad face; original ATEHNA has central snap-tab and terminal on narrow end."
+    }
+  ],
+  "sourcePages": [
+    {
+      "name": "uhu-koch",
+      "url": "https://portal.kochfreiburg.de/p/uhu-alleskleber-kraft-flextube-kunststof-ftube-42g-4026700450408-87050736",
+      "status": 403
+    },
+    {
+      "name": "uhu-plate",
+      "url": "https://www.plate.de/p/klebstoff-uhu-alleskleber-kraft-flextube-45040_45040.html",
+      "status": 200
+    },
+    {
+      "name": "tape-pentagon",
+      "url": "https://magazin-online-pentagon.ro/produs/ruleta-de-5-m-tip-rubber-tape-banda-metalica-geo-fennel/",
+      "status": 200
+    },
+    {
+      "name": "tape-leclerc",
+      "url": "https://www.e.leclerc/fp/4045921140486",
+      "status": 200
+    },
+    {
+      "name": "switch-opitec",
+      "url": "https://www.opitec.com/fr-fr/interrupteurs-a-poussoir-1-position-.../212016",
+      "status": 200
+    },
+    {
+      "name": "uhu-bol",
+      "url": "https://www.bol.com/nl/nl/p/uhu-0040485-multi-purpose-lijm-transparent-lijm/9200000128537047/",
+      "status": 403
+    },
+    {
+      "name": "tape-bati",
+      "url": "https://www.bati-avenue.com/metre-ruban-rubber-tape-5m-x-25mm-geo-fennel-m345014-geo-m345014.html",
+      "status": 403
+    },
+    {
+      "name": "tape-beton",
+      "url": "https://www.betonavenue.fr/120-metre-ruban-5mx25-mm-bi-matiere.html",
+      "status": 200
+    },
+    {
+      "name": "switch-reichelt",
+      "url": "https://www.reichelt.de/de/de/shop/produkt/einbau-druckschalter_25_x_14_x_26_mm_weiss-228089",
+      "status": 503
+    },
+    {
+      "name": "uhu-conrad",
+      "url": "https://conrad.ba/p/univerzalno-ljepilo-uhu-kraftflex-clean-45040-prozirno42-g-478764.html",
+      "status": 200
+    },
+    {
+      "name": "uhu-jukama",
+      "url": "https://jukama.de/UHU-Alleskleber-Kraft-FLEX-CLEAN-transparent-42-g",
+      "status": 200
+    },
+    {
+      "name": "uhu-mueller",
+      "url": "https://www.mueller.ch/p/uhu-alleskleber-kraft-flextube-5915/",
+      "status": 403
+    },
+    {
+      "name": "switch-interbaer",
+      "url": "https://www.interbaer.de",
+      "status": 200
+    },
+    {
+      "name": "uhu-paperco",
+      "url": "https://paperco.hu/uhu-45040-kraft-flexclean-univerzalis-ragaszto-42g",
+      "status": 200
+    },
+    {
+      "name": "uhu-elektro",
+      "url": "https://www.elektro4000.de/Installationsmaterial/Kleber-und-Loesungsmittel/Kleber/Uhu-Alleskleber-Kraft-FLEX-CLEAN-45040-42g%3A%3A2407514.html",
+      "status": 200
+    },
+    {
+      "name": "uhu-stroh",
+      "url": "https://www.strohmedia.de/product_info.php?products_id=61927",
+      "status": 200
+    },
+    {
+      "name": "switch-stoff",
+      "url": "https://www.stoffkabel.kaufen/Lampen-Einbauschalter-Einbau-Druckschalter-weiss-250V-2A-8-mm-Achse-1-polig",
+      "status": 200
+    },
+    {
+      "name": "switch-textil",
+      "url": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+      "status": 200
+    },
+    {
+      "name": "uhu-csmega",
+      "url": "https://www.csmegastore.no/i/20838566/uhu-uh45040-42-ml",
+      "status": 200
+    },
+    {
+      "name": "uhu-sotel",
+      "url": "https://www.sotel.de/en/Tools-DIY/Tool-Accessories/Adhesives/UHU-UH45040-stationery-adhesive.html",
+      "status": 403
+    },
+    {
+      "name": "uhu-cdon",
+      "url": "https://cdon.fi/tuote/uhu-uh45040-42-ml-3f107c968e5e5d0d/",
+      "status": 200
+    },
+    {
+      "name": "tape-profi",
+      "url": "https://www.profi-bau-shop.de/profi-bau-shop/shop/messtechnik/massbaender/geo-fennel-rubber-tape-5-m-x-25-mm-detail",
+      "status": 200
+    },
+    {
+      "name": "uhu-toom",
+      "url": "https://toom.de/p/alleskleber-kraft-flex-tube-42-g/8150308",
+      "status": 200
+    },
+    {
+      "name": "tape-izmerim",
+      "url": "https://izmerim.si/merski-trakovi/133-geo-fennel-rubber-tape.html",
+      "status": 200
+    }
+  ],
+  "unresolved": [
+    {
+      "slug": "vgradno-stikalo",
+      "variantIds": [
+        "183"
+      ],
+      "finding": "New native OPITEC 212016 and four original Jimdo product photographs found and compared against the actual original. Both depict visibly different switches. Actual matching Radio Kölsch revision remains only 800 × 800. Need a native photograph of the delivered white-plunger/ribbed-nut version showing original central snap-tab and narrow-end terminal."
+    },
+    {
+      "slug": "tracni-meter",
+      "variantIds": [
+        "145"
+      ],
+      "finding": "Fresh native sources inspected at Pentagon 646 × 646 and 740 × 740 hook, Profi 600 × 600, Beton 800 × 800, and Slovenian izmerim originals 800 × 800 and 600 × 600. Other listings may reuse 8 m model imagery. No native minimum-size photograph of exact 5 m model found."
+    },
+    {
+      "slug": "uhu-kraft",
+      "variantIds": [
+        "175"
+      ],
+      "finding": "Accepted one sharp native front replacement. No additional qualifying exact 42 g reverse/nozzle photographs found. Plate original 400 × 400, Paperco 957 × 1280, Conrad 1000 × 1000, five Elektro4000 gallery files around 380 × 380, and two CS Megastore images 800 × 600. Protected Koch/Bol/Müller/Sotel sources were not bypassed."
+    },
+    {
+      "slug": "motorcek",
+      "sourceModels": [
+        "OPITEC 224057 / RE 280 R / R23",
+        "OPITEC 224035 / RE 260 / R21"
+      ],
+      "finding": "Current official native originals match the existing rejected photographs byte-for-byte. Each gallery contains exactly one image; no additional views. Both products need new sharp front/side/rear-terminal photographs of the exact supplied motors."
+    }
+  ],
+  "complete": false,
+  "finalMotorSourceCheck": {
+    "reviewedAt": "2026-09-13T20:27:19.823Z",
+    "products": [
+      {
+        "model": "224057",
+        "page": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
+        "status": 200,
+        "media": [
+          {
+            "sourceImageUrl": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
+            "path": "tmp/product-image-audit/supplemental-v3/motor-224057-0.jpeg",
+            "width": 2560,
+            "height": 1637,
+            "bytes": 489615,
+            "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
+            "sameBytesAsExistingImageIds": [
+              {
+                "id": "151",
+                "slug": "motorcek",
+                "url": "/images/catalog/2026-09/motorcek-r23-izvirnik.jpg"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "model": "224035",
+        "page": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
+        "status": 200,
+        "media": [
+          {
+            "sourceImageUrl": "https://www.opitec.com/media/e0/29/50/1764938962/224035-000-000-VO-02_v_9.jpg?ts=1764938962",
+            "path": "tmp/product-image-audit/supplemental-v3/motor-224035-0.jpeg",
+            "width": 2560,
+            "height": 1863,
+            "bytes": 583615,
+            "sha256": "a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351",
+            "sameBytesAsExistingImageIds": [
+              {
+                "id": "152",
+                "slug": "motorcek",
+                "url": "/images/catalog/2026-09/motorcek-r21-izvirnik.jpg"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "decision": "Current official product galleries each contain one photograph, byte-identical to the existing source. No new photograph or improved native capture was found. Existing coarse/noisy sources do not gain quality by redownloading; new sharp originals are still needed."
+  },
+  "researchFinishedAt": "2026-09-13T20:27:19.824Z"
+}

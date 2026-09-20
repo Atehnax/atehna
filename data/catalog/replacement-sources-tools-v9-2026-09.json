@@ -1,0 +1,749 @@
+{
+  "version": 9,
+  "reviewedAt": "2026-09-14T15:30:10.416Z",
+  "status": "source-pass-complete-unresolved-gaps",
+  "policy": "Untouched real original photographs at least 1024 pixels on both axes, with useful native detail; no humans, AI, enlargement, padding or misleading model/variant substitutions. Native dimension checks alone do not establish clarity or product accuracy. Existing schematics untouched.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-tools-v5-2026-09.json",
+    "data/catalog/replacement-sources-tools-v6-2026-09.json",
+    "data/catalog/replacement-sources-tools-v7-2026-09.json",
+    "data/catalog/replacement-sources-tools-v8-2026-09.json"
+  ],
+  "products": [
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantSkus": [
+        "STR-KRI-OSNOVNA"
+      ],
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "identityEvidence": "Exact original model THERMOFORM 400; 400 mm heating wire, 440×165 mm working surface, 230 V / 5 V, 160 VA. Replacement THERMOFORM 580S is not the same product.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://cplshop.nl/categorie/1352/acrylaat.html",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/bender-cpl-list.html"
+        },
+        {
+          "sourcePage": "https://cplshop.nl/artikel/50919/kunststofbuiger-thermoform-400.html",
+          "result": "Fresh exact-named Leenders/CPL link discovered in indexed category. Public gallery cannot be fetched (direct category403; web product cache miss). No usable source original exposed; no login or bypass attempted."
+        },
+        {
+          "sourcePage": "https://www.wtn-werkzeuge.de/Thermoform-580S/1-500-V",
+          "result": "Dealer explicitly describes 580S as replacement for 400 and 580; different model, not a qualifying exact replacement. No repeat download."
+        },
+        {
+          "sourcePage": "https://publications-hg.cld.bz/Najaarskrant-2019-Heutink-voortgezet/9/",
+          "result": "Historical catalog confirms 023.190 400 mm model and separate 021.777 bending jig, but no new full-resolution exact photo found. Previous 4800² Heutink image remains rejected for coarse native detail."
+        }
+      ],
+      "missingViews": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ],
+      "sourceSearches": [
+        "THERMOFORM 400 /Alton buigapparaat 400 /kunststofbuiger 400 excluding earlier dealers: new CPL listing located, no accessible original."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 1
+    },
+    {
+      "slug": "kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "variantNames": [
+        "200 g, 1 kos",
+        "200 g, 10 kosov v stojalu",
+        "300 g, 1 kos",
+        "300 g, 10 kosov v stojalu"
+      ],
+      "identityEvidence": "Original ATEHNA source SKUs 32113 and 32114 (300 g single and ten in stand) use 343066-02-x1.jpg. SKUs 32211 and 32210 (200 g) use an Unior stock photograph visibly marked 812-300; that inconsistent family photograph does not establish the exact 200 g model.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "hammer-toolland-photo",
+          "url": "https://akkuplus.de/media/image/product/39750/lg/toolland-ad376030-schlosserhammer-holzgriff-300-g.jpg",
+          "sourcePage": "https://akkuplus.de/Toolland-AD376030-Schlosserhammer-Holzgriff-300-g",
+          "status": 200,
+          "file": "tmp/tools-v9/hammer-toolland-photo.jpg",
+          "bytes": 13351,
+          "sha256": "aac3863c49821aed6f8760d49238d73220373169708bcb80afbd8261d89b07cd",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "sourceImageUrl": "https://akkuplus.de/media/image/product/39750/lg/toolland-ad376030-schlosserhammer-holzgriff-300-g.jpg",
+          "decision": "rejected",
+          "reason": "800×800 fails the minimum. Independently, its triangular GS certification mark and dipped handle revision differ from the original octagonal TÜV/GS red 300 g photograph; no same-weight substitution."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.unior.nl/wp-content/uploads/2018/02/UNIOR_NL_2018-1.pdf",
+          "result": "Public response HTTP 404; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/hammer-unior-nl2018.html"
+        },
+        {
+          "sourcePage": "https://unior.mx/producto/martillo-para-herrero-2/",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/hammer-unior-mx.html"
+        },
+        {
+          "sourcePage": "https://www.manomano.fr/p/easy-work-ew-marteau-professionnel-rivoir-300g-50630071",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/hammer-ew-page.html"
+        },
+        {
+          "sourcePage": "https://akkuplus.de/Toolland-AD376030-Schlosserhammer-Holzgriff-300-g",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/hammer-toolland-ad376030.html"
+        },
+        {
+          "sourcePage": "https://www.unior.nl/wp-content/uploads/2018/02/UNIOR_NL_2018-1.pdf",
+          "result": "Web-indexed manufacturer2018 catalog page 9 maps every 812 weight from 100–2000 g, including 601799/200 g and 601802/300 g, to the same 328514.tif. Shared family stock imagery does not resolve the wrong 300 g marking in original ATEHNA 200 g listing. Direct fetch now404."
+        },
+        {
+          "sourcePage": "https://unior.mx/producto/martillo-para-herrero-2/",
+          "result": "Woo full-source metadata still 700×700 812.jpg, shared among weights. Previously examined route, no new variant photograph; not redownloaded.",
+          "evidence": "tmp/tools-v9/hammer-unior-mx.html"
+        },
+        {
+          "sourcePage": "https://www.ag-electronique.fr/marteaux/7339-marteau-poignee-en-bois-300-g-velad376030-5411244376304.html",
+          "result": "Indexed Toolland AD376030 300 g source corroborates alternate product identity. Further tracing stopped after visible conflicting triangular GS stamp and 800² source."
+        }
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ],
+      "sourceSearches": [
+        "Unior 812-200 and manufacturer 2018 HQ-picture catalog: all weights share the stock photo.",
+        "Red wooden 300 g TÜV/GS hammers via Toolland AD376030 and EasyWork: no compatible historical stamp."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 4
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "identityEvidence": "Exact 40 cm handled TM Kovine RAGR040S1, EAN 3838853200080, 60×4.4 mm profile. Do not substitute other lengths or handle geometry.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.pametno.si/nekategorizirano/ravnilo-alu-cena-glatko-skala-rocaj-tm-kovine-ragr040s1-40-cm-251076041",
+          "result": "Fresh price-comparison route leads back to existing INSTAL supplier and existing short-axis photograph. No independent native original."
+        },
+        {
+          "sourcePage": "https://www.tm-kovine.si/Portals/1/Dokumenti/tm-kovine%20sales%20catalog%2001-2019%20en%202web.pdf",
+          "result": "Source search reconfirms exact RAGR040S1 /3838853200080 /40 cm; prior extracted catalog rasters fail height. Not redownloaded or rendered as fake high-resolution photographs."
+        },
+        {
+          "sourcePage": "https://www.phm-innotech.de/produkt/alu-lineal-mit-griff-400-1000mm/",
+          "result": "Image search returns prior ALG40.jpg dealer photograph; source is previously under resolution. Koh-i-Noor bent-handle40cm and TM 50/100 cm hits are different products and were not substituted."
+        }
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "sourceSearches": [
+        "RAGR040S1, 3838853200080, and TM Kovine ravnilo/ravnalo/ruler 40 cm: results converge on already small sources or wrong length/handle."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 1
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "identityEvidence": "Original ATEHNA source SKU 30151 specifies only 100 g and shows a tall bare blue spool embossed TIN-WIRE / LOT-ZINN. No confirmed alloy, wire diameter or manufacturer. Tentative Felder attribution from earlier photography is not independent proof.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "solder-cfh-zoom",
+          "url": "https://cdn.hellweg.digital/thumbnail/62/02/79/1757864767/728318_CFH_Fittingslot_WL_340_100_g_52340_01.jpg_1920x1920.jpg?ts=1760038958",
+          "sourcePage": "https://www.hellweg.de/a/cfh-fittingslot-wl-340-100-g-728318",
+          "status": 200,
+          "file": "tmp/tools-v9/solder-cfh-zoom.jpg",
+          "bytes": 98951,
+          "sha256": "e04fb5a14ba681f5ae0d53ca9b0afa160a1d6d582a77d59a7fb747ec1d2f405b",
+          "width": 1200,
+          "height": 1200,
+          "format": "jpeg",
+          "sourceImageUrl": "https://cdn.hellweg.digital/thumbnail/62/02/79/1757864767/728318_CFH_Fittingslot_WL_340_100_g_52340_01.jpg_1920x1920.jpg?ts=1760038958",
+          "decision": "rejected",
+          "reason": "Sharp labelled CFH WL340 /52340 is a flat, short reel with a different flange/centre construction. The original ATEHNA photo has a tall bare embossed blue reel. Same 100 g mass and blue colour are insufficient; alloy/3mm cannot be inferred for the sold product."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.hellweg.de/a/cfh-fittingslot-wl-340-100-g-728318",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/solder-cfh-page.html"
+        },
+        {
+          "sourcePage": "https://cdn.hellweg.digital/media/62/02/79/1757864767/728318_CFH_Fittingslot_WL_340_100_g_52340_01.jpg",
+          "result": "Public response HTTP 404; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/solder-cfh-original.html"
+        }
+      ],
+      "missingViews": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ],
+      "sourceSearches": [
+        "100 g blue solder reel, TIN-WIRE /LOT-ZINN and CFH WL340: fresh CFH candidate has different reel construction."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 1
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "identityEvidence": "ATEHNA source 32460 fine, 32461 medium and 32462 coarse: hardened 130 mm, 12-blade packs. Historical Pebaro package evidence maps 135-0 fine, 135-3 medium and 135-7 coarse; current 134-series is spiral wood/soft-metal and must not be substituted.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "metal-modellbau1350-largest",
+          "url": "https://www.modellbau-bochum.de/media/image/product/92646/lg/477-si-135-0_siva-135-0-laubsaegeblaetter-fuer-metall-staerke-0-12-st.jpg",
+          "sourcePage": "https://www.modellbau-bochum.de/Siva-135-0-Laubsaegeblaetter-fuer-Metall-Staerke-0-12-St",
+          "status": 200,
+          "file": "tmp/tools-v9/metal-modellbau1350-largest.jpg",
+          "bytes": 45558,
+          "sha256": "343e7128f4ec29370b3a4564beb2ccdea0f5c055106ffad00f321119ba5283a7",
+          "width": 1200,
+          "height": 1200,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.modellbau-bochum.de/media/image/product/92646/lg/477-si-135-0_siva-135-0-laubsaegeblaetter-fuer-metall-staerke-0-12-st.jpg",
+          "decision": "rejected",
+          "reason": "1200×1200 dealer gallery has a visibly soft, low-detail pack and generic blank grade label; full native zoom does not provide useful clear tooth/label detail. Width alone is not proof of an original high-resolution photograph."
+        },
+        {
+          "id": "metal-nextmodel1350-zoom",
+          "url": "https://nextmodelrc.com/30731-product_zoom/12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.webp",
+          "sourcePage": "https://nextmodelrc.com/en/tools/11007-12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.html",
+          "status": 200,
+          "file": "tmp/tools-v9/metal-nextmodel1350-zoom.webp",
+          "bytes": 9108,
+          "sha256": "4b00012d8516b74f4787a6292f73aeda6f86f0381c0792bedfd6ab1feef3d8a7",
+          "width": 1200,
+          "height": 1200,
+          "format": "webp",
+          "sourceImageUrl": "https://nextmodelrc.com/30731-product_zoom/12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.webp",
+          "decision": "rejected",
+          "reason": "1200×1200 presentation is an enlarged/padded thumbnail: the same dealer uncached original is only 413×755. Not a valid resolution upgrade."
+        },
+        {
+          "id": "metal-nextmodel1350-original",
+          "url": "https://nextmodelrc.com/30731/12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.jpg",
+          "sourcePage": "https://nextmodelrc.com/en/tools/11007-12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.html",
+          "status": 200,
+          "file": "tmp/tools-v9/metal-nextmodel1350-original.jpg",
+          "bytes": 21114,
+          "sha256": "0ed4a8f59857213b0a99c53d50365004abde49c61fd689e012804beeb7fa8510",
+          "width": 413,
+          "height": 755,
+          "format": "jpeg",
+          "sourceImageUrl": "https://nextmodelrc.com/30731/12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.jpg",
+          "decision": "rejected",
+          "reason": "Unchanged source is 413×755, below minimum width and height."
+        },
+        {
+          "id": "metal-nextmodel1353-zoom",
+          "url": "https://nextmodelrc.com/30730-product_zoom/12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.webp",
+          "sourcePage": "https://nextmodelrc.com/en/tools/11006-12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.html",
+          "status": 200,
+          "file": "tmp/tools-v9/metal-nextmodel1353-zoom.webp",
+          "bytes": 22938,
+          "sha256": "4354ac46a56693d0f3c73cbaef781efdd64c54b423b2b006e24ed8b89e07c1b3",
+          "width": 1200,
+          "height": 1200,
+          "format": "webp",
+          "sourceImageUrl": "https://nextmodelrc.com/30730-product_zoom/12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.webp",
+          "decision": "rejected",
+          "reason": "1200×1200 square is the transformed/padded presentation of a long narrow pack. It must not be treated as a native original or an additional view. See separately reviewed uncached source."
+        },
+        {
+          "id": "metal-nextmodel1353-original",
+          "url": "https://nextmodelrc.com/30730/12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.jpg",
+          "sourcePage": "https://nextmodelrc.com/en/tools/11006-12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.html",
+          "status": 200,
+          "file": "tmp/tools-v9/metal-nextmodel1353-original.jpg",
+          "bytes": 904943,
+          "sha256": "2f2a375fdcaf67ad7010565d2ee4154f5868a28d2337a91e89c0b4aca7975cb3",
+          "width": 1200,
+          "height": 6575,
+          "format": "jpeg",
+          "sourceImageUrl": "https://nextmodelrc.com/30730/12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.jpg",
+          "variantSkus": [
+            "DOD-ZAG-SREDNJI-ROBOVI"
+          ],
+          "decision": "rejected",
+          "identityReview": "Dealer explicitly names medium 3 Pebaro, Siva Toys SV-135-3. Historical ATEHNA medium metal SKU 32461 maps 135-3 from original packaging evidence. Photo is generic blank grade label; no substitution to fine/coarse.",
+          "qualityReview": "Native 1200×6575 file meets pixel dimensions, but independent inspection of the label at useful zoom shows obvious stair-stepping, glowing edges and blurred lettering. It lacks useful natural detail and fails the clarity requirement. The precise origin of these defects or prior enlargement is not proven.",
+          "distinctViews": 1,
+          "reason": "Native 1200×6575 file meets pixel dimensions, but independent inspection of the label at useful zoom shows obvious stair-stepping, glowing edges and blurred lettering. It lacks useful natural detail and fails the clarity requirement. The precise origin of these defects or prior enlargement is not proven.",
+          "peerReview": {
+            "reviewers": [
+              "quality_validation",
+              "root"
+            ],
+            "reviewedAt": "2026-09-14T15:30:10.415Z",
+            "verdict": "reject-quality",
+            "inspection": "Full photograph plus native 1200×1500 label detail. No edits or enlargement used to produce an accepted asset."
+          }
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.thalia.de/shop/home/artikeldetails/A1073138067",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/metal-thalia1353.html"
+        },
+        {
+          "sourcePage": "https://www.ebay.de/itm/237056434411",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/metal-ebay1350.html"
+        },
+        {
+          "sourcePage": "https://www.orellfuessli.ch/shop/home/artikeldetails/A1073138845",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/metal-orell1357.html"
+        },
+        {
+          "sourcePage": "https://www.bol.com/nl/nl/p/pebaro-zaagbladen-voor-metaal-nr-7-zeer-grof/9300000023962246/",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/metal-bol1357.html"
+        },
+        {
+          "sourcePage": "https://www.modellbau-bochum.de/Siva-135-0-Laubsaegeblaetter-fuer-Metall-Staerke-0-12-St",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/metal-modellbau1350.html"
+        },
+        {
+          "sourcePage": "https://nextmodelrc.com/en/2-accueil?page=28",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/metal-nextmodel-list.html"
+        },
+        {
+          "sourcePage": "https://nextmodelrc.com/en/tools/11006-12-blades-of-chamfering-saw-for-metal-medium-3-pebaro-sv-135-3.html",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/metal-nextmodel1353-page.html"
+        },
+        {
+          "sourcePage": "https://nextmodelrc.com/en/tools/11007-12-blades-of-chamfering-saw-for-metal-thin-0-pebaro-sv-135-0.html",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/metal-nextmodel1350-page.html"
+        }
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ],
+      "sourceSearches": [
+        "135-0 /135-3 /135-7 and EAN 4006094135006 /4006094135303 /4006094135709: fresh Modellbau Bochum, NextModelRC, Thalia, Orell, eBay and Bol."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 3
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "variantNames": [
+        "UHU super glue 3 ml"
+      ],
+      "identityEvidence": "Old ATEHNA 3 ml product photo has yellow/red card, italic white superglue lettering, red tube with tall black cap, English/Arabic print and setting-time chart. Modern 3 g, Ultra Fast or Control packaging is not automatically the same sold variant.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://shop.tech2000.com.au/adhesive-uhu-super-glue-ultra-fast-3ml-uhu-40820-4",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/uhu-tech2000.html"
+        },
+        {
+          "sourcePage": "https://www.lime-office.com.au/cats/cats-online-stationery-catalogue-australia-2015.pdf",
+          "result": "Public request failed: fetch failed. No image obtained."
+        },
+        {
+          "sourcePage": "https://www.lime-office.com.au/cats/cats-online-stationery-catalogue-australia-2015.pdf",
+          "result": "Fresh 2015 dealer catalog is indexed with 3340820/3 ml carded glue, but direct public PDF request fails. No original raster could be extracted."
+        },
+        {
+          "sourcePage": "https://shop.tech2000.com.au/adhesive-uhu-super-glue-ultra-fast-3ml-uhu-40820-4",
+          "result": "Indexed page says Control 3 ml /3340820 and 4026700360165; replacement nomenclature does not establish the old red tube/Arabic card variant. Direct gallery 403."
+        }
+      ],
+      "missingViews": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ],
+      "sourceSearches": [
+        "Historical 3 ml 3340820, old Arabic/English card and UHU 40820: fresh Lime 2015 catalog and Tech2000 result, no usable exact photo."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 1
+    },
+    {
+      "slug": "motorcek",
+      "variantSkus": [
+        "ELE-MOT-R23",
+        "ELE-MOT-R21"
+      ],
+      "variantNames": [
+        "Motorček R23",
+        "Motorček R21"
+      ],
+      "identityEvidence": "R21 / RE260: source 22010, 28 g, Ø24×27 mm can, 2 mm shaft. R23 / RE280R: source 22020, 42 g, Ø24×30 mm can, 2 mm shaft, 1.5–4.5 V. Generic RE280 motors with conflicting length or speed are not equivalent.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "motor-opitec280-original",
+          "url": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
+          "status": 200,
+          "file": "tmp/tools-v9/motor-opitec280-original.jpg",
+          "bytes": 489615,
+          "sha256": "a4158d487a73bbaff7245e8223bae8674578b80d66c989652dd8feed02241f08",
+          "width": 2560,
+          "height": 1637,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.opitec.com/media/5c/45/07/1764761516/224057-000-000-VO-01_v_9.jpg?ts=1764761516",
+          "decision": "rejected",
+          "reason": "Same SHA-256 as the v3 rejected R23 photograph. Although 2560×1637, it is visibly grainy and lacks useful clean detail at zoom. Re-finding the original is not an improvement; do not readmit."
+        },
+        {
+          "id": "motor-electronelec-original",
+          "url": "https://www.electronelec.co.uk/store/image/catalog/Catalogue/High%20Torque%20Motor.jpg",
+          "sourcePage": "https://www.electronelec.co.uk/store/RE280-High-Torque-Motor-525-461",
+          "status": 200,
+          "file": "tmp/tools-v9/motor-electronelec-original.jpg",
+          "bytes": 17424,
+          "sha256": "af950fec7dfec68060444c549d13e19d16261ec3124dcb2f533b4ddbc14cf883",
+          "width": 400,
+          "height": 400,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.electronelec.co.uk/store/image/catalog/Catalogue/High%20Torque%20Motor.jpg",
+          "decision": "rejected",
+          "reason": "Uncached original is only 400×400. RE280 family designation and approximately matching can dimensions also do not resolve electrical/model differences from the sold R23."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.marutsu.co.jp/GoodsListNavi.jsp?display=desc&path=1500210008&perpage=50",
+          "result": "Public response HTTP 403; no access bypass attempted.",
+          "evidence": "tmp/tools-v9/motor-marutsu.html"
+        },
+        {
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-280-20120-r/224057",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/motor-opitec280.html"
+        },
+        {
+          "sourcePage": "https://www.electronelec.co.uk/store/RE280-High-Torque-Motor-525-461",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/motor-electronelec280.html"
+        },
+        {
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/motor-opitec260-page.html"
+        },
+        {
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-260-2670/224035",
+          "result": "Current gallery exposes only 224035-000-000-VO-02_v_9.jpg; same source already audited 2560×1863, SHA a60b4f5c9a89cdb7d00ce6591328fb8283a50e4bc045f2e63826faaff1a04351. No new angle found; not redownloaded.",
+          "evidence": "data/catalog/image-upgrades-2026-09.json"
+        }
+      ],
+      "missingViews": [
+        "Sharp complete exact R21 and R23 originals",
+        "Rear contacts and shaft mounting detail"
+      ],
+      "sourceSearches": [
+        "RE260 12700 rpm 28 g; RE280 42 g /RE280-20120: current OPITEC galleries and fresh Electronelec original, no qualifying distinct photo."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 2
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "variantSkus": [
+        "MER-RAV-100-CM",
+        "MER-RAV-100-CM-MAGNETNO"
+      ],
+      "variantNames": [
+        "100 cm",
+        "100 cm, magnetno"
+      ],
+      "identityEvidence": "Plain centimetre-scale 100 cm ruler and magnetic equivalent. Source option SKUs 010400 and 01040m. Different decimetre/profi scales are not replacements for these variants.",
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "ruler-wissner010400-original",
+          "url": "https://www.wissner-aktiv-lernen.com/media/57/52/39/1736149494/Wissner_010400.000.jpg?ts=1761747571",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/en/index.php/detail/01943a942430712c86d0a49f66bec8d5",
+          "status": 200,
+          "file": "tmp/tools-v9/ruler-wissner010400-original.jpg",
+          "bytes": 449374,
+          "sha256": "58e0239b56551fb4e6596676ca4dea8fca720274f771dd07faafe104539ff345",
+          "width": 4140,
+          "height": 469,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.wissner-aktiv-lernen.com/media/57/52/39/1736149494/Wissner_010400.000.jpg?ts=1761747571",
+          "decision": "rejected",
+          "reason": "Unchanged manufacturer original is 4140×469, failing the 1024-pixel minimum height. This byte hash was previously recorded in root v5; no enlargement or padding permitted."
+        },
+        {
+          "id": "ruler-wissner-gallery2",
+          "url": "https://www.wissner-aktiv-lernen.com/media/5a/fe/9d/1736420262/Wissner_010300.M20_1_%281%29.jpg?ts=1761747554",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/en/index.php/detail/01943a942430712c86d0a49f66bec8d5",
+          "status": 200,
+          "file": "tmp/tools-v9/ruler-wissner-gallery2.jpg",
+          "bytes": 42005,
+          "sha256": "86c6af87b1c5c4c808af8c4ad5f60d3c5bbcc2de99aafacbca2bcc3fab864339",
+          "width": 1200,
+          "height": 197,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.wissner-aktiv-lernen.com/media/5a/fe/9d/1736420262/Wissner_010300.M20_1_%281%29.jpg?ts=1761747554",
+          "decision": "rejected",
+          "reason": "Only 1200×197; secondary gallery file is 010300.M20, a centimetre/decimetre variant rather than evidence for the sold plain centimetre 010400."
+        },
+        {
+          "id": "ruler-school-original",
+          "url": "https://www.schoolmaterialen.nl/public/data/image/article/9776/51585/large/bordliniaal.jpg",
+          "sourcePage": "https://www.schoolmaterialen.nl/bordliniaal",
+          "status": 200,
+          "file": "tmp/tools-v9/ruler-school-original.jpg",
+          "bytes": 33035,
+          "sha256": "ed3a8db7b4fdebd0f78e2b39e4e28257c10675e6a6236705f5bca13ed4b03211",
+          "width": 900,
+          "height": 450,
+          "format": "jpeg",
+          "sourceImageUrl": "https://www.schoolmaterialen.nl/public/data/image/article/9776/51585/large/bordliniaal.jpg",
+          "decision": "rejected",
+          "reason": "900×450 fails both native axes. Dealer EAN4260414064555 maps in official Wissner catalog to 010300.200 cm+dm, not the missing plain centimetre 010400."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://www.schoolmaterialen.nl/bordliniaal",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/ruler-schoolmaterialen.html"
+        },
+        {
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/en/index.php/detail/01943a942430712c86d0a49f66bec8d5",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/ruler-wissner-010400.html"
+        },
+        {
+          "sourcePage": "https://wissner-aktiv-lernen.com/media/9b/b9/01/1737707957/WISSNER_Hauptkatalog_2025_EN_mittel.pdf?ts=1737707957",
+          "result": "Official indexed EAN mapping identifies Bekius 4260414064555 as 010300.200 cm+dm. Already-covered decimetre rulers must not fill the two plain-centimetre gaps."
+        }
+      ],
+      "missingViews": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ],
+      "sourceSearches": [
+        "010400.M00 /01040m /4260414064555: manufacturer gallery and Bekius source originals measured."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 2
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-GROBI-ROBOVI"
+      ],
+      "variantNames": [
+        "Grobi robovi"
+      ],
+      "identityEvidence": "Only coarse source SKU 32473 remains in this scope. Fine 134-1 and historical medium 134-3 were accepted in v5 with converging ATEHNA filenames and readable real package labels; those approvals remain unchanged. Coarse original reuses medium photograph and does not establish a different numbered grade.",
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        {
+          "sourcePage": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine/",
+          "result": "Public page saved and product-specific media or identity references inspected.",
+          "evidence": "tmp/tools-v9/spiral-atehna.html"
+        },
+        {
+          "sourcePage": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+          "result": "Current original Woo variant 32473/coarse still reuses 600² spiralne-3.jpg titled spiralne 3. Historical family slug no-7 conflicts with medium photograph and cannot prove current 134-5/134-6 or a hypothetical 134-7.",
+          "evidence": "tmp/tools-v9/spiral-atehna.html"
+        },
+        {
+          "sourcePage": "https://www.winklerschulbedarf.com/Themes/Winkler_AT/Content/images/cms_upload/pdf/Werkzeug.pdf",
+          "result": "Historical catalog distinguishes ordinary coarse No. 7 from spiral medium No. 3/No. 5. Search for 134-7/1347 yielded no corroborating historical Pebaro model. Do not reuse fine 134-1 or medium 134-3 as coarse."
+        }
+      ],
+      "missingViews": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ],
+      "sourceSearches": [
+        "Original ATEHNA full Woo JSON plus historical 134-7 /1347 and No. 7 spiral: grade conflict remains unresolved."
+      ],
+      "status": "no-qualifying-new-source",
+      "remainingVariantCount": 1
+    }
+  ],
+  "downloadReceipt": "tmp/tools-v9/downloads.json",
+  "evidenceIntegrityReceipt": "tmp/tools-v9/final-evidence-integrity.json",
+  "summary": {
+    "familiesReviewed": 9,
+    "variantsInScope": 16,
+    "acceptedOriginals": 0,
+    "stagedAssets": 0,
+    "sourceRequests": 36,
+    "downloadedImageFiles": 12,
+    "pendingPeerReviews": 0,
+    "catalogMutations": 0,
+    "schematicsPreserved": true,
+    "rejectedImageFiles": 12
+  },
+  "remainingSourceGaps": [
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantSkus": [
+        "STR-KRI-OSNOVNA"
+      ],
+      "missingViews": [
+        "Sharp full exact THERMOFORM 400 photograph",
+        "Rear connectors and controls",
+        "Side and working-surface details"
+      ]
+    },
+    {
+      "slug": "kladivo",
+      "variantSkus": [
+        "ROC-KLA-200-G-1-KOS",
+        "ROC-KLA-200-G-10-KOSOV-V-STOJALU",
+        "ROC-KLA-300-G-1-KOS",
+        "ROC-KLA-300-G-10-KOSOV-V-STOJALU"
+      ],
+      "missingViews": [
+        "Exact historical red 300 g hammer with matching certification and grip revision",
+        "Exact 200 g model photograph with correct marking",
+        "Actual ten-hammer stand sets",
+        "Head, wedge and handle details"
+      ]
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantSkus": [
+        "MER-ALU-RAVNILO-ALU-Z-ROCAJEM-40-CM"
+      ],
+      "missingViews": [
+        "Complete exact 40 cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ]
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "missingViews": [
+        "Exact 100 g spool with readable label or matching mouldings",
+        "Opposite spool face and wire detail"
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantSkus": [
+        "DOD-ZAG-FINI-ROBOVI",
+        "DOD-ZAG-SREDNJI-ROBOVI",
+        "DOD-ZAG-GROBI-ROBOVI"
+      ],
+      "missingViews": [
+        "Exact fine, medium and coarse metal blade packs at qualifying native resolution",
+        "Independent sharp tooth-detail photographs"
+      ]
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantSkus": [
+        "MAT-LEP-UHU-SUP-3-ML"
+      ],
+      "missingViews": [
+        "Sharp exact old 3 ml package front or full tube",
+        "Matching rear package or nozzle/detail view"
+      ]
+    },
+    {
+      "slug": "motorcek",
+      "variantSkus": [
+        "ELE-MOT-R23",
+        "ELE-MOT-R21"
+      ],
+      "missingViews": [
+        "Sharp complete exact R21 and R23 originals",
+        "Rear contacts and shaft mounting detail"
+      ]
+    },
+    {
+      "slug": "ravnila-za-tablo",
+      "variantSkus": [
+        "MER-RAV-100-CM",
+        "MER-RAV-100-CM-MAGNETNO"
+      ],
+      "missingViews": [
+        "Complete plain 100 cm ruler and exact magnetic variant",
+        "Legible centimetre markings and rear magnetic mounting"
+      ]
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantSkus": [
+        "DOD-SPI-GROBI-ROBOVI"
+      ],
+      "missingViews": [
+        "Exact sold coarse spiral 12-blade pack",
+        "Independent useful tooth or spiral detail"
+      ]
+    }
+  ]
+}

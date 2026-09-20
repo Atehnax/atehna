@@ -1,0 +1,1060 @@
+{
+  "version": 10,
+  "reviewedAt": "2026-09-14T15:53:37.890Z",
+  "status": "reviewed-with-source-gaps",
+  "scope": "Remaining paper image gaps after authoritative production V9 audit",
+  "authoritativeAudit": "data/catalog/product-image-audit-v9-2026-09.json",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscaling": true,
+    "noPadding": true,
+    "unchangedOriginalBytes": true,
+    "exactStockAndColourOnly": true
+  },
+  "summary": {
+    "families": 3,
+    "remainingVariantsAtStart": 30,
+    "remainingVariantsAfterResearch": 30,
+    "acceptedImages": 0,
+    "htmlPageProbes": 24,
+    "productJsonGalleries": 3,
+    "decodedOriginalFetches": 34,
+    "uniqueDecodedOriginals": 33,
+    "originalFetchesBelowMinimum": 23,
+    "largeOriginalsRejectedForContent": 11
+  },
+  "products": [
+    {
+      "slug": "seleshamer",
+      "itemName": "Šeleshamer",
+      "variantSkus": [
+        "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+        "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+        "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+        "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "variantName": "Papir šeleshamer 200 g, A4"
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "variantName": "Papir šeleshamer 200 g, A2"
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "variantName": "Papir šeleshamer 200 g, A3"
+        },
+        {
+          "variantSku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "variantName": "Papir šeleshamer 200 g, B1"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "cartuccia-a3-native-7",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-sdb.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "648f0c6972c6be4ce478ef827a956b7c92bd25c12dc680fd65ead5aa5cac3bbe",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-7.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-1",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-ebd_ea71e51f-46cd-4764-b7dc-3ef544852d2e.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "87f437eb6f25edbef9c72b9903138f720885f4636d054d18d014a898c37efe4d",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-1.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-8",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-pktoa2_3fb1cd25-a876-4312-b19c-b22cb7467ae7.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "eb4ada4f74d3e16c1a403e78a689b35b4b216c66cf24c4db36636aa8a4b2b180",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-8.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-6",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-pdb.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "72c6428f69a81a43484f28f6ef358a41b2477ff4020e06c6400669e06c19d0cf",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-6.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-3",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-pktda1_380553b5-1850-4a9b-b86f-c07e6d7db6dc.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "112518fc11735333350b2e5339773f3faac2393546a9f7dbb6d021daa95b5f12",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-3.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-2",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-sab_7561b0eb-894d-4d92-a9a2-a38d949f46fc.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "6c2704f1b53a35bfd237cd9c9ffb3aee0fa5654c4744fc80bc637798625d12bd",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-2.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-5",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-pktoa1_5af44128-f719-4270-9edc-b859030c9fa2.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "951c8d7757040cd2688b2941e9ee4e2baa04e083f493749895098e8beb854821",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-5.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "cartuccia-a3-native-4",
+          "sourcePage": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0286/3677/4533/files/fabriano-blocco-collato-accademia-grana-naturale-200-g-a3-30-fogli-41202942-mlo_6cc6012a-3f53-4cb8-89b7-e31e78a461e0.jpg?v=1783028746",
+          "nativeDimensions": {
+            "width": 480,
+            "height": 480
+          },
+          "sha256": "8e85f031ac8ab2f1a16ae3259a877857643f53d6bf3523d467bdb48a6034fb85",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-a3-native-4.jpg",
+          "reason": "Native 480 x 480; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "hobbyland-paperpack-original-1",
+          "sourcePage": "https://www.hobbyland.eu/ita/shop/fabriano-accademia-paperpack/p-F007823/",
+          "imageUrl": "https://www.hobbyland.eu/img/prodotti/59756.webp?v=b9563f5b2598afae19a33e30d6e6b9bb560d5b3e",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "64f42e4112e30d13753842b4b6c7fe1a357fce1379951e401c620b8680f03123",
+          "evidencePath": "tmp/product-image-audit/paper-v10/hobbyland-paperpack-original-1.webp",
+          "reason": "Native 800 x 800; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "hobbyland-paperpack-original-0",
+          "sourcePage": "https://www.hobbyland.eu/ita/shop/fabriano-accademia-paperpack/p-F007823/",
+          "imageUrl": "https://static.hobbyland.eu/img/prodotti/59756.webp?v=b9563f5b2598afae19a33e30d6e6b9bb560d5b3e",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "64f42e4112e30d13753842b4b6c7fe1a357fce1379951e401c620b8680f03123",
+          "evidencePath": "tmp/product-image-audit/paper-v10/hobbyland-paperpack-original-0.webp",
+          "reason": "Native 800 x 800; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-1",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_5f356984-87ae-4298-b4bb-fbe0b8309260.jpg?v=1735014749",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "ddba16381f1715224e996cab13759eb0299781f647319a18c3dad8849b5e8c83",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-1.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-2",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_03c31047-ce49-4667-bf74-487d04e953a6.jpg?v=1735014754",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "c27bb4bb248d94f086b17a6360a5402a8ad5c754a49643e86a05c6aa7bb0c2c4",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-2.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-6",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_aed9cf8b-3091-40da-94cf-2e6b2ef79b0a.jpg?v=1735014772",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "e6993345a0b2dae80044fb1bae4be62373edad2293af520415a0f6b715b533b5",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-6.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-0",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_152ead36-3662-40d1-b5ad-b8da28769907.jpg?v=1735014745",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "c0eb7fb0297da2111950ef163d35a3ff12cac0a46d1b58318a2d986363b76071",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-0.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-7",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_80888be9-c897-45cd-b948-cf898ecfc6ac.jpg?v=1735014776",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "702c56624891aedde01e5f0f3516ad8e4e435244ca0d0e046034a1920a0c8513",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-7.jpg",
+          "reason": "Marketing warning/information panel; no product photograph.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-4",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_3ffb21b3-e4c5-42d3-8ee5-6511b56325ee.jpg?v=1735014764",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "ab6198bbe474a681068ceac1487de6cd78f3c70a04305c6752ebd841d1354c2b",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-4.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-3",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_11bb163a-909f-4b18-8dde-c4f124525f43.jpg?v=1735014759",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "93d8b54e363d4e352781efef78f96c5aa990c5d9286474f7574cf120e2a94406",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-3.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "moneycruncher-native-5",
+          "sourcePage": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0835/5627/0428/files/57_b29ee0e1-5e92-4347-bbb4-9921ee2db5ed.jpg?v=1735014768",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "4d65c1ce0bfab5f9f4059fee12e51472479ca6c882a9cd454e86e4c2f2b74f75",
+          "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-5.jpg",
+          "reason": "Contains people, face(s) or hands; promotional composition. No human-free unchanged source photograph is present in this gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "cart2-a4-native",
+          "sourcePage": "https://cart2india.com/card-stock/120-sheets-a4-white-cardstock-thick-paper-74lb-white-card-stock-printer-paper-heavy-weight-cover-card-stock-200-gsm-for-invitations-wedding-stationary-printing/00000000004394107682",
+          "imageUrl": "https://m.media-amazon.com/images/I/51uL1WLc-eL.jpg",
+          "nativeDimensions": {
+            "width": 1600,
+            "height": 1600
+          },
+          "sha256": "d21be4c5f05084a46ff13127f717c12b7e0a9c8a9d18c12870d9683137f25a52",
+          "evidencePath": "tmp/product-image-audit/paper-v10/cart2-a4-native.jpg",
+          "reason": "Flat diagrammatic/rendered stack labelled120sheet, without natural photographed sheet texture. Does not qualify as a real original product photograph.",
+          "status": "rejected"
+        },
+        {
+          "id": "panther-native-0",
+          "sourcePage": "https://pantherstationery.com.au/products/plain-a3-card-pack",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0739/5855/5961/files/3122-A3-card-200gsm-pack-20Black.jpg?v=1753246329",
+          "nativeDimensions": {
+            "width": 667,
+            "height": 667
+          },
+          "sha256": "e9d02f21f04e2431bf63b704fbf540028ee6e6ad7e7c56cd671944366a8a48d3",
+          "evidencePath": "tmp/product-image-audit/paper-v10/panther-native-0.jpg",
+          "reason": "Native 667 x 667; below 1024 pixels on both axes requirement. Also black card, not the requested white variant; downloaded only to inspect complete manufacturer variant gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "panther-native-2",
+          "sourcePage": "https://pantherstationery.com.au/products/plain-a3-card-pack",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0739/5855/5961/files/2260-A3-card-200gsm-pack-100-Black.jpg?v=1753246341",
+          "nativeDimensions": {
+            "width": 667,
+            "height": 667
+          },
+          "sha256": "79c65bfc79b05b7932a03d26dd8a28f43adabfe3b00e0b83b70278535a0530f3",
+          "evidencePath": "tmp/product-image-audit/paper-v10/panther-native-2.jpg",
+          "reason": "Native 667 x 667; below 1024 pixels on both axes requirement. Also black card, not the requested white variant; downloaded only to inspect complete manufacturer variant gallery.",
+          "status": "rejected"
+        },
+        {
+          "id": "panther-native-1",
+          "sourcePage": "https://pantherstationery.com.au/products/plain-a3-card-pack",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0739/5855/5961/files/2203-A3-card-200gsm-pack-20-White.jpg?v=1753246111",
+          "nativeDimensions": {
+            "width": 667,
+            "height": 667
+          },
+          "sha256": "289c4858f59cb7a6051520472ed168b62b5803d8d4cec03c7a42037f1fb6ae7c",
+          "evidencePath": "tmp/product-image-audit/paper-v10/panther-native-1.jpg",
+          "reason": "Native 667 x 667; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "panther-native-3",
+          "sourcePage": "https://pantherstationery.com.au/products/plain-a3-card-pack",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0739/5855/5961/files/2210-A3-card-200gsm-pack-100-White.jpg?v=1753246123",
+          "nativeDimensions": {
+            "width": 667,
+            "height": 667
+          },
+          "sha256": "7049a3ad328eb91b0377eab4f1918b82a6fa9b76c20230c98d25a0b5b40ffdcd",
+          "evidencePath": "tmp/product-image-audit/paper-v10/panther-native-3.jpg",
+          "reason": "Native 667 x 667; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "tilgear-white200-unusable",
+          "sourcePage": "https://www.tilgear.info/art-craft-and-design/paper-and-card/white-card/white-a4-200gsm-pk-of-50-crd204wht",
+          "reason": "No usable product gallery exposed by returned HTML for exactCRD204WHTA4/200gsm; no native original obtained.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/tilgear-white200.html",
+          "status": "source-unusable"
+        },
+        {
+          "id": "envelope-category-only",
+          "sourcePage": "https://www.theenvelopepeople.co.uk/white-card/",
+          "reason": "White-card category offers many unrelated grades and finishes; no source image positively mapped to exact200gsm uncoated A4/A3/A2/B1 was obtained.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/envelope-white200.html",
+          "status": "source-unusable"
+        },
+        {
+          "id": "bigw-aimall-soft-redirect",
+          "sourcePage": "https://www.bigw.com.au/school-office-art-supplies/hobbies-design/design-projects/c/6533103?page=6",
+          "reason": "Returned Cart page rather than requested product listing; no usable native gallery. Previous Woolworths exact200gsmA4 listing remains a lead, not accepted evidence.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/bigw-aimall-category.html",
+          "status": "source-unusable"
+        },
+        {
+          "id": "bigshopper-repeats-prior-original",
+          "sourcePage": "https://bigshopper.de/product/25-blatt-a3-bastelkarton-200g-m2-weiss-premium-papier-reinweiss-din-297x420-mm-druckerpapier-weiss-unbedruckt-fuer-fotografie-praesentationen-basteln-tonkarton-karton-made-in-germany-1828189168.htm",
+          "reason": "Source maps to Amazon4148hZvshaL, already measured500x500 and rejected inV9. Recognized identical asset ID and did not refetch or enlarge.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/bigshopper-a3-200.html",
+          "status": "source-unusable"
+        }
+      ],
+      "pending": [
+        {
+          "status": "missing-suitable-source",
+          "task": "All four variants still need a complete sharp native whole-sheet main of white200gsm exactA4/A3/A2/B1; prefer contrasting natural background. No200gsm stock grade or cut substitutions accepted."
+        },
+        {
+          "status": "detail-held-main-missing",
+          "sourcePage": "https://au.accopartner.com/p/paper-products/other-paper-products/cardboard-and-coloured-paper/colourful-days-pasteboard-200gsm-a3-297-x-420mm-white-pack-50/",
+          "evidencePath": "tmp/product-image-audit/paper-v7/acco-a3-hires.jpg",
+          "nativeDimensions": {
+            "width": 2500,
+            "height": 2500
+          },
+          "task": "Previously reviewed genuine croppedACCOA3/200gsm detail remains held; no new complete main was obtained. Not part of acceptedV10 images."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "sku": "MAT-PAP-SEL-297x210-PAPIR-SELESHAMER-200-G-A4",
+          "name": "Papir šeleshamer 200 g, A4"
+        },
+        {
+          "sku": "MAT-PAP-SEL-594x420-PAPIR-SELESHAMER-200-G-A2",
+          "name": "Papir šeleshamer 200 g, A2"
+        },
+        {
+          "sku": "MAT-PAP-SEL-420x297-PAPIR-SELESHAMER-200-G-A3",
+          "name": "Papir šeleshamer 200 g, A3"
+        },
+        {
+          "sku": "MAT-PAP-SEL-1000x707-PAPIR-SELESHAMER-200-G-B1",
+          "name": "Papir šeleshamer 200 g, B1"
+        }
+      ],
+      "missingViews": "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+    },
+    {
+      "slug": "grafopak",
+      "itemName": "Grafopak",
+      "variantSkus": [
+        "MAT-PAP-GRA-420x297-POLKARTON-A3",
+        "MAT-PAP-GRA-297x210-POLKARTON-A4"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "variantName": "polkarton A3"
+        },
+        {
+          "variantSku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "variantName": "polkarton A4"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "shopee-duplex-cut-gallery-unavailable",
+          "sourcePage": "https://shopee.com.my/%28-10pcs-%29-BOX-BOARD-ONE-SIDE-WHITE-COATED-GREY-BACK-A2-A3-A4-A5-WITH-270g-350g-450g-i.782895456.20561179699",
+          "reason": "Indexed listing offers white-coated grey-back box board270/350/450g in A2/A3/A4/A5, but fetched app shell has no source gallery or exact350g variant-image mapping. Cannot establish which grade/cut a photograph depicts.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/shopee-gd2-cuts.html",
+          "status": "source-unusable"
+        },
+        {
+          "id": "lovingshopz-duplex350-wrong-cut",
+          "sourcePage": "https://www.blibli.com/p/karton-duplex-350-gsm/ps--LOZ-26268-02169",
+          "reason": "Seller identifies350gsm white-front grey-back duplex, but size110x79cm conflicts with A3/A4; not a suitable replacement for exact cuts. No asset staged.",
+          "status": "source-unusable"
+        },
+        {
+          "id": "generic-duplex-range-unproven",
+          "sourcePage": "https://www.papercardboards.com/german/sale-53195820-230gsm-350gsm-carton-duplex-paper-board-grey-back-offset-printing.html",
+          "reason": "Industrial multi-grade230-350gsm source discusses multiple quality classes and custom samples; no original specifically maps to GrafopakGD2/350gsmA3/A4. Do not substitute another white/grey board grade or factory sample.",
+          "status": "source-unusable"
+        }
+      ],
+      "pending": [
+        {
+          "status": "missing-suitable-source",
+          "task": "Both A3/A4 white-front grey-back350gsmGrafopakGD2 variants lack a suitable original. Existing industrial/packaging illustrations and unrelatedGD2grades are not exact cut/model replacements."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "sku": "MAT-PAP-GRA-420x297-POLKARTON-A3",
+          "name": "polkarton A3"
+        },
+        {
+          "sku": "MAT-PAP-GRA-297x210-POLKARTON-A4",
+          "name": "polkarton A4"
+        }
+      ],
+      "missingViews": "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+    },
+    {
+      "slug": "barvni-papir",
+      "itemName": "Barvni papir",
+      "variantSkus": [
+        "MAT-PAP-BAR-STRUKTURNO-BELA",
+        "MAT-PAP-BAR-TEMNO-RJAVA",
+        "MAT-PAP-BAR-RJAVA",
+        "MAT-PAP-BAR-LILA",
+        "MAT-PAP-BAR-VIJOLICASTA",
+        "MAT-PAP-BAR-SIVA",
+        "MAT-PAP-BAR-ROZA",
+        "MAT-PAP-BAR-TEMNO-LILA",
+        "MAT-PAP-BAR-TRAVNO-ZELENA",
+        "MAT-PAP-BAR-TEMNO-ZELENA",
+        "MAT-PAP-BAR-ZELENA",
+        "MAT-PAP-BAR-SVETLO-ZELENA",
+        "MAT-PAP-BAR-ORANZNA",
+        "MAT-PAP-BAR-MODRA",
+        "MAT-PAP-BAR-NEBESNO-MODRA",
+        "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+        "MAT-PAP-BAR-SVETLO-MODRA",
+        "MAT-PAP-BAR-TEMNO-RDECA",
+        "MAT-PAP-BAR-VINSKO-RDECA",
+        "MAT-PAP-BAR-KARMIN-RDECA",
+        "MAT-PAP-BAR-KORUZNO-RUMENA",
+        "MAT-PAP-BAR-MARELICNA",
+        "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+        "MAT-PAP-BAR-RUMENA"
+      ],
+      "variants": [
+        {
+          "variantSku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "variantName": "strukturno bela"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "variantName": "temno rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RJAVA",
+          "variantName": "rjava"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-LILA",
+          "variantName": "lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VIJOLICASTA",
+          "variantName": "vijoličasta"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SIVA",
+          "variantName": "siva"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ROZA",
+          "variantName": "roza"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-LILA",
+          "variantName": "temno lila"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "variantName": "travno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "variantName": "temno zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ZELENA",
+          "variantName": "zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "variantName": "svetlo zelena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-ORANZNA",
+          "variantName": "oranžna"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MODRA",
+          "variantName": "modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "variantName": "nebesno modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "variantName": "kalifornijsko modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "variantName": "svetlo modra"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "variantName": "temno rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "variantName": "vinsko rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "variantName": "karmin rdeča"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "variantName": "koruzno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-MARELICNA",
+          "variantName": "marelična"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "variantName": "intenzivno rumena"
+        },
+        {
+          "variantSku": "MAT-PAP-BAR-RUMENA",
+          "variantName": "rumena"
+        }
+      ],
+      "accepted": [],
+      "rejections": [
+        {
+          "id": "lupus-second-gallery",
+          "sourcePage": "https://www.lupus-produkte.de/tonzeichenpapier-130-g-steingrau-mittelgrau/67.084.9",
+          "imageUrl": "https://www.lupus-produkte.de/media/e5/84/7d/1706799810/896bc68c95d416f36097c61e07434777909f6747.jpeg?ts=1706799810",
+          "nativeDimensions": {
+            "width": 787,
+            "height": 787
+          },
+          "sha256": "d8b941700e3555fb0a4c50499e18a9406c8883a366db772903dfde136bb5e3c1",
+          "evidencePath": "tmp/product-image-audit/paper-v10/lupus-second-gallery.jpg",
+          "reason": "Native 787 x 787; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "aduis-rosa-native",
+          "sourcePage": "https://www.aduis.de/tonpapier-10er-pkg-50-x-70-cm-rosa-art602029",
+          "imageUrl": "https://www.aduis.de/pics/ART_NR/602029.jpg",
+          "nativeDimensions": {
+            "width": 600,
+            "height": 428
+          },
+          "sha256": "3d6d6a5bf6873c9ac23387c6b1f905e205dcfac75fd7a181697eb69c1fafd29b",
+          "evidencePath": "tmp/product-image-audit/paper-v10/aduis-rosa-native.jpg",
+          "reason": "Native 600 x 428; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "lupus-grey-native",
+          "sourcePage": "https://www.lupus-produkte.de/tonzeichenpapier-130-g-steingrau-mittelgrau/67.084.9",
+          "imageUrl": "https://www.lupus-produkte.de/media/5c/20/84/1744102174/eb397bbf5fac6a2192d9afa610942e0106aa3288.jpeg?ts=1744102174",
+          "nativeDimensions": {
+            "width": 900,
+            "height": 603
+          },
+          "sha256": "3d02a961265ea4fe7ac32348b0bd9c0483f3e0a54050ee9dae2ac7d3e50acd54",
+          "evidencePath": "tmp/product-image-audit/paper-v10/lupus-grey-native.jpg",
+          "reason": "Native 900 x 603; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "elvira-pastel-native",
+          "sourcePage": "https://www.elvirasbastelmaterial.de/tonzeichenpapier-pastellfarben-130-g-50x70-cm-10-farben-100-bogen/a-5315/",
+          "imageUrl": "https://cdn02.plentyone.com/oueuwrwk0stw/item/images/5315/full/5315-Tonzeichenpapier-Pastellfarben-130-g-50x70-cm-10-Farben-100-Bogen.jpg",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 531
+          },
+          "sha256": "1d0633f8d37ec56464534f92473fe6eaff6b38093d3d0f5d96be8bc065f3818e",
+          "evidencePath": "tmp/product-image-audit/paper-v10/elvira-pastel-native.jpg",
+          "reason": "Native 800 x 531; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "creativ-altrosa-original-0",
+          "sourcePage": "https://www.creativ-discount.de/Tonpapier-10-Bogen-130-g%2Fqm-50x70-cm-Altrosa",
+          "imageUrl": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/CFO6729_Tonpapier_50x70cm_Altrosa.jpg",
+          "nativeDimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "sha256": "66ff7e78379589afa919bd63e99a4657c717156702877985ff21f61b02c8283f",
+          "evidencePath": "tmp/product-image-audit/paper-v10/creativ-altrosa-original-0.jpg",
+          "reason": "Flat filled pink rectangle with applied label and shadow, with no real surface/edge detail; the shade is also more saturated than the original dusty rose. Does not qualify as a sharp informative native product photograph.",
+          "status": "rejected"
+        },
+        {
+          "id": "kitaspezial-130-original-0",
+          "sourcePage": "https://www.kitaspezial.ch/superset-800-bogen-tonpapier-130g-50x70cm/a-9287",
+          "imageUrl": "https://cdn02.plentyone.com/20a5y485cyym/item/images/9287/full/9287-Superset-800-Bogen--Tonpapier-130g--50x70cm_1.jpg",
+          "nativeDimensions": {
+            "width": 600,
+            "height": 330
+          },
+          "sha256": "098c36c1f444bf988626d38dc7018690845affd6426ca317cf7617ffb5893b73",
+          "evidencePath": "tmp/product-image-audit/paper-v10/kitaspezial-130-original-0.jpg",
+          "reason": "Native 600 x 330; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "creativ-altrosa-original-1",
+          "sourcePage": "https://www.creativ-discount.de/Tonpapier-10-Bogen-130-g%2Fqm-50x70-cm-Altrosa",
+          "imageUrl": "https://www.creativ-discount.de/$WS/party-discount/websale8_shop-party-discount/produkte/medien/bilder/detail/Tonpapier_10er_Parent.jpg",
+          "nativeDimensions": {
+            "width": 1500,
+            "height": 1500
+          },
+          "sha256": "f35f20f1d922b5da23b02fd6a1d5adbbf8a2bc44cd6364088f5ea05b3748e250",
+          "evidencePath": "tmp/product-image-audit/paper-v10/creativ-altrosa-original-1.jpg",
+          "reason": "Promotional mixed-colour fan and origami composition with large text; no complete unobscured sheet of an exact requested colour. Not an additional angle of a selected stock variant.",
+          "status": "rejected"
+        },
+        {
+          "id": "depot-altrosa-native",
+          "sourcePage": "https://www.kreativ-depot.de/basteln-mit-papier/bastelpapier/tonpapier/tonpapier-50x70cm/tonpapier-10er-pack-130-g/m2-50x70-cm-altrosa",
+          "imageUrl": "https://www.kreativ-depot.de/media/image/06/e9/6f/fotokarton-50x70cm-altrosa57110b31bebdb.jpg",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "4bcafdf1bd9614c9542a20a84815e8dc9b70342fd8fd04643e95c56767abc67c",
+          "evidencePath": "tmp/product-image-audit/paper-v10/depot-altrosa-native.jpg",
+          "reason": "Native 800 x 800; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "depot-wine-native",
+          "sourcePage": "https://www.kreativ-depot.de/basteln-mit-papier/bastelpapier/tonpapier/tonpapier-50x70cm/tonpapier-10er-pack-130-g/m2-50x70-cm-weinrot",
+          "imageUrl": "https://www.kreativ-depot.de/media/image/7c/12/73/tonpapier-50x70cm-tonpapier-10er-pack-130-g-m2-50x70-cm-weinrot.jpg",
+          "nativeDimensions": {
+            "width": 800,
+            "height": 800
+          },
+          "sha256": "5cc19dae9e5e0719f20b5be82276971c528a7e807f79bbebe8ec3d0bedd96f7c",
+          "evidencePath": "tmp/product-image-audit/paper-v10/depot-wine-native.jpg",
+          "reason": "Native 800 x 800; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "idefix-brown-1920",
+          "sourcePage": "https://idefix.nc/shop/product/10571m-feuille-de-carton-teintes-ursus-de-format-50x70cm-130g-m2-marron-ursus-20988?category=4&page=4",
+          "imageUrl": "https://idefix.nc/web/image/product.product/32108/image_1920?unique=2cbd587",
+          "nativeDimensions": {
+            "width": 500,
+            "height": 500
+          },
+          "sha256": "ad58a17d6dd07b8d90e08d343dcf3d1e3363c6806fd439afc3315fc02f185e39",
+          "evidencePath": "tmp/product-image-audit/paper-v10/idefix-brown-1920.png",
+          "reason": "Native 500 x 500; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "bungarten-red-native",
+          "sourcePage": "https://www.bungarten-shop.de/tonpapier-130-g-50-x-70-cm-10-bogen-einer-farbe/11061000K",
+          "imageUrl": "https://www.bungarten-shop.de/media/07/5a/9a/1671184324/9399248045ec14d9983ed5010adb72b4a38ed97c.jpg?ts=1671184324",
+          "nativeDimensions": {
+            "width": 660,
+            "height": 443
+          },
+          "sha256": "d9553a7c6181abcabf5ed256efc3b69b37ce99342aa2f27dc12d03f48a9ef9d7",
+          "evidencePath": "tmp/product-image-audit/paper-v10/bungarten-red-native.jpg",
+          "reason": "Native 660 x 443; below 1024 pixels on both axes requirement.",
+          "status": "rejected"
+        },
+        {
+          "id": "duo-heyda-rosa-unavailable",
+          "sourcePage": "https://www.duo-shop.de/offers/heyda-tonpapier-50-x-70-058F75AC/",
+          "reason": "HTTP403; cached description identifies Heyda130gsm50x70altrosa but no native image obtained. No image quality/identity pass is claimed.",
+          "status": "source-unusable"
+        },
+        {
+          "id": "digitec-ursus-grey130",
+          "sourcePage": "https://www.digitec.ch/de/s1/product/ursus-tonzeichenpapier-50x70cm-2232281-130g-mittelgrau-130-gm-1x-bastelpapier-9455844",
+          "reason": "HTTP200 returned app/challenge shell without readable product gallery or downloadable original. Cached product description alone is insufficient.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/digitec-ursus-grey130.html",
+          "status": "source-unusable"
+        },
+        {
+          "id": "heyda-galaxus-yellow130",
+          "sourcePage": "https://www.galaxus.de/de/s12/product/heyda-tonpapier-50x70cm-130gqm-ve-25-boegen-sonnengelb-130-gm-25x-bastelpapier-46631273",
+          "reason": "HTTP200 returned app/challenge shell without readable product gallery or downloadable original. Cached product description alone is insufficient.",
+          "evidencePath": "tmp/product-image-audit/paper-v10/heyda-galaxus-yellow130.html",
+          "status": "source-unusable"
+        }
+      ],
+      "pending": [
+        {
+          "status": "missing-suitable-source",
+          "task": "All24remaining130gsmB2colours require native photographs with matched ordinary shade/code or original-photo identity. Existing black/red/lightbrownV9acceptances remain unchanged. Brack/Buttinette recoloured templates and KurthV9shade conflicts were not re-admitted."
+        }
+      ],
+      "remainingVariants": [
+        {
+          "sku": "MAT-PAP-BAR-STRUKTURNO-BELA",
+          "name": "strukturno bela"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-RJAVA",
+          "name": "temno rjava"
+        },
+        {
+          "sku": "MAT-PAP-BAR-RJAVA",
+          "name": "rjava"
+        },
+        {
+          "sku": "MAT-PAP-BAR-LILA",
+          "name": "lila"
+        },
+        {
+          "sku": "MAT-PAP-BAR-VIJOLICASTA",
+          "name": "vijoličasta"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SIVA",
+          "name": "siva"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ROZA",
+          "name": "roza"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-LILA",
+          "name": "temno lila"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TRAVNO-ZELENA",
+          "name": "travno zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-ZELENA",
+          "name": "temno zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ZELENA",
+          "name": "zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SVETLO-ZELENA",
+          "name": "svetlo zelena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-ORANZNA",
+          "name": "oranžna"
+        },
+        {
+          "sku": "MAT-PAP-BAR-MODRA",
+          "name": "modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-NEBESNO-MODRA",
+          "name": "nebesno modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KALIFORNIJSKO-MODRA",
+          "name": "kalifornijsko modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-SVETLO-MODRA",
+          "name": "svetlo modra"
+        },
+        {
+          "sku": "MAT-PAP-BAR-TEMNO-RDECA",
+          "name": "temno rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-VINSKO-RDECA",
+          "name": "vinsko rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KARMIN-RDECA",
+          "name": "karmin rdeča"
+        },
+        {
+          "sku": "MAT-PAP-BAR-KORUZNO-RUMENA",
+          "name": "koruzno rumena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-MARELICNA",
+          "name": "marelična"
+        },
+        {
+          "sku": "MAT-PAP-BAR-INTENZIVNO-RUMENA",
+          "name": "intenzivno rumena"
+        },
+        {
+          "sku": "MAT-PAP-BAR-RUMENA",
+          "name": "rumena"
+        }
+      ],
+      "missingViews": "Qualifying complete native main photograph and genuinely useful additional views remain missing."
+    }
+  ],
+  "evidence": {
+    "directory": "tmp/product-image-audit/paper-v10"
+  },
+  "sourcePages": [
+    {
+      "name": "duo-heyda-rosa130",
+      "url": "https://www.duo-shop.de/offers/heyda-tonpapier-50-x-70-058F75AC/",
+      "error": "HTTP 403"
+    },
+    {
+      "name": "aduis-rosa130",
+      "url": "https://www.aduis.de/tonpapier-10er-pkg-50-x-70-cm-rosa-art602029",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/aduis-rosa130.html"
+    },
+    {
+      "name": "lupus-grey130",
+      "url": "https://www.lupus-produkte.de/tonzeichenpapier-130-g-steingrau-mittelgrau/67.084.9",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/lupus-grey130.html"
+    },
+    {
+      "name": "digitec-ursus-grey130",
+      "url": "https://www.digitec.ch/de/s1/product/ursus-tonzeichenpapier-50x70cm-2232281-130g-mittelgrau-130-gm-1x-bastelpapier-9455844",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/digitec-ursus-grey130.html"
+    },
+    {
+      "name": "elvira-pastel130",
+      "url": "https://www.elvirasbastelmaterial.de/tonzeichenpapier-pastellfarben-130-g-50x70-cm-10-farben-100-bogen/a-5315/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/elvira-pastel130.html"
+    },
+    {
+      "name": "cartucciaperfetta-a3",
+      "url": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/cartucciaperfetta-a3.html"
+    },
+    {
+      "name": "tilgear-white200",
+      "url": "https://www.tilgear.info/art-craft-and-design/paper-and-card/white-card/white-a4-200gsm-pk-of-50-crd204wht",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/tilgear-white200.html"
+    },
+    {
+      "name": "hobbyland-accademia",
+      "url": "https://www.hobbyland.eu/ita/shop/fabriano-accademia-paper/p-F007822/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/hobbyland-accademia.html"
+    },
+    {
+      "name": "kitaspezial-130",
+      "url": "https://www.kitaspezial.ch/superset-800-bogen-tonpapier-130g-50x70cm/a-9287",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/kitaspezial-130.html"
+    },
+    {
+      "name": "creativ-altrosa",
+      "url": "https://www.creativ-discount.de/Tonpapier-10-Bogen-130-g%2Fqm-50x70-cm-Altrosa",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/creativ-altrosa.html"
+    },
+    {
+      "name": "hobbyland-paperpack",
+      "url": "https://www.hobbyland.eu/ita/shop/fabriano-accademia-paperpack/p-F007823/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/hobbyland-paperpack.html"
+    },
+    {
+      "name": "kreativ-depot-130",
+      "url": "https://www.kreativ-depot.de/basteln-mit-papier/bastelpapier/tonpapier/tonpapier-50x70cm/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/kreativ-depot-130.html"
+    },
+    {
+      "name": "shopee-gd2-cuts",
+      "url": "https://shopee.com.my/%28-10pcs-%29-BOX-BOARD-ONE-SIDE-WHITE-COATED-GREY-BACK-A2-A3-A4-A5-WITH-270g-350g-450g-i.782895456.20561179699",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/shopee-gd2-cuts.html"
+    },
+    {
+      "name": "envelope-white200",
+      "url": "https://www.theenvelopepeople.co.uk/white-card/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/envelope-white200.html"
+    },
+    {
+      "name": "moneycruncher-200",
+      "url": "https://www.moneycruncher.co.uk/collections/stationary-school-supplies",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-200.html"
+    },
+    {
+      "name": "cart2-a4-200",
+      "url": "https://cart2india.com/card-stock/120-sheets-a4-white-cardstock-thick-paper-74lb-white-card-stock-printer-paper-heavy-weight-cover-card-stock-200-gsm-for-invitations-wedding-stationary-printing/00000000004394107682",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/cart2-a4-200.html"
+    },
+    {
+      "name": "kreativ-depot-altrosa",
+      "url": "https://www.kreativ-depot.de/basteln-mit-papier/bastelpapier/tonpapier/tonpapier-50x70cm/tonpapier-10er-pack-130-g/m2-50x70-cm-altrosa",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/kreativ-depot-altrosa.html"
+    },
+    {
+      "name": "kreativ-depot-wine",
+      "url": "https://www.kreativ-depot.de/basteln-mit-papier/bastelpapier/tonpapier/tonpapier-50x70cm/tonpapier-10er-pack-130-g/m2-50x70-cm-weinrot",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/kreativ-depot-wine.html"
+    },
+    {
+      "name": "heyda-galaxus-yellow130",
+      "url": "https://www.galaxus.de/de/s12/product/heyda-tonpapier-50x70cm-130gqm-ve-25-boegen-sonnengelb-130-gm-25x-bastelpapier-46631273",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/heyda-galaxus-yellow130.html"
+    },
+    {
+      "name": "idefix-brown130",
+      "url": "https://idefix.nc/shop/product/10571m-feuille-de-carton-teintes-ursus-de-format-50x70cm-130g-m2-marron-ursus-20988?category=4&page=4",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/idefix-brown130.html"
+    },
+    {
+      "name": "bigw-aimall-category",
+      "url": "https://www.bigw.com.au/school-office-art-supplies/hobbies-design/design-projects/c/6533103?page=6",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/bigw-aimall-category.html"
+    },
+    {
+      "name": "bigshopper-a3-200",
+      "url": "https://bigshopper.de/product/25-blatt-a3-bastelkarton-200g-m2-weiss-premium-papier-reinweiss-din-297x420-mm-druckerpapier-weiss-unbedruckt-fuer-fotografie-praesentationen-basteln-tonkarton-karton-made-in-germany-1828189168.htm",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/bigshopper-a3-200.html"
+    },
+    {
+      "name": "bungarten-130-range",
+      "url": "https://www.bungarten-shop.de/kreativbereich/papiere/tonpapier-130-g/",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/bungarten-130-range.html"
+    },
+    {
+      "name": "bungarten-130-single",
+      "url": "https://www.bungarten-shop.de/tonpapier-130-g-50-x-70-cm-10-bogen-einer-farbe/11061000K",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/bungarten-130-single.html"
+    },
+    {
+      "name": "cartucciaperfetta-native-product-data",
+      "url": "https://www.cartucciaperfetta.it/products/fabriano-41202942-1-album-disegno-a.js",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/cartuccia-native-gallery.json"
+    },
+    {
+      "name": "moneycruncher-native-product-data",
+      "url": "https://www.moneycruncher.co.uk/products/a4-white-card-200gsm-thick-stock-printer-craft.js",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/moneycruncher-native-gallery.json"
+    },
+    {
+      "name": "panther-native-product-data",
+      "url": "https://pantherstationery.com.au/products/plain-a3-card-pack.js",
+      "httpStatus": 200,
+      "evidencePath": "tmp/product-image-audit/paper-v10/panther-native-gallery.json"
+    }
+  ],
+  "priorLedgers": [
+    "data/catalog/replacement-sources-paper-v9-2026-09.json"
+  ],
+  "mutationSummary": "Research only; no DB, canonical or runtime edits.",
+  "matchingNotes": {
+    "commodityIdentity": "User-authorized unbranded commodity matching by name/material/colour/format remains allowed. Retailer brand alone was not a rejection criterion; conflicting grade, cut, shade or non-photographic content was.",
+    "formats": "OriginalATEHNA B2/B1 names versus canonical500x707/1000x707 algorithmic ISO normalization were already traced. Trade50x70/70x100 matches nominal format where otherwise appropriate, without changing catalog specs.",
+    "captions": "Any future multi-sheet photograph must visibly disclose that additional sheets are not included; use Slovenian sentence Dodatni prikazani listi niso vključeni.",
+    "nativeVerification": "Decoded unchanged source bytes using sharp; SHA256 retained for every measured original. Advertised1920sizes are not treated as proof of native resolution."
+  },
+  "peerReviewsProvidedToRoot": [
+    "Kurth300gsmred/yellow/silver/gold root-scope candidates: reviewed visual framing and documented that supplier reused same-colour stock photography across130/300gsm; no claim that photograph independently proves grammage. Root owns final decision/ledger.",
+    "Stamford140gsm drawing-paper photograph: good contrast/nohuman; foregroundA5 whole sheet supports main where stock compatible; overlapping rearA4 better as context beside complete main. Root owns exact source/acceptance."
+  ]
+}

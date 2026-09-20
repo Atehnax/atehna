@@ -1,0 +1,95 @@
+{
+  "version": 4,
+  "reviewedAt": "2026-09-14T14:02:25.251Z",
+  "sourceLedgers": [
+    "data/catalog/replacement-sources-materials-v8-2026-09.json",
+    "data/catalog/replacement-sources-paper-v8-2026-09.json",
+    "data/catalog/replacement-sources-tools-v8-2026-09.json",
+    "data/catalog/replacement-sources-ppe-v8-2026-09.json",
+    "data/catalog/replacement-sources-galvanized-root-v8-2026-09.json"
+  ],
+  "additions": [
+    {
+      "id": "vezana-plosca-bukev-4x500x500-ciste-v8",
+      "slug": "vezana-plosca",
+      "variantSkus": [
+        "MAT-LES-VEZ-4x500x500-BUKEV"
+      ],
+      "blobUrl": "/images/catalog/2026-09/vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+      "sha256": "ab8f188f394bd0022cb0202a4c2bb8ae17d126da3bd2afb50f0aa6b45ec2cd99",
+      "dimensions": {
+        "width": 1813,
+        "height": 1723
+      },
+      "sourcePage": "https://www.cistedrevo.cz/bukova-preklizka-4-x-500-x-500-mm/",
+      "sourceUrl": "https://cdn.myshoptet.com/usr/www.cistedrevo.cz/user/shop/orig/55308_buk-500-500.jpg",
+      "sourceIdentityEvidence": "ČistéDřevo LA541 explicitly specifies natural beech plywood, 4 mm thick, length 50 cm and width 50 cm. The complete square and natural beech grain match the known ATEHNA beech variant. No supplier brand or unstated glue/core specification is added to the product.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Whole front face of the square sheet",
+      "altText": "Vezana plošča iz bukve, 4 × 500 × 500 mm – pogled na celotno ploščo.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/vezana-plosca/images/ab8f188f394bd002-vezana-plosca-bukev-4x500x500-celotna-v8.jpg",
+      "hostedBlobPathname": "catalog-items/vezana-plosca/images/ab8f188f394bd002-vezana-plosca-bukev-4x500x500-celotna-v8.jpg"
+    },
+    {
+      "id": "pocinkana-plocevina-kvadrat-05-celoten-pogled-v8",
+      "slug": "pocinkana-plocevina",
+      "variantSkus": [
+        "MAT-KOV-POC-0P5x100x100",
+        "MAT-KOV-POC-0P5x200x200",
+        "MAT-KOV-POC-0P5x300x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp",
+      "sha256": "4558d16f426c5854d431f1a55dd5c4938f6fdc0c753eaf36e34b114c2194a3ec",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.co.uk/itm/227170982927",
+      "sourceUrl": "https://i.ebayimg.com/images/g/jGQAAeSwhJBpZFu-/s-l1600.webp",
+      "sourceIdentityEvidence": "The public listing explicitly offers unbranded galvanized steel sheet at0.5mm thickness with100×100,200×200 and300×300mm square cuts. The complete top square, neutral silver zinc finish and thin cut edge match the unbranded ATEHNA square sheet specification. The same square-family photograph represents those matching square cuts; the300×200 rectangular variant is excluded. Exact selected dimensions remain stated by the variant and retained schematic. No brand/alloy claim, product geometry or supply quantity is changed. Other sheets in the supplier photograph are explicitly excluded in the visible Slovenian caption.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "main",
+      "view": "Complete square sheet, three-quarter view",
+      "altText": "Pocinkana pločevina debeline 0,5 mm — celoten pogled kvadratnega kosa. Dodatne prikazane pločevine niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pocinkana-plocevina/images/4558d16f426c5854-pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp",
+      "hostedBlobPathname": "catalog-items/pocinkana-plocevina/images/4558d16f426c5854-pocinkana-plocevina-kvadrat-05-celoten-pogled-v8.webp"
+    },
+    {
+      "id": "pocinkana-plocevina-kvadrat-05-rob-povrsina-v8",
+      "slug": "pocinkana-plocevina",
+      "variantSkus": [
+        "MAT-KOV-POC-0P5x100x100",
+        "MAT-KOV-POC-0P5x200x200",
+        "MAT-KOV-POC-0P5x300x300"
+      ],
+      "blobUrl": "/images/catalog/2026-09/pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp",
+      "sha256": "530496d5d82ebadbdf9b904ab8fd3d73e8c43dc417b0dcad9b8ed16c43804cc8",
+      "dimensions": {
+        "width": 1600,
+        "height": 1600
+      },
+      "sourcePage": "https://www.ebay.co.uk/itm/227170982927",
+      "sourceUrl": "https://i.ebayimg.com/images/g/sygAAeSwoKxpZFu~/s-l1600.webp",
+      "sourceIdentityEvidence": "The public listing explicitly offers unbranded galvanized steel sheet at0.5mm thickness with100×100,200×200 and300×300mm square cuts. The complete top square, neutral silver zinc finish and thin cut edge match the unbranded ATEHNA square sheet specification. The same square-family photograph represents those matching square cuts; the300×200 rectangular variant is excluded. Exact selected dimensions remain stated by the variant and retained schematic. No brand/alloy claim, product geometry or supply quantity is changed. Other sheets in the supplier photograph are explicitly excluded in the visible Slovenian caption.",
+      "originalBytes": true,
+      "humanFree": true,
+      "visuallyReviewed": true,
+      "exactVariantMatch": true,
+      "imageType": "product",
+      "role": "detail",
+      "view": "Independent close-up of zinc surface and thin sheet edges",
+      "altText": "Pocinkana pločevina debeline 0,5 mm — podrobnost površine in robov. Dodatne prikazane pločevine niso vključene.",
+      "hostedBlobUrl": "https://crinceowa5emvin9.public.blob.vercel-storage.com/catalog-items/pocinkana-plocevina/images/530496d5d82ebadb-pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp",
+      "hostedBlobPathname": "catalog-items/pocinkana-plocevina/images/530496d5d82ebadb-pocinkana-plocevina-kvadrat-05-rob-povrsina-v8.webp"
+    }
+  ]
+}

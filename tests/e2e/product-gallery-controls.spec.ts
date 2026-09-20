@@ -374,8 +374,15 @@ async function exerciseGalleryControls(
   });
   await expect(close).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  const original = dialog.getByRole('link', { name: /Odpri (?:izvirno sliko|skico) v polni velikosti/ });
+  await expect(original).toBeVisible();
+  const previewSource = await dialog.locator('img').getAttribute('src');
+  expect(previewSource).toBeTruthy();
+  const previewUrl = new URL(previewSource!, page.url());
+  await expect(original).toHaveAttribute('href', previewUrl.searchParams.get('url') ?? previewUrl.pathname);
+  await expect(original).toHaveAttribute('target', '_blank');
   await page.keyboard.press('Tab');
-  await expect(close).toBeFocused();
+  await expect(original).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(close).toBeFocused();
   await page.keyboard.press('ArrowRight');

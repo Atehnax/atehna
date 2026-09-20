@@ -1,0 +1,1675 @@
+{
+  "version": 5,
+  "createdAt": "2026-09-14T11:16:52.215Z",
+  "status": "Six peer-reviewed native originals staged; first three already applied by root, focused follow-up three ready for integration",
+  "scope": "Eight material families and remaining PVC cuts. Source ledger and original assets only; no DB, canonical catalog or runtime edits.",
+  "matchingPolicy": "User-authorized converging product name, dimensions, material, colour and original ATEHNA visual identity; no mandatory supplier/EAN link for unbranded commodities. Conflicting known branded model/grade/colour remains disallowed.",
+  "constraints": {
+    "minimumNativeWidth": 1024,
+    "minimumNativeHeight": 1024,
+    "realPhotographsOnly": true,
+    "noHumans": true,
+    "noAI": true,
+    "noUpscalingOrPadding": true,
+    "unchangedOriginalBytes": true,
+    "nearDuplicatesExcluded": true,
+    "schematicsPreserved": true
+  },
+  "summary": {
+    "families": 8,
+    "catalogVariants": 65,
+    "acceptedOriginalPhotographs": 6,
+    "acceptedFamilies": 4,
+    "acceptedVariants": 7
+  },
+  "products": [
+    {
+      "slug": "aluminijasta-plosca",
+      "itemId": "1",
+      "name": "Aluminijasta plošča",
+      "variants": [
+        {
+          "id": "5",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "6",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x300",
+          "acceptedOriginalIds": [
+            "aluminijasta-plosca-300x300x05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "One native whole-product photograph available; independently photographed rear/edge views still missing. No near-duplicate or dimension composite counted as another view."
+        },
+        {
+          "id": "3",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "1",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x100x100",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "2",
+          "name": "0,5 × 200 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x200x100",
+          "acceptedOriginalIds": [
+            "aluminijasta-plosca-200x100x05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "One native whole-product photograph available; independently photographed rear/edge views still missing. No near-duplicate or dimension composite counted as another view."
+        },
+        {
+          "id": "4",
+          "name": "0,5 × 300 × 100 mm",
+          "sku": "MAT-KOV-ALU-0P5x300x100",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "191",
+          "name": "0,3 × 200 × 200 mm",
+          "sku": "MAT-KOV-ALU-0P3x200x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [
+        {
+          "id": "aluminijasta-plosca-300x300x05-celoten-pogled-v5",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+          "assetPath": "public/images/catalog/2026-09/aluminijasta-plosca-300x300x05-celoten-pogled-v5.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v5/uxcellAl-ebay-0.jpg",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x300x300"
+          ],
+          "variantIds": [
+            "6"
+          ],
+          "sourcePage": "https://www.ebay.com.au/itm/306015737506",
+          "imageUrl": "https://i.ebayimg.com/images/g/9vUAAeSw~s9pcXmV/s-l1600.jpg",
+          "sha256": "de73cf00f66170a205985a4aed0de514530255689879afe5e04d1743feb61c30",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 160119,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "Complete single square aluminum sheet, oblique main view",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Aluminijasta plošča, 300 × 300 × 0,5 mm — celoten pogled.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Public uxcell retailer listing explicitly specifies single 300 × 300 × 0.5 mm aluminum sheet, corroborated by gallery dimension image. Existing ATEHNA catalog variant is plain aluminum with the same exact cut and thickness; no alloy or temper or coating specification. Original ATEHNA Aluminij.png shows natural silver reflective sheet stock with fine linear marks, compatible with this plain silver source. Source 6061 specification is provenance only and is not added as a catalog claim.",
+            "quality": "Untouched native 1600 × 1600 whole single-sheet photograph. Natural linear metal grain, thin edges and all four corners clearly visible. No people, labels, context objects or conflicting paint/coating. Additional dimension/label composites repeat the same capture; application gallery contains humans and is excluded.",
+            "accessories": "One sheet shown; no additional components."
+          }
+        },
+        {
+          "id": "aluminijasta-plosca-200x100x05-celoten-pogled-v5",
+          "blobUrl": "/images/catalog/2026-09/aluminijasta-plosca-200x100x05-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/aluminijasta-plosca-200x100x05-celoten-pogled-v5.jpg",
+          "assetPath": "public/images/catalog/2026-09/aluminijasta-plosca-200x100x05-celoten-pogled-v5.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v5/uxcellAl-200100-cart2india-0.jpg",
+          "variantSkus": [
+            "MAT-KOV-ALU-0P5x200x100"
+          ],
+          "variantIds": [
+            "2"
+          ],
+          "sourcePage": "https://www.cart2india.com/sheets-plates/uxcell-6061-aluminum-sheet-200mm-x-100mm-rectangle-aluminum-plate-05mm-thick-flat-metal-stock-with-protective-film-2pcs/00000000004389017011",
+          "imageUrl": "https://m.media-amazon.com/images/I/5155ARf9IUL.jpg",
+          "sha256": "4dd8615eddbec664e349de3d95c45456700223bb274f3f9146fe5a129a31720e",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 42237,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "Complete rectangular sheet above another identical supplier stock sheet",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Aluminijasta plošča, 200 × 100 × 0,5 mm — celoten pogled. Prodajna enota je ena plošča; dodatna prikazana plošča ni vključena.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Supplier listing and structured part number a23032000ux0872 explicitly specify 200 × 100 × 0.5 mm aluminum. Exact catalog cut and thickness matched only to SKU MAT-KOV-ALU-0P5x200x100. Two sheets shown reflect supplier pack; ATEHNA sells one, disclosed in visible caption. Natural silver finish is compatible with original ATEHNA Aluminij.png; source 6061 specification is provenance only, no alloy/temper added to catalog.",
+            "quality": "Untouched 1600 × 1600 original Amazon CDN source discovered in public retailer gallery. Complete front rectangular sheet with all corners visible, fine linear grain and readable thin edge. No humans. Additional 500-square preview is the same photograph and below minimum; dimension overlay is not a new viewing angle. No crop, mirror, rotation, upscale or padding applied.",
+            "accessories": "Sales unit remains one sheet. The caption explicitly excludes the extra pictured sheet; photograph is not counted twice."
+          },
+          "supplierSku": "a23032000ux0872",
+          "inventoryScope": {
+            "production": "Existing active id2, exact SKU and dimensions200 ×100 ×0.5 mm verified in fresh production inventory.",
+            "local": "No exact200 ×100 ×0.5 mm variant exists in local inventory.",
+            "canonical": "No exact200 ×100 ×0.5 mm variant exists in canonical import manifest.",
+            "integration": "Production-only association. Do not create local/canonical variants or link this photo to a different cut."
+          },
+          "target": "production"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.stahl-shop24.de/Alu-Blech-200x200x0-5mm",
+          "inspection": "New real2000×2000 supplier photo on the exact0.5mm200×200 listing. Three sheets stacked, right corners cut off; visible thicknesses appear unequal. Not accepted as main, and precise pictured thickness is unresolved for a detail assignment.",
+          "originals": [
+            {
+              "sourcePage": "https://www.stahl-shop24.de/Alu-Blech-200x200x0-5mm",
+              "imageUrl": "https://www.stahl-shop24.de/media/68/13/b1/1768291999/6767F7AB-0986-4002-AF61-D2079BFABE94.jpg?ts=1768291999",
+              "path": "tmp/product-image-audit/materials-v5/stahlShop0.jpg",
+              "width": 2000,
+              "height": 2000,
+              "sha256": "1ddb362783d559ecac8082b7aa192fcef450953776d75f6b2138af1599fbdcfc",
+              "bytes": 637558
+            }
+          ]
+        },
+        {
+          "sourcePages": [
+            "https://www.sussex.com.au/product/aluminium-plates-100mm-x-100mm-x-0-5mm/",
+            "https://kraftmetals.co.uk/product/natural-aluminium-sheet-sculpting-decorative-metalwork/"
+          ],
+          "inspection": "Sussex exact100×100×0.5 plate original is640×640. Kraft1024-square image depicts circular discs and tools, conflicting with rectangular sheet; no image accepted.",
+          "originals": [
+            {
+              "id": "sussex",
+              "imageUrl": "https://www.sussex.com.au/wp-content/uploads/2023/05/Aluminium-Plates-8.webp",
+              "path": "tmp/product-image-audit/materials-v5/sussex-native.webp",
+              "width": 640,
+              "height": 640,
+              "sha256": "a6f9c8a9c96b30711352ce3a5a19f55c88f8163a9848f3d826e0b6f991ea1d7a",
+              "bytes": 5320
+            },
+            {
+              "id": "kraft",
+              "imageUrl": "https://kraftmetals.co.uk/wp-content/uploads/2025/07/natural-aluminium-discs-with-snips-and-rule.png",
+              "path": "tmp/product-image-audit/materials-v5/kraft-native.png",
+              "width": 1024,
+              "height": 1024,
+              "sha256": "1eefe4de286dd8af3f3c5c277b24058348be82f4557ed97e31b6fcd5584198d8",
+              "bytes": 1865803
+            }
+          ]
+        },
+        {
+          "sourcePage": "https://www.diy.com/departments/0-5mm-aluminium-sheet-100mm-x-100mm/5061082731881_BQ.prd",
+          "imageUrl": "https://media.diy.com/is/image/KingfisherDigital/0-5mm-aluminium-sheet-100mm-x-100mm~5061082731881_01c_MP",
+          "inspection": "Public source metadata reports image.width400 and image.height400; does not meet native minimum. No larger image requested or padded.",
+          "evidence": "tmp/product-image-audit/materials-v5/bq-al-props.txt"
+        }
+      ],
+      "missingViews": [
+        "Native whole-sheet photos still missing for 300 × 200,200 × 200,100 × 100, 300 × 100 at 0.5 mm and 200 × 200 at 0.3 mm. Accepted 300-square and 200 × 100 photos each count as one view only; useful rear/edge captures remain missing."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "bakrena-plosca",
+      "itemId": "2",
+      "name": "Bakrena plošča",
+      "variants": [
+        {
+          "id": "7",
+          "name": "0,5 × 300 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x200",
+          "acceptedOriginalIds": [
+            "bakrena-plosca-300x200x05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "Useful independently photographed reverse/edge/detail views missing."
+        },
+        {
+          "id": "8",
+          "name": "0,5 × 300 × 300 mm",
+          "sku": "MAT-KOV-BAK-0P5x300x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "9",
+          "name": "0,5 × 200 × 200 mm",
+          "sku": "MAT-KOV-BAK-0P5x200x200",
+          "acceptedOriginalIds": [
+            "bakrena-plosca-kvadrat-05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "Useful independently photographed reverse/edge/detail views missing."
+        },
+        {
+          "id": "10",
+          "name": "0,5 × 100 × 100 mm",
+          "sku": "MAT-KOV-BAK-0P5x100x100",
+          "acceptedOriginalIds": [
+            "bakrena-plosca-kvadrat-05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "Useful independently photographed reverse/edge/detail views missing."
+        }
+      ],
+      "accepted": [
+        {
+          "id": "bakrena-plosca-300x200x05-celoten-pogled-v5",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a23081000ux0841_ux_g03.jpg?v=1776227900",
+          "path": "tmp/product-image-audit/materials-v5/harfCopper0.jpeg",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 117152,
+          "sha256": "f982f2b4e80990402b7f54719ec9cc8d8a6f97a860fff102ae312973fbd3e7d1",
+          "sourcePath": "tmp/product-image-audit/materials-v5/harfCopper0.jpeg",
+          "assetPath": "public/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/bakrena-plosca-300x200x05-celoten-pogled-v5.jpg",
+          "sourcePage": "https://www.harfington.com/en-ca/products/p-1457778",
+          "variantSkus": [
+            "MAT-KOV-BAK-0P5x300x200"
+          ],
+          "variantIds": [
+            "7"
+          ],
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "whole sheet, oblique front",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Bakrena plošča, 300 × 200 × 0,5 mm — celoten pogled.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match: copper, natural uncoated copper colour, 300 × 200 × 0.5 mm rectangular cut. Source SKU a23081000ux0841 states those metric dimensions and T2 pure copper; no manufacturer/grade claim is added to ATEHNA. Single sheet, no conflicting geometry or components.",
+            "quality": "Whole sheet visible with all corners, fine real copper surface marks and sharp cut edges. Original native 1600 × 1600 bytes preserved; natural lighting, neutral white background, no humans. Independently reviewed by root.",
+            "accessories": "One sheet only; no accessories shown."
+          }
+        },
+        {
+          "id": "bakrena-plosca-kvadrat-05-celoten-pogled-v5",
+          "sourcePath": "tmp/product-image-audit/materials-v5/p-1457755.jpeg",
+          "assetPath": "public/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+          "blobUrl": "/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/bakrena-plosca-kvadrat-05-celoten-pogled-v5.jpg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a23081000ux0834_ux_g03.jpg?v=1773949558",
+          "sourcePage": "https://www.harfington.com/products/p-1457755",
+          "additionalExactVariantSourcePages": [
+            "https://www.harfington.com/products/p-1457745"
+          ],
+          "sha256": "13928545c44be1ae337b3a0f2aa611bb110763f9da091c68bea5fe34955b1cd3",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 120238,
+          "variantSkus": [
+            "MAT-KOV-BAK-0P5x100x100",
+            "MAT-KOV-BAK-0P5x200x200"
+          ],
+          "variantIds": [
+            "10",
+            "9"
+          ],
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "whole square sheet, oblique front",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Kvadratna bakrena plošča, debeline 0,5 mm — celoten pogled.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Supplier explicitly uses this identical original photograph for exact100×100×0.5 SKU a23081000ux0834 and exact200×200×0.5 SKU a23081000ux0840. Both product JSON specifications give metric dimensions. Same plain copper material, natural finish, square outline and thickness; one source asset assigned to these two variants only. No extra view count and no manufacturer/grade claim added.",
+            "quality": "Whole square sheet visible; fine real surface marks and cut edges resolved. Native1600×1600 original unchanged. Neutral white background, no body parts. Root peer review passed.",
+            "accessories": "One sheet shown; no accessories."
+          }
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.harfington.com/en-ca/products/p-1457778",
+          "inspection": "Five native 1600-square supplier images downloaded. Main accepted. Measurement composite duplicates the material view; two-sheet edge composition does not independently prove both depicted thicknesses; rings are fabricated components; application photo contains human hands. These four are not added.",
+          "evidence": "tmp/product-image-audit/materials-v5/wood-copper-native.json"
+        },
+        {
+          "sourcePages": [
+            "https://www.harfington.com/products/p-1457755",
+            "https://www.harfington.com/products/p-1457745"
+          ],
+          "inspection": "The two square variants share byte-identical original main photographs; stored once and mapped only to both documented cuts. Not counted as different viewing angles.",
+          "evidence": [
+            "tmp/product-image-audit/materials-v5/p-1457755.json",
+            "tmp/product-image-audit/materials-v5/p-1457745.json"
+          ]
+        }
+      ],
+      "missingViews": [
+        "300×300×0.5 still needs main.300×200,100×100 and200×200 now have reviewed main; all need authentic useful reverse/edge views if available. Two square variants share one supplier photograph, never counted as two captures."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "pocinkana-plocevina",
+      "itemId": "3",
+      "name": "Pocinkana pločevina",
+      "variants": [
+        {
+          "id": "11",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "12",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x300x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "13",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x200x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "14",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-POC-0P5x100x100",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://homediyer.com/products/galvanised-steel-sheet-plate-zinc-coated",
+          "inspection": "New public gallery contains nine native1000×1000 originals, all below minimum. Body copy mentions0.5 mm but current variants do not expose a0.5 mm choice, so exact selected stock would also need confirmation.",
+          "nativeImageMetadata": [
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture8of9_b53931ce-945f-481a-ada7-ecfed03212b5.jpg?v=1782568941",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture1of9_04092a21-b7bf-475b-91b4-6f21d31beede.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture2of9_948a5927-fd84-4d76-8d44-ca0e51377b39.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture4of9_cfb692ef-345c-4f56-9112-3faeb13c7f95.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture5of9_8eea1dde-3996-47da-8da2-ef0ff94006ba.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture7of9_0efefb51-e7c4-4cdc-878c-637deaa833c4.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture3of9_fcedce2d-69a9-4812-90e7-00df7a48c1bb.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture6of9_c1ba96fb-e434-4302-9d83-ab0b0f74f08c.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            },
+            {
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture9of9_746a1daa-4953-4a90-ad31-818c8c3f786e.jpg?v=1782568940",
+              "width": 1000,
+              "height": 1000
+            }
+          ],
+          "evidence": "tmp/product-image-audit/materials-v5/diyGalv.json"
+        }
+      ],
+      "missingViews": [
+        "All4 exact0.5 mm cuts need whole-sheet and zinc-surface/edge photography, with actual finish matching existing stock."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "medeninasta-plosca",
+      "itemId": "4",
+      "name": "Medeninasta plošča",
+      "variants": [
+        {
+          "id": "15",
+          "name": "300 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "16",
+          "name": "300 × 300 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x300x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "17",
+          "name": "200 × 200 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x200x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "18",
+          "name": "100 × 100 × 0,5 mm",
+          "sku": "MAT-KOV-MED-0P5x100x100",
+          "acceptedOriginalIds": [
+            "medeninasta-plosca-100x100x05-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "Useful independently photographed reverse/edge/detail views missing."
+        }
+      ],
+      "accepted": [
+        {
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a20112100ux0259_ux_g03_227c80f5-6d16-482b-90c6-76dfe5bb030e.jpg?v=1727600468",
+          "path": "tmp/product-image-audit/materials-v5/harfBrass0.jpeg",
+          "width": 2000,
+          "height": 2000,
+          "bytes": 163785,
+          "sha256": "c08f8d88ee4a1771733847bce2230a98c47b77d94ad5c4d8ee9f263a88926935",
+          "id": "medeninasta-plosca-100x100x05-celoten-pogled-v5",
+          "sourcePath": "tmp/product-image-audit/materials-v5/harfBrass0.jpeg",
+          "assetPath": "public/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+          "blobUrl": "/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/medeninasta-plosca-100x100x05-celoten-pogled-v5.jpg",
+          "sourcePage": "https://www.harfington.com/products/p-1065462?variant=45528554176761",
+          "variantSkus": [
+            "MAT-KOV-MED-0P5x100x100"
+          ],
+          "variantIds": [
+            "18"
+          ],
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "whole sheet, oblique front",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Medeninasta plošča, 100 × 100 × 0,5 mm — celoten pogled.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "Exact plain brass commodity, square 100 × 100 × 0.5 mm. Supplier SKU a20112100ux0259 variant45528554176761; metric dimensions confirmed by the same SKU measurement photograph. Natural brass colour and uncoated sheet surface match known product type; no brand claim transferred.",
+            "quality": "Whole square sheet and all corners visible; real fine grain, natural reflected light and sharply resolved leading edge. Source native2000×2000, unchanged original bytes. No humans; no padding or enlargement performed. Root independently approved main.",
+            "accessories": "One sheet only; no accessories."
+          }
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePage": "https://www.harfington.com/products/p-1065462",
+          "evidence": "tmp/product-image-audit/materials-v5/harf-brass-native.json",
+          "inspection": "Exact100×100×0.5 SKU has three unique images. Oblique main accepted. Dimension composite not counted as a new photograph. Frontal face pending independent-capture proof, not added. Three additional uploads byte-identical to the same three images excluded."
+        },
+        {
+          "sourcePages": [
+            "https://maccmodels.co.uk/shop/materials/brass-sections/brass-sheet/brass-sheet-cz108/0-5mm-brass-sheet-select-size-2/",
+            "https://homediyer.com/products/h62-brass-copper-sheet-plate-diy-many-size",
+            "https://homediyer.com/products/solid-brass-sheet-plate-0-1mm-5mm-thick"
+          ],
+          "inspection": "Seventeen new original images downloaded: Macc300×268, HomeDIYer950-square or997–1000-square. None reach1024 on both axes; enlarged derivatives not used.",
+          "originals": [
+            {
+              "key": "maccBrass",
+              "path": "tmp/product-image-audit/materials-v5/maccBrass.jpeg",
+              "imageUrl": "https://maccmodels.co.uk/wp-content/uploads/2019/04/0.5-mm-brass-sheet.jpg",
+              "width": 300,
+              "height": 268,
+              "bytes": 24204,
+              "sha256": "362b02fccbe6b195d8c128f0a8a7bfbbcebb425b89e1887c5d5338ec675b974f",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass-1",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass-1.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture2of4_38df7d06-4574-42a3-b744-e4201745ceb2.jpg?v=1782355268",
+              "width": 950,
+              "height": 950,
+              "bytes": 33255,
+              "sha256": "371c60988efdd463c0998f496e2e2d76be1a5b5db6af9d64fa2af20bdbcdaaf9",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass-2",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass-2.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture1of4_50d1dc83-4c0d-4cf4-8a0a-3c551baf9296.jpg?v=1782355268",
+              "width": 950,
+              "height": 950,
+              "bytes": 49521,
+              "sha256": "be4d13beca38107b7c4fbec4fe8642994ae68f5a1e1076465b3846750598a51f",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass-3",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass-3.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture3of4_3b0ae55f-6c5d-4fc1-84af-73fccf2964c4.jpg?v=1782355267",
+              "width": 950,
+              "height": 950,
+              "bytes": 24602,
+              "sha256": "5f9d9a23f821e5075e0731361980135d13a046a3d835ed699d8fb08883954adf",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass-4",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass-4.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture4of4_5b4d15ad-30e9-466b-a170-0db99d1b8a8f.jpg?v=1782355267",
+              "width": 950,
+              "height": 950,
+              "bytes": 23412,
+              "sha256": "77334109b328a6c674cefe9a34366b3fb651e3633cd505c8d8eb7e03e9c58c78",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-1",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-1.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture3of12_871f18f1-d1f8-40d6-8f97-32a2e21f0790.jpg?v=1782401076",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 77317,
+              "sha256": "823394247c73a022510a43880ad4cb1c4519c75797e0ec63dd769ce00093c614",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-2",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-2.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture1of12_7234dec9-083f-44a7-9576-5fddaf4d61f6.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 135861,
+              "sha256": "965794598036acfbf08d9eebc1d8a0df923747ce3a06eb688d970f77c958e757",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-3",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-3.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture2of12_69e7543a-01dd-493c-97fa-7f54a7a86672.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 81951,
+              "sha256": "f90f7387aaac79dbec569b46ae0fab2a2d395ef4f7579231d9ff9b4bfc570b0f",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-4",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-4.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture4of12_4e1b94dc-9624-4214-a51d-e7cda4ff455b.jpg?v=1782401077",
+              "width": 1000,
+              "height": 999,
+              "bytes": 61045,
+              "sha256": "3e77737fdf64600d92211d2e3ddd1933c60df7d26a8a00dae548c3d9c4df6b42",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-5",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-5.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture5of12_02dd786d-8a64-4615-aede-04eb3b1cd50c.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 100516,
+              "sha256": "ae40e339c7440d093021d9266c31a9c9c8269391c6b1d5380a4a2446ba40cf42",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-6",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-6.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture6of12_b019141d-2a83-42e1-bf7b-f2f1d07a157f.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 73866,
+              "sha256": "8218944e23d53a8eec402236198387ea24eea3e3d0aa8a6d9dfdab931ad77809",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-7",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-7.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture7of12_ca7b692d-389f-4033-9fd5-a03659a8caa8.jpg?v=1782401077",
+              "width": 1000,
+              "height": 997,
+              "bytes": 73711,
+              "sha256": "27a2e3f8a92964f121985b7186a6e63e93b594d553cde12d5900190cdaafb948",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-8",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-8.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture8of12_2716fe55-efdd-42ce-b737-b055311c524a.jpg?v=1782401078",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 80013,
+              "sha256": "dd9fb1e1cee51d9d50fd1ac033423d78b08036647f4d9ab9275f80297d7df2b2",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-9",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-9.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture9of12_b6202649-cfba-414e-b243-4f953eb0f9c9.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 53480,
+              "sha256": "c820e97f302fd18c05d5808b18e3cbfb1285218fdc4a90eb0eeb88b1f19dbde6",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-10",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-10.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture10of12_dacd6ca3-e0c0-4401-8b2f-822a77be4dec.jpg?v=1782401077",
+              "width": 1000,
+              "height": 999,
+              "bytes": 49603,
+              "sha256": "8f005640726896485d0ce4dcde928eb8f2d54da47322f20e07f3d06878470181",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-11",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-11.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture11of12_4984d747-a11e-4c71-9e91-9a7a7c2f5b44.jpg?v=1782401077",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 58037,
+              "sha256": "427bd47fa1b4cf92614ac0dc800d9e44f5858e1f97c3d98177f6da79db78fc48",
+              "generatedMarkers": []
+            },
+            {
+              "key": "diyBrass2-12",
+              "path": "tmp/product-image-audit/materials-v5/diyBrass2-12.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0884/8936/1682/files/Picture12of12_99f43572-58b7-42df-8ef7-83bea6224f21.jpg?v=1782401076",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 48750,
+              "sha256": "156021ad232a9677ff3a8a90a59fadc1e03d8b22e715ea46f34812cd60bffde7",
+              "generatedMarkers": []
+            }
+          ]
+        }
+      ],
+      "missingViews": [
+        "100×100×0.5 has one reviewed main.200×200,300×200 and300×300 still need exact main; independent reverse/edge photos missing. Frontal supplier image not counted as new angle without independent-capture proof."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "penjeni-pvc-komateks",
+      "itemId": "5",
+      "name": "Penjeni PVC (komateks)",
+      "variants": [
+        {
+          "id": "19",
+          "name": "300 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "20",
+          "name": "150 x 200 x 3 mm",
+          "sku": "MAT-UME-PEN-3x200x150",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "21",
+          "name": "400 x 300 x 3 mm",
+          "sku": "MAT-UME-PEN-3x300x400",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "22",
+          "name": "500 x 500 x 3 mm",
+          "sku": "MAT-UME-PEN-3x500x500",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePages": [
+            "https://www.ubuy.qa/en/product/N4UWLPO6M-aicosineg-pvc-foam-board-3mm-1-8-x-11-81-x-15-75-expanded-pvc-sheet-lightweight-rigid-foam-plastic-board-ideal-for-signage",
+            "https://www.harfington.com/products/p-1303392"
+          ],
+          "inspection": "AicosinegASINB099KMRG5M exactwhite400×300×3 source resolves to untransformed Amazon original500×500. Harfington catalog exposes exact300×400×3 only in black and300×200×3 in black/green; no white stock photo assigned.",
+          "imageUrl": "https://m.media-amazon.com/images/I/21Zoxo91NUL.jpg",
+          "width": 500,
+          "height": 500,
+          "bytes": 4864,
+          "sha256": "62af3886bc99dc4d9591faa06e4d4ff531dd486282531267da30756d8133bcc2",
+          "evidence": "tmp/product-image-audit/materials-v5/harfPvcGroup.json"
+        },
+        {
+          "sourcePages": [
+            "https://www.hornbach.de/p/hartschaumplatte-hobbycolor-weiss-500-x-500-x-3-mm/3887965/",
+            "https://stahl24.de/products/pvc-hartschaumplatte-weiss"
+          ],
+          "inspection": "Hornbach gallery default images are500×400; content review rejects long rectangular boards on a square500×500 listing, coloured application models, and an image with arms. These were not escalated to larger derivatives. Stahl24native1080×1080 depicts floating white rectangular boards, not a verified real500-square cut; no accepted image.",
+          "originals": [
+            {
+              "key": "hornbachPvc-main",
+              "path": "tmp/product-image-audit/materials-v5/hornbachPvc-main.jpeg",
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.152901383.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 9297,
+              "sha256": "26d8b859943db003b2000bee66364b6d66cbc8fe0295f740767850e70166bed0",
+              "generatedMarkers": []
+            },
+            {
+              "key": "hornbachPvc-detail",
+              "path": "tmp/product-image-audit/materials-v5/hornbachPvc-detail.jpeg",
+              "imageUrl": "https://media.hornbach.de/hb/packshot/as.46436199.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 7139,
+              "sha256": "a7c353fc15de52d81dbb0b3427f1d1d39ad23058a7bf38c8c72c5d8bcc128b74",
+              "generatedMarkers": []
+            },
+            {
+              "key": "hornbachPvc-app1",
+              "path": "tmp/product-image-audit/materials-v5/hornbachPvc-app1.jpeg",
+              "imageUrl": "https://media.hornbach.de/hb/moodimage/as.46436383.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 55098,
+              "sha256": "da703f3d56cec1f5bd0741ff8cf2f0a237f6c24cbfb2d007f9ed0bc9d61f7001",
+              "generatedMarkers": []
+            },
+            {
+              "key": "hornbachPvc-app2",
+              "path": "tmp/product-image-audit/materials-v5/hornbachPvc-app2.jpeg",
+              "imageUrl": "https://media.hornbach.de/hb/moodimage/as.46436468.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 28689,
+              "sha256": "38ed756b80cc7909c73a5a29c7f28c2fc519e9bc733fcc3471de1879d12ba316",
+              "generatedMarkers": []
+            },
+            {
+              "key": "hornbachPvc-app3",
+              "path": "tmp/product-image-audit/materials-v5/hornbachPvc-app3.jpeg",
+              "imageUrl": "https://media.hornbach.de/hb/moodimage/as.46436602.jpg",
+              "width": 500,
+              "height": 400,
+              "bytes": 32725,
+              "sha256": "361ca862ce40e61cf70e3996e0f82e3fe0f69c1679f0d3ca8f88311d866a2ab7",
+              "generatedMarkers": []
+            },
+            {
+              "key": "stahlPvc",
+              "path": "tmp/product-image-audit/materials-v5/stahlPvc.png",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0982/6471/1503/files/pvc_hartschaumplatte_weiss.png?v=1768301007",
+              "width": 1080,
+              "height": 1080,
+              "bytes": 260391,
+              "sha256": "7db673608fe8311396ba3afffdb1a5a5438a1cea276301951ba0a07bd55673ad",
+              "generatedMarkers": []
+            }
+          ],
+          "contactSheet": "tmp/product-image-audit/materials-v5/pvc-acrylic-contact.jpg"
+        }
+      ],
+      "missingViews": [
+        "Remaining white3 mm150×200,400×300 and500×500 cuts need genuine whole-sheet mains. Existing white300×200 v4 photos preserved; they are not assigned to different cuts."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "pleksi-steklo",
+      "itemId": "6",
+      "name": "Pleksi steklo",
+      "variants": [
+        {
+          "id": "23",
+          "name": "150 x 200 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x200x150-BELO",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "24",
+          "name": "150 x 200 x 3 mm, barvno",
+          "sku": "MAT-UME-PLE-3x200x150-BARVNO",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "25",
+          "name": "150 x 200 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x200x150-PROZORNO",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "26",
+          "name": "200 x 300 x 3 mm, belo",
+          "sku": "MAT-UME-PLE-3x300x200-BELO",
+          "acceptedOriginalIds": [
+            "pleksi-belo-300x200x3-celoten-pogled-v5"
+          ],
+          "remainingSourceGap": "One native whole-product photograph available; independently photographed rear/edge views still missing. No near-duplicate or dimension composite counted as another view."
+        },
+        {
+          "id": "27",
+          "name": "200 x 300 x 3 mm",
+          "sku": "MAT-UME-PLE-3x300x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "28",
+          "name": "400 x 300 x 3 mm, prozorno",
+          "sku": "MAT-UME-PLE-3x300x400-PROZORNO",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "29",
+          "name": "300 x 400 x 3 mm",
+          "sku": "MAT-UME-PLE-3x400x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [
+        {
+          "id": "pleksi-belo-300x200x3-celoten-pogled-v5",
+          "blobUrl": "/images/catalog/2026-09/pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+          "localUrl": "/images/catalog/2026-09/pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+          "assetPath": "public/images/catalog/2026-09/pleksi-belo-300x200x3-celoten-pogled-v5.jpg",
+          "sourcePath": "tmp/product-image-audit/materials-v5/harfWhiteAcrylic0.jpg",
+          "variantSkus": [
+            "MAT-UME-PLE-3x300x200-BELO"
+          ],
+          "variantIds": [
+            "26"
+          ],
+          "sourcePage": "https://www.harfington.com/products/p-1680316",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0595/2477/6095/files/ux_a25040200ux3467_ux_g03.jpg?v=1782885044",
+          "sha256": "90d52fe8bac4387747beacbccf3c6e819f73d25a4db673f65cb541901f4237fa",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 20376,
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "realPhotograph": true,
+          "distinctPhoto": true,
+          "view": "Whole white sheet, slight oblique front with transport film partially peeled",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Belo pleksi steklo, 300 × 200 × 3 mm — celoten pogled z delno odmaknjeno zaščitno folijo.",
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "review": {
+            "exactIdentity": "ATEHNA original title and description explicitly specify white acrylic 200 × 300 × 3 mm, SKU 13101. Harfington lists White, Acrylic, 300 × 200 mm, 3 mm and removable protective film. Matched only to white SKU 26; not to clear, unspecified or150 × 200 variants. Original ATEHNA gallery is a placeholder, so no optical transmission claim is established or added.",
+            "quality": "Untouched 1600 × 1600 supplier original. Complete rectangular sheet visible with all four edges and thin side edge. White-on-white contrast is modest but the sheet outline and peeled clear film remain legible. No people or body parts. No external upscale/padding or generated-view substitution used. Promotional gallery composites and repeats are excluded.",
+            "accessories": "Visible film is the supplier-described removable transport protection, not an added accessory. No transparency, opacity,cast or extruded or UV-resistance claims added."
+          },
+          "supplierSku": "a25040200ux3467"
+        }
+      ],
+      "sourceFindings": [
+        {
+          "sourcePages": [
+            "https://www.mclaser.com.au/products/acrylic-sheets-small",
+            "https://clearcutsa.online/products/white",
+            "https://en.acrylopmaat.nl/acrylic/white-satin-acrylic-acrylic/"
+          ],
+          "inspection": "ModelcraftLaser exact150×200/300×2003 mm white/clear variant gallery native metadata is1200×948. ClearCutSA1024-square image has rounded corners and engraved branding, conflicting with plain stock geometry; rejected. Acrylopmaat original1000×1000 below minimum.",
+          "originals": [
+            {
+              "key": "clearCut",
+              "path": "tmp/product-image-audit/materials-v5/clearCut-native.jpeg",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0783/7076/7063/files/6_36a27409-00b0-46d6-a92d-9c38b77b5fb7.jpg?v=1770301585",
+              "width": 1024,
+              "height": 1024,
+              "bytes": 19263,
+              "sha256": "d2c746d85882158686b30fca3bf18682958e7a39c978b599d6f87622de03a6e1",
+              "generatedMarkers": []
+            },
+            {
+              "key": "acrylopmaat",
+              "path": "tmp/product-image-audit/materials-v5/acrylopmaat-native.jpeg",
+              "imageUrl": "https://en.acrylopmaat.nl/wp-content/uploads/2017/10/S401DS-Satijn-Wit-3mm-Acryl-Acrylaat.jpg",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 63309,
+              "sha256": "0ad8e217e17ba312d0c25af9b11060e9a91fb56c233eda8d6b3ff09b6cdcf4f7",
+              "generatedMarkers": []
+            }
+          ],
+          "evidence": "tmp/product-image-audit/materials-v5/mcLaser.json"
+        },
+        {
+          "sourcePages": [
+            "https://www.dryadeducation.com/clear-value-acrylic-sheet-cast-3mm-x-400mm-x-300mm",
+            "https://opencircuit.shop/product/clear-perspex-sheet-cast-3mm-x-400mm-x-300mm"
+          ],
+          "inspection": "Two independently traced exact400×300×3 clear-stock originals are800×800. Both CDN transformation layers were removed before native measurement; no upscale accepted.",
+          "originals": [
+            {
+              "id": "dryadNative",
+              "url": "https://www.dryadeducation.com/media/catalog/product/4/3/43298_large-clear-value-cast-cheap-acrylic-sheets-3mm-x-400mm-x-300mm.jpg",
+              "path": "tmp/product-image-audit/materials-v5/dryadNative.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 67791,
+              "sha256": "d3c0625e64d427d7c38eace740d0bca1fedededeb71dbe66f2cf5fff852561dd"
+            },
+            {
+              "id": "openCircuitOriginal",
+              "url": "https://cdn.bodanius.com/media/1/AZ5132729_clear-perspex-sheet-(cast)-3mm-x-400mm-x-300mm_x.jpg",
+              "path": "tmp/product-image-audit/materials-v5/openCircuitOriginal.jpg",
+              "width": 800,
+              "height": 800,
+              "bytes": 27688,
+              "sha256": "772cb8474da8d2faaa992aa4d0888372b236aa19f40736a889668de5a4bcece7"
+            }
+          ]
+        }
+      ],
+      "missingViews": [
+        "White300 × 200 × 3 mm now has one complete native photograph. All other 6 variants still need exact whole-sheet photographs; white 150 × 200 needs its own exact cut. Unspecified colours cannot be assigned an arbitrary shade. Independent edge/rear and informative transparency views remain missing."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "stiropor",
+      "itemId": "7",
+      "name": "Stiropor",
+      "variants": [
+        {
+          "id": "30",
+          "name": "200 x 300 x 10 mm",
+          "sku": "MAT-UME-STI-10x300x200",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "31",
+          "name": "A5",
+          "sku": "MAT-UME-STI-210x148-A5",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "32",
+          "name": "300 x 400 x 10 mm",
+          "sku": "MAT-UME-STI-10x400x300",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "33",
+          "name": "16 x 33 x 2 cm",
+          "sku": "MAT-UME-STI-20x330x160-CM",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePages": [
+            "https://reichard.de/produkt-kategorie/fuell-und-polstermaterial/eps-styropor/",
+            "https://shopee.co.id/Styrofoam-lembaran-ukuran-30-x-40-tebal-1-cm-untuk-packing-dan-dekorasi-i.133520658.5038380080",
+            "https://www.soobsoo.de/leichtschaumplatte-h-100-30x40.html"
+          ],
+          "inspection": "Reichard supplies realEPS stock but named cuts are wrong dimensions/thickness (e.g300×200×40 and550×350×10). Shopee lists exact300×400×10 EPS but the public page did not expose original photo URLs; no unverified image assigned. Soobsoo exact300×400×10 is paper-faced polystyrene foamboard, a conflicting construction, not bareEPS.",
+          "requiredSource": "Native whole-sheet and cellular-edge photographs of bare whiteEPS in the exact listed cuts; A5stock thickness still needs identification."
+        }
+      ],
+      "missingViews": [
+        "All4 cuts need genuine native whole-sheet and cellular-edge sources. A5 thickness unspecified; paper-faced foamboard, XPS and coloured foam are not substituted."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json"
+    },
+    {
+      "slug": "vezana-plosca",
+      "itemId": "14",
+      "name": "Vezana plošča",
+      "variants": [
+        {
+          "id": "97",
+          "name": "Bukev / 6 x 300 x 400",
+          "sku": "MAT-LES-VEZ-6x400x300-BUKEV",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "98",
+          "name": "Bukev / 4 x 500 x 500",
+          "sku": "MAT-LES-VEZ-4x500x500-BUKEV",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "99",
+          "name": "Bukev / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-BUKEV",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "100",
+          "name": "Topol / 6 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-6x1720x2520-TOPOL",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "101",
+          "name": "Topol / 4 x 2520 x 1720",
+          "sku": "MAT-LES-VEZ-4x1720x2520-TOPOL",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "102",
+          "name": "Topol / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-TOPOL",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "103",
+          "name": "Topol / 3 x 250 x 500",
+          "sku": "MAT-LES-VEZ-3x500x250-TOPOL",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "104",
+          "name": "Lesna vrsta ni navedena / 10 x 210 x 300",
+          "sku": "MAT-LES-VEZ-10x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "105",
+          "name": "Lesna vrsta ni navedena / 8 x 210 x 300",
+          "sku": "MAT-LES-VEZ-8x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "106",
+          "name": "Lesna vrsta ni navedena / 6 x 500 x 500",
+          "sku": "MAT-LES-VEZ-6x500x500-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "107",
+          "name": "Lesna vrsta ni navedena / 6 x 400 x 400",
+          "sku": "MAT-LES-VEZ-6x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "108",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 600",
+          "sku": "MAT-LES-VEZ-6x600x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "109",
+          "name": "Lesna vrsta ni navedena / 6 x 300 x 300",
+          "sku": "MAT-LES-VEZ-6x300x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "110",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-6x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "111",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 500",
+          "sku": "MAT-LES-VEZ-6x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "112",
+          "name": "Lesna vrsta ni navedena / 6 x 250 x 250",
+          "sku": "MAT-LES-VEZ-6x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "113",
+          "name": "Lesna vrsta ni navedena / 6 x 200 x 300",
+          "sku": "MAT-LES-VEZ-6x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "114",
+          "name": "Lesna vrsta ni navedena / 6 x 150 x 200",
+          "sku": "MAT-LES-VEZ-6x200x150-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "115",
+          "name": "Lesna vrsta ni navedena / 5 x 200 x 150",
+          "sku": "MAT-LES-VEZ-5x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "116",
+          "name": "Lesna vrsta ni navedena / 4 x 400 x 400",
+          "sku": "MAT-LES-VEZ-4x400x400-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "117",
+          "name": "Lesna vrsta ni navedena / 4 x 300 x 420",
+          "sku": "MAT-LES-VEZ-4x420x300-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "118",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 1000",
+          "sku": "MAT-LES-VEZ-4x1000x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "119",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 500",
+          "sku": "MAT-LES-VEZ-4x500x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "120",
+          "name": "Lesna vrsta ni navedena / 4 x 250 x 250",
+          "sku": "MAT-LES-VEZ-4x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "121",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 300",
+          "sku": "MAT-LES-VEZ-4x300x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "122",
+          "name": "Lesna vrsta ni navedena / 4 x 200 x 150",
+          "sku": "MAT-LES-VEZ-4x150x200-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "123",
+          "name": "Lesna vrsta ni navedena / 4 x 120 x 120",
+          "sku": "MAT-LES-VEZ-4x120x120-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "124",
+          "name": "Lesna vrsta ni navedena / 4 x 100 x 150",
+          "sku": "MAT-LES-VEZ-4x150x100-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "125",
+          "name": "Lesna vrsta ni navedena / 4 x 50 x 60",
+          "sku": "MAT-LES-VEZ-4x60x50-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "126",
+          "name": "Lesna vrsta ni navedena / 3 x 250 x 250",
+          "sku": "MAT-LES-VEZ-3x250x250-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        },
+        {
+          "id": "127",
+          "name": "Lesna vrsta ni navedena / 3 x 210 x 300",
+          "sku": "MAT-LES-VEZ-3x300x210-LESNA-VRSTA-NI-NAVEDENA",
+          "acceptedOriginalIds": [],
+          "remainingSourceGap": "Whole-product main and useful independently photographed alternate views missing."
+        }
+      ],
+      "accepted": [],
+      "sourceFindings": [
+        {
+          "sourcePages": [
+            "https://toom.de/p/sperrholz-pappel-3-x-500-x-250-mm/7174519",
+            "https://puretreetimber.com/index.php/product/41454?filters=show",
+            "https://garagecreatif.fr/en/products/contreplaque-peuplier-3mm-qualite-laser-bois-selectionne-pour-gravure-et-decoupe"
+          ],
+          "inspection": "New Kosche7174519 exact3×250×500 original2000-square still crops the rear/left sheet and cannot serve as whole-product main. Puretree poplar original1000-square below minimum. Garage3mm2048-square originals show cropped sheet stacks; two are promotional versions of the same shot, available cuts do not include250×500, and no whole-board source is proven.",
+          "originals": [
+            {
+              "id": "garageWood0",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0957/0494/0892/files/Contreplaque_3mm.png?v=1774610362",
+              "path": "tmp/product-image-audit/materials-v5/garageWood0.png",
+              "width": 2048,
+              "height": 2048,
+              "bytes": 1446109,
+              "sha256": "f9f3f7867fa104392786b239add9d5a9e74c19cbabf1ba6982979e043560e504"
+            },
+            {
+              "id": "garageWood1",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0957/0494/0892/files/contreplaque-peuplier-3mm-bois-selectionne-laser.png?v=1774610362",
+              "path": "tmp/product-image-audit/materials-v5/garageWood1.png",
+              "width": 2048,
+              "height": 2048,
+              "bytes": 1102196,
+              "sha256": "bb3aac3c3ed4d158a81c75ee0a3eb7feadd18e86bd68583a221cacb5e55e9c2b"
+            },
+            {
+              "id": "garageWood2",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0957/0494/0892/files/contreplaque-peuplier-3mm-qualite-laser-gravure-decoupe.png?v=1774610362",
+              "path": "tmp/product-image-audit/materials-v5/garageWood2.png",
+              "width": 2048,
+              "height": 2048,
+              "bytes": 1402510,
+              "sha256": "a978ca6831ccf4785352b98bc74e68b5accb44ac9b64738f731d30c641e63f43"
+            },
+            {
+              "id": "garageWood3",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0957/0494/0892/files/contreplaque-peuplier-3mm-detail-qualite-laser.png?v=1774610362",
+              "path": "tmp/product-image-audit/materials-v5/garageWood3.png",
+              "width": 2048,
+              "height": 2048,
+              "bytes": 2726087,
+              "sha256": "58f160ac7a9b5e7a1124efda0d963864297e04577d04df6ff2152034f3442294"
+            },
+            {
+              "id": "puretree",
+              "imageUrl": "https://puretree.azureedge.net/storage/All/Product_Images/41454-image-parent-1.png",
+              "path": "tmp/product-image-audit/materials-v5/puretree.png",
+              "width": 1000,
+              "height": 1000,
+              "bytes": 495682,
+              "sha256": "428b64210bcebc4f562d2b6b1f6d9519cf08bad896d45144703b02cb982678bd"
+            },
+            {
+              "id": "toomKosche",
+              "imageUrl": "https://static.toom.de/produkte/bilder/7174519/sperrholz-pappel-3-mm-7174519-1.png",
+              "path": "tmp/product-image-audit/materials-v5/toomKosche.png",
+              "width": 2000,
+              "height": 2000,
+              "bytes": 1589399,
+              "sha256": "a53a86107578084c35aed8b594378130262ac51279f3f341290dfd272cfa4366"
+            }
+          ],
+          "contactSheet": "tmp/product-image-audit/materials-v5/wood-copper-contact.jpg"
+        },
+        {
+          "sourcePages": [
+            "https://hoelleinshop.com/products/pappel-sperrholz-kurz-500x250x4-0mm",
+            "https://www.aduis.de/pappelsperrholz-4-mm-zuschnitt-art804092",
+            "https://store.global-stickers.com/product_info.php?info=p1743_pappelsperrholz-4mm---zuschnitt.html"
+          ],
+          "inspection": "Fresh exact4 mm poplar and cut-service sources: Höllein1000×697; Aduis whole-board native1090×800, cut-size graphics1259/1260×800 and edge800×533; GlobalStickers595×619. None meet1024 both axes. Product recommendations present on those pages are recorded in original-download evidence but are not treated as additional product views.",
+          "originals": [
+            {
+              "id": "aduis13",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804096_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis13.jpeg",
+              "width": 1259,
+              "height": 800,
+              "bytes": 10930,
+              "sha256": "70336a1edd06189bde3847ef349823cfdafca1c226cd45257430797a433c1f63"
+            },
+            {
+              "id": "aduis1",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804073_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis1.jpeg",
+              "width": 1259,
+              "height": 800,
+              "bytes": 7671,
+              "sha256": "19ab138aa2fe027f614e6e59f2c6cc64a14cf3b4d8d4bcace4d36448330538e3"
+            },
+            {
+              "id": "aduis12",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804091_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis12.jpeg",
+              "width": 1260,
+              "height": 800,
+              "bytes": 9104,
+              "sha256": "362edf948bc1ad296df5b9eb50cf30362d4bea867ff16a1191764c133833048a"
+            },
+            {
+              "id": "aduis10",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804088_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis10.jpeg",
+              "width": 1260,
+              "height": 800,
+              "bytes": 11629,
+              "sha256": "2206e20347f2422d95faee6ddd63ca1196ceb14504c6d628b815e09f9622e7c9"
+            },
+            {
+              "id": "aduis6",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804079_804146.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis6.jpeg",
+              "width": 600,
+              "height": 311,
+              "bytes": 7189,
+              "sha256": "85086c22a597d434972c2b83ea6a9fa5078299f5c10365eaadd9cd709823695a"
+            },
+            {
+              "id": "aduis4",
+              "imageUrl": "https://www.aduis.de/pics/Logos_Dekofotos/Holzplatte-Ecke-Pappelsperrholz-4mm.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis4.jpeg",
+              "width": 800,
+              "height": 533,
+              "bytes": 7859,
+              "sha256": "43e045527928125c7eda3ed9262da82e26ba32bfc80593c5d16b8c21f1f86dfe"
+            },
+            {
+              "id": "aduis11",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804134_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis11.jpeg",
+              "width": 1260,
+              "height": 800,
+              "bytes": 11173,
+              "sha256": "f570ea8b15221d34bf7cc110f4525de5a54d45d1a6617a48fe552959e6222c3d"
+            },
+            {
+              "id": "aduis9",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804028_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis9.jpeg",
+              "width": 1259,
+              "height": 800,
+              "bytes": 11543,
+              "sha256": "4ddb6d41c95ac3b4637f440bae03451d9d9332f64955b79730dfe1331790dc9d"
+            },
+            {
+              "id": "aduis0",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804092-4.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis0.jpeg",
+              "width": 1090,
+              "height": 800,
+              "bytes": 27063,
+              "sha256": "30051d8c97127c6e4897aa00d7ebe22f84e9a9c8091a19b44d97e78f81668997"
+            },
+            {
+              "id": "aduis3",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804092-4.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis3.jpeg",
+              "width": 1090,
+              "height": 800,
+              "bytes": 27063,
+              "sha256": "30051d8c97127c6e4897aa00d7ebe22f84e9a9c8091a19b44d97e78f81668997"
+            },
+            {
+              "id": "aduis2",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804094_2021.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis2.jpeg",
+              "width": 1259,
+              "height": 800,
+              "bytes": 12506,
+              "sha256": "0c39ea8b7b9fb1835125b9e0be1a032394416d2b001db510576b984606e7ad4e"
+            },
+            {
+              "id": "aduis7",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804098-4.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis7.jpeg",
+              "width": 1090,
+              "height": 800,
+              "bytes": 27063,
+              "sha256": "30051d8c97127c6e4897aa00d7ebe22f84e9a9c8091a19b44d97e78f81668997"
+            },
+            {
+              "id": "aduis8",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804146-4.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis8.jpeg",
+              "width": 1090,
+              "height": 800,
+              "bytes": 27063,
+              "sha256": "30051d8c97127c6e4897aa00d7ebe22f84e9a9c8091a19b44d97e78f81668997"
+            },
+            {
+              "id": "globalWood",
+              "imageUrl": "https://store.global-stickers.com/images/product_images/original_images/Zuschnitt_4mm.jpg",
+              "path": "tmp/product-image-audit/materials-v5/globalWood.jpeg",
+              "width": 595,
+              "height": 619,
+              "bytes": 183005,
+              "sha256": "a8cf5d30429110bde82d1cccef09e60f07563dbf346d9927d1c43a8a12b739b6"
+            },
+            {
+              "id": "aduis5",
+              "imageUrl": "https://www.aduis.de/pics/ART_NR/804079_804082_804063_804085.jpg",
+              "path": "tmp/product-image-audit/materials-v5/aduis5.jpeg",
+              "width": 600,
+              "height": 298,
+              "bytes": 26411,
+              "sha256": "69c298f0c88911cd47441314f593b34babc856fdcda0dd90df730cbace4e2256"
+            },
+            {
+              "id": "hoellein",
+              "imageUrl": "https://cdn.shopify.com/s/files/1/0935/8318/0119/files/KM573154016_b1.jpg?v=1781873258",
+              "path": "tmp/product-image-audit/materials-v5/hoellein.jpeg",
+              "width": 1000,
+              "height": 697,
+              "bytes": 33308,
+              "sha256": "aa1814e0d8e34f413c53edfc9ba7312b75fa596c27c25c4ed8dac02c849c7d4d"
+            }
+          ]
+        },
+        {
+          "sourcePages": [
+            "https://balsabaum-shop.de/p/1-stueck-pappelsperrholz-4-0-x-500-x-250-mm",
+            "https://www.winklerschulbedarf.com/de/i/sonderzuschnitt-buchensperrholz-4mm-m2-grosse-x-mm-menge-stk-101878",
+            "https://www.hobbycraft.co.uk/poplar-plywood-sheet-3mm-x-21cm-x-30cm/6656501000.html",
+            "https://expresszuschnitt.de/4mm-Buchensperrholz-Sperrholz-Buche-nach-Mass"
+          ],
+          "inspection": "Balsabaum original camera fileIMG-0581. JPG is720×1080. Winkler raw beech photo800×800. Hobbycraft three public3 mm poplar source URLs returned403; their actual native sizes and quality remain unverified. Expresszuschnitt public stock listing identifies4 mm beech but original photo retrieval unavailable; no substituted screenshot/thumbnail used.",
+          "evidence": [
+            "tmp/product-image-audit/materials-v5/balsaBaum4-original.jpg",
+            "tmp/product-image-audit/materials-v5/winklerBeech.jpg",
+            "tmp/product-image-audit/materials-v5/hobbycraft-originals.json"
+          ]
+        }
+      ],
+      "missingViews": [
+        "All31 variants still need a whole-board main. Approved exactpoplar3×250×500 Toom edge remains held until main obtained. Known beech/poplar variants must match species;24 variants with species unstated need source/visual identification, not invented species. Matching cut-service listings explored but usable whole native photos not obtained."
+      ],
+      "priorEvidenceLedger": "data/catalog/replacement-sources-materials-v4-2026-09.json",
+      "pendingMainPhoto": [
+        {
+          "slug": "vezana-plosca",
+          "role": "detail",
+          "imageType": "product",
+          "view": "poplar grain and laminated edge",
+          "variantIds": [
+            "103"
+          ],
+          "variantSkus": [
+            "MAT-LES-VEZ-3x500x250-TOPOL"
+          ],
+          "altText": "Topolova vezana plošča, 3 × 250 × 500 mm — pogled na lesno strukturo in rob.",
+          "qualityReview": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Do not publish until a genuine full-sheet main photograph is found; the current plywood variant has no existing main.",
+          "status": "approved-detail-awaiting-whole-sheet-main",
+          "sourcePage": "https://toom.de/p/sperrholzplatte-pappel-500-x-250-x-3-mm/7171462",
+          "sourceImageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "sourcePath": "tmp/product-image-audit/materials-v4/toomPlywood-native.png",
+          "assetPath": "public/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "localUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "width": 2000,
+          "height": 2000,
+          "mimeType": "image/png",
+          "bytes": 1451797,
+          "sha256": "93407703cedbf8e87aab23eefa161284a989fe8504fa59e93405a009346ef0d1",
+          "transformation": "none; exact downloaded bytes copied unchanged",
+          "realPhotograph": true,
+          "noHumans": true,
+          "reviewedBy": [
+            "catalog_audit",
+            "root"
+          ],
+          "identityBasis": {
+            "method": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm.",
+            "supplierTitle": "Sperrholzplatte Pappel 500 x 250 x 3 mm",
+            "supplierManufacturer": "Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA.",
+            "assignmentLimit": "Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses."
+          },
+          "id": "vezana-plosca-topol-3x250x500-rob-v4",
+          "blobUrl": "/images/catalog/2026-09/vezana-plosca-topol-3x250x500-rob-v4.png",
+          "imageUrl": "https://static.toom.de/produkte/bilder/7171462/7171462_01.png",
+          "untouchedOriginal": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Exact unbranded commodity match by poplar wood, plywood construction, thickness 3 mm, width 250 mm and length 500 mm. Sperrholzplatte Pappel 500 x 250 x 3 mm Kosche is the photograph source only; no supplier or manufacturer claim is added to ATEHNA. Only existing explicitly named Topol / 3 × 250 × 500 variant. Not used for unknown wood species, beech, or other thicknesses.",
+            "quality": "Native 2000 × 2000 real photograph has readable pale poplar grain and a fine layered edge; no human body parts. Rear/left edges are outside the source frame: explicitly supplementary detail, never a whole-sheet main image. Keep the dimensional schematic first until a complete-sheet photograph is available.",
+            "accessories": "No accessories or human body parts shown."
+          },
+          "missing": "Real sharp complete poplar 3 × 250 × 500 mm sheet photo needed before publication."
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-14T11:29:05.259Z",
+  "verification": {
+    "acceptedLocalOriginalsVerified": [
+      {
+        "id": "bakrena-plosca-300x200x05-celoten-pogled-v5",
+        "sha256": "f982f2b4e80990402b7f54719ec9cc8d8a6f97a860fff102ae312973fbd3e7d1",
+        "width": 1600,
+        "height": 1600
+      },
+      {
+        "id": "bakrena-plosca-kvadrat-05-celoten-pogled-v5",
+        "sha256": "13928545c44be1ae337b3a0f2aa611bb110763f9da091c68bea5fe34955b1cd3",
+        "width": 1600,
+        "height": 1600
+      },
+      {
+        "id": "medeninasta-plosca-100x100x05-celoten-pogled-v5",
+        "sha256": "c08f8d88ee4a1771733847bce2230a98c47b77d94ad5c4d8ee9f263a88926935",
+        "width": 2000,
+        "height": 2000
+      }
+    ],
+    "sourceQualityReviewedBy": [
+      "catalog_audit",
+      "root"
+    ],
+    "databaseMutationPerformed": false,
+    "canonicalMutationPerformed": false
+  },
+  "focusedFollowUp": {
+    "completedAt": "2026-09-14T11:44:42.841Z",
+    "scope": "Focused Harfington/uxcell search for remaining exact copper/brass cuts, plain aluminum and white acrylic. No repeated wood-site research.",
+    "acceptedAdditionalOriginals": 3,
+    "acceptedIds": [
+      "pleksi-belo-300x200x3-celoten-pogled-v5",
+      "aluminijasta-plosca-300x300x05-celoten-pogled-v5",
+      "aluminijasta-plosca-200x100x05-celoten-pogled-v5"
+    ],
+    "priorAcceptedMetadataPreserved": true,
+    "originalIdentityEvidence": [
+      {
+        "url": "https://atehna.si/product/pleksi-steklo-200-x-300-x-3-mm-belo-copy/",
+        "snapshot": "tmp/product-image-audit/materials-v5/atehna-white-original.html",
+        "finding": "Title and description white 200 × 300 × 3 mm; SKU 13101; actual gallery is placeholder. No opacity or optical-transmission specification."
+      },
+      {
+        "url": "https://atehna.si/wp-content/uploads/2015/04/Aluminij.png",
+        "snapshot": "tmp/product-image-audit/materials-v4/primary-Aluminij.png",
+        "finding": "Original natural silver reflective metal stock, square-cut edges and subtle linear surface. No branded alloy/temper specification found in existing catalog."
+      }
+    ],
+    "publicSearchEvidence": [
+      "tmp/product-image-audit/materials-v5/harf-focused-public-products.json",
+      "tmp/product-image-audit/materials-v5/harf-followup-query-index.json",
+      "tmp/product-image-audit/materials-v5/harf-followup-aluminum-sku.json"
+    ],
+    "findings": [
+      {
+        "material": "brass",
+        "queries": [
+          "\"brass sheet\" -roll",
+          "brass sheet8 x8 0.02 -roll"
+        ],
+        "finding": "Inspected 22 actual flat brass product families plus unrelated search results. Existing p1065462/p1065464 group supplies 100-square0.5 but 200-square only 0.8; other 0.5 results are100×50,150×100,200×100, 300×100 or rolls. No new300-square, 300×200 or200-square0.5 matching image found in this pass. No photos silently assigned to differing cuts."
+      },
+      {
+        "material": "copper",
+        "queries": [
+          "copper sheet12 x12 0.02 -roll",
+          "uxcell copper sheet3003000.5"
+        ],
+        "finding": "Search returned already accepted300×200,200-square and100-square, other rectangle thicknesses/cuts and round plates; no exact 300 × 300 × 0.5 mm source photo found."
+      },
+      {
+        "material": "aluminum",
+        "queries": [
+          "\"aluminum sheet\" -card -mesh",
+          "aluminum plate0.5 -card -resistor -tube",
+          "6061 Aluminum Sheet",
+          "a23032000ux0873",
+          "uxcell300mm x300mm0.5mm"
+        ],
+        "finding": "Harfington search returns primarily anodized coloured engraving blanks, profiles and different sizes. Cross-retailer uxcell traces resolved exact 300 × 300 × 0.5 mm single-sheet eBay native and 200 × 100 × 0.5 mm Amazon CDN source via public retailer. Yahoo supplier photos could not be decoded (no image bytes returned). No remaining aluminium cut was inferred from those two sources.",
+        "nativeEvidence": "tmp/product-image-audit/materials-v5/uxcell-aluminum-final-native.json"
+      },
+      {
+        "material": "white acrylic",
+        "queries": [
+          "white acrylic sheets12x8 3mm",
+          "\"acrylic sheet\"3mm"
+        ],
+        "finding": "Harfington p1680316 explicitly supplies white 300 × 200 × 3 mm. Six native sources inspected: main accepted, dimension composite/repeated detail/promotional coloured or cut applications excluded. Other listed white cuts 8×8,12×6,12×12 do not match150×200. No generic coloured stock assigned.",
+        "nativeEvidence": "tmp/product-image-audit/materials-v5/harf-white-acrylic-native.json"
+      }
+    ]
+  }
+}

@@ -1,0 +1,941 @@
+{
+  "version": 12,
+  "reviewedAt": "2026-09-14T16:22:59.010Z",
+  "status": "bounded-source-review-complete-no-new-qualified-assets",
+  "scope": {
+    "families": 5,
+    "productionVariants": 7,
+    "variantsWithoutPhotographs": 6,
+    "productionInventoryAuditedAt": "2026-09-14T16:01:26.174Z",
+    "productionInventory": "tmp/product-image-audit/production/inventory.json"
+  },
+  "summary": {
+    "acceptedImages": 0,
+    "stagedPublicAssets": 0,
+    "downloadedImages": 17,
+    "newCandidateImages": 14,
+    "nativeCandidateImagesMeetingPixels": 4,
+    "savedResponses": 37,
+    "failedFetches": 1
+  },
+  "constraints": {
+    "nativeMinimum": {
+      "width": 1024,
+      "height": 1024
+    },
+    "exactProductAndPackageRequired": true,
+    "noHumans": true,
+    "noGenerationUpscalingPaddingOrRecolouring": true,
+    "schematicsUnchanged": true
+  },
+  "products": [
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "name": "Otroški zaščitni predpasnik",
+      "productionStatus": "active",
+      "variantSkus": [
+        "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI"
+      ],
+      "variants": [
+        {
+          "id": "168",
+          "sku": "ZAS-OTR-ZAS-ZASCITNI-PREDPASNIK-OTROSKI",
+          "name": "Zaščitni predpasnik - otroški",
+          "existingPhotographs": []
+        }
+      ],
+      "accepted": [],
+      "pendingCandidates": [],
+      "identityEvidence": "Original ATEHNA page still explicitly says child-size, blue, and lists Standard/Usnje/PVC as attributes without confirmed sales variants. Its only product image is the previously traced 6-1038 adult ŠČIT 61038 apron, whose 100×75 cm size conflicts with the sold child product. A name-and-colour match cannot resolve that contradiction.",
+      "freshFindings": [
+        "Fresh original HTML confirms the same sole 500×500 photo and no manufacturer, child measurements or independent replacement garment reference.",
+        "The actual Zastopamo page /reference/ has no readable supplier-to-item mapping. Public search for the exact Slovenian child/blue apron description returned no independent match resolving garment cut and child sizing. The wrong adult model was not downloaded again."
+      ],
+      "identityReferences": [
+        {
+          "id": "atehna-apron",
+          "url": "https://atehna.si/product/zascitni-predpasnik/",
+          "finalUrl": "https://atehna.si/product/zascitni-predpasnik/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-apron.html",
+          "bytes": 75291,
+          "sha256": "e931e65171fa3db1b0b347dc6d772acdd9ec30cbbae555a98e271a0b81173858"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "atehna-apron",
+          "url": "https://atehna.si/product/zascitni-predpasnik/",
+          "finalUrl": "https://atehna.si/product/zascitni-predpasnik/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-apron.html",
+          "bytes": 75291,
+          "sha256": "e931e65171fa3db1b0b347dc6d772acdd9ec30cbbae555a98e271a0b81173858"
+        },
+        {
+          "id": "atehna-represented-brands",
+          "url": "https://atehna.si/reference/",
+          "finalUrl": "https://atehna.si/reference/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-represented-brands.html",
+          "bytes": 47878,
+          "sha256": "00fb090762469dd50e16c3705f3d77cca68bbb554e7b9f46488a86bc91a7df64"
+        }
+      ],
+      "missingViews": [
+        "Complete exact child-size garment, front without a wearer",
+        "Rear and ties",
+        "Neck fastening and fabric/seams"
+      ],
+      "requiredEvidence": "An original stock garment photograph or its child-size label/model and measured dimensions; then full front and rear photographs at native ≥1024×1024.",
+      "status": "no-qualifying-new-source",
+      "rejectedCandidates": []
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "name": "Otroška očala za zaščito oči",
+      "productionStatus": "active",
+      "variantSkus": [
+        "ZAS-OTR-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variants": [
+        {
+          "id": "169",
+          "sku": "ZAS-OTR-OCA-OSNOVNA-IZVEDBA",
+          "name": "Osnovna izvedba",
+          "existingPhotographs": []
+        }
+      ],
+      "accepted": [],
+      "pendingCandidates": [],
+      "identityEvidence": "ATEHNA 45002 has no product photograph, manufacturer, frame dimensions, model, lens colour or descriptive specification. Canonical TTS/1032927 fields explicitly originate in an earlier tentative replacement, not independent evidence of the product actually sold.",
+      "freshFindings": [
+        "Fresh original HTML shows the WooCommerce placeholder as the product image and no description or additional information. Other photographs belong to related products, not these glasses.",
+        "A new read-only Woo Store API check returns rest_no_route/404, so that endpoint cannot expose additional product-media metadata. The public represented-brands page does not map this SKU.",
+        "Searches for the exact ATEHNA name/code supplied no identifying public source. Prior TTS, Betzold, Wiemann, Cornelsen and archive attachment routes were not rechecked."
+      ],
+      "identityReferences": [
+        {
+          "id": "atehna-children-glasses",
+          "url": "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+          "finalUrl": "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-children-glasses.html",
+          "bytes": 71432,
+          "sha256": "959534177ad744a183b31e1cd0925f204541e6d9b814776012a91db3c2f919ec"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "atehna-children-glasses",
+          "url": "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+          "finalUrl": "https://atehna.si/product/otroska-ocala-za-zascito-oci/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-children-glasses.html",
+          "bytes": 71432,
+          "sha256": "959534177ad744a183b31e1cd0925f204541e6d9b814776012a91db3c2f919ec"
+        },
+        {
+          "id": "atehna-store-children",
+          "url": "https://atehna.si/wp-json/wc/store/v1/products?slug=otroska-ocala-za-zascito-oci",
+          "finalUrl": "https://atehna.si/wp-json/wc/store/v1/products?slug=otroska-ocala-za-zascito-oci",
+          "status": 404,
+          "contentType": "application/json; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-store-children.json",
+          "bytes": 137,
+          "sha256": "849a8472b1d6ec1532de9c477e07e05d10ffdba2632ae68ba62dc0707b9d9e5c"
+        },
+        {
+          "id": "atehna-represented-brands",
+          "url": "https://atehna.si/reference/",
+          "finalUrl": "https://atehna.si/reference/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-represented-brands.html",
+          "bytes": 47878,
+          "sha256": "00fb090762469dd50e16c3705f3d77cca68bbb554e7b9f46488a86bc91a7df64"
+        }
+      ],
+      "missingViews": [
+        "Exact complete child glasses front or three-quarter view",
+        "Side arms/strap and adjustment",
+        "Lens, ventilation and markings"
+      ],
+      "requiredEvidence": "A photograph of the actual stocked glasses, packaging or model marking. Neither a generic child-eyewear name nor tentative TTS catalogue metadata uniquely identifies them.",
+      "status": "no-qualifying-new-source",
+      "rejectedCandidates": []
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "name": "Očala za zaščito oči",
+      "productionStatus": "active",
+      "variantSkus": [
+        "ZAS-OCA-OSNOVNA-IZVEDBA"
+      ],
+      "variants": [
+        {
+          "id": "170",
+          "sku": "ZAS-OCA-OSNOVNA-IZVEDBA",
+          "name": "Osnovna izvedba",
+          "existingPhotographs": []
+        }
+      ],
+      "accepted": [],
+      "pendingCandidates": [],
+      "identityEvidence": "ATEHNA 45001 has no product photograph, manufacturer, frame dimensions, model, lens colour or descriptive specification. Canonical Koestier/103509 fields explicitly originated in an earlier tentative substitute and are not independent sold-item identity evidence.",
+      "freshFindings": [
+        "Fresh original HTML again contains only a product placeholder, title and internal SKU; there are no frame details or model-identifying photographs. Related-product images were excluded.",
+        "The actual public represented-brands page supplies no product-specific mapping; exact-name/code searches yielded no independently identifying item. Previously rejected TechTradeCenter/Banggood/Bitset and numeric-only Jackson 45001 coincidences were not repeated."
+      ],
+      "identityReferences": [
+        {
+          "id": "atehna-adult-glasses",
+          "url": "https://atehna.si/product/ocala-za-zascito-oci/",
+          "finalUrl": "https://atehna.si/product/ocala-za-zascito-oci/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-adult-glasses.html",
+          "bytes": 70569,
+          "sha256": "946d5095935e6389aea9e44f3598e02c686bdaa0055f11b4d4a24e700f59352b"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "atehna-adult-glasses",
+          "url": "https://atehna.si/product/ocala-za-zascito-oci/",
+          "finalUrl": "https://atehna.si/product/ocala-za-zascito-oci/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-adult-glasses.html",
+          "bytes": 70569,
+          "sha256": "946d5095935e6389aea9e44f3598e02c686bdaa0055f11b4d4a24e700f59352b"
+        },
+        {
+          "id": "atehna-represented-brands",
+          "url": "https://atehna.si/reference/",
+          "finalUrl": "https://atehna.si/reference/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-represented-brands.html",
+          "bytes": 47878,
+          "sha256": "00fb090762469dd50e16c3705f3d77cca68bbb554e7b9f46488a86bc91a7df64"
+        }
+      ],
+      "missingViews": [
+        "Exact complete adult glasses front or three-quarter view",
+        "Side arms/strap and fit geometry",
+        "Lens, ventilation and markings"
+      ],
+      "requiredEvidence": "A photograph or manufacturer/model marking from the actual adult eyewear or package; avoid silently treating the tentative Koestier draft as established stock.",
+      "status": "no-qualifying-new-source",
+      "rejectedCandidates": []
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "name": "Žica za lotanje",
+      "productionStatus": "active",
+      "variantSkus": [
+        "DOD-ZIC-100-G"
+      ],
+      "variants": [
+        {
+          "id": "157",
+          "sku": "DOD-ZIC-100-G",
+          "name": "Žica za lotanje - 100 g",
+          "existingPhotographs": []
+        }
+      ],
+      "accepted": [],
+      "pendingCandidates": [],
+      "identityEvidence": "ATEHNA 30151 specifies only 100 g. Its original 350×400 photograph shows a tall solid-blue spool with embossed moulding and thick silver wire. Alloy, exact diameter and manufacturer remain unreadable or unconfirmed; an arbitrary 100 g blue reel may contain a different material.",
+      "freshFindings": [
+        "Fresh original bytes match the previously recorded reference SHA; no additional gallery image or label is exposed.",
+        "New Archidelis, Rothenberger/Icestar and Badshop uncached originals were obtained: respectively 800×602, two 800×800 files, and 170×159. None meets the minimum axes.",
+        "A fresh Torrey 1500×1500 original has natural sharp wire/plastic texture and no humans, but its listing expressly sells 250 g and the visible reel face is smooth rather than the original embossed face. It cannot represent the 100 g sold package."
+      ],
+      "identityReferences": [
+        {
+          "id": "atehna-solder",
+          "url": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "finalUrl": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-solder.html",
+          "bytes": 73917,
+          "sha256": "d0663175b3460527bdcaaa2d791bb292eebe3eb4feef293662713456be552ab3"
+        },
+        {
+          "id": "atehna-solder-original",
+          "url": "https://atehna.si/wp-content/uploads/2014/08/zicazalotanje.jpg",
+          "finalUrl": "https://atehna.si/wp-content/uploads/2014/08/zicazalotanje.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/atehna-solder-original.jpeg",
+          "bytes": 98008,
+          "sha256": "25c9b73e03b2f17eb40d93b6e866197ebff2c43bff8227af13e9134e00c547b4",
+          "width": 350,
+          "height": 400,
+          "format": "jpeg"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "atehna-solder",
+          "url": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "finalUrl": "https://atehna.si/product/zica-za-lotanje-100g/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-solder.html",
+          "bytes": 73917,
+          "sha256": "d0663175b3460527bdcaaa2d791bb292eebe3eb4feef293662713456be552ab3"
+        },
+        {
+          "id": "solder-archidelis",
+          "url": "https://www.archidelis.at/en/Materials/Metal/Not-Straightened-Wire/Solder-Wire/Soft-soldering-wire-1-spool-100g.html",
+          "finalUrl": "https://www.archidelis.at/en/Materials/Metal/Not-Straightened-Wire/Solder-Wire/Soft-soldering-wire-1-spool-100g.html",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/solder-archidelis.html",
+          "bytes": 75260,
+          "sha256": "8df90b597aba66b4e36ed71e89aee56a340a81ff2b2d63331eb7d8272d505375"
+        },
+        {
+          "id": "solder-rothenberger",
+          "url": "https://www.icestar.hu/rothenberger-lagyforraszto-on-2-mm-100g",
+          "finalUrl": "https://www.icestar.hu/rothenberger-lagyforraszto-on-2-mm-100g",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/solder-rothenberger.html",
+          "bytes": 151579,
+          "sha256": "1c0ec6b2b5e97cd23988eb3091106b8be0c45a19333b8d2bff96ebe1ecfe7fe2"
+        },
+        {
+          "id": "solder-badshop",
+          "url": "https://www.badshop-web.de/INSTALLATION-MATERIAL/Tin-solder-material/Role-of-soft-plumb-line-for-Kupferrohre.html",
+          "finalUrl": "https://www.badshop-web.de/INSTALLATION-MATERIAL/Tin-solder-material/Role-of-soft-plumb-line-for-Kupferrohre.html",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "file": "tmp/accessories-v12/solder-badshop.html",
+          "bytes": 223280,
+          "sha256": "af92521a82caf1dfe6b6f6438a252640742608c94c0eb28f9a982c4011d68484"
+        }
+      ],
+      "missingViews": [
+        "Exact 100 g spool with legible or independently confirmed identity",
+        "Opposite face/label",
+        "Wire and diameter detail"
+      ],
+      "requiredEvidence": "A legible spool label or original order/model plus 100 g packaging confirmation. A high-resolution photograph of the exact reel is required; no alloy or lead-free claim inferred.",
+      "status": "no-qualifying-new-source",
+      "rejectedCandidates": [
+        {
+          "id": "solder-archidelis-native",
+          "url": "https://www.archidelis.at/out/pictures/master/product/1/0170208030.png",
+          "finalUrl": "https://www.archidelis.at/out/pictures/master/product/1/0170208030.png",
+          "status": 200,
+          "contentType": "image/png",
+          "file": "tmp/accessories-v12/solder-archidelis-native.png",
+          "bytes": 229218,
+          "sha256": "8203b95caeb48a7349c79122ef9960f14ae527773fe771d7b2c5e7e1388002a9",
+          "width": 800,
+          "height": 602,
+          "format": "png",
+          "imageUrl": "https://www.archidelis.at/out/pictures/master/product/1/0170208030.png",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Original native width/height below 1024; no enlarged or padded copy created.",
+          "evaluatedVariantSkus": [
+            "DOD-ZIC-100-G"
+          ],
+          "sourcePage": "https://www.archidelis.at/en/Materials/Metal/Not-Straightened-Wire/Solder-Wire/Soft-soldering-wire-1-spool-100g.html",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "solder-torrey-native",
+          "url": "https://cdn.eazyauction.de/f9/f9c39de5eb6a6b410d1e8dbeb0b42f9e19d6bb8d317386d3dbd861e40d1ddc50504b9306c1f30d1a4d4fb8d633c2f845/img/1500x1500_729d782a71b16a1e5b0d00e795c5b091f71f76f9.png",
+          "finalUrl": "https://cdn.eazyauction.de/f9/f9c39de5eb6a6b410d1e8dbeb0b42f9e19d6bb8d317386d3dbd861e40d1ddc50504b9306c1f30d1a4d4fb8d633c2f845/img/1500x1500_729d782a71b16a1e5b0d00e795c5b091f71f76f9.png",
+          "status": 200,
+          "contentType": "image/png",
+          "file": "tmp/accessories-v12/solder-torrey-native.png",
+          "bytes": 1372805,
+          "sha256": "b4a2a8042792705333932dd37edb28631b3883f73c47e0393970b9693f7fd957",
+          "width": 1500,
+          "height": 1500,
+          "format": "png",
+          "imageUrl": "https://cdn.eazyauction.de/f9/f9c39de5eb6a6b410d1e8dbeb0b42f9e19d6bb8d317386d3dbd861e40d1ddc50504b9306c1f30d1a4d4fb8d633c2f845/img/1500x1500_729d782a71b16a1e5b0d00e795c5b091f71f76f9.png",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Source explicitly 250 g; sold package 100 g. Smooth reel face differs from embossed original. Real sharp human-free photograph, wrong package.",
+          "evaluatedVariantSkus": [
+            "DOD-ZIC-100-G"
+          ],
+          "sourcePage": "https://www.ebay.de/itm/114277369556",
+          "review": {
+            "visuallyInspected": true,
+            "noHumans": true,
+            "accepted": false,
+            "identity": "Source explicitly 250 g; sold package 100 g. Smooth reel face differs from embossed original. Real sharp human-free photograph, wrong package.",
+            "quality": "Natural metal/plastic texture visible; quality cannot overcome the identified model/package mismatch."
+          }
+        },
+        {
+          "id": "solder-badshop-native",
+          "url": "https://www.badshop-web.de/images/product_images/original_images/weichlot2.jpg",
+          "finalUrl": "https://www.badshop-web.de/images/product_images/original_images/weichlot2.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/solder-badshop-native.jpeg",
+          "bytes": 2491,
+          "sha256": "00d03a221da794b234a1055b64f50f30b5b17eaa9f3a1f41f957b38a3d3ee709",
+          "width": 170,
+          "height": 159,
+          "format": "jpeg",
+          "imageUrl": "https://www.badshop-web.de/images/product_images/original_images/weichlot2.jpg",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Original native width/height below 1024; no enlarged or padded copy created.",
+          "evaluatedVariantSkus": [
+            "DOD-ZIC-100-G"
+          ],
+          "sourcePage": "https://www.badshop-web.de/INSTALLATION-MATERIAL/Tin-solder-material/Role-of-soft-plumb-line-for-Kupferrohre.html",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "solder-rothenberger-native",
+          "url": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-2-mm-100g.jpg.webp?lastmod=1720430187.1667403800",
+          "finalUrl": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-2-mm-100g.jpg.webp?lastmod=1720430187.1667403800",
+          "status": 200,
+          "contentType": "image/webp",
+          "file": "tmp/accessories-v12/solder-rothenberger-native.webp",
+          "bytes": 19674,
+          "sha256": "2b5183d0e6fe58024aa178851f2c2451e5d7479c6c726637bee454aa5f02717a",
+          "width": 800,
+          "height": 800,
+          "format": "webp",
+          "imageUrl": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-2-mm-100g.jpg.webp?lastmod=1720430187.1667403800",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Original native width/height below 1024; no enlarged or padded copy created.",
+          "evaluatedVariantSkus": [
+            "DOD-ZIC-100-G"
+          ],
+          "sourcePage": "https://www.icestar.hu/rothenberger-lagyforraszto-on-2-mm-100g",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "solder-rothenberger-old-native",
+          "url": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-100g.jpg.webp?lastmod=1606394225.1667403800",
+          "finalUrl": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-100g.jpg.webp?lastmod=1606394225.1667403800",
+          "status": 200,
+          "contentType": "image/webp",
+          "file": "tmp/accessories-v12/solder-rothenberger-old-native.webp",
+          "bytes": 17588,
+          "sha256": "2e0c742b9908291c0efc932b5e4414daff89429f2e497253b921410479a797f2",
+          "width": 800,
+          "height": 800,
+          "format": "webp",
+          "imageUrl": "https://icestar.cdn.shoprenter.hu/custom/icestar/image/data/product/klimaszerelesi-anyagok/rezcsoforrasztas-forraszanyag/rothenberger-lagyforraszto-on-100g.jpg.webp?lastmod=1606394225.1667403800",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Original native width/height below 1024; no enlarged or padded copy created.",
+          "evaluatedVariantSkus": [
+            "DOD-ZIC-100-G"
+          ],
+          "sourcePage": "https://www.icestar.hu/rothenberger-lagyforraszto-on-2-mm-100g",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        }
+      ]
+    },
+    {
+      "slug": "motorcek",
+      "name": "Motorček",
+      "productionStatus": "active",
+      "variantSkus": [
+        "ELE-MOT-R23",
+        "ELE-MOT-R20",
+        "ELE-MOT-R21"
+      ],
+      "variants": [
+        {
+          "id": "128",
+          "sku": "ELE-MOT-R23",
+          "name": "Motorček R23",
+          "existingPhotographs": []
+        },
+        {
+          "id": "129",
+          "sku": "ELE-MOT-R20",
+          "name": "Motorček R20",
+          "existingPhotographs": [
+            {
+              "id": "149",
+              "url": "/images/catalog/2026-09/motorcek-r20-izvirnik.jpg"
+            }
+          ]
+        },
+        {
+          "id": "130",
+          "sku": "ELE-MOT-R21",
+          "name": "Motorček R21",
+          "existingPhotographs": []
+        }
+      ],
+      "accepted": [],
+      "pendingCandidates": [],
+      "identityEvidence": "R21/RE260: 28 g, Ø24×27 mm, 2 mm shaft, 6200 rpm/170 mA at 1.5 V and 12700 rpm/240 mA at 3 V. R23/RE280 R: 42 g, Ø24×30 mm, 2 mm shaft, 1.5–4.5 V, with original no-load/loaded speed pairs 2300/1700,5200/4220,7800/6510 rpm. These values independently match the historical OPITEC 224035/224057 descriptions. Bare motors of different winding, end cap or shaft are not substitutes.",
+      "freshFindings": [
+        "Fresh original ATEHNA pages and 500×500 reference files retain the same model dimensions and electrical data. Existing R20 image149 remains outside any proposed change.",
+        "New Super-RC RE260RA-2670 native is 270×202; Kysan RE280RA-20120 native is 360×360. Tsukumo product fetch failed and image CDN returned 503; Lee Electronic returned 403. No bypass attempted.",
+        "Hergui/Radox 510-367 exposes four actual untransformed Shopify originals, all 800×800. Its title/model converges onRE280RA-20120, but its 6.35 mm shaft claim also conflicts with ATEHNA 2 mm; no exact acceptance made.",
+        "Leison exposes three 2448×2448 originals with useful photographed metal texture. Direct visual comparison shows a cream/yellow rear cap and different terminal and front-face construction versus the original ATEHNA black-cap R23. Its family page permits customised shafts/windings; the side view contains dimension annotations. All three are rejected despite sufficient pixels."
+      ],
+      "identityReferences": [
+        {
+          "id": "atehna-r21",
+          "url": "https://atehna.si/product/motorcek-r21/",
+          "finalUrl": "https://atehna.si/product/motorcek-r21/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-r21.html",
+          "bytes": 78244,
+          "sha256": "ef92c95795ce5f48dfa728d6cbbeaa59f2628af52b04cd61d816156081ced1fc"
+        },
+        {
+          "id": "atehna-r23",
+          "url": "https://atehna.si/product/motorcek-r23/",
+          "finalUrl": "https://atehna.si/product/motorcek-r23/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-r23.html",
+          "bytes": 77601,
+          "sha256": "25c054f365c1723fa2036d5cdc2dd6e17dc9f999e781b0a1375d16a2ea355639"
+        },
+        {
+          "id": "atehna-r21-reference",
+          "url": "https://atehna.si/wp-content/uploads/2015/04/re21.png",
+          "finalUrl": "https://atehna.si/wp-content/uploads/2015/04/re21.png",
+          "status": 200,
+          "contentType": "image/png",
+          "file": "tmp/accessories-v12/atehna-r21-reference.png",
+          "bytes": 132984,
+          "sha256": "4e566af23a7dd61b98543d1b334e481b7f7b592ad19164ba305cc29609909be9",
+          "width": 500,
+          "height": 500,
+          "format": "png"
+        },
+        {
+          "id": "atehna-r23-reference",
+          "url": "https://atehna.si/wp-content/uploads/2015/04/re23.png",
+          "finalUrl": "https://atehna.si/wp-content/uploads/2015/04/re23.png",
+          "status": 200,
+          "contentType": "image/png",
+          "file": "tmp/accessories-v12/atehna-r23-reference.png",
+          "bytes": 102184,
+          "sha256": "16589934c4d4442821259eb54ad607b5b456861492582421866b76f5bcd0962f",
+          "width": 500,
+          "height": 500,
+          "format": "png"
+        }
+      ],
+      "sourcePagesChecked": [
+        {
+          "id": "atehna-r21",
+          "url": "https://atehna.si/product/motorcek-r21/",
+          "finalUrl": "https://atehna.si/product/motorcek-r21/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-r21.html",
+          "bytes": 78244,
+          "sha256": "ef92c95795ce5f48dfa728d6cbbeaa59f2628af52b04cd61d816156081ced1fc"
+        },
+        {
+          "id": "atehna-r23",
+          "url": "https://atehna.si/product/motorcek-r23/",
+          "finalUrl": "https://atehna.si/product/motorcek-r23/",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/atehna-r23.html",
+          "bytes": 77601,
+          "sha256": "25c054f365c1723fa2036d5cdc2dd6e17dc9f999e781b0a1375d16a2ea355639"
+        },
+        {
+          "id": "tsukumo-r21",
+          "url": "https://shop.tsukumo.co.jp/goods/4580265062600/",
+          "error": "fetch failed"
+        },
+        {
+          "id": "super-rc-r21",
+          "url": "https://www.super-rc.co.jp/rc/product/view?id=24536",
+          "finalUrl": "https://www.super-rc.co.jp/rc/product/view?id=24536",
+          "status": 200,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/super-rc-r21.html",
+          "bytes": 54407,
+          "sha256": "f8a6db135d648fe5c8b49b8286ec97eb7b141eceba6d736746ebb0943c865a88"
+        },
+        {
+          "id": "lee-r21",
+          "url": "https://leeselectronic.com/en/product/4158-4158MOTOR3VDCRE260RA267091066A.html",
+          "finalUrl": "https://leeselectronic.com/en/product/4158-4158MOTOR3VDCRE260RA267091066A.html",
+          "status": 403,
+          "contentType": "text/html; charset=UTF-8",
+          "file": "tmp/accessories-v12/lee-r21.html",
+          "bytes": 5668,
+          "sha256": "a2d8c9673dddb4a3101151e713f26a096a480e00221852b0a18fc26f7b5b9660"
+        },
+        {
+          "id": "kysan-r23",
+          "url": "https://kysanelectronics-com.3dcartstores.com/RE-280RA-20120_p_2679.html",
+          "finalUrl": "https://kysanelectronics-com.3dcartstores.com/RE-280RA-20120_p_2679.html",
+          "status": 200,
+          "contentType": "text/html; Charset=UTF-8",
+          "file": "tmp/accessories-v12/kysan-r23.html",
+          "bytes": 82572,
+          "sha256": "72e1e6c7d14c4cc246bdaeef8dae4f17e093d3afd909f2309d2525ceb184e3d5"
+        },
+        {
+          "id": "hergui-motors",
+          "url": "https://www.herguimusical.com/collections/motores-para-robotica?page=2",
+          "finalUrl": "https://www.herguimusical.com/collections/motores-para-robotica?page=2",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "file": "tmp/accessories-v12/hergui-motors.html",
+          "bytes": 257694,
+          "sha256": "3b758d3cfb069250c92acc2d36e9cfad959d53ccae56829ac508d8b08dc4a3de"
+        },
+        {
+          "id": "leison-r23",
+          "url": "https://www.nbleisonmotor.com/RE-280-Dc-Micro-Motor-pd6250584.html",
+          "finalUrl": "https://www.nbleisonmotor.com/RE-280-Dc-Micro-Motor-pd6250584.html",
+          "status": 200,
+          "contentType": "text/html;charset=utf-8",
+          "file": "tmp/accessories-v12/leison-r23.html",
+          "bytes": 246543,
+          "sha256": "b6837182871402e4b1658c1c53c803e16474d868cd267d65a4a05d3184e40dc4"
+        },
+        {
+          "id": "hergui-r23-json",
+          "url": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367.js",
+          "finalUrl": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367.js",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8",
+          "file": "tmp/accessories-v12/hergui-r23-json.bin",
+          "bytes": 4476,
+          "sha256": "13a185cfda642469cc19c3981faf7b9239fd33190387b30dbf68b604b6006fe3"
+        }
+      ],
+      "missingViews": [
+        "Sharp complete exact R21 main photograph",
+        "Sharp complete exact R23 main photograph",
+        "Rear contacts, shaft and mounting detail for R20/R21/R23"
+      ],
+      "requiredEvidence": "Better originals of exact OPITEC 224035/224057 units or supplier photography with matching housing, cap, shaft and winding. R20 retains one real photo but still lacks supplementary views.",
+      "status": "no-qualifying-new-source",
+      "rejectedCandidates": [
+        {
+          "id": "super-rc-r21-native",
+          "url": "https://www.super-rc.co.jp/file/img/product/main0/0000024/536-3L.jpg",
+          "finalUrl": "https://www.super-rc.co.jp/file/img/product/main0/0000024/536-3L.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/super-rc-r21-native.jpeg",
+          "bytes": 3895,
+          "sha256": "317817ebbcb101f56ce487b6f5d756c129579713d3af3fe662e24d7bd9c56a85",
+          "width": 270,
+          "height": 202,
+          "format": "jpeg",
+          "imageUrl": "https://www.super-rc.co.jp/file/img/product/main0/0000024/536-3L.jpg",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Native width/height below 1024; no enlargement or padding created.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R21"
+          ],
+          "sourcePage": "https://www.super-rc.co.jp/rc/product/view?id=24536",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "kysan-r23-native",
+          "url": "https://kysanelectronics-com.3dcartstores.com/assets/images/rc-280_360.png",
+          "finalUrl": "https://kysanelectronics-com.3dcartstores.com/assets/images/rc-280_360.png",
+          "status": 200,
+          "contentType": "image/png",
+          "file": "tmp/accessories-v12/kysan-r23-native.png",
+          "bytes": 85293,
+          "sha256": "025ca31fd6cbcabe288f8ceb91d802263e58f352a72436e752fed3f333b813e6",
+          "width": 360,
+          "height": 360,
+          "format": "png",
+          "imageUrl": "https://kysanelectronics-com.3dcartstores.com/assets/images/rc-280_360.png",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Native width/height below 1024; no enlargement or padding created.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://kysanelectronics-com.3dcartstores.com/RE-280RA-20120_p_2679.html",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "hergui-r23-native",
+          "url": "https://www.herguimusical.com/cdn/shop/files/510-367-motor-de-corriente-direc.jpg?v=1776712421",
+          "finalUrl": "https://www.herguimusical.com/cdn/shop/files/510-367-motor-de-corriente-direc.jpg?v=1776712421",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/hergui-r23-native.jpeg",
+          "bytes": 25162,
+          "sha256": "a84c827d85a1ad9b0a9a65b698172e63a466586a1ec504129d644c7ac18df9c3",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "imageUrl": "https://www.herguimusical.com/cdn/shop/files/510-367-motor-de-corriente-direc.jpg?v=1776712421",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "All four native gallery images are 800×800, below minimum. Page also claims 6.35 mm shaft versus sold 2 mm; no exact-match acceptance.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "leison-r23-front",
+          "url": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lpBqmKinSRqqlijmllj/RE.jpg",
+          "finalUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lpBqmKinSRqqlijmllj/RE.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/leison-r23-front.jpeg",
+          "bytes": 1015615,
+          "sha256": "6d1a4b1178d5020b7523f3bfa4ebe7995c6c505f772a4d5ea828df326e89ea52",
+          "width": 2448,
+          "height": 2448,
+          "format": "jpeg",
+          "imageUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lpBqmKinSRqqlijmllj/RE.jpg",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.nbleisonmotor.com/RE-280-Dc-Micro-Motor-pd6250584.html",
+          "review": {
+            "visuallyInspected": true,
+            "noHumans": true,
+            "accepted": false,
+            "identity": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+            "quality": "Natural metal/plastic texture visible; quality cannot overcome the identified model/package mismatch."
+          }
+        },
+        {
+          "id": "leison-r23-side",
+          "url": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lmBqmKinSRqqlijmlnj/RE.jpg",
+          "finalUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lmBqmKinSRqqlijmlnj/RE.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/leison-r23-side.jpeg",
+          "bytes": 882414,
+          "sha256": "4e160f8b2f6ee27afc38a53d08d3710cf3849c1be17f37be92058efca67040c4",
+          "width": 2448,
+          "height": 2448,
+          "format": "jpeg",
+          "imageUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/lmBqmKinSRqqlijmlnj/RE.jpg",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.nbleisonmotor.com/RE-280-Dc-Micro-Motor-pd6250584.html",
+          "review": {
+            "visuallyInspected": true,
+            "noHumans": true,
+            "accepted": false,
+            "identity": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+            "quality": "Original includes supplier dimension graphics; supplementary annotated view only even if identity matched."
+          }
+        },
+        {
+          "id": "leison-r23-rear",
+          "url": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/liBqmKinSRqqlijmlqk/RE.jpg",
+          "finalUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/liBqmKinSRqqlijmlqk/RE.jpg",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/leison-r23-rear.jpeg",
+          "bytes": 865947,
+          "sha256": "ce8668e3f70d53fa0f9188a46847522ab2b97ed797ec02b528a9c87b77390dcd",
+          "width": 2448,
+          "height": 2448,
+          "format": "jpeg",
+          "imageUrl": "https://5lrorwxhiiqorij.leadongcdn.com/cloud/liBqmKinSRqqlijmlqk/RE.jpg",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.nbleisonmotor.com/RE-280-Dc-Micro-Motor-pd6250584.html",
+          "review": {
+            "visuallyInspected": true,
+            "noHumans": true,
+            "accepted": false,
+            "identity": "Native dimensions qualify, but cream rear cap, terminal tabs/front construction and configurable family identity conflict with original black-cap R23. Not accepted.",
+            "quality": "Natural metal/plastic texture visible; quality cannot overcome the identified model/package mismatch."
+          }
+        },
+        {
+          "id": "hergui-r23-gallery-1",
+          "url": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_1.jpg?v=1776712421",
+          "finalUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_1.jpg?v=1776712421",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/hergui-r23-gallery-1.jpeg",
+          "bytes": 29800,
+          "sha256": "8fec5cb082fcc8039fd7d5b3f4dc6ec0b9c53f62fbafe04ca8c8acd5e8cd29cd",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_1.jpg?v=1776712421",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "All four native gallery images are 800×800, below minimum. Page also claims 6.35 mm shaft versus sold 2 mm; no exact-match acceptance.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "hergui-r23-gallery-2",
+          "url": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_2.jpg?v=1776712421",
+          "finalUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_2.jpg?v=1776712421",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/hergui-r23-gallery-2.jpeg",
+          "bytes": 17548,
+          "sha256": "09c0dee9dcd78794569aa66c1bdd70d9f1d37e2243c5e85aed6a8877044c3223",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_2.jpg?v=1776712421",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "All four native gallery images are 800×800, below minimum. Page also claims 6.35 mm shaft versus sold 2 mm; no exact-match acceptance.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        },
+        {
+          "id": "hergui-r23-gallery-3",
+          "url": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_3.jpg?v=1776712422",
+          "finalUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_3.jpg?v=1776712422",
+          "status": 200,
+          "contentType": "image/jpeg",
+          "file": "tmp/accessories-v12/hergui-r23-gallery-3.jpeg",
+          "bytes": 53723,
+          "sha256": "e06874a3302872b147221834a5096e7348d391dd4b5c3f33bb5553626ca0a81f",
+          "width": 800,
+          "height": 800,
+          "format": "jpeg",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/1610/5893/files/510-367-motor-de-corriente-direc_3.jpg?v=1776712422",
+          "untouchedOriginal": true,
+          "stagePublicAsset": false,
+          "decision": "rejected",
+          "reason": "All four native gallery images are 800×800, below minimum. Page also claims 6.35 mm shaft versus sold 2 mm; no exact-match acceptance.",
+          "evaluatedVariantSkus": [
+            "ELE-MOT-R23"
+          ],
+          "sourcePage": "https://www.herguimusical.com/products/motoreductor-dc-5v-7800-rpm-radox-510-367",
+          "review": {
+            "visuallyInspected": false,
+            "accepted": false,
+            "reason": "Rejected by decoded native pixel dimensions before any claim of visual or exact-identity acceptance."
+          }
+        }
+      ]
+    }
+  ],
+  "sourceSearches": [
+    "Exact ATEHNA 45001/45002 names and codes; original public product HTML and represented-brands page; alternative Woo Store media endpoint.",
+    "RE260RA-2670, RE280RA-20120 and original 6200/12700 and 7800/6510rpm specifications; fresh Japanese Super-RC/Tsukumo, Lee, Kysan, Hergui and Leison original galleries.",
+    "Embossed blue solder spool: TIN-WIRE/LOT-ZINN and Fittingsweichlot aliases; Archidelis 100g, Icestar/Rothenberger 100g, Badshop 100g and Torrey 250g original media."
+  ],
+  "sourceSearchNotes": "Search results alone were not treated as exact identity or photo-quality proof. The Torrey eBay listing is https://www.ebay.de/itm/114277369556 and explicitly 250 g. OPITEC historical match independently reappears at https://opitecshop.co.uk/downloads/opitec_dt_brochure.pdf; no previously rejected OPITEC photo was downloaded or readmitted.",
+  "evidence": {
+    "directory": "tmp/accessories-v12",
+    "responseLedgers": [
+      "tmp/accessories-v12/page-responses.json",
+      "tmp/accessories-v12/native-responses.json",
+      "tmp/accessories-v12/additional-natives.json",
+      "tmp/accessories-v12/identity-solder-responses.json",
+      "tmp/accessories-v12/last-responses.json",
+      "tmp/accessories-v12/hergui-gallery.json"
+    ],
+    "motorComparison": "tmp/accessories-v12/motor-identity-comparison.jpg",
+    "originalBytesVerification": "tmp/accessories-v12/verification.json",
+    "priorLedgersReviewed": [
+      "data/catalog/replacement-sources-ppe-v8-2026-09.json",
+      "data/catalog/replacement-sources-tools-v4-2026-09.json",
+      "data/catalog/replacement-sources-tools-v5-2026-09.json",
+      "data/catalog/replacement-sources-tools-v7-2026-09.json",
+      "data/catalog/replacement-sources-tools-v8-2026-09.json",
+      "data/catalog/replacement-sources-tools-v9-2026-09.json"
+    ]
+  },
+  "noDatabaseCanonicalRuntimeOrPublicAssetChanges": true
+}

@@ -1,0 +1,641 @@
+{
+  "version": 5,
+  "reviewedAt": "2026-09-14T11:37:56.618Z",
+  "status": "reviewed-with-source-gaps",
+  "policy": "Real untouched originals at least 1024 pixels on each axis with useful native detail, no humans, AI, enlargement, padding or misleading model substitutions. Identify exact products from original ATEHNA public names, specific variation image assignments, actual package labels and supplier/manufacturer evidence. Existing schematics remain untouched and do not count as photos.",
+  "priorLedgers": [
+    "data/catalog/replacement-sources-tools-v4-2026-09.json",
+    "data/catalog/replacement-sources-uhu-v4-2026-09.json"
+  ],
+  "archiveAudit": {
+    "source": "https://atehna.si/wp-json/wp/v2/media?per_page=100&_fields=id,title,source_url,media_details,mime_type",
+    "evidence": "tmp/tools-v5/atehna-public-media-all.json",
+    "result": "Queried all 10 advertised public attachment pages; 796 published attachment objects were returned. No additional native exact target photographs were found. Unclassified 1500×1025 photo1575 was visually identified as an unrelated decorative-scissors kit."
+  },
+  "products": [
+    {
+      "slug": "krivilnik-za-plasticne-mase",
+      "variantNames": [
+        "Krivilnik za plastične mase - THERMOFORM 400"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "url": "https://media.s-bol.com/x6jNzB1ENAVn/550x224.jpg",
+          "file": "tmp/tools-v5/bol400-display.jpg",
+          "width": 550,
+          "height": 224,
+          "reason": "Published550×224 file failsnative resolution; /original.jpg returned no image. No artificial CDN enlargements accepted."
+        },
+        {
+          "url": "https://www.greenbasic.nl/wp-content/uploads/2021/04/thermoform-400-buigmachine-kunststof.jpg",
+          "width": 600,
+          "height": 267,
+          "reason": "Public WordPress native metadata failsheight."
+        },
+        {
+          "url": "https://www.greenbasic.nl/wp-content/uploads/2021/04/thermoform-400.jpg",
+          "width": 1024,
+          "height": 685,
+          "reason": "Public WordPress native metadata failsheight."
+        },
+        {
+          "url": "https://www.greenbasic.nl/wp-content/uploads/2021/04/plexiglas-buigmachine-thermoform-400.jpg",
+          "width": 1500,
+          "height": 615,
+          "reason": "Public WordPress native metadata failsheight."
+        },
+        {
+          "url": "https://www.greenbasic.nl/product/thermoform-400/",
+          "reason": "Original400 URL now describes580S. Do not use replacement-modelphotography."
+        },
+        {
+          "url": "https://www.aduis.at/kunststoff-biegegeraete-biegegeraet-fuer-kunststoffe-thermoform-400-art503140",
+          "reason": "Retired400 URL now identifies580S; wrong model."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://www.bol.com/nl/nl/p/kunststof-buigmachine-thermoform-400/9300000007068784/",
+        "https://www.greenbasic.nl/blog/plexiglas-buigen/",
+        "https://www.greenbasic.nl/wp-json/wp/v2/media?per_page=100&search=thermoform",
+        "https://www.opitec.com/de-de/search?search=374479",
+        "https://www.opitec.com/de-de/search?search=thermoform%20400"
+      ],
+      "missingViews": [
+        "Sharp full front/three-quarter exactTHERMOFORM400",
+        "Rear connectors and heat controls",
+        "Side and working surface details"
+      ]
+    },
+    {
+      "slug": "zica-za-lotanje",
+      "variantNames": [
+        "Žica za lotanje - 100 g"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "solder-senigorshop",
+          "url": "https://senigorshop.ba/images/products/12971-felder-zica-meki-lem-100-gr-1.jpg",
+          "error": "Input Buffer is empty",
+          "reason": "No decodable public original obtained"
+        },
+        {
+          "id": "solder-tgk",
+          "url": "https://www.tgk.de/media/f9/69/21/1674052558/98e0fb4e4fa836756ed9badf9e945122ef6a8902.jpg",
+          "status": 200,
+          "file": "tmp/tools-v5/solder-tgk.jpeg",
+          "width": 1280,
+          "height": 1280,
+          "bytes": 185882,
+          "sha256": "4107dec97dc75ae0c5c87b90edf2a830ab9e05a43195637734d34e9f3422d6b3",
+          "reason": "Real sharp100gFelder Cu-Rotin3 spool photo, but ATEHNA350×400 original lacks legible alloy/diameter or provenFelder model, and tall unlabelled reel differs. Identity unresolved; do not substitute."
+        },
+        {
+          "id": "solder-ikh",
+          "url": "https://www.ikh.se/media/catalog/product/F/E/FEL010_S_1_web.jpeg",
+          "status": 200,
+          "file": "tmp/tools-v5/solder-ikh.jpeg",
+          "width": 1200,
+          "height": 1200,
+          "bytes": 239258,
+          "sha256": "cf3940e3115768eca8789ac9d57562a749c529ce8c4c5fc23b685e732d73f590",
+          "reason": "Real sharp100gFelder Cu-Rotin3 spool photo, but ATEHNA350×400 original lacks legible alloy/diameter or provenFelder model, and tall unlabelled reel differs. Identity unresolved; do not substitute."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/product/zica-za-lotanje-100g/",
+        "https://www.tgk.de/en/Techniques/Tiffany-technique/Solder/",
+        "https://www.ikh.se/en/soldering-wire-sn97-cu3-3-0mm-100g-din-29453-fel010"
+      ],
+      "missingViews": [
+        "Exact100g spool with readable brand/alloy/diameter",
+        "Wire detail and opposite spool label"
+      ],
+      "identityEvidence": "Original ATEHNA SKU30151 only specifies100g. Closer diagnostic review of embossed top suggests TIN-WIRE / LOT-ZINN rather than a reliableFelder brand. Earlier tentativeFelder-Werke interpretation is withdrawn; it is not identity evidence."
+    },
+    {
+      "slug": "spiralne-zagice-za-les-in-mehke-kovine",
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "accepted": [
+        {
+          "id": "spiralne-zagice-fine-pebaro-134-1-v5",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-fine-pebaro-134-1-v5.png",
+          "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+          "imageUrl": "https://s.coolbox.ua/static/content/files/c/5c/7515ea7293a5d708b3b93394010535cc.png",
+          "sha256": "7944b941aa7b2ccf25060199eb7142ad392dfae636cc8e13c11fa8a3b537298d",
+          "width": 2836,
+          "height": 3274,
+          "bytes": 898463,
+          "variantNames": [
+            "Fini robovi"
+          ],
+          "variantSkus": [
+            "DOD-SPI-FINI-ROBOVI"
+          ],
+          "sourceSku": "32470",
+          "sourceModel": "PEBARO 134-1",
+          "optionSelections": {
+            "izvedba": "32470"
+          },
+          "view": "front-complete-pack-and-blades",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Spiralne žagice PEBARO 134-1 — fini robovi, komplet 12 žagic",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Original ATEHNA variant 32470 (Fini robovi) explicitly assigns attachment spiralne-1.jpg (WordPress title spiralne 1). The original blue card, PEBARO mark, 12-blade quantity and wood/plastic/soft-metal graphics match this photograph. Its real printed label identifies fein No.1 / Art.134-1. Public grade name, original numbered image and physical package are converging exact-variant evidence. The general family URL ending no-7 does not override the specific variation association. Assigned only to this original SKU; coarse32473 remains unassigned.",
+            "quality": "Untouched native supplier photo 2836×3274. Complete package and full blades, no people, clean neutral/transparent background. Real printed lettering, barcode, edges and individual blade detail remain useful at zoom. Natural whitespace follows long narrow geometry; no padding or enlargement performed. Parent and source agent independently visually reviewed the full original. One photo for this variant, not a second angle of another variant.",
+            "accessories": "Shows only the included 12 blades and their retail card. No extra tools or accessories."
+          },
+          "identitySources": [
+            {
+              "url": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+              "evidence": "Public WooCommerce variation 32470 image association and grade name."
+            },
+            {
+              "url": "https://atehna.si/wp-json/wp/v2/media/1622",
+              "evidence": "Original attachment title and untransformed image URL."
+            },
+            {
+              "url": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+              "evidence": "Exact numeric grade and quantity shown on original retail package."
+            }
+          ],
+          "reviewedBy": [
+            "quality_validation",
+            "root"
+          ]
+        },
+        {
+          "id": "spiralne-zagice-medium-pebaro-134-3-v5",
+          "blobUrl": "/images/catalog/2026-09/spiralne-zagice-medium-pebaro-134-3-v5.jpg",
+          "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-3-pebaro",
+          "imageUrl": "https://s.coolbox.ua/static/content/files/5/46/0ed5647d7f2d90b4b10821f219b98465.jpeg",
+          "sha256": "ba1f49e7bb6f396b3f9658bcadc651ca58d214583105218a33b0a8b917d2bdfa",
+          "width": 3024,
+          "height": 3668,
+          "bytes": 419056,
+          "variantNames": [
+            "Srednji robovi"
+          ],
+          "variantSkus": [
+            "DOD-SPI-SREDNJI-ROBOVI"
+          ],
+          "sourceSku": "32471",
+          "sourceModel": "PEBARO 134-3",
+          "optionSelections": {
+            "izvedba": "32471"
+          },
+          "view": "front-complete-pack-and-blades",
+          "role": "main",
+          "imageType": "product",
+          "altText": "Spiralne žagice PEBARO 134-3 — srednji robovi, komplet 12 žagic",
+          "untouchedOriginal": true,
+          "noHumans": true,
+          "distinctPhoto": true,
+          "review": {
+            "exactIdentity": "Original ATEHNA variant 32471 (Srednji robovi) explicitly assigns attachment spiralne-3.jpg (WordPress title spiralne 3). The original blue card, PEBARO mark, 12-blade quantity and wood/plastic/soft-metal graphics match this photograph. Its real printed label identifies mittel No.3 / Art.134-3. Public grade name, original numbered image and physical package are converging exact-variant evidence. The general family URL ending no-7 does not override the specific variation association. Assigned only to this original SKU; coarse32473 remains unassigned.",
+            "quality": "Untouched native supplier photo 3024×3668. Complete package and full blades, no people, clean neutral/transparent background. Real printed lettering, barcode, edges and individual blade detail remain useful at zoom. Natural whitespace follows long narrow geometry; no padding or enlargement performed. Parent and source agent independently visually reviewed the full original. One photo for this variant, not a second angle of another variant.",
+            "accessories": "Shows only the included 12 blades and their retail card. No extra tools or accessories."
+          },
+          "identitySources": [
+            {
+              "url": "https://atehna.si/product/spiralne-zagice-za-les-in-mehke-kovine-no-7/",
+              "evidence": "Public WooCommerce variation 32471 image association and grade name."
+            },
+            {
+              "url": "https://atehna.si/wp-json/wp/v2/media/1620",
+              "evidence": "Original attachment title and untransformed image URL."
+            },
+            {
+              "url": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-3-pebaro",
+              "evidence": "Exact numeric grade and quantity shown on original retail package."
+            }
+          ],
+          "reviewedBy": [
+            "quality_validation",
+            "root"
+          ]
+        }
+      ],
+      "rejectedCandidates": [
+        {
+          "id": "pebaro1344-not-medium-atehna",
+          "file": "tmp/tools-v4/coolbox-spiral134-4.png",
+          "reason": "Native quality passes, but original medium ATEHNA image number3 and older physical mittel No.3 package establish134-3. Do not substitute different numeric grade134-4."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+        "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-3-pebaro",
+        "https://www.gardenlife.kr/goods/goods_view.php?goodsNo=2552",
+        "https://www.vardakas-tools.gr/manufacturer/Brand/Pebaro",
+        "https://doczz.net/doc/5896154/laubs%C3%A4ge--werkzeuge",
+        "https://www.pebaro.de/wp-content/uploads/2020/01/Pebaro_Saegenkatalog.pdf"
+      ],
+      "missingViews": [
+        "Exact coarse variant32473 full photograph; original page reuses the medium image",
+        "Independent reverse or useful blade-detail photos for fine and medium variants"
+      ]
+    },
+    {
+      "slug": "zagice-za-rezanje-kovin",
+      "variantNames": [
+        "Fini robovi",
+        "Srednji robovi",
+        "Grobi robovi"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "gardenlife1350",
+          "url": "https://gardenlife.godohosting.com/editor/product/pebaro/135-0.jpg",
+          "file": "tmp/tools-v5/gardenlife1350.jpeg",
+          "width": 600,
+          "height": 600,
+          "bytes": 73940,
+          "sha256": "be58de310b98d5c727d0a510bcf39f0609ca5d735552a7ed8e52b6d75226ac71",
+          "reason": "Native originalfails1024bothaxes; retained as grade-identification evidenceonly."
+        },
+        {
+          "id": "gardenlife-blade",
+          "url": "https://gardenlife.godohosting.com/editor/product/pebaro/blade-1page.jpg",
+          "file": "tmp/tools-v5/gardenlife-blade.jpeg",
+          "width": 600,
+          "height": 800,
+          "bytes": 98281,
+          "sha256": "03d9c58cc510100926e78a4f2750b1825b90153e8d9f87f792e146e1aae0582c",
+          "reason": "Native originalfails1024bothaxes; retained as grade-identification evidenceonly."
+        },
+        {
+          "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-0.jpg",
+          "file": "tmp/tools-v5/pebaro135-0.jpeg",
+          "width": 1025,
+          "height": 1000,
+          "bytes": 38168,
+          "sha256": "a0488cfa8cd0ce238a2f7d9fdc5cf2cb0c08bf49b3427419b656d70f02a6f33a",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-3.jpg",
+          "file": "tmp/tools-v5/pebaro135-3.jpeg",
+          "width": 1025,
+          "height": 1000,
+          "bytes": 37818,
+          "sha256": "89c7c666cfe8393e311640bcecf1acc53fade4ca1ac2ad71a02f69faa05f7339",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://shop.pebaro.de/out/pictures/master/product/1/135-7.jpg",
+          "error": "Input buffer contains unsupported image format",
+          "reason": "No decodable exact original at this public image URL."
+        },
+        {
+          "url": "https://itt-shop.bg/resources/0308613_list-za-noovka-za-metal-pebaro-no-3-130-mm.jpeg",
+          "file": "tmp/tools-v5/itt135-3.jpeg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 24241,
+          "sha256": "11f2f9265c0ec6ac2adbf711e5e674ea8e4c0383c5efef81988c69f2e6986553",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://itt-shop.bg/resources/0308614_list-za-noovka-za-metal-pebaro-no-7-130-mm.jpeg",
+          "file": "tmp/tools-v5/itt135-7.jpeg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 29279,
+          "sha256": "61c6a791b85a5408ff7a7fe46daea2becb18922a1933399f4d5111ceeac23dcc",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://exlibris.azureedge.net/covers/4006/0941/3570/9/4006094135709xxl.webp",
+          "file": "tmp/tools-v5/exlibris1357-0.webp",
+          "width": 800,
+          "height": 4306,
+          "bytes": 114198,
+          "sha256": "c8108bc218994a33871b9396292d06277deb187aff926866a0cce08eb4899815",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://exlibris.azureedge.net/screenshots/4006/0941/3570/9/4006094135709_s2.jpg",
+          "file": "tmp/tools-v5/exlibris1357-1.jpeg",
+          "width": 1500,
+          "height": 1000,
+          "bytes": 26932,
+          "sha256": "59b0b07e7ac716cb0d9bf69d0cbc3df045c35b88a084c73804ab714b0e43078f",
+          "reason": "Native source fails 1024 pixels on both axes."
+        },
+        {
+          "url": "https://exlibris.azureedge.net/screenshots/4006/0941/3570/9/4006094135709_s3.jpg",
+          "file": "tmp/tools-v5/exlibris1357-2.jpeg",
+          "width": 1200,
+          "height": 6459,
+          "bytes": 206709,
+          "sha256": "b51be6f7c745dc84455bbf7b73baa5f35d89f903d5b83b20b3638e6b9dd9cda9",
+          "reason": "Visually reviewed at native pixels: strongly enlarged/coarse stair-stepped lettering, logo and low-detail gray background. The 1200×6459 canvas has no corresponding useful photographic detail and does not qualify as a native high-detail original."
+        },
+        {
+          "url": "https://exlibris.azureedge.net/screenshots/4006/0941/3570/9/4006094135709_s4.jpg",
+          "file": "tmp/tools-v5/exlibris1357-3.jpeg",
+          "width": 10003,
+          "height": 1200,
+          "bytes": 128671,
+          "sha256": "81bdeb0f65962b7fe83cf42aafe849d45400189398ac69e585d222568d9c7f13",
+          "reason": "Black silhouette of a tooth pattern, not a photograph or independent product view."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://www.gardenlife.kr/goods/goods_view.php?goodsNo=2552",
+        "https://shop.pebaro.de/Bastelbedarf-diy/Laubsaegewerkzeuge/Laubsaegeblaetter/Fuer-Metall/Laubsaegeblaetter-fuer-Metall.html",
+        "https://itt-shop.bg/list-za-nojovka-za-metal-pebaro-no-3-130-mm-10105405",
+        "https://itt-shop.bg/list-za-nojovka-za-metal-pebaro-no-7-130-mm-10105406",
+        "https://www.exlibris.ch/de/hobby-spiele-brettspiele/pebaro-135-7-laubsaegeblaetter-fuer-metall-gehaertet-staerke-7-g/id/4006094135709/",
+        "https://www.thalia.de/shop/home/artikeldetails/A1073138042",
+        "https://www.thalia.de/shop/home/artikeldetails/A1073138067",
+        "https://www.thalia.de/shop/home/artikeldetails/A1073138845"
+      ],
+      "missingViews": [
+        "Exact sold fine/medium/coarse pack originals",
+        "Independent tooth-detail photographs"
+      ],
+      "identityEvidence": "ATEHNA variants32460 fine,32461 medium,32462 coarse describe130mm hardened12-bladepacks. Original image names kovine0/kovine3 plausiblyidentify0/3. Gardenlife historic real package photograph shows135-0fine,135-3medium,135-7coarse; its native600×600 imagefailsminimum. Need actual qualifying original for the exact photographed grade.",
+      "sourceAccessNotes": "Thalia exact-grade listings are publicly indexed, but direct requests returned403 and were not bypassed. Other public dealer galleries and original manufacturer files were inspected instead."
+    },
+    {
+      "slug": "aluminijasto-ravnilo-z-rocajem",
+      "variantNames": [
+        "Ravnilo alu, z ročajem, 40 cm"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "merkur-ruler",
+          "url": "https://www.merkur-static.si/media/catalog/product/a/l/alu-ravnilo-z-rocajem-tovarna-meril-kovine-400mm-s-skalo-811985.jpg",
+          "status": 200,
+          "file": "tmp/tools-v5/merkur-ruler.jpg",
+          "width": 600,
+          "height": 600,
+          "bytes": 23771,
+          "sha256": "4c8afcd40d07e9bda22c442ce855ad8a2b66f8584504eafcc2a147e2b50bb732",
+          "reason": "Actual untransformed image below1024 on both axes; not enlarged."
+        },
+        {
+          "id": "phm-ruler",
+          "url": "https://www.phm-innotech.de/images/products/werkzeug/10303033/ALG40.jpg",
+          "status": 200,
+          "file": "tmp/tools-v5/phm-ruler.jpg",
+          "width": 750,
+          "height": 750,
+          "bytes": 18241,
+          "sha256": "f9ddd18d41349b9059372ff96f9448c78fc04d455430ec522d5e82d61192abda",
+          "reason": "Actual untransformed image below1024 on both axes; not enlarged."
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://www.merkur.si/alu-ravnilo-z-rocajem-tovarna-meril-kovine-400mm-s-skalo/",
+        "https://www.phm-innotech.de/produkt/alu-lineal-mit-griff-400-1000mm/",
+        "https://www.tm-kovine.si/Portals/1/Dokumenti/stockangtm-kovine_salesCatalogue-dec-2015_eng_web.pdf",
+        "https://www.kupka.hr/web_prospekti/15_TM_Kovine_prodajni_katalog.pdf"
+      ],
+      "missingViews": [
+        "Complete exact40cm ruler",
+        "Handle mounting and scale markings",
+        "Profile underside"
+      ],
+      "pdfInspection": {
+        "method": "Inspect native embedded image objects, never rasterized page enlargements.",
+        "evidence": "tmp/tools-v5/historical-pdf-evidence.json",
+        "result": "ExactRAGR040S1/EAN3838853200080 appears in2015manufacturer catalogpage12. Its ruler photographs max340×33. OlderCroatian catalogpage9 originals max419×63 for horizontalrulers; all fail."
+      }
+    },
+    {
+      "slug": "otroski-zascitni-predpasnik",
+      "variantNames": [
+        "Zaščitni predpasnik - otroški"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/wp-json/wp/v2/media?search=predpasnik&per_page=100"
+      ],
+      "missingViews": [
+        "Verified exact child-size apron front and rear",
+        "Neck strap, tie and material details"
+      ],
+      "identityEvidence": "OriginalATEHNA filename6-1038 and exact navy photograph match ŠČIT61038, but supplier identifies adult100×75cm, contradicting child product. Do not silently substitute adult apron. ChildKinder621231,55×68cm is a different garment.",
+      "newResearchResult": "Fresh original product HTML and all public attachment pages were checked. No new exact higher-resolution photo or model mapping was exposed. Earlier mismatched sources are not reused."
+    },
+    {
+      "slug": "otroska-ocala-za-zascito-oci",
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/wp-json/wp/v2/media?search=o%C4%8Dala&per_page=100"
+      ],
+      "missingViews": [
+        "Verified exact child safety glasses full front",
+        "Side arms or strap and ventilation detail"
+      ],
+      "identityEvidence": "OriginalATEHNA45002 has no product photograph or exactmodel. TTS brand is from earlier tentative imagery; no evidence identifies random childglasses from other makers as exact solditem.",
+      "newResearchResult": "Fresh original product HTML and all public attachment pages were checked. No new exact higher-resolution photo or model mapping was exposed. Earlier mismatched sources are not reused."
+    },
+    {
+      "slug": "ocala-za-zascito-oci",
+      "variantNames": [
+        "Osnovna izvedba"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://atehna.si/wp-json/wp/v2/media?search=o%C4%8Dala&per_page=100"
+      ],
+      "missingViews": [
+        "Exact sold adult glasses full front/three-quarter",
+        "Side arms or strap",
+        "Lens and ventilation details"
+      ],
+      "identityEvidence": "OriginalATEHNA45001 contains no product photograph or exact model code; currentKoestier brand came from earlier tentative source and is not independent identity proof.",
+      "newResearchResult": "Fresh original product HTML and all public attachment pages were checked. No new exact higher-resolution photo or model mapping was exposed. Earlier mismatched sources are not reused."
+    },
+    {
+      "slug": "uhu-super-glue",
+      "variantNames": [
+        "UHU super glue 3 ml"
+      ],
+      "accepted": [],
+      "rejectedCandidates": [
+        {
+          "id": "uhu-livingstone",
+          "url": "https://www.livingstone.com.au/cdn/shop/files/UHUUH40820.png?v=1756980336",
+          "status": 200,
+          "file": "tmp/tools-v5/uhu-livingstone.png",
+          "width": 300,
+          "height": 300,
+          "bytes": 62027,
+          "sha256": "afb1894764caa997c424ec1ccc30241562b99234e5c251a1b81c4df962855acc",
+          "reason": "Native original fails1024 pixels on both axes"
+        },
+        {
+          "id": "uhu-premier",
+          "url": "https://www.premierart.com.au/Images/ProductImages/523695.jpeg",
+          "status": 200,
+          "file": "tmp/tools-v5/uhu-premier.jpeg",
+          "width": 2000,
+          "height": 2000,
+          "bytes": 444970,
+          "sha256": "4ad8f32ea8133abc6f062b874c52838b3c0d9a4a8ab1e07f6786225bc2510c95",
+          "reason": "Visually inspected2000×2000 original, but Ultra Fast3g card/tube differ from ATEHNA legacy3ml instant-bond pack. No exact variant equivalence."
+        },
+        {
+          "id": "uhu-schoollocker",
+          "url": "https://cdn.theschoollocker.com.au/media/catalog/product/1/8/18_152.jpg",
+          "error": "fetch failed",
+          "reason": "No decodable public original obtained"
+        },
+        {
+          "id": "uhu-papelera",
+          "url": "https://erp.papeleradeloriente.pe/static/media/imagenes/producto/zsGq125zc1qIoQun-zoom.jpg",
+          "status": 200,
+          "file": "tmp/tools-v5/uhu-papelera.webp",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 38690,
+          "sha256": "e3fd13cf894977e37fbcd3cf886b762a9a5a3167312ee0c541a4f062e909e1e9",
+          "reason": "Native original fails1024 pixels on both axes"
+        },
+        {
+          "id": "uhu-ofma",
+          "url": "https://www.ofma.com.tr/uhu-42400-super-glue-3-gr-japon-yapistirici-barkod-15118-16-B.jpg",
+          "error": "Input buffer contains unsupported image format",
+          "reason": "No decodable public original obtained"
+        },
+        {
+          "id": "uhu-nezih",
+          "url": "https://www.nezih.com.tr/uhu-super-glue-sivi-japon-yapistirici-3-gr-42400-20104-81-B.jpg",
+          "status": 200,
+          "file": "tmp/tools-v5/uhu-nezih.jpeg",
+          "width": 1000,
+          "height": 1000,
+          "bytes": 407148,
+          "sha256": "b37d3274bc2f26d944e1100ee85355d764f0619e957bd2ea2b15b2c17427b3cb",
+          "reason": "Native original fails1024 pixels on both axes"
+        }
+      ],
+      "pendingCandidates": [],
+      "sourcePagesChecked": [
+        "https://www.teachersuperstore.com.au/uhu-super-glue-3ml",
+        "https://www.livingstone.com.au/products/uhuuh40820-uhu-super-glue-3g-each",
+        "https://www.premierart.com.au/products/uhu-super-glue-3ml",
+        "https://one-stop-stationery-supplies.myshopify.com/products/glue-uhu-super-glue-3ml"
+      ],
+      "missingViews": [
+        "Exact complete product front or three-quarter photograph",
+        "Useful side, rear or detail views"
+      ]
+    }
+  ],
+  "summary": {
+    "acceptedOriginals": 2,
+    "coveredVariants": 2,
+    "coveredFamilies": 1,
+    "otherFamiliesWithoutQualifyingNewSource": 8,
+    "remainingVariantInPartlyCoveredFamily": "Spiral blades: coarse / Grobi robovi / original SKU32473",
+    "integration": "Accepted files and source assignments prepared; root owns canonical and live integration. This ledger does not claim all products are complete."
+  },
+  "relatedAccuracyReview": {
+    "product": "300 g hammer and its 10-piece kit",
+    "originalVariationSkus": [
+      "32113",
+      "32114"
+    ],
+    "originalPhotoUrl": "https://atehna.si/wp-content/uploads/2017/10/343066-02-x1.jpg",
+    "originalEvidence": "tmp/product-image-audit/root-v5/atehna-hammer-variants.json",
+    "finding": "The original variation-specific photograph shows a brown wood handle with a dark-red lower grip and GS-style stamp, with no neck guard. It contradicts the Unior 812-300 image previously assigned through the product family. Root removed that inaccurate association. This focused follow-up found no qualifying exact replacement.",
+    "accepted": [],
+    "rejectedCandidates": [
+      {
+        "id": "triuso",
+        "url": "https://www.trockenbauspezialist.de/media/image/product/8150/lg/schlosserhammer-300-g.jpg",
+        "file": "tmp/tools-v5/hammer-triuso.jpg",
+        "width": 1200,
+        "height": 1200,
+        "sha256": "f2d3a5c94bdc524b25ab58546ef351100a8536960a3b9f7040fe78683b662804",
+        "reason": "Plain lacquered brown handle without the original red grip or its GS markings. Different appearance; cannot substitute on head weight alone."
+      },
+      {
+        "id": "triuso-sigel",
+        "url": "https://www.arbeitsschutz-sigel.de/media/image/product/51691/lg/triuso-schlosserhammer-300-g-300ha.jpg",
+        "file": "tmp/tools-v5/hammer-triuso-sigel.jpg",
+        "width": 800,
+        "height": 800,
+        "sha256": "fa67a84cabb71afea96ac147874e2189c1185e5c8c442a450f3aa4310ca12192",
+        "reason": "Plain lacquered brown handle without the original red grip. Also only 800 by 800 pixels."
+      },
+      {
+        "id": "stein",
+        "url": "https://shop.steinemann.ag/product/image/mediumlarge/240136300_0.jpeg",
+        "file": "tmp/tools-v5/hammer-stein.jpg",
+        "width": 320,
+        "height": 320,
+        "sha256": "9f96215d8daae456969c56133f14edb0a5008b745d26f3f661cd11e62e4b7de2",
+        "reason": "Plain natural handle with Steinemann branding; differs from the original red-grip GS-marked handle. Native displayed source is also only 320 by 320 pixels."
+      },
+      {
+        "id": "connex",
+        "url": "https://www.schick-bauspezi.de/media/0b/fa/fd/1784777485/1012210_Bild_gross.jpg",
+        "file": "tmp/tools-v5/hammer-connex.jpg",
+        "width": 1200,
+        "height": 1200,
+        "sha256": "4370eeec06139c934586f9bc05c6e212f6d87825068ae46b263365b28bf51c1e",
+        "reason": "Adds a black neck guard, Connex markings and a brighter red grip; differs from the original guard-free brown handle and dark-red grip."
+      },
+      {
+        "sourcePage": "https://www.onsitecatalog.com/catalogs/305/4555/pdf-file/BGS_catalog_26b.pdf",
+        "model": "BGS 852",
+        "reason": "The published 2011/2012 BGS catalog describes a black lower grip and gold shaft-protection sleeve for model 852, so the historical model also differs from the original red handle without sleeve."
+      },
+      {
+        "sourcePage": "https://shw-fr.shop/products/schlosserhammer-gs-300-g-mit-holzstiel",
+        "model": "SHW 56705",
+        "imageUrl": "https://cdn.shopify.com/s/files/1/0843/4470/1250/files/56699_1.png?v=1777549660",
+        "file": "tmp/tools-v5/hammer-shw-0.jpg",
+        "width": 1920,
+        "height": 1920,
+        "sha256": "f4b3bee9d50536c2dba7098eada1a28533f6f0e4f481ab4f830f42c91df6c52a",
+        "reason": "Native photograph is detailed, but shows a black grip, SHW-branded hickory handle and different head markings. Wrong appearance; no acceptance."
+      },
+      {
+        "sourcePage": "https://www.stefanboden.de/kataloge/SHW_Katalog_2020.pdf",
+        "model": "SHW 55030",
+        "evidence": "tmp/tools-v5/hammer-shw2020.pdf",
+        "reason": "Historical model is listed on PDF page 46, but every native embedded image on that page is below 1024 pixels on at least one axis (largest is 531 by 1173). No qualifying original photo can be extracted."
+      }
+    ],
+    "unresolvedLeads": [
+      {
+        "model": "kwb 751260",
+        "reason": "Exact public searches did not establish a matching hammer product page or original photograph."
+      }
+    ],
+    "missing": "Sharp native original of the exact brown/red, guard-free, GS-marked 300 g hammer; a matching 10-piece kit photograph if one exists."
+  }
+}

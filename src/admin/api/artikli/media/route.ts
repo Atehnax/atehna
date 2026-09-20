@@ -1,3 +1,5 @@
+import { CatalogImageQualityError, readLimitedCatalogImageStream, validateCatalogImageBytes } from '@/shared/server/catalogImageQuality';
+import { PUBLIC_MEDIA_UPLOAD_LIMITS } from '@/shared/domain/media/publicMediaUpload';
 import { NextResponse } from 'next/server';
 import { buildCatalogItemMediaBlobPath } from '@/shared/server/blob';
 import { uploadPublicMediaFromServer } from '@/shared/server/publicMediaUpload';
@@ -6,7 +8,7 @@ import type { CatalogMediaImportKind, CatalogMediaUploadResponse } from '@/share
 export const runtime = 'nodejs';
 
 const URL_IMPORT_MAX_BYTES_BY_KIND = {
-  image: 4 * 1024 * 1024,
+  image: PUBLIC_MEDIA_UPLOAD_LIMITS.catalogImage,
   video: 100 * 1024 * 1024,
   document: 5 * 1024 * 1024
 } as const satisfies Record<CatalogMediaImportKind, number>;
@@ -134,6 +136,7 @@ async function uploadFilePayload({
   mediaFolder: 'images' | 'videos' | 'documents';
   maximumSizeInBytes: number;
 }) {
+  if (mediaFolder === 'images') await validateCatalogImageBytes(payload, mimeType);
   const itemSlug = sanitizeSlug(itemSlugValue);
   const extension = extensionFromUpload(fileName, mimeType);
   const storageFileName = `${Date.now()}-${itemSlug}.${extension}`;
@@ -196,12 +199,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'URL ne kaže na pravilen tip medija za izbrani zavihek.' }, { status: 400 });
       }
 
-      const payload = Buffer.from(await response.arrayBuffer());
+      const payload = requestedMediaKind === 'image' && response.body
+        ? await readLimitedCatalogImageStream(response.body)
+        : Buffer.from(await response.arrayBuffer());
       if (payload.byteLength > maxBytes) {
         return NextResponse.json({ message: 'Datoteka je prevelika.' }, { status: 400 });
       }
 
-      return uploadFilePayload({
+      return await uploadFilePayload({
         itemSlugValue,
         fileName,
         mimeType,
@@ -215,7 +220,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.' },
-      { status: 500 }
+      { status: error instanceof CatalogImageQualityError ? error.statusCode : 500 }
     );
   }
 }

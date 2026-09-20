@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import pg, { type PoolClient } from 'pg';
 import { queueRemovedCatalogMediaFiles } from '../../src/shared/server/catalogMediaDeletion';
 import { objectId, reviewObjects, selectCandidates, type Config, type ObjectInfo, type Scan } from '../../scripts/storage/lifecycle';
 import { patterns, referenceSql } from '../../scripts/storage/postgres';
 
-// SELECT-only fixtures: no tables, rows, outbox entries, or blob objects are mutated.
+// SELECT-only fixtures run in their own disposable database; no catalog rows or blob objects are mutated.
 const pathname = 'catalog-items/reference-test/native-a.png';
 const url = 'https://referencefixture.public.blob.vercel-storage.com/' + pathname;
 const crop = {
@@ -15,26 +16,54 @@ const crop = {
 };
 const fixtureColumns = 'id bigint, blob_pathname text, blob_url text, external_url text, image_dimensions jsonb';
 
-async function readOnlyFixture(run: (client: pg.Client) => Promise<void>) {
-  const raw = process.env.STORAGE_REFERENCE_READONLY_URL;
-  assert.ok(raw, 'Set STORAGE_REFERENCE_READONLY_URL to the owned local catalog database.');
+async function readOnlyFixture(run: (client: pg.Client, database: string, port: number) => Promise<void>) {
+  const raw = process.env.STORAGE_LIFECYCLE_TEST_ADMIN_URL;
+  assert.ok(raw, 'Set STORAGE_LIFECYCLE_TEST_ADMIN_URL to an owned loopback PostgreSQL admin connection.');
   const endpoint = new URL(raw);
   assert.equal(endpoint.hostname, '127.0.0.1');
-  assert.equal(endpoint.port, '55434');
-  assert.equal(endpoint.pathname, '/atehna_e2e_localhost_quote');
-  const client = new pg.Client({ connectionString: raw, ssl: false,
-    options: '-c default_transaction_read_only=on -c statement_timeout=10000' });
-  await client.connect();
+  assert.equal(endpoint.pathname, '/postgres');
+  const database = `atehna_e2e_original_reference_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+  const marker = `owned-original-reference-test-${randomUUID()}`;
+  const options = { host: '127.0.0.1', port: Number(endpoint.port || 5432),
+    user: decodeURIComponent(endpoint.username), password: decodeURIComponent(endpoint.password), ssl: false as const };
+  const admin = new pg.Client({ ...options, database: 'postgres' });
+  await admin.connect();
+  let created = false;
+  let oid = '';
+  let client: pg.Client | undefined;
   try {
+    assert.equal((await admin.query('select 1 from pg_database where datname=$1', [database])).rowCount, 0);
+    await admin.query(`create database "${database}" template template0`);
+    created = true;
+    await admin.query(`comment on database "${database}" is '${marker}'`);
+    oid = (await admin.query('select oid::text from pg_database where datname=$1', [database])).rows[0].oid;
+    client = new pg.Client({ ...options, database,
+      options: '-c default_transaction_read_only=on -c statement_timeout=10000' });
+    await client.connect();
     await client.query('begin read only');
     await client.query('set local search_path=pg_catalog');
     const identity = (await client.query("select current_database() as name,current_setting('transaction_read_only') as read_only")).rows[0];
-    assert.equal(identity.name, 'atehna_e2e_localhost_quote');
+    assert.equal(identity.name, database);
     assert.equal(identity.read_only, 'on');
-    await run(client);
+    try {
+      await run(client, database, options.port);
+    } finally {
+      await client.query('rollback');
+    }
   } finally {
-    await client.query('rollback');
-    await client.end();
+    try {
+      await client?.end();
+      if (created) {
+        const row = (await admin.query("select oid::text,shobj_description(oid,'pg_database') marker,pg_get_userbyid(datdba)=current_user owned from pg_database where datname=$1", [database])).rows[0];
+        assert.equal(row.oid, oid);
+        assert.equal(row.marker, marker);
+        assert.equal(row.owned, true);
+        assert.equal((await admin.query('select count(*)::int count from pg_stat_activity where datname=$1', [database])).rows[0].count, 0);
+        await admin.query(`drop database "${database}"`);
+      }
+    } finally {
+      await admin.end();
+    }
   }
 }
 
@@ -65,12 +94,12 @@ test('deleting A cannot queue its bytes while B retains A only as its original z
 });
 
 test('the lifecycle recursive JSON scan finds crop originals and blocks selection of a stale queued object', async () => {
-  const config: Config = { version: 1, connectionEnv: 'STORAGE_REFERENCE_READONLY_URL', expectedHost: '127.0.0.1', expectedPort: 55434,
-    databases: ['atehna_e2e_localhost_quote'], minimumAgeHours: 24,
-    stores: [{ id: 'store_referencefixture', access: 'public', oidcTokenEnv: 'UNUSED_TEST_AUTH', ownedPrefixes: ['catalog-items/'] }] };
-  const object: ObjectInfo = { id: objectId(config.stores[0].id, pathname), storeId: config.stores[0].id,
-    access: 'public', pathname, url, size: 12, uploadedAt: '2025-01-01T00:00:00Z' };
-  await readOnlyFixture(async (client) => {
+  await readOnlyFixture(async (client, database, port) => {
+    const config: Config = { version: 1, connectionEnv: 'STORAGE_LIFECYCLE_TEST_ADMIN_URL', expectedHost: '127.0.0.1', expectedPort: port,
+      databases: [database], minimumAgeHours: 24,
+      stores: [{ id: 'store_referencefixture', access: 'public', oidcTokenEnv: 'UNUSED_TEST_AUTH', ownedPrefixes: ['catalog-items/'] }] };
+    const object: ObjectInfo = { id: objectId(config.stores[0].id, pathname), storeId: config.stores[0].id,
+      access: 'public', pathname, url, size: 12, uploadedAt: '2025-01-01T00:00:00Z' };
     const source = 'select row_number() over () as ordinal,to_jsonb(fixture) as payload from jsonb_to_recordset($2::jsonb) as fixture(' + fixtureColumns + ')';
     const found = (await client.query(referenceSql(source), [JSON.stringify(patterns([object])), JSON.stringify([crop])])).rows;
     assert.deepEqual(found, [{ id: object.id, rows: 1, possible: false }]);

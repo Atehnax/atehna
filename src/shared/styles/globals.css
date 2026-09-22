@@ -1771,8 +1771,8 @@ textarea[readonly] {
   display: flex;
   min-width: 0;
   gap: var(--product-gallery-thumbnail-gap, 16px);
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
   padding-bottom: 0.25rem;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1843,6 +1843,7 @@ textarea[readonly] {
     position: absolute;
     inset: 0;
     flex-direction: column;
+    flex-wrap: nowrap;
     overflow-x: hidden;
     overflow-y: auto;
     padding-bottom: 0;
@@ -1866,6 +1867,8 @@ textarea[readonly] {
     position: static;
     inset: auto;
     flex-direction: row;
+    flex-wrap: wrap;
+    overflow: visible;
     padding-bottom: 0.25rem;
     padding-right: 0;
   }
@@ -1929,6 +1932,7 @@ textarea[readonly] {
       position: absolute;
       inset: 0;
       flex-direction: column;
+      flex-wrap: nowrap;
       overflow-x: hidden;
       overflow-y: auto;
       padding-bottom: 0;
@@ -1999,6 +2003,7 @@ textarea[readonly] {
   position: absolute !important;
   inset: 0 !important;
   flex-direction: column !important;
+  flex-wrap: nowrap !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   padding-bottom: 0 !important;
@@ -2024,6 +2029,8 @@ textarea[readonly] {
   position: static !important;
   inset: auto !important;
   flex-direction: row !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
   padding-bottom: 0.25rem !important;
   padding-right: 0 !important;
 }

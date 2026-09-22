@@ -351,7 +351,7 @@ describe('product secondary content tab contracts', () => {
     expect(activeTabRule).not.toContain('box-shadow:');
   });
 
-  test('hides native tab and gallery scrollbars without disabling scrolling', () => {
+  test('wraps horizontal thumbnails and hides native tab and side-rail scrollbars', () => {
     const globalStyles = source('src/shared/styles/globals.css');
 
     const tabsRule = cssRule(
@@ -366,8 +366,8 @@ describe('product secondary content tab contracts', () => {
       globalStyles,
       '[data-storefront-theme] .storefront-gallery-thumbnail-list'
     );
-    expect(thumbnailListRule).toContain('overflow-x: auto;');
-    expect(thumbnailListRule).toContain('overflow-y: hidden;');
+    expect(thumbnailListRule).toContain('flex-wrap: wrap;');
+    expect(thumbnailListRule).toContain('overflow: visible;');
     expect(thumbnailListRule).toContain('scrollbar-width: none;');
     expect(globalStyles).toContain(
       ".storefront-product-gallery[data-thumbnail-position-preview='left']"

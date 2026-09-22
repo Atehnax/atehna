@@ -58,7 +58,7 @@ test.afterAll(async ({ request }) => {
   }
 });
 
-test('article thumbnails default off, show existing images or fallback, and keep filtered selection counts', async ({ page, request }) => {
+test('article thumbnails default on, persist both choices across reload, and keep filtered selection counts', async ({ page, request }) => {
   await assertAuthenticatedAdmin(request);
   await page.setViewportSize({ width: 1440, height: 1000 });
   const prefix = `e2e-thumb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -77,19 +77,16 @@ test('article thumbnails default off, show existing images or fallback, and keep
   await expect(count).toHaveText('2 artikla');
   const toggle = page.getByTestId('admin-items-thumbnails-toggle');
   const reviewToggle = page.getByTestId('admin-items-review-mode-toggle');
-  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(0);
-  expect(imageRequests).toBe(0);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(2);
   const toggleBox = await toggle.boundingBox();
   const reviewBox = await reviewToggle.boundingBox();
   expect(toggleBox!.x + toggleBox!.width).toBeLessThanOrEqual(reviewBox!.x);
   const imageRow = page.locator(`tr[data-edit-scope="family:${withImage.id}"]`);
   const rowHeight = (await imageRow.boundingBox())!.height;
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(2);
   await expect(imageRow.locator('img')).toHaveAttribute('src', imageUrl);
   await expect.poll(() => imageRow.locator('img').evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(36);
+  expect(imageRequests).toBeGreaterThan(0);
   const fallbackRow = page.locator(`tr[data-edit-scope="family:${withoutImage.id}"]`);
   await expect(fallbackRow.getByRole('img', { name: 'Slika ni na voljo', exact: true })).toBeVisible();
   await imageRow.getByRole('checkbox', { name: `Izberi ${withImage.name}`, exact: true }).check();
@@ -101,6 +98,20 @@ test('article thumbnails default off, show existing images or fallback, and keep
   await toggle.click();
   await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(0);
   expect((await imageRow.boundingBox())!.height).toBeCloseTo(rowHeight, 1);
+
+  await page.reload();
+  await search.fill(prefix);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(0);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(2);
+
+  await page.reload();
+  await search.fill(prefix);
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('admin-item-thumbnail')).toHaveCount(2);
+  await expect(imageRow.locator('img')).toHaveAttribute('src', imageUrl);
 });
 
 
@@ -118,7 +129,7 @@ test('article thumbnail prefers a shared image, otherwise the first inactive var
   await page.route('https://catalog-image.example.invalid/**', route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"/>'}));
   await page.goto('/admin/artikli');
   await page.getByPlaceholder(/Poišči artikel/).first().fill(prefix);
-  await page.getByTestId('admin-items-thumbnails-toggle').click();
+  await expect(page.getByTestId('admin-items-thumbnails-toggle')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('tr[data-edit-scope="family:'+first.id+'"] img')).toHaveAttribute('src',url('first'));
   await expect(page.locator('tr[data-edit-scope="family:'+common.id+'"] img')).toHaveAttribute('src',url('common'));
 });

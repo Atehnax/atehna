@@ -136,6 +136,7 @@ type SortState =
   | null;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
+const ADMIN_ARTICLE_THUMBNAILS_STORAGE_KEY = 'atehna:admin:artikli:thumbnails:v1';
 type ListFamily = ProductFamily & {
   baseSku: string;
   material: string | null;
@@ -669,7 +670,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const [isReviewModeEnabled, setIsReviewModeEnabled] = useState(false);
-  const [showThumbnails, setShowThumbnails] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(true);
   const [reviewedFamilyIds, setReviewedFamilyIds] = useState<Set<string>>(new Set());
   const reviewedFamilyIdsRef = useRef<Set<string>>(new Set());
   const isReviewMarkerStorageAvailableRef = useRef(true);
@@ -750,6 +751,24 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setSavedFamilyRows({});
     setDuplicatedFamilyRows({});
   }, [items]);
+
+  useEffect(() => {
+    try {
+      setShowThumbnails(window.localStorage.getItem(ADMIN_ARTICLE_THUMBNAILS_STORAGE_KEY) !== 'false');
+    } catch {
+      // Images remain visible by default when browser storage is unavailable.
+    }
+  }, []);
+
+  const toggleThumbnails = () => {
+    const next = !showThumbnails;
+    setShowThumbnails(next);
+    try {
+      window.localStorage.setItem(ADMIN_ARTICLE_THUMBNAILS_STORAGE_KEY, String(next));
+    } catch {
+      // The toggle remains usable for this page session if storage is blocked.
+    }
+  };
 
   useEffect(() => {
     const applyStoredMarkers = (value: string | null) => {
@@ -1981,7 +2000,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </span>
             <IconButton
               type="button"
-              onClick={() => setShowThumbnails((current) => !current)}
+              onClick={toggleThumbnails}
               tone="neutral"
               size="sm"
               className={`${adminTableNeutralIconButtonClassName} ${showThumbnails ? '!bg-slate-50 !text-[color:var(--blue-500)]' : ''}`}

@@ -85,12 +85,13 @@ test('PDF canvas uses the shared admin selection outline without changing docume
   assert.doesNotMatch(canvasSource, /zIndex:\s*selected\s*\?\s*2000/u);
 });
 
-test('selected PDF elements use the shared floating context toolbar instead of a sidebar', () => {
+test('PDF settings keep the shared floating toolbar alongside separate layer navigation', () => {
   assert.match(
     canvasSource,
     /import\s*\{[^}]*FloatingAppearanceEditorContextToolbar[^}]*\}\s*from\s*['"]@\/admin\/features\/podoba\/components\/AppearanceEditorToolbarPrimitives['"]/su
   );
   assert.match(canvasSource, /<FloatingAppearanceEditorContextToolbar\b/u);
+  assert.match(canvasSource, /<OrderDocumentTemplateLayersPanel\b/u);
   assert.match(canvasSource, /data-canvas-element-id=/u);
   assert.match(canvasSource, /data-order-document-toolbar-popover/u);
 
@@ -127,7 +128,7 @@ test('company contact output is data-driven and never hard-codes an always-visib
 });
 
 test('interactive geometry comes from the current PDF page without an approximate second renderer', () => {
-  const previewDerivation = sourceAround('const previewElements = useMemo');
+  const previewDerivation = sourceBetween('const previewElements = useMemo', 'const selectedElementIds =');
   assert.match(previewDerivation, /previewLayout\?\.regions/u);
   assert.match(previewDerivation, /region\.pageNumber !== currentPage/u);
   assert.match(previewDerivation, /previewElements\[selectedElementId\]/u);

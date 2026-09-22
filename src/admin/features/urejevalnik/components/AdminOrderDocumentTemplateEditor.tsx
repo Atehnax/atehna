@@ -25,7 +25,7 @@ import Button from '@/shared/ui/button/Button';
 import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import OrderDocumentTemplateCanvas from './OrderDocumentTemplateCanvas';
-import { renderOrderDocumentPreview, type OrderDocumentRenderedPreview } from '../lib/renderOrderDocumentPreview';
+import { renderOrderDocumentPreview, retainOrderDocumentPreviewRenderer, warmOrderDocumentPreviewRenderer, type OrderDocumentRenderedPreview } from '../lib/renderOrderDocumentPreview';
 
 type Props = {
   initialConfig?: unknown;
@@ -140,6 +140,8 @@ export default function AdminOrderDocumentTemplateEditor({
   const [previewNonce, setPreviewNonce] = useState(0);
   const previewDocumentRef = useRef<PreviewDocument | null>(null);
   const previewAbortRef = useRef<AbortController | null>(null);
+  const previewCacheRef = useRef(new Map<OrderDocumentTemplateType, PreviewDocument>());
+  const lastPreviewTypeRef = useRef<OrderDocumentTemplateType | null>(null);
   const { toast } = useToast();
 
   const currentTemplate = draft.templates[selectedType];
@@ -174,10 +176,6 @@ export default function AdminOrderDocumentTemplateEditor({
   const savedAt = formatUpdatedAt(savedConfig.updatedAt);
 
   const replacePreviewDocument = useCallback((nextDocument: PreviewDocument | null) => {
-    const previousDocument = previewDocumentRef.current;
-    if (previousDocument?.url && previousDocument.url !== nextDocument?.url) {
-      URL.revokeObjectURL(previousDocument.url);
-    }
     previewDocumentRef.current = nextDocument;
     setPreviewDocument(nextDocument);
   }, []);
@@ -192,16 +190,26 @@ export default function AdminOrderDocumentTemplateEditor({
   useEffect(
     () => () => {
       previewAbortRef.current?.abort();
-      if (previewDocumentRef.current?.url) {
-        URL.revokeObjectURL(previewDocumentRef.current.url);
-      }
+      for (const document of previewCacheRef.current.values()) URL.revokeObjectURL(document.url);
+      previewCacheRef.current.clear();
       previewDocumentRef.current = null;
     },
     []
   );
 
+  useEffect(() => retainOrderDocumentPreviewRenderer(), []);
+
   useEffect(() => {
     if (previewDocumentRef.current?.requestKey === previewRequestKey) return undefined;
+    warmOrderDocumentPreviewRenderer();
+    const cached = previewCacheRef.current.get(selectedType);
+    if (cached?.requestKey === previewRequestKey) {
+      lastPreviewTypeRef.current = selectedType;
+      replacePreviewDocument(cached);
+      setPreviewState({ requestKey: previewRequestKey, loading: false, error: null });
+      return undefined;
+    }
+    const delay = lastPreviewTypeRef.current === selectedType ? 450 : 0;
     let disposed = false;
     const controller = new AbortController();
     if (previewDocumentRef.current?.requestKey !== previewRequestKey) {
@@ -211,6 +219,7 @@ export default function AdminOrderDocumentTemplateEditor({
     const timer = window.setTimeout(async () => {
       previewAbortRef.current?.abort();
       previewAbortRef.current = controller;
+      lastPreviewTypeRef.current = selectedType;
       try {
         const response = await fetch('/api/admin/order-document-templates/preview', {
           method: 'POST',
@@ -225,7 +234,12 @@ export default function AdminOrderDocumentTemplateEditor({
         const payload = await response.json();
         const rendered = await renderOrderDocumentPreview(payload, controller.signal);
         if (disposed) { URL.revokeObjectURL(rendered.url); return; }
-        replacePreviewDocument({ requestKey: previewRequestKey, ...rendered });
+        const nextDocument = { requestKey: previewRequestKey, ...rendered };
+        const previous = previewCacheRef.current.get(selectedType);
+        if (previous) URL.revokeObjectURL(previous.url);
+        // Retain one exact render per template; any draft/logo/refresh change misses this key.
+        previewCacheRef.current.set(selectedType, nextDocument);
+        replacePreviewDocument(nextDocument);
         setPreviewState({ requestKey: previewRequestKey, loading: false, error: null });
       } catch (error) {
         if (disposed || controller.signal.aborted) return;
@@ -237,13 +251,13 @@ export default function AdminOrderDocumentTemplateEditor({
       } finally {
         if (previewAbortRef.current === controller) previewAbortRef.current = null;
       }
-    }, 450);
+    }, delay);
     return () => {
       disposed = true;
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [previewRequestBody, previewRequestKey, replacePreviewDocument]);
+  }, [previewRequestBody, previewRequestKey, replacePreviewDocument, selectedType]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -310,7 +324,7 @@ export default function AdminOrderDocumentTemplateEditor({
     >
       <AdminPageHeader
         title="Predloge PDF"
-        description="Izberite element neposredno na strani, ga povlecite ali povečajte ter uredite vsebino, videz in logiko v kontekstnem inšpektorju."
+        description="Izberite element na dokumentu ali ga poiščite v panelu Plasti. Uredite njegovo besedilo, videz in postavitev."
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span

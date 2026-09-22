@@ -103,7 +103,8 @@ export function estimateOrderDocumentFlowElementHeightMm(
       : widthMm;
     const sections = resolveOrderDocumentItemSections(
       previewContext.type,
-      previewContext.items
+      previewContext.items,
+      template.text
     );
     let rowNumber = 0;
     const rowsHeightPt = sections.reduce((sectionSum, section) => (

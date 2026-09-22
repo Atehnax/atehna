@@ -1,0 +1,460 @@
+{
+  "version": 1,
+  "scope": "Six top-level category image replacements. Product images, products, specifications and statuses unchanged.",
+  "protectedCategories": [
+    "materiali",
+    "stroji-in-naprave"
+  ],
+  "assets": [
+    {
+      "categorySlug": "tehnika-in-tehnologija",
+      "product": "Sestavljive kocke",
+      "sku": "ATE-63030",
+      "image": "/images/catalog/2026-09/next60-v1/sestavljive-kocke-3c3fdc358513-v2.webp",
+      "sourcePage": "https://atehna.si/product/sestavljive-kocke/",
+      "nativeDimensions": [
+        1200,
+        1200
+      ],
+      "assetDimensions": [
+        1024,
+        1024
+      ],
+      "sha256": "078192b69fb67fe34c32d7cd07058937a90f379febae0205f64afe6b503eedc7",
+      "edits": "Existing reviewed catalog asset reused unchanged; category framing only.",
+      "note": "Real sold construction/learning set. Cross-category representative; product remains in its existing category.",
+      "sourceImage": "https://atehna.si/wp-content/uploads/2017/10/sestavljive-kocke-1.jpg",
+      "categoryId": "ddb7068a-22e6-42f4-aa91-a5750ceb1cde",
+      "previous": {
+        "image": "/images/categories/cutouts/tehnika-in-tehnologija.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": -17,
+          "offsetOriginY": 2.7261,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "2a916d09a953beb0c295d8b064e58c29"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    },
+    {
+      "categorySlug": "merilno-orodje-in-geometrija",
+      "product": "Komplet ravnil na tabli",
+      "sku": "ATE-01511M",
+      "image": "/images/catalog/2026-09/next60-v1/komplet-ravnil-na-tabli-c094f901a02a-v1.webp",
+      "sourcePage": "https://atehna.si/product/komplet-ravnil-na-tabli-magnetni/",
+      "nativeDimensions": [
+        1200,
+        1200
+      ],
+      "assetDimensions": [
+        1024,
+        1024
+      ],
+      "sha256": "ef17abca75070c99d0c5733935c979b7626e3707e486b07d0c2ef08b03642dcc",
+      "edits": "Existing reviewed catalog asset reused unchanged; category framing only.",
+      "note": "Whole sold ruler board set, showing compass, protractor and rulers.",
+      "sourceImage": "https://atehna.si/wp-content/uploads/2017/10/Komplet-ravnil-1.jpg",
+      "categoryId": "bdd46c8e-d4b0-4996-ab7d-e67837e66032",
+      "previous": {
+        "image": "/images/categories/cutouts/merilno-orodje-in-geometrija.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": -22.675,
+          "offsetY": -1.3631,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "d09f648edb12ae0655265b0d33f68a98"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    },
+    {
+      "categorySlug": "elektricni-in-mehanicni-elementi",
+      "product": "Motorček R20",
+      "sku": "ELE-MOT-R20",
+      "image": "/images/catalog/2026-09/transparent-v1/motorcek-5b0481aa9bfcee4f-1024.webp",
+      "sourcePage": "https://www.opitec.com/de-de/motor-re-140-2170/224013",
+      "nativeDimensions": [
+        2560,
+        2346
+      ],
+      "assetDimensions": [
+        1024,
+        1024
+      ],
+      "sha256": "cdc7b43c8ec0102b3d6e0612417c25b9a77088d61e7dd789916446b4fa5eae6b",
+      "edits": "Existing reviewed catalog asset reused unchanged; category framing only.",
+      "note": "Authentic OPITEC RE140/224013 photograph matching R20.",
+      "sourceImage": "https://www.opitec.com/media/69/41/29/1764938911/224013-000-000-VO-02_v_9.jpg?ts=1764938911",
+      "categoryId": "0ed1aaf2-497c-4522-97dd-2476a28b4029",
+      "previous": {
+        "image": "/images/categories/cutouts/elektricni-in-mehanicni-elementi.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": -24.3546,
+          "offsetY": 1.8174,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "30b73c8db122e27c22fa8681c0691887"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    },
+    {
+      "categorySlug": "rocno-orodje-in-delavniski-pribor",
+      "product": "Električarske klešče za snemanje izolacije, komplet v stojalu",
+      "sku": "ROC-ELE-OSNOVNA-IZVEDBA",
+      "image": "/images/catalog/2026-09/transparent-v1/elektricarske-klesce-za-snemanje-izolacije-1942ec665238cc88-1024.webp",
+      "sourcePage": "https://www.opitec.com/de-de/opitec-sparset-10-abisolierzangen-werkzeugblock/340599",
+      "nativeDimensions": [
+        2560,
+        2476
+      ],
+      "assetDimensions": [
+        1024,
+        1024
+      ],
+      "sha256": "e7bd52c641cba09e7a5f2508eadd088fbf4094bdc286e47dafab2dab501a35bc",
+      "edits": "Existing reviewed catalog asset reused unchanged; category framing only.",
+      "note": "Actual sold ten-plier workshop stand; full tools and stand remain visible.",
+      "sourceImage": "https://www.opitec.com/media/9a/68/8a/1764937257/340599-000-000-VO-02d01_v_9.jpg?ts=1764937257",
+      "categoryId": "979abbb8-3dbb-45f4-9872-444cf63921b2",
+      "previous": {
+        "image": "/images/categories/cutouts/rocno-orodje-in-delavniski-pribor.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": -21.4153,
+          "offsetOriginY": 1.8174,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "11ac28c5954baf920013412e1ee9c401"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    },
+    {
+      "categorySlug": "dodatki-in-nadomestni-deli",
+      "product": "Spiralne žagice PEBARO 134-1",
+      "sku": "DOD-SPI-FINI-ROBOVI",
+      "image": "/images/catalog/2026-09/transparent-v1/spiralne-zagice-za-les-in-mehke-kovine-ded17c0c8410e3f5-1024.webp",
+      "sourcePage": "https://www.coolbox.ua/ru/product/spiralnye-pilki-dlya-ruchnogo-lobzika-1-pebaro",
+      "nativeDimensions": [
+        2836,
+        3274
+      ],
+      "assetDimensions": [
+        1024,
+        1024
+      ],
+      "sha256": "59604ab68bfecf6f4cafce1a490e2e296a9c61924c70f2c679b26e42532671cd",
+      "edits": "Existing reviewed catalog asset reused unchanged; category framing only.",
+      "note": "Exact fine-grade replacement blades with authentic packaging.",
+      "sourceImage": "https://s.coolbox.ua/static/content/files/c/5c/7515ea7293a5d708b3b93394010535cc.png",
+      "categoryId": "627ff18f-81ac-45a2-b7f3-08b4d1fc331e",
+      "previous": {
+        "image": "/images/categories/cutouts/dodatki-in-nadomestni-deli.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": -23.5149,
+          "offsetY": 3.6349,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "659659c4a5887e4956cf445d0048891b"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    },
+    {
+      "categorySlug": "zascita-pri-delu",
+      "product": "Otroški zaščitni predpasnik",
+      "sku": null,
+      "image": "/images/catalog/2026-09/category-photos-v1/otroski-zascitni-predpasnik-v1.jpg",
+      "sourcePage": "https://atehna.si/kategoija/varnost-in-zascita/",
+      "nativeDimensions": [
+        500,
+        500
+      ],
+      "assetDimensions": [
+        500,
+        500
+      ],
+      "sha256": "2443ea34cf49828b19916649bffe78d6ae2ec026ef63086ebc137c8b7bddaf73",
+      "edits": "None. Exact source JPEG bytes.",
+      "note": "Exact ATEHNA photograph linked to the child apron listing. Native 500-pixel original retained without enlargement; limited to category-card use. No manufacturer identity is inferred.",
+      "sourceImage": "https://atehna.si/wp-content/uploads/2017/12/6-1038-zascitni-predpasnik-iz-blaga-500x500.jpg",
+      "categoryId": "2e789ad2-acea-4138-9114-311a88979610",
+      "previous": {
+        "image": "/images/categories/cutouts/zascita-pri-delu.png",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": -27.294,
+          "offsetY": 2.7262,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "83ace3b99ed348cb030ef97e57a14269"
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 0.9,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "visualReview": "Complete product/set visible in the local desktop category grid; no humans or fabricated products. Original source/product identity reviewed."
+    }
+  ]
+}

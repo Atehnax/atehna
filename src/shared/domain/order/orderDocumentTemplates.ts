@@ -471,6 +471,10 @@ export type OrderDocumentTemplateLabels = {
   receivedBy: string;
 };
 
+export const DELIVERY_NOTE_CURRENT_ITEMS_LABEL = 'Postavke v tej dobavi';
+export const DELIVERY_NOTE_LATER_ITEMS_LABEL = 'Postavke za poznejšo dobavo';
+export const ORDER_DOCUMENT_ITEM_SECTION_TITLE_MAX_LENGTH = 200;
+
 export type OrderDocumentTemplateText = {
   title: string;
   subtitle: string;
@@ -478,6 +482,8 @@ export type OrderDocumentTemplateText = {
   closing: string;
   paymentTerms: string;
   deliveryMethod: string;
+  currentItemsTitle: string;
+  deferredItemsTitle: string;
   signerName: string;
   footerText: string;
   labels: OrderDocumentTemplateLabels;
@@ -879,6 +885,8 @@ const commonText = (): OrderDocumentTemplateText => ({
   closing: '',
   paymentTerms: '',
   deliveryMethod: 'Po dogovoru',
+  currentItemsTitle: DELIVERY_NOTE_CURRENT_ITEMS_LABEL,
+  deferredItemsTitle: DELIVERY_NOTE_LATER_ITEMS_LABEL,
   signerName: 'Dir. URBAN CESAR, dipl. inž. el. (UN)',
   footerText:
     'ID št. za DDV: {taxId} · TRR {bankName} · SWIFT: {swift} · IBAN: {iban}',
@@ -1632,6 +1640,12 @@ function normalizeText(value: unknown, fallback: OrderDocumentTemplateText): Ord
     closing: asString(record.closing, fallback.closing, 2000),
     paymentTerms: asString(record.paymentTerms, fallback.paymentTerms, 1000),
     deliveryMethod: asString(record.deliveryMethod, fallback.deliveryMethod, 200),
+    currentItemsTitle: asString(
+      record.currentItemsTitle, fallback.currentItemsTitle, ORDER_DOCUMENT_ITEM_SECTION_TITLE_MAX_LENGTH
+    ),
+    deferredItemsTitle: asString(
+      record.deferredItemsTitle, fallback.deferredItemsTitle, ORDER_DOCUMENT_ITEM_SECTION_TITLE_MAX_LENGTH
+    ),
     signerName: asString(record.signerName, fallback.signerName, 300),
     footerText: asString(record.footerText, fallback.footerText, 1500),
     labels: normalizeLabels(record.labels, fallback.labels)
@@ -4086,6 +4100,15 @@ export function validateOrderDocumentTemplatesInput(value: unknown): string[] {
     for (const group of ['style', 'company', 'text', 'layout', 'rules'] as const) {
       if (Object.keys(asRecord(template[group])).length === 0) {
         errors.push(`Skupina ${type}.${group} manjka.`);
+      }
+    }
+    const text = asRecord(template.text);
+    for (const key of ['currentItemsTitle', 'deferredItemsTitle'] as const) {
+      if (!Object.prototype.hasOwnProperty.call(text, key)) continue;
+      if (typeof text[key] !== 'string') {
+        errors.push(`Besedilo ${type}.text.${key} mora biti niz.`);
+      } else if (text[key].trim().length > ORDER_DOCUMENT_ITEM_SECTION_TITLE_MAX_LENGTH) {
+        errors.push(`Besedilo ${type}.text.${key} je predolgo (največ ${ORDER_DOCUMENT_ITEM_SECTION_TITLE_MAX_LENGTH} znakov).`);
       }
     }
     const company = asRecord(template.company);

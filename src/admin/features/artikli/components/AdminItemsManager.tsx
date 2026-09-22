@@ -132,8 +132,9 @@ type EditScopeKind = 'row' | 'group';
 type SortState =
   | { column: 'article' | 'productType' | 'category' | 'stock' | 'delivery'; direction: 'asc' | 'desc' }
   | { column: 'variantCount' | 'status' | 'note'; direction: 'desc' | 'asc' }
-  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
-  | null;
+  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' };
+
+const DEFAULT_SORT_STATE: SortState = { column: 'article', direction: 'asc' };
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ADMIN_ARTICLE_THUMBNAILS_STORAGE_KEY = 'atehna:admin:artikli:thumbnails:v1';
@@ -157,6 +158,7 @@ type NumericDraftScope = 'family' | 'variant';
 type HighlightableArticleColumn = 'sku' | 'productType' | 'category' | 'stock' | 'delivery' | 'priceRange';
 const MESTO_EDIT_INPUT_CLASS =
   'mx-auto h-7 w-3/4 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
+const ROW_NUMBER_COLUMN_CLASS = 'w-12 tabular-nums !text-right';
 const ARTICLE_COLUMN_CLASS = 'w-[24%]';
 const VARIANT_EXPANSION_BUTTON_CLASS = 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:cursor-default disabled:hover:bg-transparent';
 const STOCK_COLUMN_CLASS = 'w-[8%]';
@@ -655,7 +657,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [savedFamilyRows, setSavedFamilyRows] = useState<Record<string, ListFamily>>({});
   const [duplicatedFamilyRows, setDuplicatedFamilyRows] = useState<Record<string, ListFamily[]>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
-  const [sortState, setSortState] = useState<SortState>(null);
+  const [sortState, setSortState] = useState<SortState>(DEFAULT_SORT_STATE);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [stockRangeFilter, setStockRangeFilter] = useState({ min: '', max: '' });
@@ -920,8 +922,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           || row.visibleVariants.some((variant) => matchesCatalogDeliveryRange(variant.deliveryEstimate, deliveryRangeFilter));
         return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax && matchesDelivery && matchesNumericRange(row.stockTotal, stockRangeFilter);
       });
-
-    if (!sortState) return normalizedRows;
 
     const rows = [...normalizedRows];
     if (sortState.column === 'article') {
@@ -1762,23 +1762,24 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }`;
   const cycleSort = (column: 'article' | 'productType' | 'category' | 'stock' | 'delivery' | 'variantCount' | 'priceRange' | 'status' | 'note') => {
     requestCurrentEditResolution(`razvrščanjem po stolpcu ${column}`, () => {
+      setPage(1);
       setSortState((current) => {
         if (column === 'article' || column === 'productType' || column === 'category' || column === 'stock' || column === 'delivery') {
           if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
           if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
-          return null;
+          return DEFAULT_SORT_STATE;
         }
         if (column === 'variantCount' || column === 'status' || column === 'note') {
           if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
           if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
-          return null;
+          return DEFAULT_SORT_STATE;
         }
         if (column === 'priceRange') {
           if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
           if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
           if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
           if ('mode' in current && current.mode === 'maxDesc') return { column, mode: 'maxAsc' };
-          return null;
+          return DEFAULT_SORT_STATE;
         }
         return current;
       });
@@ -2206,7 +2207,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className={`relative ${ARTICLE_COLUMN_CLASS}`}>
+                <TH className={`${ROW_NUMBER_COLUMN_CLASS} !px-2`} title="Zaporedna številka">Št.</TH>
+                <TH className={`relative ${ARTICLE_COLUMN_CLASS}`} aria-sort={sortState.column === 'article' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <button
                     type="button"
                     className={`${VARIANT_EXPANSION_BUTTON_CLASS} absolute left-2 top-1/2 -translate-y-1/2 font-normal disabled:opacity-40`}
@@ -2428,7 +2430,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               </TR>
             </THead>
             <tbody>
-              {pagedFamilies.map((row) => {
+              {pagedFamilies.map((row, rowIndex) => {
                 const { family, visibleVariants, minPrice, maxPrice } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
                 const hasSubtable = visibleVariants.length > 1;
@@ -2478,6 +2480,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             Artikel je označen kot pregledan.
                           </span>
                         ) : null}
+                      </td>
+                      <td className={`${ROW_NUMBER_COLUMN_CLASS} ${MAIN_CELL_CLASS} text-slate-500`} data-article-row-number={family.id}>
+                        {(page - 1) * pageSize + rowIndex + 1}
                       </td>
                       <td className={MAIN_CELL_CLASS} data-article-identity={family.id}>
                         <div className="flex min-w-0 items-center gap-1.5 py-1">
@@ -2702,6 +2707,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       <ArticleVariantRows open={isExpanded}>
                         <tr className={`${adminSubtableHeaderRowClassName} bg-[color:var(--admin-table-header-bg)]`} data-variant-headings={family.id}>
                           <th className={adminSubtableHeaderCellClassName} />
+                          <th className={`${ROW_NUMBER_COLUMN_CLASS} ${adminSubtableHeaderCellClassName}`} />
                           <th className={adminSubtableHeaderCellLeftClassName}><span className={fieldStyles.variantHeadingText}>Različica</span></th>
                           <th className={adminSubtableHeaderCellClassName} />
                           <th className={adminSubtableHeaderCellClassName} />
@@ -2748,6 +2754,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         }
                                       />
                                     </td>
+                                    <td className={`${ROW_NUMBER_COLUMN_CLASS} ${SUB_CELL_CLASS}`} />
                                     <td className={`${SUB_CELL_CLASS}`} data-variant-identity={variant.id}>
                                       {isEditing ? <div className={`${fieldStyles.identity} ${fieldStyles.variantIdentity}`}>
                                         <input data-admin-table-value-input className={`${fieldStyles.identityName}`} aria-label={`Naziv različice · ${variant.sku || variant.label}`} value={draft.label} onChange={event => setVariantDrafts(current => ({ ...current, [variant.id]: { ...draft, label: event.target.value } }))}/>

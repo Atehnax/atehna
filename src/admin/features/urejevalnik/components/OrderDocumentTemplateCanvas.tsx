@@ -9,6 +9,8 @@ AppearanceEditorToolbarToneProvider,
 FloatingAppearanceEditorContextToolbar
 } from '@/admin/features/podoba/components/AppearanceEditorToolbarPrimitives';
 import LogoPlacementSelector from '@/admin/features/podoba/components/LogoPlacementSelector';
+import OrderDocumentTemplateLayersPanel from './OrderDocumentTemplateLayersPanel';
+import { buildOrderDocumentTemplateLayers } from '../lib/orderDocumentTemplateLayers';
 import {
 resolveOrderDocumentCanvasAlignment,
 type OrderDocumentAlignmentGuide
@@ -298,6 +300,8 @@ const LABEL_DISPLAY_NAMES: Record<keyof OrderDocumentTemplateLabels, string> = {
 
 const TEXT_DISPLAY_NAMES: Record<keyof Omit<OrderDocumentTemplateText, 'labels'>, string> = {
   title: 'Naslov dokumenta',
+  currentItemsTitle: 'Naslov trenutne dobave',
+  deferredItemsTitle: 'Naslov kasnejše dobave',
   subtitle: 'Podnaslov',
   intro: 'Uvodno besedilo',
   closing: 'Zaključno besedilo',
@@ -3271,6 +3275,8 @@ export default function OrderDocumentTemplateCanvas({
     ?? (lastLayoutRef.current?.type === template.type ? lastLayoutRef.current.layout : null);
 
   const [layersOpen, setLayersOpen] = useState(false);
+  const [layersPanelOpen, setLayersPanelOpen] = useState(true);
+  const layerNavigationRef = useRef<string | null>(null);
   const [restoreElementsOpen, setRestoreElementsOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [transientElement, setTransientElement] = useState<OrderDocumentCanvasElement | null>(null);
@@ -3390,7 +3396,22 @@ export default function OrderDocumentTemplateCanvas({
     }
     return elements;
   }, [canvas, currentPage, previewLayout]);
+  const layerItems = useMemo(
+    () => buildOrderDocumentTemplateLayers({ template, layout: previewLayout }),
+    [template, previewLayout]
+  );
   const primarySelection = selectionEntries.at(-1) ?? null;
+  useEffect(() => {
+    const id = layerNavigationRef.current;
+    if (!id || !pageRef.current) return;
+    const escaped = CSS.escape(id);
+    const target = pageRef.current.querySelector<HTMLElement>(
+      '[data-order-document-child-id="' + escaped + '"], [data-order-document-element-id="' + escaped + '"]'
+    );
+    if (!target) return;
+    layerNavigationRef.current = null;
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [primarySelection?.key, currentPage, previewLayout]);
   const selectedChild = primarySelection?.kind === 'child'
     ? primarySelection.child
     : null;
@@ -4521,7 +4542,8 @@ export default function OrderDocumentTemplateCanvas({
       return (
         <input
           id={selection.key === 'title' ? 'order-document-template-title' : `order-document-template-text-${selection.key}`}
-          aria-label="Besedilo"
+          aria-label={TEXT_DISPLAY_NAMES[selection.key]}
+          maxLength={selection.key === 'currentItemsTitle' || selection.key === 'deferredItemsTitle' ? 200 : undefined}
           value={template.text[selection.key]}
           onChange={(event) => updateText(selection.key, event.target.value)}
           data-testid={`order-document-template-text-${selection.key}`}
@@ -4771,7 +4793,11 @@ export default function OrderDocumentTemplateCanvas({
     if (id === 'items') {
       return (
         <InspectorSection title="Oznake tabele">
-          <p className="text-xs leading-5 text-slate-500">Kliknite naslov stolpca neposredno v glavi tabele.</p>
+          <p className="text-xs leading-5 text-slate-500">Izberite naslov stolpca ali besedilo v panelu Plasti.</p>
+          {template.type === 'dobavnica' ? <>
+            <Field id="order-document-items-current-title" label="Naslov trenutne dobave" value={template.text.currentItemsTitle} onChange={(value) => updateText('currentItemsTitle', value)} />
+            <Field id="order-document-items-deferred-title" label="Naslov kasnejše dobave" value={template.text.deferredItemsTitle} onChange={(value) => updateText('deferredItemsTitle', value)} />
+          </> : null}
         </InspectorSection>
       );
     }
@@ -5531,6 +5557,13 @@ export default function OrderDocumentTemplateCanvas({
             ) : null}
           </div>
 
+          <ToolbarButton
+            label="Prikaži plasti"
+            active={layersPanelOpen}
+            onClick={() => setLayersPanelOpen((open) => !open)}
+          >
+            <Layers3 className="h-4 w-4" /> Plasti
+          </ToolbarButton>
           <div
             ref={pageSettingsPopoverRef}
             className="relative"
@@ -5654,7 +5687,9 @@ export default function OrderDocumentTemplateCanvas({
           {previewError ? <button type="button" onClick={onRefreshPreview} className="text-blue-700 underline">Poskusi znova</button> : null}
         </div>
         {previewError ? <p role="alert" className="border-t border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">{previewError}</p> : null}
-        <div className="grid min-w-0 bg-slate-100">
+        <div className={
+          'grid min-w-0 bg-slate-100 ' + (layersPanelOpen ? 'lg:grid-cols-[minmax(0,1fr)_300px]' : '')
+        }>
           <div ref={scrollRegionRef} className="min-w-0 overflow-auto p-4 sm:p-6">
             <div
               className={`relative mx-auto w-full max-w-[760px] ${canvas.showRulers ? 'pl-8 pt-7' : ''}`}
@@ -5987,7 +6022,20 @@ export default function OrderDocumentTemplateCanvas({
               </div>
             </div>
           </div>
-
+          {layersPanelOpen ? (
+            <OrderDocumentTemplateLayersPanel
+              items={layerItems}
+              selectedKeys={selectionEntries.map((entry) => entry.key)}
+              currentPage={currentPage}
+              className="order-first m-3 self-start lg:sticky lg:top-4 lg:order-last lg:ml-0"
+              onSelect={(entry, options) => {
+                layerNavigationRef.current = entry.kind === 'child' ? entry.child.id : entry.elementId;
+                if (options.pageNumber) setPageNumber(options.pageNumber);
+                if (entry.kind === 'child') selectChild(entry.child, options);
+                else selectElement(entry.elementId, options);
+              }}
+            />
+          ) : null}
         </div>
 
         {selectedElementId && selectedElement ? (

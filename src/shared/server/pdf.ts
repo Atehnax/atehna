@@ -67,6 +67,7 @@ import {
   toSafeOrderDocumentText as toSafeText,
   type OrderDocumentPreviewContext,
   type OrderDocumentPreviewItem,
+  type OrderDocumentPreviewItemSection,
   type OrderDocumentPreviewOrder
 } from '@/shared/domain/order/orderDocumentPreview';
 import {
@@ -2386,7 +2387,11 @@ class OrderPdfRenderer {
     return this.itemSectionLabelStyle().size * 1.35 + 3;
   }
 
-  private drawItemSectionLabel(label: string, addGapBefore: boolean) {
+  private drawItemSectionLabel(
+    section: OrderDocumentPreviewItemSection,
+    addGapBefore: boolean
+  ) {
+    const label = section.label ?? '';
     const { font, size } = this.itemSectionLabelStyle();
     if (addGapBefore) this.y -= 10;
     const top = this.y;
@@ -2397,7 +2402,13 @@ class OrderPdfRenderer {
       font,
       color: colorFromHex(this.style.textColor)
     });
-    this.y = top - this.itemSectionLabelHeight();
+    const height = this.itemSectionLabelHeight();
+    this.recordRegion(
+      section.id === 'later' ? 'items:text:deferredItemsTitle' : 'items:text:currentItemsTitle',
+      'items',
+      { x: this.margin, bottom: top - height, width: this.contentWidth, height }
+    );
+    this.y = top - height;
   }
 
   private closeTableSegment(page: PDFPage, segmentBottom: number) {
@@ -2414,7 +2425,8 @@ class OrderPdfRenderer {
     const columns = this.tableColumns();
     const sections = resolveOrderDocumentItemSections(
       this.input.type,
-      this.input.items
+      this.input.items,
+      this.input.template.text
     );
     const splitDeliveryNote = sections.length > 1;
     const rowGap = this.table.rowGapPt;
@@ -2436,7 +2448,7 @@ class OrderPdfRenderer {
           + rowGap
           + 4
         );
-        this.drawItemSectionLabel(section.label, gapBefore > 0 && !movedToNewPage);
+        this.drawItemSectionLabel(section, gapBefore > 0 && !movedToNewPage);
       }
 
       this.drawTableHeader(columns, section.items.length === 0);
@@ -2472,7 +2484,7 @@ class OrderPdfRenderer {
             && this.ensureSpace(remainingHeight + rowGap + 4)
           ) {
             this.closeTableSegment(previousPage, segmentBottom);
-            if (section.label) this.drawItemSectionLabel(section.label, false);
+            if (section.label) this.drawItemSectionLabel(section, false);
             this.drawTableHeader(columns);
             rowsInPageSegment = 0;
             segmentBottom = this.y;

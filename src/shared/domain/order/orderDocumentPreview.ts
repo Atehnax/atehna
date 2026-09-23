@@ -1,4 +1,6 @@
 import {
+  DELIVERY_NOTE_CURRENT_ITEMS_LABEL,
+  DELIVERY_NOTE_LATER_ITEMS_LABEL,
   resolveOrderDocumentFieldRows,
   resolveOrderDocumentTemplateText,
   type OrderDocumentCanvasElement,
@@ -6,6 +8,7 @@ import {
   type OrderDocumentFieldRowId,
   type OrderDocumentTableColumnId,
   type OrderDocumentTemplate,
+  type OrderDocumentTemplateText,
   type OrderDocumentTemplateType
 } from './orderDocumentTemplates';
 
@@ -30,8 +33,7 @@ export type OrderDocumentPreviewItemSection = {
   startRowNumber: number;
 };
 
-export const DELIVERY_NOTE_CURRENT_ITEMS_LABEL = 'Postavke v tej dobavi';
-export const DELIVERY_NOTE_LATER_ITEMS_LABEL = 'Postavke za poznejšo dobavo';
+export { DELIVERY_NOTE_CURRENT_ITEMS_LABEL, DELIVERY_NOTE_LATER_ITEMS_LABEL };
 
 export type OrderDocumentPreviewOrder = {
   customerType: string;
@@ -503,7 +505,8 @@ export function resolveOrderDocumentItemCells(
 
 export function resolveOrderDocumentItemSections(
   type: OrderDocumentTemplateType,
-  items: readonly OrderDocumentPreviewItem[]
+  items: readonly OrderDocumentPreviewItem[],
+  text?: Pick<OrderDocumentTemplateText, 'currentItemsTitle' | 'deferredItemsTitle'>
 ): OrderDocumentPreviewItemSection[] {
   const allItems = [...items];
   if (type !== 'dobavnica' || !allItems.some((item) => item.shipLater === true)) {
@@ -515,13 +518,13 @@ export function resolveOrderDocumentItemSections(
   return [
     {
       id: 'current',
-      label: DELIVERY_NOTE_CURRENT_ITEMS_LABEL,
+      label: text?.currentItemsTitle ?? DELIVERY_NOTE_CURRENT_ITEMS_LABEL,
       items: currentItems,
       startRowNumber: 1
     },
     {
       id: 'later',
-      label: DELIVERY_NOTE_LATER_ITEMS_LABEL,
+      label: text?.deferredItemsTitle ?? DELIVERY_NOTE_LATER_ITEMS_LABEL,
       items: laterItems,
       startRowNumber: currentItems.length + 1
     }

@@ -144,7 +144,7 @@ test('page settings are a responsive compact no-scroll grid', () => {
   const pageSettings = sourceBetween(
     canvasSource,
     'data-order-document-canvas-popover-root="page-settings"',
-    '<div className="grid min-w-0 bg-slate-100">'
+    '<div ref={scrollRegionRef}'
   );
   assert.match(pageSettings, /data-order-document-settings-surface/u);
   assert.match(pageSettings, /data-order-document-settings-scroll="none"/u);

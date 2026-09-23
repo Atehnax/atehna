@@ -8,6 +8,6 @@ All six images and category presentation settings were independently read back a
 
 ## Publication and rollback
 
-This batch is local only. Publishing the asset and manifest files does not itself update the production database. After authorization, publish the new apron asset, then apply only the six manifest entries through the authenticated category-image PATCH API, using each category's fresh revision and first confirming its current image/presentation still matches `previous`. The API performs cache invalidation. Verify the production homepage and admin read-back afterwards.
+Publishing the asset and manifest files does not itself update the production database. Publish the new apron asset, then apply only the six manifest entries through the authenticated category-image PATCH API, using each category's fresh revision and first confirming its current image/presentation still matches `previous`. A guarded administrative database release may use the same canonical mutation and revision checks when no production admin browser session is available: verify deployed asset hashes, retain before/after receipts, and prove all non-target category fields are unchanged. The API performs cache invalidation; a database release must explicitly invalidate the `category-showcase` cache tag through Vercel. Verify the production homepage and independently read back the stored category records afterwards.
 
 For rollback, apply each entry's `previous.image` and `previous.presentation` through the same API with fresh revisions. All replaced image files remain intact.

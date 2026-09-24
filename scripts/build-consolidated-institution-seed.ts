@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { INSTITUTION_ARCHIVE_TEXT_ENCODING, institutionArchiveTextSha256 as sha256, normalizeInstitutionArchiveText } from './institution-archive-text';
 import { normalizeInstitutionName } from '../src/shared/domain/institutionName';
 import {
   consolidateInstitutionDirectories,
@@ -13,7 +13,6 @@ export const NAME_NORMALIZATION_REPORT_PATH = 'data/imports/schools-and-institut
 export const CONSOLIDATION_REPORT_PATH = 'data/imports/schools-and-institutions-2026-09-24/email-consolidation.json';
 const PRIMARY_SOURCE = 'src/shared/data/schools-seed.json';
 const INSTITUTION_SOURCE = 'src/shared/data/institutions-seed.json';
-const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 
 type PrimaryArchive = Pick<ConsolidationDirectory, 'columns' | 'rows'> & { version: number };
 type InstitutionArchive = { version: number; directories: ConsolidationDirectory[] };
@@ -45,6 +44,7 @@ export function buildConsolidatedInstitutionSeed(root = process.cwd()) {
   const seedText = `${JSON.stringify(seed, null, 2)}\n`;
   const report = {
     version: 1,
+    textHashEncoding: INSTITUTION_ARCHIVE_TEXT_ENCODING,
     policy: {
       matching: 'One institution per connected group of shared, case-insensitive individual email addresses. Empty or invalid addresses do not match.',
       categories: 'Merge both kindergarten directories into Vrtci. Existing Osnovne šole wins; otherwise retain the matching school or institution category rather than moving unrelated entities into primary schools.',
@@ -63,6 +63,7 @@ export function buildConsolidatedInstitutionSeed(root = process.cwd()) {
   };
   const nameReport = {
     version: 1,
+    textHashEncoding: INSTITUTION_ARCHIVE_TEXT_ENCODING,
     rule: 'Case-insensitive complete phrase Osnovna šola -> OŠ in canonical institution names; preserve all other name text and all source audit snapshots.',
     previousCanonicalSha256: sha256(`${JSON.stringify({ version: 3, directories: result.directories }, null, 2)}\n`),
     canonicalSeedSha256: sha256(seedText),
@@ -79,7 +80,7 @@ function main() {
   const result = buildConsolidatedInstitutionSeed();
   for (const [path, content] of [[CONSOLIDATED_SEED_PATH, result.seedText], [CONSOLIDATION_REPORT_PATH, result.reportText], [NAME_NORMALIZATION_REPORT_PATH, result.nameReportText]]) {
     if (args.includes('--check')) {
-      if (readFileSync(resolve(path), 'utf8') !== content) throw new Error(`Consolidated seed is stale: ${path}`);
+      if (normalizeInstitutionArchiveText(readFileSync(resolve(path), 'utf8')) !== content) throw new Error(`Consolidated seed is stale: ${path}`);
     } else writeFileSync(resolve(path), content);
   }
   console.log(JSON.stringify({ mode: args.includes('--check') ? 'verified' : 'written', ...result.report.summary, abbreviatedNames: result.nameReport.changedNames }));

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildConsolidatedInstitutionSeed, CONSOLIDATED_SEED_PATH, CONSOLIDATION_REPORT_PATH, NAME_NORMALIZATION_REPORT_PATH
 } from '../../scripts/build-consolidated-institution-seed';
+import { normalizeInstitutionArchiveText, institutionArchiveTextSha256, INSTITUTION_ARCHIVE_TEXT_ENCODING } from '../../scripts/institution-archive-text';
 import { normalizeInstitutionName } from '../../src/shared/domain/institutionName';
 import { INSTITUTION_DIRECTORIES } from '../../src/shared/domain/institutionDirectory';
 import {
@@ -19,9 +20,9 @@ const sourceKey = (directoryId: string, rowId: string) => `${directoryId}/${rowI
 const outputKey = (directoryId: string, rowId: string) => `${directoryId}/${rowId}`;
 
 test('version-three seed is reproducible from unchanged archives and has nine canonical directories', () => {
-  assert.equal(readFileSync(CONSOLIDATED_SEED_PATH, 'utf8'), built.seedText);
-  assert.equal(readFileSync(CONSOLIDATION_REPORT_PATH, 'utf8'), built.reportText);
-  assert.equal(readFileSync(NAME_NORMALIZATION_REPORT_PATH, 'utf8'), built.nameReportText);
+  assert.equal(normalizeInstitutionArchiveText(readFileSync(CONSOLIDATED_SEED_PATH, 'utf8')), built.seedText);
+  assert.equal(normalizeInstitutionArchiveText(readFileSync(CONSOLIDATION_REPORT_PATH, 'utf8')), built.reportText);
+  assert.equal(normalizeInstitutionArchiveText(readFileSync(NAME_NORMALIZATION_REPORT_PATH, 'utf8')), built.nameReportText);
   assert.equal(seed.version, 3);
   assert.deepEqual(seed.directories.map(({ id, label }) => ({ id, label })), INSTITUTION_DIRECTORIES);
   assert.deepEqual(seed.directories.map(directory => directory.rows.length), [452, 15, 67, 684, 165, 52, 78, 28, 13]);
@@ -147,4 +148,21 @@ test('canonical names abbreviate the requested phrase across all stored director
   assert.equal(special.reduce((total, directory) => total + directory.rows.length, 0), 41);
   assert.ok(special.flatMap(directory => directory.rows).some(row => row.cells.naziv === 'OŠ Roje'));
   assert.deepEqual(report.groups, consolidateInstitutionDirectories(input).audit);
+});
+
+
+test('archive fingerprints are equal for LF/CRLF checkouts but still detect content changes', () => {
+  assert.equal(built.report.textHashEncoding, INSTITUTION_ARCHIVE_TEXT_ENCODING);
+  assert.equal(built.nameReport.textHashEncoding, INSTITUTION_ARCHIVE_TEXT_ENCODING);
+  for (const source of built.report.sources) {
+    const lf = normalizeInstitutionArchiveText(readFileSync(source.path, 'utf8'));
+    const crlf = lf.replaceAll('\n', '\r\n');
+    assert.equal(institutionArchiveTextSha256(lf), source.sha256);
+    assert.equal(institutionArchiveTextSha256(crlf), source.sha256);
+    assert.notEqual(institutionArchiveTextSha256(lf.replace('naziv', 'changed-name')), source.sha256);
+    assert.deepEqual(JSON.parse(crlf), JSON.parse(lf));
+  }
+  // Escaped line breaks inside JSON strings are product data, not checkout newlines.
+  const encoded = '{"value":"first\\r\\nsecond"}\r\n';
+  assert.equal(normalizeInstitutionArchiveText(encoded), '{"value":"first\\r\\nsecond"}\n');
 });

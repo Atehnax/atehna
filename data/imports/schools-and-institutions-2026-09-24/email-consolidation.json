@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "textHashEncoding": "UTF-8 with LF line endings",
   "policy": {
     "matching": "One institution per connected group of shared, case-insensitive individual email addresses. Empty or invalid addresses do not match.",
     "categories": "Merge both kindergarten directories into Vrtci. Existing Osnovne šole wins; otherwise retain the matching school or institution category rather than moving unrelated entities into primary schools.",
@@ -11,7 +12,7 @@
     {
       "path": "src/shared/data/schools-seed.json",
       "version": 2,
-      "sha256": "f3fe9327ab1f27b94d30770ba3f19e8f4b5857d2021e233001a92262f0a61000"
+      "sha256": "60af3261d6c38059bfb0d4d62c7f1c22f73d0d8f4921a857867e575886e5f70d"
     },
     {
       "path": "src/shared/data/institutions-seed.json",

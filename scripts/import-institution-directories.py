@@ -254,6 +254,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     primary_path = root / "src/shared/data/schools-seed.json"
     primary_bytes = primary_path.read_bytes()
+    primary_lf = primary_bytes.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
     primary = json.loads(primary_bytes)
     directories, provenance = [], []
     for directory_id, filename in SOURCES:
@@ -281,7 +282,8 @@ def main() -> None:
         "version": 1, "importDate": "2026-09-24", "sourcePolicy": "User-supplied files; parsed as data only. Source bytes unchanged.",
         "primaryComparisonSource": "data/imports/schools-and-institutions-2026-09-24/primary-comparison-snapshot.json",
         "primaryComparisonSha256": hashlib.sha256(json_text(comparison_primary).encode("utf-8")).hexdigest(),
-        "standardColumnsSource": "src/shared/data/schools-seed.json", "standardColumnsSourceSha256": hashlib.sha256(primary_bytes).hexdigest(),
+        "standardColumnsSource": "src/shared/data/schools-seed.json", "standardColumnsSourceSha256": hashlib.sha256(primary_lf).hexdigest(),
+        "standardColumnsSourceHashEncoding": "UTF-8 with LF line endings",
         "normalization": "HTML entities decoded; Unicode NFC and whitespace normalized. Values remain strings. Missing fields stay empty. Region section headings copied into statistical region. No inference or cross-tab deduplication.",
         "additionalFields": "All source columns, row numbers and links are retained here, including fields not shown in the standardized table. Contact-person fields are absent from all attachments and left empty.",
         "sourceFiles": provenance,

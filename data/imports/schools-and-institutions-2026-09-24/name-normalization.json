@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "textHashEncoding": "UTF-8 with LF line endings",
   "rule": "Case-insensitive complete phrase Osnovna šola -> OŠ in canonical institution names; preserve all other name text and all source audit snapshots.",
   "previousCanonicalSha256": "c150b38e031e1c0518234c3d50127463168ed606d9adfb569c43270889a8157b",
   "canonicalSeedSha256": "1162e2b9777a6705e444ea8fe99cad5614d08afd4d199250ef37f5d17f6ea049",

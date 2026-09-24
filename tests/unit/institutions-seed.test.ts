@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { institutionArchiveTextSha256, INSTITUTION_ARCHIVE_TEXT_ENCODING } from '../../scripts/institution-archive-text';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -19,7 +19,7 @@ const primaryText = read('src/shared/data/schools-seed.json');
 const primary = JSON.parse(primaryText) as Directory;
 const auditPath = 'data/imports/schools-and-institutions-2026-09-24/';
 const provenance = JSON.parse(read(`${auditPath}source-provenance.json`)) as {
-  standardColumnsSourceSha256: string; sourceFiles: Source[];
+  standardColumnsSourceSha256: string; standardColumnsSourceHashEncoding: string; sourceFiles: Source[];
 };
 const expectedCounts = [35, 67, 1188, 415, 190, 59, 94, 28, 15];
 const mappings: Record<string, string> = {
@@ -57,7 +57,8 @@ test('raw archive keeps all nine source directories and 2091 rows with the origi
 });
 
 test('every imported cell reconciles to its source row, including inherited regions and missing fields', () => {
-  assert.equal(createHash('sha256').update(primaryText).digest('hex'), provenance.standardColumnsSourceSha256);
+  assert.equal(provenance.standardColumnsSourceHashEncoding, INSTITUTION_ARCHIVE_TEXT_ENCODING);
+  assert.equal(institutionArchiveTextSha256(primaryText), provenance.standardColumnsSourceSha256);
   for (const source of provenance.sourceFiles) {
     const directory = seed.directories.find(directory => directory.id === source.id)!;
     assert.equal(directory.sourceFile, source.sourceFile);

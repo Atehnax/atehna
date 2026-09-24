@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createElement } from 'react';
 import { createDiagnosticsInstrumentation, normalizedDiagnosticContext } from '../../src/shared/server/diagnostics/instrumentationCore';
 import { resolveDiagnosticFilters, diagnosticsCsv, type DiagnosticEvent, type DiagnosticsResponse } from '../../src/shared/domain/analytics/diagnostics';
 
@@ -117,4 +118,33 @@ test('an unfinished telemetry write cannot hold a cached loader result open', as
     releaseWrite();
     await operation;
   }
+});
+
+
+test('render telemetry does not serialize React owner metadata or enumerate pending route params', async () => {
+  const events: DiagnosticEvent[] = [];
+  const metrics = createDiagnosticsInstrumentation(async batch => { events.push(...batch); });
+  let paramEnumerations = 0;
+  const params = new Proxy(Promise.resolve({}), {
+    ownKeys(target) {
+      paramEnumerations++;
+      return Reflect.ownKeys(target);
+    }
+  });
+  // Model React development owner metadata without relying on a React render context.
+  const rendered = { ...createElement('div', null, 'Orders'), _owner: { pendingProps: { params } } };
+  const output = await metrics.instrumentAdminRouteRender('/admin/orders', async () => rendered);
+  assert.equal(output, rendered);
+  assert.equal(paramEnumerations, 0, 'measurement must not walk React internals into Next route props');
+  assert.equal(events[0].payloadBytes, null, 'a render tree has no measurable JSON response size');
+
+  const data = { total: 2, naziv: 'Šola' };
+  const expectedBytes = Buffer.byteLength(JSON.stringify(data));
+  await metrics.instrumentAdminRouteRender('/admin/orders', async () => {
+    assert.equal(metrics.profilePayloadEstimate('orders-data', data), expectedBytes);
+    return rendered;
+  });
+  assert.equal(events[1].payloadBytes, expectedBytes);
+  assert.equal(events[1].details.largestPayloadProducer, 'orders-data');
+  assert.equal(paramEnumerations, 0);
 });

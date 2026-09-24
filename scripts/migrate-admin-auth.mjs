@@ -25,7 +25,7 @@ export function previousAuthContract(manifest) {
 
 /** The later supplier release still needs the exact, hash-verified auth contract first. */
 export function resolveAdminAuthMigrationContract(manifest) {
-  const target = manifest.contractId === '20260908.catalog-suppliers-v1'
+  const target = ['20260908.catalog-suppliers-v1', '20260924.institution-directories-v1'].includes(manifest.contractId)
     ? previousSuppliersContract(manifest)
     : manifest;
   if (target.contractId !== '20260908.admin-auth-v1') {

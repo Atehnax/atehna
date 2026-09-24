@@ -1,10 +1,5 @@
-import AdminSchoolsTable from '@/admin/features/stranke/components/AdminSchoolsTable';
-import { getSchoolDirectory } from '@/shared/server/schoolDirectory';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default async function AdminSchoolsPage() {
-  const directory = await getSchoolDirectory();
-  return <AdminSchoolsTable initialDirectory={directory} />;
+export default function AdminSchoolsPage() {
+  redirect('/admin/stranke/sole-in-zavodi');
 }
-

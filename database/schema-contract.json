@@ -1,6 +1,6 @@
 {
-  "contractId": "20260908.catalog-suppliers-v1",
-  "contractSha256": "d36a4541b84a9b3da8fe4dea4abf7d088ea370deee89da2274ddb64c6b58414e",
+  "contractId": "20260924.institution-directories-v1",
+  "contractSha256": "97fd4e47991662b4aade6f09860e9ea57e29e59b3315d553c0afa7485a3593dd",
   "requirements": {
     "extensions": [
       "pg_trgm",
@@ -39,6 +39,7 @@
       "gurs_address_sync_runs",
       "gurs_address_sync_state",
       "gurs_addresses",
+      "institution_directories",
       "inventory_policy_settings",
       "landing_page_settings",
       "order_access_tokens",
@@ -1453,6 +1454,38 @@
         "dataType": "timestamp with time zone",
         "nullable": false,
         "defaultEquals": "now()"
+      },
+      {
+        "table": "institution_directories",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "institution_directories",
+        "name": "seed_version",
+        "dataType": "integer",
+        "nullable": false
+      },
+      {
+        "table": "institution_directories",
+        "name": "content",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "institution_directories",
+        "name": "created_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "institution_directories",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
       }
     ],
     "constraints": [
@@ -1861,6 +1894,12 @@
         "name": "catalog_supplier_rows_cells_check",
         "type": "check",
         "definitionEquals": "CHECK (jsonb_typeof(cells) = 'object'::text)"
+      },
+      {
+        "table": "institution_directories",
+        "name": "institution_directories_content_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(content) = 'object'::text)"
       }
     ],
     "functions": [

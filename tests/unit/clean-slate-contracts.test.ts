@@ -50,7 +50,7 @@ test('fresh database setup stays canonical with explicit additive auth and suppl
     .sort();
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   const migrationFiles = readdirSync(resolve(process.cwd(), 'database', 'migrations')).sort();
-  assert.deepEqual(migrationFiles, ['20260908.admin-auth-v1.sql', '20260908.catalog-suppliers-v1.sql']);
+  assert.deepEqual(migrationFiles, ['20260908.admin-auth-v1.sql', '20260908.catalog-suppliers-v1.sql', '20260924.institution-directories-v1.sql']);
   const authenticationUpgrade = source('database/migrations/20260908.admin-auth-v1.sql');
   const addedTables = [...authenticationUpgrade.matchAll(/create table if not exists\s+([a-z0-9_]+)/giu)]
     .map(match => match[1]).sort();
@@ -63,8 +63,8 @@ test('fresh database setup stays canonical with explicit additive auth and suppl
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
   assert.equal(schema.match(/^begin;/gmu)?.length, 1);
   assert.equal(schema.match(/^commit;/gmu)?.length, 1);
-  assert.equal(tableNames.length, 79);
-  assert.equal(new Set(tableNames).size, 79);
+  assert.equal(tableNames.length, 80);
+  assert.equal(new Set(tableNames).size, 80);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 5);
   assert.match(
     schema,

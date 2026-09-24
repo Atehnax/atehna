@@ -1,0 +1,5044 @@
+{
+  "version": 1,
+  "source": "Local existing primary-school directory, captured 2026-09-24 before import",
+  "rows": [
+    {
+      "id": "school-0001",
+      "cells": {
+        "zavsif": "121",
+        "prsmss": "5082544000",
+        "naziv": "OŠ Col",
+        "naslov": "Col 35",
+        "ds": "11095822",
+        "trr": "01201-6030643582"
+      }
+    },
+    {
+      "id": "school-0002",
+      "cells": {
+        "zavsif": "118",
+        "prsmss": "5082528000",
+        "naziv": "OŠ Danila Lokarja Ajdovščina",
+        "naslov": "Cesta 5. maja 15",
+        "ds": "42140153",
+        "trr": "01201-6030643485"
+      }
+    },
+    {
+      "id": "school-0003",
+      "cells": {
+        "zavsif": "115",
+        "prsmss": "5085888000",
+        "naziv": "OŠ Dobravlje",
+        "naslov": "Dobravlje 1",
+        "ds": "89450116",
+        "trr": "01201-6030643679"
+      }
+    },
+    {
+      "id": "school-0004",
+      "cells": {
+        "zavsif": "117",
+        "prsmss": "5082536000",
+        "naziv": "OŠ Otlica",
+        "naslov": "Otlica 48",
+        "ds": "65681924",
+        "trr": "01201-6030643776"
+      }
+    },
+    {
+      "id": "school-0005",
+      "cells": {
+        "zavsif": "10609",
+        "prsmss": "2294460000",
+        "naziv": "OŠ Šturje, Ajdovščina",
+        "naslov": "Bevkova ulica 22",
+        "ds": "39855210",
+        "trr": "01201-6000000215"
+      }
+    },
+    {
+      "id": "school-0006",
+      "cells": {
+        "zavsif": "22415",
+        "prsmss": "7085761000",
+        "naziv": "OŠ in vrtec Ankaran",
+        "naslov": "Regentova ulica 4",
+        "ds": "84095580",
+        "trr": "01413-6000000109"
+      }
+    },
+    {
+      "id": "school-0007",
+      "cells": {
+        "zavsif": "177",
+        "prsmss": "5084768000",
+        "naziv": "OŠ in vrtec Apače",
+        "naslov": "Apače 38",
+        "ds": "34766219",
+        "trr": "01100-6008365303"
+      }
+    },
+    {
+      "id": "school-0008",
+      "cells": {
+        "zavsif": "351",
+        "prsmss": "5085560000",
+        "naziv": "OŠ Beltinci",
+        "naslov": "Panonska ulica 35 B",
+        "ds": "41251717",
+        "trr": "01202-6030643824"
+      }
+    },
+    {
+      "id": "school-0009",
+      "cells": {
+        "zavsif": "249",
+        "prsmss": "5084032000",
+        "naziv": "OŠ Benedikt",
+        "naslov": "Šolska ulica 2",
+        "ds": "83252517",
+        "trr": "01100-6000036689"
+      }
+    },
+    {
+      "id": "school-0010",
+      "cells": {
+        "zavsif": "502",
+        "prsmss": "5087902000",
+        "naziv": "OŠ Bistrica ob Sotli",
+        "naslov": "Bistrica ob Sotli 63 A",
+        "ds": "71028951",
+        "trr": "01349-6030644090"
+      }
+    },
+    {
+      "id": "school-0011",
+      "cells": {
+        "zavsif": "436",
+        "prsmss": "5087295000",
+        "naziv": "OŠ prof. dr. Josipa Plemlja Bled",
+        "naslov": "Seliška cesta 3",
+        "ds": "56918518",
+        "trr": "01203-6030644163"
+      }
+    },
+    {
+      "id": "school-0012",
+      "cells": {
+        "zavsif": "146",
+        "prsmss": "5082749000",
+        "naziv": "OŠ Toneta Šraja Aljoše",
+        "naslov": "Nova vas 4 B",
+        "ds": "22081453",
+        "trr": "01350-6030644332"
+      }
+    },
+    {
+      "id": "school-0013",
+      "cells": {
+        "zavsif": "437",
+        "prsmss": "5087309000",
+        "naziv": "OŠ dr. Janeza Mencingerja Bohinjska Bistrica",
+        "naslov": "Savska cesta 10",
+        "ds": "51576597",
+        "trr": "01100-6000053179"
+      }
+    },
+    {
+      "id": "school-0014",
+      "cells": {
+        "zavsif": "535",
+        "prsmss": "5088321000",
+        "naziv": "OŠ dr. Ivana Korošca Borovnica",
+        "naslov": "Paplerjeva ulica 15",
+        "ds": "27688836",
+        "trr": "01100-6008338822"
+      }
+    },
+    {
+      "id": "school-0015",
+      "cells": {
+        "zavsif": "510",
+        "prsmss": "5090091000",
+        "naziv": "OŠ Bovec",
+        "naslov": "Trg golobarskih žrtev 17",
+        "ds": "61582476",
+        "trr": "01206-6030644695"
+      }
+    },
+    {
+      "id": "school-0016",
+      "cells": {
+        "zavsif": "552",
+        "prsmss": "5088496000",
+        "naziv": "OŠ Braslovče",
+        "naslov": "Rakovlje 15 B",
+        "ds": "28733533",
+        "trr": "01100-6008352887"
+      }
+    },
+    {
+      "id": "school-0017",
+      "cells": {
+        "zavsif": "362",
+        "prsmss": "5089000000",
+        "naziv": "OŠ Alojza Gradnika Dobrovo",
+        "naslov": "Trg 25. maja 9",
+        "ds": "45507201",
+        "trr": "01100-6008379853"
+      }
+    },
+    {
+      "id": "school-0018",
+      "cells": {
+        "zavsif": "322",
+        "prsmss": "5089646000",
+        "naziv": "OŠ Brezovica pri Ljubljani",
+        "naslov": "Šolska ulica 15",
+        "ds": "24113794",
+        "trr": "01208-6030645082"
+      }
+    },
+    {
+      "id": "school-0019",
+      "cells": {
+        "zavsif": "323",
+        "prsmss": "5084474000",
+        "naziv": "OŠ Preserje",
+        "naslov": "Preserje 60",
+        "ds": "92875602",
+        "trr": "01208-6030644985"
+      }
+    },
+    {
+      "id": "school-0020",
+      "cells": {
+        "zavsif": "124",
+        "prsmss": "5083559000",
+        "naziv": "OŠ Artiče",
+        "naslov": "Artiče 39",
+        "ds": "86290185",
+        "trr": "01209-6030645227"
+      }
+    },
+    {
+      "id": "school-0021",
+      "cells": {
+        "zavsif": "601",
+        "prsmss": "5088607000",
+        "naziv": "OŠ Bizeljsko",
+        "naslov": "Bizeljska cesta 78",
+        "ds": "92015930",
+        "trr": "01209-6030645324"
+      }
+    },
+    {
+      "id": "school-0022",
+      "cells": {
+        "zavsif": "122",
+        "prsmss": "5085896000",
+        "naziv": "OŠ Brežice",
+        "naslov": "Levstikova ulica 18",
+        "ds": "97051667",
+        "trr": "01209-6030645130"
+      }
+    },
+    {
+      "id": "school-0023",
+      "cells": {
+        "zavsif": "129",
+        "prsmss": "5083575000",
+        "naziv": "OŠ Cerklje ob Krki",
+        "naslov": "Cerklje ob Krki 3",
+        "ds": "16258193",
+        "trr": "01209-6030645421"
+      }
+    },
+    {
+      "id": "school-0024",
+      "cells": {
+        "zavsif": "127",
+        "prsmss": "5082579000",
+        "naziv": "OŠ dr. Jožeta Toporišiča Dobova",
+        "naslov": "Kapelska cesta 25",
+        "ds": "16691059",
+        "trr": "01209-6030645518"
+      }
+    },
+    {
+      "id": "school-0025",
+      "cells": {
+        "zavsif": "125",
+        "prsmss": "5082587000",
+        "naziv": "OŠ Globoko",
+        "naslov": "Globoko 9",
+        "ds": "45800316",
+        "trr": "01209-6030645615"
+      }
+    },
+    {
+      "id": "school-0026",
+      "cells": {
+        "zavsif": "126",
+        "prsmss": "5082595000",
+        "naziv": "OŠ Maksa Pleteršnika Pišece",
+        "naslov": "Pišece 34",
+        "ds": "77693809",
+        "trr": "01209-6030645712"
+      }
+    },
+    {
+      "id": "school-0027",
+      "cells": {
+        "zavsif": "128",
+        "prsmss": "5083583000",
+        "naziv": "OŠ Velika Dolina",
+        "naslov": "Velika Dolina 30",
+        "ds": "81190344",
+        "trr": "01209-6030645809"
+      }
+    },
+    {
+      "id": "school-0028",
+      "cells": {
+        "zavsif": "353",
+        "prsmss": "5085608000",
+        "naziv": "OŠ Cankova",
+        "naslov": "Cankova 27",
+        "ds": "10798226",
+        "trr": "01352-6030645980"
+      }
+    },
+    {
+      "id": "school-0029",
+      "cells": {
+        "zavsif": "134",
+        "prsmss": "5082609000",
+        "naziv": "I. osnovna šola Celje",
+        "naslov": "Vrunčeva ulica 13",
+        "ds": "90567226",
+        "trr": "01211-6030646293"
+      }
+    },
+    {
+      "id": "school-0030",
+      "cells": {
+        "zavsif": "135",
+        "prsmss": "5082617000",
+        "naziv": "II. osnovna šola Celje",
+        "naslov": "Ljubljanska cesta 46",
+        "ds": "18983022",
+        "trr": "01211-6030646487"
+      }
+    },
+    {
+      "id": "school-0031",
+      "cells": {
+        "zavsif": "136",
+        "prsmss": "5083613000",
+        "naziv": "III. osnovna šola Celje",
+        "naslov": "Vodnikova ulica 4",
+        "ds": "48097535",
+        "trr": "01211-6030646196"
+      }
+    },
+    {
+      "id": "school-0032",
+      "cells": {
+        "zavsif": "133",
+        "prsmss": "5082633000",
+        "naziv": "IV. osnovna šola Celje",
+        "naslov": "Dečkova cesta 60",
+        "ds": "82175420",
+        "trr": "01211-6030646584"
+      }
+    },
+    {
+      "id": "school-0033",
+      "cells": {
+        "zavsif": "132",
+        "prsmss": "5082641000",
+        "naziv": "OŠ Frana Kranjca",
+        "naslov": "Hrašovčeva ulica 1",
+        "ds": "27612457",
+        "trr": "01211-6030646390"
+      }
+    },
+    {
+      "id": "school-0034",
+      "cells": {
+        "zavsif": "137",
+        "prsmss": "5186650000",
+        "naziv": "OŠ Frana Roša Celje",
+        "naslov": "Cesta na Dobrovo 114",
+        "ds": "89921658",
+        "trr": "01211-6030646778"
+      }
+    },
+    {
+      "id": "school-0035",
+      "cells": {
+        "zavsif": "130",
+        "prsmss": "5082650000",
+        "naziv": "OŠ Hudinja",
+        "naslov": "Mariborska cesta 125",
+        "ds": "73042323",
+        "trr": "01211-6030646002"
+      }
+    },
+    {
+      "id": "school-0036",
+      "cells": {
+        "zavsif": "131",
+        "prsmss": "5062799000",
+        "naziv": "OŠ Lava Celje",
+        "naslov": "Pucova ulica 7",
+        "ds": "27299627",
+        "trr": "01211-6030646681"
+      }
+    },
+    {
+      "id": "school-0037",
+      "cells": {
+        "zavsif": "1341",
+        "prsmss": "1262823000",
+        "naziv": "OŠ Ljubečna",
+        "naslov": "Kocbekova cesta 40 A",
+        "ds": "68305192",
+        "trr": "01211-6030646972"
+      }
+    },
+    {
+      "id": "school-0038",
+      "cells": {
+        "zavsif": "232",
+        "prsmss": "5086027000",
+        "naziv": "OŠ Davorina Jenka Cerklje na Gorenjskem",
+        "naslov": "Krvavška cesta 4",
+        "ds": "40296407",
+        "trr": "01100-6099011803"
+      }
+    },
+    {
+      "id": "school-0039",
+      "cells": {
+        "zavsif": "145",
+        "prsmss": "5082757000",
+        "naziv": "OŠ Jožeta Krajca Rakek",
+        "naslov": "Partizanska cesta 28",
+        "ds": "36025283",
+        "trr": "01213-6030647262"
+      }
+    },
+    {
+      "id": "school-0040",
+      "cells": {
+        "zavsif": "144",
+        "prsmss": "5082722000",
+        "naziv": "OŠ Notranjski odred Cerknica",
+        "naslov": "Cesta 4. maja 92",
+        "ds": "54018471",
+        "trr": "01213-6030647165"
+      }
+    },
+    {
+      "id": "school-0041",
+      "cells": {
+        "zavsif": "189",
+        "prsmss": "5082960000",
+        "naziv": "OŠ Cerkno",
+        "naslov": "Bevkova ulica 26",
+        "ds": "44292180",
+        "trr": "01214-6030647310"
+      }
+    },
+    {
+      "id": "school-0042",
+      "cells": {
+        "zavsif": "251",
+        "prsmss": "5084016000",
+        "naziv": "OŠ Cerkvenjak - Vitomarci",
+        "naslov": "Cerkvenjak 24",
+        "ds": "43386024",
+        "trr": "01100-6000037562"
+      }
+    },
+    {
+      "id": "school-0043",
+      "cells": {
+        "zavsif": "418",
+        "prsmss": "5089247000",
+        "naziv": "OŠ Cirkulane - Zavrč",
+        "naslov": "Cirkulane 57",
+        "ds": "68357753",
+        "trr": "01100-6008335233"
+      }
+    },
+    {
+      "id": "school-0044",
+      "cells": {
+        "zavsif": "260",
+        "prsmss": "5089697000",
+        "naziv": "OŠ Franceta Prešerna Črenšovci",
+        "naslov": "Ulica Juša Kramarja 10",
+        "ds": "16814487",
+        "trr": "01215-6030647649"
+      }
+    },
+    {
+      "id": "school-0045",
+      "cells": {
+        "zavsif": "1351",
+        "prsmss": "5089751000",
+        "naziv": "OŠ Prežihovega Voranca Bistrica",
+        "naslov": "Srednja Bistrica 49 B",
+        "ds": "94330522",
+        "trr": "01215-6030647552"
+      }
+    },
+    {
+      "id": "school-0046",
+      "cells": {
+        "zavsif": "444",
+        "prsmss": "5087368000",
+        "naziv": "OŠ Črna na Koroškem",
+        "naslov": "Center 142",
+        "ds": "98266225",
+        "trr": "01100-6000046389"
+      }
+    },
+    {
+      "id": "school-0047",
+      "cells": {
+        "zavsif": "155",
+        "prsmss": "5082773000",
+        "naziv": "OŠ komandanta Staneta Dragatuš",
+        "naslov": "Dragatuš 48",
+        "ds": "83415394",
+        "trr": "01217-6030647939"
+      }
+    },
+    {
+      "id": "school-0048",
+      "cells": {
+        "zavsif": "151",
+        "prsmss": "5289211000",
+        "naziv": "OŠ Loka Črnomelj",
+        "naslov": "Kidričeva ulica 18",
+        "ds": "67958451",
+        "trr": "01217-6030648230"
+      }
+    },
+    {
+      "id": "school-0049",
+      "cells": {
+        "zavsif": "150",
+        "prsmss": "5082765000",
+        "naziv": "OŠ Mirana Jarca Črnomelj",
+        "naslov": "Ulica Otona Župančiča 8",
+        "ds": "38693313",
+        "trr": "01217-6030647842"
+      }
+    },
+    {
+      "id": "school-0050",
+      "cells": {
+        "zavsif": "154",
+        "prsmss": "5086477000",
+        "naziv": "OŠ Stari trg ob Kolpi",
+        "naslov": "Stari trg ob Kolpi 7",
+        "ds": "11215526",
+        "trr": "01217-6030648036"
+      }
+    },
+    {
+      "id": "school-0051",
+      "cells": {
+        "zavsif": "156",
+        "prsmss": "5082781000",
+        "naziv": "OŠ Vinica",
+        "naslov": "Vinica 50",
+        "ds": "75824973",
+        "trr": "01217-6030648133"
+      }
+    },
+    {
+      "id": "school-0052",
+      "cells": {
+        "zavsif": "414",
+        "prsmss": "5086990000",
+        "naziv": "OŠ Destrnik - Trnovska vas",
+        "naslov": "Janežovski Vrh 45",
+        "ds": "68493002",
+        "trr": "01218-6030648375"
+      }
+    },
+    {
+      "id": "school-0053",
+      "cells": {
+        "zavsif": "458",
+        "prsmss": "5089336000",
+        "naziv": "OŠ dr. Bogomirja Magajne Divača",
+        "naslov": "Ulica dr. Bogomira Magajne 4",
+        "ds": "96121840",
+        "trr": "01219-6030648423"
+      }
+    },
+    {
+      "id": "school-0054",
+      "cells": {
+        "zavsif": "598",
+        "prsmss": "5582911000",
+        "naziv": "OŠ Dobje",
+        "naslov": "Dobje pri Planini 20 A",
+        "ds": "84077867",
+        "trr": "01354-6030648598"
+      }
+    },
+    {
+      "id": "school-0055",
+      "cells": {
+        "zavsif": "180",
+        "prsmss": "5089956000",
+        "naziv": "OŠ Franceta in Toneta Kralja Dobrepolje",
+        "naslov": "Videm 80",
+        "ds": "44770103",
+        "trr": "01100-6008340471"
+      }
+    },
+    {
+      "id": "school-0056",
+      "cells": {
+        "zavsif": "140",
+        "prsmss": "5082668000",
+        "naziv": "OŠ Dobrna",
+        "naslov": "Dobrna 1",
+        "ds": "15988945",
+        "trr": "01355-6030648743"
+      }
+    },
+    {
+      "id": "school-0057",
+      "cells": {
+        "zavsif": "326",
+        "prsmss": "5084415000",
+        "naziv": "OŠ Dobrova",
+        "naslov": "Cesta 7. maja 20",
+        "ds": "13274546",
+        "trr": "01221-6030648907"
+      }
+    },
+    {
+      "id": "school-0058",
+      "cells": {
+        "zavsif": "325",
+        "prsmss": "5084466000",
+        "naziv": "OŠ Polhov Gradec",
+        "naslov": "Polhov Gradec 95",
+        "ds": "36290530",
+        "trr": "01221-6030648810"
+      }
+    },
+    {
+      "id": "school-0059",
+      "cells": {
+        "zavsif": "257",
+        "prsmss": "5086078000",
+        "naziv": "Dvojezična osnovna šola Dobrovnik",
+        "naslov": "Dobrovnik 266 J",
+        "ds": "97102318",
+        "trr": "01100-6000048523"
+      }
+    },
+    {
+      "id": "school-0060",
+      "cells": {
+        "zavsif": "273",
+        "prsmss": "5083354000",
+        "naziv": "OŠ Janka Modra Dol pri Ljubljani",
+        "naslov": "Videm 17",
+        "ds": "63332248",
+        "trr": "01100-6000066953"
+      }
+    },
+    {
+      "id": "school-0061",
+      "cells": {
+        "zavsif": "385",
+        "prsmss": "5086370000",
+        "naziv": "OŠ Dolenjske Toplice",
+        "naslov": "Pionirska cesta 35",
+        "ds": "51655535",
+        "trr": "01357-6030649227"
+      }
+    },
+    {
+      "id": "school-0062",
+      "cells": {
+        "zavsif": "163",
+        "prsmss": "5084733000",
+        "naziv": "OŠ Dob",
+        "naslov": "Šolska ulica 7",
+        "ds": "98266144",
+        "trr": "01100-6008354536"
+      }
+    },
+    {
+      "id": "school-0063",
+      "cells": {
+        "zavsif": "158",
+        "prsmss": "5082803000",
+        "naziv": "OŠ Domžale",
+        "naslov": "Bistriška cesta 19",
+        "ds": "94835039",
+        "trr": "01223-6030649488"
+      }
+    },
+    {
+      "id": "school-0064",
+      "cells": {
+        "zavsif": "10549",
+        "prsmss": "2197197000",
+        "naziv": "OŠ Dragomelj",
+        "naslov": "Dragomelj 180",
+        "ds": "88530264",
+        "trr": "01100-6008353178"
+      }
+    },
+    {
+      "id": "school-0065",
+      "cells": {
+        "zavsif": "166",
+        "prsmss": "5084741000",
+        "naziv": "OŠ Preserje pri Radomljah",
+        "naslov": "Pelechova cesta 83",
+        "ds": "68428120",
+        "trr": "01223-6030649682"
+      }
+    },
+    {
+      "id": "school-0066",
+      "cells": {
+        "zavsif": "159",
+        "prsmss": "5083737000",
+        "naziv": "OŠ Rodica",
+        "naslov": "Kettejeva ulica 13",
+        "ds": "34707735",
+        "trr": "01223-6030649779"
+      }
+    },
+    {
+      "id": "school-0067",
+      "cells": {
+        "zavsif": "160",
+        "prsmss": "5082811000",
+        "naziv": "OŠ Venclja Perka",
+        "naslov": "Ljubljanska cesta 58 A",
+        "ds": "16670884",
+        "trr": "01100-6008355021"
+      }
+    },
+    {
+      "id": "school-0068",
+      "cells": {
+        "zavsif": "413",
+        "prsmss": "5087015000",
+        "naziv": "OŠ dr. Franja Žgeča Dornava",
+        "naslov": "Dornava 136 A",
+        "ds": "31182194",
+        "trr": "01100-6008339986"
+      }
+    },
+    {
+      "id": "school-0069",
+      "cells": {
+        "zavsif": "168",
+        "prsmss": "5082889000",
+        "naziv": "OŠ Neznanih talcev Dravograd",
+        "naslov": "Trg 4. julija 64",
+        "ds": "62927892",
+        "trr": "01225-6030649972"
+      }
+    },
+    {
+      "id": "school-0070",
+      "cells": {
+        "zavsif": "1236",
+        "prsmss": "5914183000",
+        "naziv": "OŠ Šentjanž pri Dravogradu",
+        "naslov": "Šentjanž pri Dravogradu 88",
+        "ds": "61137014",
+        "trr": "01225-6030650069"
+      }
+    },
+    {
+      "id": "school-0071",
+      "cells": {
+        "zavsif": "573",
+        "prsmss": "5085233000",
+        "naziv": "OŠ Duplek",
+        "naslov": "Korenska cesta 31",
+        "ds": "70388717",
+        "trr": "01100-6000044643"
+      }
+    },
+    {
+      "id": "school-0072",
+      "cells": {
+        "zavsif": "574",
+        "prsmss": "5088887000",
+        "naziv": "OŠ Korena",
+        "naslov": "Zgornja Korena 32",
+        "ds": "60415266",
+        "trr": "01100-6000044740"
+      }
+    },
+    {
+      "id": "school-0073",
+      "cells": {
+        "zavsif": "488",
+        "prsmss": "5087813000",
+        "naziv": "OŠ Ivana Tavčarja Gorenja vas",
+        "naslov": "Trata 40",
+        "ds": "72397870",
+        "trr": "01227-6030650359"
+      }
+    },
+    {
+      "id": "school-0074",
+      "cells": {
+        "zavsif": "1315",
+        "prsmss": "1199498000",
+        "naziv": "OŠ Poljane",
+        "naslov": "Poljane nad Škofjo Loko 100",
+        "ds": "95058354",
+        "trr": "01227-6030650456"
+      }
+    },
+    {
+      "id": "school-0075",
+      "cells": {
+        "zavsif": "416",
+        "prsmss": "5087023000",
+        "naziv": "OŠ Gorišnica",
+        "naslov": "Gorišnica 83",
+        "ds": "52630692",
+        "trr": "01100-6008361132"
+      }
+    },
+    {
+      "id": "school-0076",
+      "cells": {
+        "zavsif": "434",
+        "prsmss": "5087317000",
+        "naziv": "OŠ Gorje",
+        "naslov": "Zgornje Gorje 44 A",
+        "ds": "99229692",
+        "trr": "01100-6008339695"
+      }
+    },
+    {
+      "id": "school-0077",
+      "cells": {
+        "zavsif": "170",
+        "prsmss": "5082897000",
+        "naziv": "OŠ dr. Antona Trstenjaka Negova",
+        "naslov": "Negova 20",
+        "ds": "92256457",
+        "trr": "01100-6008363266"
+      }
+    },
+    {
+      "id": "school-0078",
+      "cells": {
+        "zavsif": "171",
+        "prsmss": "5083745000",
+        "naziv": "OŠ Gornja Radgona",
+        "naslov": "Prežihova ulica 1",
+        "ds": "18671624",
+        "trr": "01100-6008363072"
+      }
+    },
+    {
+      "id": "school-0079",
+      "cells": {
+        "zavsif": "342",
+        "prsmss": "5088933000",
+        "naziv": "OŠ Frana Kocbeka Gornji Grad",
+        "naslov": "Kocbekova cesta 21",
+        "ds": "50597698",
+        "trr": "01230-6030651182"
+      }
+    },
+    {
+      "id": "school-0080",
+      "cells": {
+        "zavsif": "346",
+        "prsmss": "5085586000",
+        "naziv": "OŠ Gornji Petrovci",
+        "naslov": "Gornji Petrovci 2",
+        "ds": "61749206",
+        "trr": "01100-6099012288"
+      }
+    },
+    {
+      "id": "school-0081",
+      "cells": {
+        "zavsif": "356",
+        "prsmss": "5085594000",
+        "naziv": "OŠ Grad",
+        "naslov": "Grad 172 E",
+        "ds": "23698110",
+        "trr": "01100-6099012191"
+      }
+    },
+    {
+      "id": "school-0082",
+      "cells": {
+        "zavsif": "1307",
+        "prsmss": "1193481000",
+        "naziv": "OŠ Brinje Grosuplje",
+        "naslov": "Ljubljanska cesta 40 A",
+        "ds": "29928419",
+        "trr": "01100-6008342120"
+      }
+    },
+    {
+      "id": "school-0083",
+      "cells": {
+        "zavsif": "178",
+        "prsmss": "5085993000",
+        "naziv": "OŠ Louisa Adamiča Grosuplje",
+        "naslov": "Tovarniška cesta 14",
+        "ds": "29424445",
+        "trr": "01100-6008341635"
+      }
+    },
+    {
+      "id": "school-0084",
+      "cells": {
+        "zavsif": "23155",
+        "prsmss": "7272219000",
+        "naziv": "OŠ Šmarje - Sap",
+        "naslov": "Ljubljanska cesta 49",
+        "ds": "31362605",
+        "trr": "01100-6008340762"
+      }
+    },
+    {
+      "id": "school-0085",
+      "cells": {
+        "zavsif": "421",
+        "prsmss": "5087031000",
+        "naziv": "OŠ Hajdina",
+        "naslov": "Spodnja Hajdina 24",
+        "ds": "33939314",
+        "trr": "01359-6030651748"
+      }
+    },
+    {
+      "id": "school-0086",
+      "cells": {
+        "zavsif": "575",
+        "prsmss": "5085853000",
+        "naziv": "OŠ Dušana Flisa Hoče",
+        "naslov": "Šolska ulica 10",
+        "ds": "37423754",
+        "trr": "01360-6030651893"
+      }
+    },
+    {
+      "id": "school-0087",
+      "cells": {
+        "zavsif": "577",
+        "prsmss": "5085306000",
+        "naziv": "OŠ Franca Lešnika - Vuka Slivnica pri Mariboru",
+        "naslov": "Mariborska cesta 4",
+        "ds": "69830835",
+        "trr": "01360-6030651990"
+      }
+    },
+    {
+      "id": "school-0088",
+      "cells": {
+        "zavsif": "324",
+        "prsmss": "5084423000",
+        "naziv": "OŠ Horjul",
+        "naslov": "Šolska ulica 44",
+        "ds": "99488493",
+        "trr": "01362-6030652086"
+      }
+    },
+    {
+      "id": "school-0089",
+      "cells": {
+        "zavsif": "181",
+        "prsmss": "5089905000",
+        "naziv": "OŠ narodnega heroja Rajka Hrastnik",
+        "naslov": "Log 19",
+        "ds": "90342593",
+        "trr": "01234-6030652150"
+      }
+    },
+    {
+      "id": "school-0090",
+      "cells": {
+        "zavsif": "461",
+        "prsmss": "5089379000",
+        "naziv": "OŠ Dragomirja Benčiča - Brkina Hrpelje",
+        "naslov": "Reška cesta 30",
+        "ds": "80880258",
+        "trr": "01235-6030652295"
+      }
+    },
+    {
+      "id": "school-0091",
+      "cells": {
+        "zavsif": "184",
+        "prsmss": "5082978000",
+        "naziv": "OŠ Črni Vrh",
+        "naslov": "Črni Vrh 95",
+        "ds": "55214959",
+        "trr": "01100-6008337852"
+      }
+    },
+    {
+      "id": "school-0092",
+      "cells": {
+        "zavsif": "185",
+        "prsmss": "5082986000",
+        "naziv": "OŠ Idrija",
+        "naslov": "Lapajnetova ulica 50",
+        "ds": "75180596",
+        "trr": "01100-6008338531"
+      }
+    },
+    {
+      "id": "school-0093",
+      "cells": {
+        "zavsif": "188",
+        "prsmss": "5083788000",
+        "naziv": "OŠ Spodnja Idrija",
+        "naslov": "Šolska ulica 9",
+        "ds": "10527397",
+        "trr": "01100-6008338434"
+      }
+    },
+    {
+      "id": "school-0094",
+      "cells": {
+        "zavsif": "320",
+        "prsmss": "5084431000",
+        "naziv": "OŠ Ig",
+        "naslov": "Troštova ulica 24",
+        "ds": "72025735",
+        "trr": "01237-6030652682"
+      }
+    },
+    {
+      "id": "school-0095",
+      "cells": {
+        "zavsif": "25235",
+        "prsmss": "7297009000",
+        "naziv": "Svobodna šola Kurešček",
+        "naslov": "Visoko 102",
+        "ds": "15696812",
+        "trr": "61000-0017043829"
+      }
+    },
+    {
+      "id": "school-0096",
+      "cells": {
+        "zavsif": "599",
+        "prsmss": "5624525000",
+        "naziv": "OŠ Antona Žnideršiča Ilirska Bistrica",
+        "naslov": "Rozmanova ulica 25 B",
+        "ds": "24128503",
+        "trr": "01100-6008374518"
+      }
+    },
+    {
+      "id": "school-0097",
+      "cells": {
+        "zavsif": "600",
+        "prsmss": "5624533000",
+        "naziv": "OŠ Dragotina Ketteja Ilirska Bistrica",
+        "naslov": "Župančičeva ulica 7",
+        "ds": "78261023",
+        "trr": "01100-6008373451"
+      }
+    },
+    {
+      "id": "school-0098",
+      "cells": {
+        "zavsif": "195",
+        "prsmss": "5083010000",
+        "naziv": "OŠ Jelšane",
+        "naslov": "Jelšane 82",
+        "ds": "83556788",
+        "trr": "01100-6008373548"
+      }
+    },
+    {
+      "id": "school-0099",
+      "cells": {
+        "zavsif": "192",
+        "prsmss": "5086019000",
+        "naziv": "OŠ Podgora Kuteževo",
+        "naslov": "Kuteževo 2 F",
+        "ds": "12391263",
+        "trr": "01100-6008373742"
+      }
+    },
+    {
+      "id": "school-0100",
+      "cells": {
+        "zavsif": "190",
+        "prsmss": "5090164000",
+        "naziv": "OŠ Rudija Mahniča - Brkinca Pregarje",
+        "naslov": "Pregarje 18",
+        "ds": "75401665",
+        "trr": "01100-6008374324"
+      }
+    },
+    {
+      "id": "school-0101",
+      "cells": {
+        "zavsif": "191",
+        "prsmss": "5083800000",
+        "naziv": "OŠ Rudolfa Ukoviča Podgrad",
+        "naslov": "Podgrad 99 B",
+        "ds": "40184277",
+        "trr": "01100-6008374130"
+      }
+    },
+    {
+      "id": "school-0102",
+      "cells": {
+        "zavsif": "194",
+        "prsmss": "5083796000",
+        "naziv": "OŠ Toneta Tomšiča Knežak",
+        "naslov": "Knežak 147 A",
+        "ds": "46127356",
+        "trr": "01100-6008374033"
+      }
+    },
+    {
+      "id": "school-0103",
+      "cells": {
+        "zavsif": "179",
+        "prsmss": "5085357000",
+        "naziv": "OŠ Ferda Vesela Šentvid pri Stični",
+        "naslov": "Šentvid pri Stični 46",
+        "ds": "59034220",
+        "trr": "01100-6008336494"
+      }
+    },
+    {
+      "id": "school-0104",
+      "cells": {
+        "zavsif": "602",
+        "prsmss": "5623677000",
+        "naziv": "OŠ Stična",
+        "naslov": "Cesta občine Hirschaid 1",
+        "ds": "67259375",
+        "trr": "01100-6008336591"
+      }
+    },
+    {
+      "id": "school-0105",
+      "cells": {
+        "zavsif": "25075",
+        "prsmss": "8865434000",
+        "naziv": "OŠ Zagradec",
+        "naslov": "Zagradec 33",
+        "ds": "51808340",
+        "trr": "01100-6008350171"
+      }
+    },
+    {
+      "id": "school-0106",
+      "cells": {
+        "zavsif": "196",
+        "prsmss": "5089514000",
+        "naziv": "OŠ Dante Alighieri Izola",
+        "naslov": "Ulica oktobrske revolucije 10",
+        "ds": "88215857",
+        "trr": "01240-6030653602"
+      }
+    },
+    {
+      "id": "school-0107",
+      "cells": {
+        "zavsif": "1053",
+        "prsmss": "5859921000",
+        "naziv": "OŠ Livade - Izola",
+        "naslov": "Livade 7",
+        "ds": "17796989",
+        "trr": "01240-6030653893"
+      }
+    },
+    {
+      "id": "school-0108",
+      "cells": {
+        "zavsif": "197",
+        "prsmss": "5083028000",
+        "naziv": "OŠ Vojke Šmuc Izola",
+        "naslov": "Prešernova cesta 4",
+        "ds": "79063152",
+        "trr": "01240-6030653796"
+      }
+    },
+    {
+      "id": "school-0109",
+      "cells": {
+        "zavsif": "1344",
+        "prsmss": "5719046000",
+        "naziv": "OŠ Koroška Bela Jesenice",
+        "naslov": "Cesta talcev 2",
+        "ds": "44425465",
+        "trr": "01241-6030653941"
+      }
+    },
+    {
+      "id": "school-0110",
+      "cells": {
+        "zavsif": "1206",
+        "prsmss": "5719097000",
+        "naziv": "OŠ Prežihovega Voranca Jesenice",
+        "naslov": "Cesta Toneta Tomšiča 5",
+        "ds": "71303103",
+        "trr": "01241-6030654135"
+      }
+    },
+    {
+      "id": "school-0111",
+      "cells": {
+        "zavsif": "1345",
+        "prsmss": "5719089000",
+        "naziv": "OŠ Toneta Čufarja Jesenice",
+        "naslov": "Cesta Cirila Tavčarja 21",
+        "ds": "56149425",
+        "trr": "01241-6030654038"
+      }
+    },
+    {
+      "id": "school-0112",
+      "cells": {
+        "zavsif": "415",
+        "prsmss": "5087040000",
+        "naziv": "OŠ Juršinci",
+        "naslov": "Juršinci 19",
+        "ds": "52707806",
+        "trr": "01100-6008368213"
+      }
+    },
+    {
+      "id": "school-0113",
+      "cells": {
+        "zavsif": "200",
+        "prsmss": "5083036000",
+        "naziv": "OŠ Frana Albrehta Kamnik",
+        "naslov": "Šolska ulica 1",
+        "ds": "64526208",
+        "trr": "01100-6000056477"
+      }
+    },
+    {
+      "id": "school-0114",
+      "cells": {
+        "zavsif": "199",
+        "prsmss": "5268931000",
+        "naziv": "OŠ Marije Vere",
+        "naslov": "Ljubljanska cesta 16 A",
+        "ds": "52634876",
+        "trr": "01100-6000058805"
+      }
+    },
+    {
+      "id": "school-0115",
+      "cells": {
+        "zavsif": "204",
+        "prsmss": "5083818000",
+        "naziv": "OŠ Stranje",
+        "naslov": "Zgornje Stranje 22",
+        "ds": "21169012",
+        "trr": "01100-6000055992"
+      }
+    },
+    {
+      "id": "school-0116",
+      "cells": {
+        "zavsif": "1259",
+        "prsmss": "5950686000",
+        "naziv": "OŠ Šmartno v Tuhinju",
+        "naslov": "Šmartno v Tuhinju 27 A",
+        "ds": "47328304",
+        "trr": "01100-6000058029"
+      }
+    },
+    {
+      "id": "school-0117",
+      "cells": {
+        "zavsif": "201",
+        "prsmss": "5083044000",
+        "naziv": "OŠ Toma Brejca Kamnik",
+        "naslov": "Šutna 39",
+        "ds": "31285805",
+        "trr": "01100-6000059484"
+      }
+    },
+    {
+      "id": "school-0118",
+      "cells": {
+        "zavsif": "361",
+        "prsmss": "5085772000",
+        "naziv": "OŠ Deskle",
+        "naslov": "Srebrničeva ulica 10",
+        "ds": "82684669",
+        "trr": "01100-6008392463"
+      }
+    },
+    {
+      "id": "school-0119",
+      "cells": {
+        "zavsif": "363",
+        "prsmss": "5089018000",
+        "naziv": "OŠ Kanal",
+        "naslov": "Gradnikova ulica 25",
+        "ds": "87540266",
+        "trr": "01100-6008392172"
+      }
+    },
+    {
+      "id": "school-0120",
+      "cells": {
+        "zavsif": "424",
+        "prsmss": "5086973000",
+        "naziv": "OŠ Cirkovce",
+        "naslov": "Cirkovce 47",
+        "ds": "70374619",
+        "trr": "01245-6030655297"
+      }
+    },
+    {
+      "id": "school-0121",
+      "cells": {
+        "zavsif": "423",
+        "prsmss": "5087066000",
+        "naziv": "OŠ Kidričevo",
+        "naslov": "Kajuhova ulica 10",
+        "ds": "60809051",
+        "trr": "01245-6030655394"
+      }
+    },
+    {
+      "id": "school-0122",
+      "cells": {
+        "zavsif": "509",
+        "prsmss": "5089832000",
+        "naziv": "OŠ Simona Gregorčiča Kobarid",
+        "naslov": "Gregorčičeva ulica 18 A",
+        "ds": "51971020",
+        "trr": "01246-6030655442"
+      }
+    },
+    {
+      "id": "school-0123",
+      "cells": {
+        "zavsif": "256",
+        "prsmss": "5089719000",
+        "naziv": "OŠ Kobilje",
+        "naslov": "Kobilje 33 A",
+        "ds": "48379611",
+        "trr": "01247-6030655587"
+      }
+    },
+    {
+      "id": "school-0124",
+      "cells": {
+        "zavsif": "612",
+        "prsmss": "5621712000",
+        "naziv": "OŠ Ob Rinži Kočevje",
+        "naslov": "Cesta v Mestni log 39",
+        "ds": "90536398",
+        "trr": "01100-6008351529"
+      }
+    },
+    {
+      "id": "school-0125",
+      "cells": {
+        "zavsif": "613",
+        "prsmss": "5621739000",
+        "naziv": "OŠ Stara Cerkev",
+        "naslov": "Stara Cerkev 21",
+        "ds": "72111763",
+        "trr": "01100-6008351626"
+      }
+    },
+    {
+      "id": "school-0126",
+      "cells": {
+        "zavsif": "205",
+        "prsmss": "5084857000",
+        "naziv": "OŠ Zbora odposlancev Kočevje",
+        "naslov": "Trg zbora odposlancev 28",
+        "ds": "95886478",
+        "trr": "01100-6008351432"
+      }
+    },
+    {
+      "id": "school-0127",
+      "cells": {
+        "zavsif": "460",
+        "prsmss": "5087554000",
+        "naziv": "OŠ Antona Šibelja - Stjenka Komen",
+        "naslov": "Komen 61 A",
+        "ds": "23027746",
+        "trr": "01249-6030655974"
+      }
+    },
+    {
+      "id": "school-0128",
+      "cells": {
+        "zavsif": "198",
+        "prsmss": "5083052000",
+        "naziv": "OŠ Komenda Moste",
+        "naslov": "Glavarjeva cesta 37",
+        "ds": "37317296",
+        "trr": "01100-6000029317"
+      }
+    },
+    {
+      "id": "school-0129",
+      "cells": {
+        "zavsif": "209",
+        "prsmss": "5231825000",
+        "naziv": "OŠ Antona Ukmarja Koper",
+        "naslov": "Pot v gaj 2",
+        "ds": "71906096",
+        "trr": "01250-6030657283"
+      }
+    },
+    {
+      "id": "school-0130",
+      "cells": {
+        "zavsif": "216",
+        "prsmss": "5083834000",
+        "naziv": "OŠ Dekani",
+        "naslov": "Dekani 32",
+        "ds": "18370071",
+        "trr": "01250-6030656216"
+      }
+    },
+    {
+      "id": "school-0131",
+      "cells": {
+        "zavsif": "220",
+        "prsmss": "5088704000",
+        "naziv": "OŠ dr. Aleš Bebler - Primož Hrvatini",
+        "naslov": "Hrvatini 137",
+        "ds": "95309578",
+        "trr": "01250-6030656119"
+      }
+    },
+    {
+      "id": "school-0132",
+      "cells": {
+        "zavsif": "213",
+        "prsmss": "5083141000",
+        "naziv": "OŠ Dušana Bordona Semedela - Koper",
+        "naslov": "Rozmanova ulica 21 A",
+        "ds": "84366451",
+        "trr": "01250-6030657186"
+      }
+    },
+    {
+      "id": "school-0133",
+      "cells": {
+        "zavsif": "210",
+        "prsmss": "5083168000",
+        "naziv": "OŠ Elvire Vatovec Prade - Koper",
+        "naslov": "Pobeška cesta 52",
+        "ds": "22889426",
+        "trr": "01250-6030656798"
+      }
+    },
+    {
+      "id": "school-0134",
+      "cells": {
+        "zavsif": "217",
+        "prsmss": "5083133000",
+        "naziv": "OŠ Istrskega odreda Gračišče",
+        "naslov": "Gračišče 5",
+        "ds": "78522625",
+        "trr": "01250-6030656313"
+      }
+    },
+    {
+      "id": "school-0135",
+      "cells": {
+        "zavsif": "218",
+        "prsmss": "5083150000",
+        "naziv": "OŠ Ivana Babiča - Jagra Marezige",
+        "naslov": "Marezige 33 A",
+        "ds": "34559477",
+        "trr": "01250-6030656604"
+      }
+    },
+    {
+      "id": "school-0136",
+      "cells": {
+        "zavsif": "10550",
+        "prsmss": "2229463000",
+        "naziv": "OŠ Koper",
+        "naslov": "Cesta Zore Perello-Godina 1",
+        "ds": "25866702",
+        "trr": "01250-6000000627"
+      }
+    },
+    {
+      "id": "school-0137",
+      "cells": {
+        "zavsif": "221",
+        "prsmss": "5084822000",
+        "naziv": "OŠ Oskarja Kovačiča Škofije",
+        "naslov": "Spodnje Škofije 40 D",
+        "ds": "39097293",
+        "trr": "01250-6030656895"
+      }
+    },
+    {
+      "id": "school-0138",
+      "cells": {
+        "zavsif": "214",
+        "prsmss": "5084849000",
+        "naziv": "OŠ Pier Paolo Vergerio il Vecchio Koper",
+        "naslov": "Gimnazijski trg 7",
+        "ds": "41881761",
+        "trr": "01250-6030657089"
+      }
+    },
+    {
+      "id": "school-0139",
+      "cells": {
+        "zavsif": "219",
+        "prsmss": "5083842000",
+        "naziv": "OŠ Šmarje pri Kopru",
+        "naslov": "Šmarje 1",
+        "ds": "98962043",
+        "trr": "01250-6030656992"
+      }
+    },
+    {
+      "id": "school-0140",
+      "cells": {
+        "zavsif": "242",
+        "prsmss": "5083958000",
+        "naziv": "OŠ Jožeta Gorjupa Kostanjevica na Krki",
+        "naslov": "Gorjanska cesta 2",
+        "ds": "47511788",
+        "trr": "01100-6008350462"
+      }
+    },
+    {
+      "id": "school-0141",
+      "cells": {
+        "zavsif": "208",
+        "prsmss": "5083095000",
+        "naziv": "OŠ Fara",
+        "naslov": "Fara 3",
+        "ds": "56815905",
+        "trr": "01365-6030657371"
+      }
+    },
+    {
+      "id": "school-0142",
+      "cells": {
+        "zavsif": "503",
+        "prsmss": "5087929000",
+        "naziv": "OŠ Kozje",
+        "naslov": "Kozje 131",
+        "ds": "56311761",
+        "trr": "01251-6030657428"
+      }
+    },
+    {
+      "id": "school-0143",
+      "cells": {
+        "zavsif": "504",
+        "prsmss": "5087937000",
+        "naziv": "OŠ Lesično",
+        "naslov": "Lesično 5 B",
+        "ds": "68680210",
+        "trr": "01251-6030657525"
+      }
+    },
+    {
+      "id": "school-0144",
+      "cells": {
+        "zavsif": "222",
+        "prsmss": "5086035000",
+        "naziv": "OŠ Franceta Prešerna Kranj",
+        "naslov": "Kidričeva cesta 49",
+        "ds": "94256454",
+        "trr": "01252-6030657670"
+      }
+    },
+    {
+      "id": "school-0145",
+      "cells": {
+        "zavsif": "227",
+        "prsmss": "5204941000",
+        "naziv": "OŠ Jakoba Aljaža Kranj",
+        "naslov": "Ulica Tončka Dežmana 1",
+        "ds": "45147990",
+        "trr": "01252-6030658155"
+      }
+    },
+    {
+      "id": "school-0146",
+      "cells": {
+        "zavsif": "25015",
+        "prsmss": "8889830000",
+        "naziv": "OŠ Janeza Puharja Kranj - Center",
+        "naslov": "Komenskega ulica 4",
+        "ds": "46234551",
+        "trr": "01252-6000000529"
+      }
+    },
+    {
+      "id": "school-0147",
+      "cells": {
+        "zavsif": "223",
+        "prsmss": "5279976000",
+        "naziv": "OŠ Matije Čopa Kranj",
+        "naslov": "Ulica Tuga Vidmarja 1",
+        "ds": "93323611",
+        "trr": "01252-6030658252"
+      }
+    },
+    {
+      "id": "school-0148",
+      "cells": {
+        "zavsif": "1370",
+        "prsmss": "1319841000",
+        "naziv": "OŠ Orehek Kranj",
+        "naslov": "Zasavska cesta 53 A",
+        "ds": "72290480",
+        "trr": "01252-6030658349"
+      }
+    },
+    {
+      "id": "school-0149",
+      "cells": {
+        "zavsif": "228",
+        "prsmss": "5083222000",
+        "naziv": "OŠ Predoslje Kranj",
+        "naslov": "Predoslje 17 A",
+        "ds": "53580664",
+        "trr": "01252-6030658058"
+      }
+    },
+    {
+      "id": "school-0150",
+      "cells": {
+        "zavsif": "224",
+        "prsmss": "5083192000",
+        "naziv": "OŠ Simona Jenka Kranj",
+        "naslov": "Ulica XXXI. divizije 7 A",
+        "ds": "43026141",
+        "trr": "01252-6030657767"
+      }
+    },
+    {
+      "id": "school-0151",
+      "cells": {
+        "zavsif": "226",
+        "prsmss": "5083206000",
+        "naziv": "OŠ Staneta Žagarja Kranj",
+        "naslov": "Cesta 1. maja 10 A",
+        "ds": "88156176",
+        "trr": "01252-6030657961"
+      }
+    },
+    {
+      "id": "school-0152",
+      "cells": {
+        "zavsif": "225",
+        "prsmss": "5085365000",
+        "naziv": "OŠ Stražišče Kranj",
+        "naslov": "Šolska ulica 2",
+        "ds": "80750842",
+        "trr": "01252-6030657864"
+      }
+    },
+    {
+      "id": "school-0153",
+      "cells": {
+        "zavsif": "1207",
+        "prsmss": "5719038000",
+        "naziv": "OŠ Josipa Vandota Kranjska Gora",
+        "naslov": "Koroška ulica 12",
+        "ds": "65736290",
+        "trr": "01253-6030658591"
+      }
+    },
+    {
+      "id": "school-0154",
+      "cells": {
+        "zavsif": "1208",
+        "prsmss": "5719054000",
+        "naziv": "OŠ 16. decembra Mojstrana",
+        "naslov": "Ulica Alojza Rabiča 7",
+        "ds": "39376699",
+        "trr": "01253-6030658494"
+      }
+    },
+    {
+      "id": "school-0155",
+      "cells": {
+        "zavsif": "332",
+        "prsmss": "5084636000",
+        "naziv": "OŠ Križevci",
+        "naslov": "Križevci pri Ljutomeru 16 B",
+        "ds": "93578253",
+        "trr": "01366-6030658680"
+      }
+    },
+    {
+      "id": "school-0156",
+      "cells": {
+        "zavsif": "239",
+        "prsmss": "5083940000",
+        "naziv": "OŠ Adama Bohoriča Brestanica",
+        "naslov": "Šolska cesta 29",
+        "ds": "38506467",
+        "trr": "01100-6000030384"
+      }
+    },
+    {
+      "id": "school-0157",
+      "cells": {
+        "zavsif": "234",
+        "prsmss": "5083974000",
+        "naziv": "OŠ Jurija Dalmatina Krško",
+        "naslov": "Šolska ulica 1",
+        "ds": "25512030",
+        "trr": "01100-6000030869"
+      }
+    },
+    {
+      "id": "school-0158",
+      "cells": {
+        "zavsif": "241",
+        "prsmss": "5086043000",
+        "naziv": "OŠ Koprivnica",
+        "naslov": "Koprivnica 2",
+        "ds": "10360077",
+        "trr": "01100-6000030481"
+      }
+    },
+    {
+      "id": "school-0159",
+      "cells": {
+        "zavsif": "237",
+        "prsmss": "5085047000",
+        "naziv": "OŠ Leskovec pri Krškem",
+        "naslov": "Pionirska cesta 4",
+        "ds": "76398137",
+        "trr": "01100-6000030578"
+      }
+    },
+    {
+      "id": "school-0160",
+      "cells": {
+        "zavsif": "243",
+        "prsmss": "5086051000",
+        "naziv": "OŠ Podbočje",
+        "naslov": "Podbočje 82",
+        "ds": "57625166",
+        "trr": "01100-6000030675"
+      }
+    },
+    {
+      "id": "school-0161",
+      "cells": {
+        "zavsif": "238",
+        "prsmss": "5083281000",
+        "naziv": "OŠ Raka",
+        "naslov": "Raka 36",
+        "ds": "61576824",
+        "trr": "01100-6000030772"
+      }
+    },
+    {
+      "id": "school-0162",
+      "cells": {
+        "zavsif": "240",
+        "prsmss": "5083966000",
+        "naziv": "OŠ XIV. divizije Senovo",
+        "naslov": "Trg XIV. divizije 3",
+        "ds": "26071240",
+        "trr": "01100-6000030287"
+      }
+    },
+    {
+      "id": "school-0163",
+      "cells": {
+        "zavsif": "582",
+        "prsmss": "5085152000",
+        "naziv": "OŠ Kungota",
+        "naslov": "Plintovec 10 C",
+        "ds": "58552561",
+        "trr": "01255-6030659560"
+      }
+    },
+    {
+      "id": "school-0164",
+      "cells": {
+        "zavsif": "355",
+        "prsmss": "5085632000",
+        "naziv": "OŠ Kuzma",
+        "naslov": "Kuzma 20",
+        "ds": "77414900",
+        "trr": "01100-6008379174"
+      }
+    },
+    {
+      "id": "school-0165",
+      "cells": {
+        "zavsif": "1353",
+        "prsmss": "5924359000",
+        "naziv": "OŠ Antona Aškerca Rimske Toplice",
+        "naslov": "Aškerčeva cesta 1",
+        "ds": "81377231",
+        "trr": "01257-6030659850"
+      }
+    },
+    {
+      "id": "school-0166",
+      "cells": {
+        "zavsif": "491",
+        "prsmss": "5924332000",
+        "naziv": "OŠ Primoža Trubarja Laško",
+        "naslov": "Trubarjeva ulica 20",
+        "ds": "29610249",
+        "trr": "01257-6030659753"
+      }
+    },
+    {
+      "id": "school-0167",
+      "cells": {
+        "zavsif": "246",
+        "prsmss": "5086639000",
+        "naziv": "OŠ Lenart",
+        "naslov": "Ptujska cesta 25",
+        "ds": "27905918",
+        "trr": "01100-6008376943"
+      }
+    },
+    {
+      "id": "school-0168",
+      "cells": {
+        "zavsif": "247",
+        "prsmss": "5084008000",
+        "naziv": "OŠ Voličina",
+        "naslov": "Spodnja Voličina 82",
+        "ds": "60776641",
+        "trr": "01100-6008377040"
+      }
+    },
+    {
+      "id": "school-0169",
+      "cells": {
+        "zavsif": "258",
+        "prsmss": "5089735000",
+        "naziv": "Dvojezična osnovna šola Genterovci",
+        "naslov": "Šolska ulica 2",
+        "ds": "31391320",
+        "trr": "01100-6008371026"
+      }
+    },
+    {
+      "id": "school-0170",
+      "cells": {
+        "zavsif": "253",
+        "prsmss": "5089727000",
+        "naziv": "Dvojezična osnovna šola I Lendava",
+        "naslov": "Kranjčeva ulica 44",
+        "ds": "50448625",
+        "trr": "01100-6008370832"
+      }
+    },
+    {
+      "id": "school-0171",
+      "cells": {
+        "zavsif": "262",
+        "prsmss": "5084873000",
+        "naziv": "OŠ Gabrovka - Dole",
+        "naslov": "Gabrovka 30",
+        "ds": "84580062",
+        "trr": "01100-6000069766"
+      }
+    },
+    {
+      "id": "school-0172",
+      "cells": {
+        "zavsif": "1027",
+        "prsmss": "5689155000",
+        "naziv": "OŠ Gradec",
+        "naslov": "Bevkova ulica 3",
+        "ds": "42070651",
+        "trr": "01100-6000069863"
+      }
+    },
+    {
+      "id": "school-0173",
+      "cells": {
+        "zavsif": "1346",
+        "prsmss": "5689147000",
+        "naziv": "OŠ Litija",
+        "naslov": "Ulica Mire Pregljeve 3",
+        "ds": "17567734",
+        "trr": "01100-6000069960"
+      }
+    },
+    {
+      "id": "school-0174",
+      "cells": {
+        "zavsif": "23135",
+        "prsmss": "6037542000",
+        "naziv": "Inštitut Lila, OE OŠ Lila Ljubljana",
+        "naslov": "Litostrojska cesta 40",
+        "ds": "98229109",
+        "trr": "60000-0000373618"
+      }
+    },
+    {
+      "id": "school-0175",
+      "cells": {
+        "zavsif": "17530",
+        "prsmss": "2234572000",
+        "naziv": "Inštitut montessori, Zavod za pomoč staršem pri razvoju otrok",
+        "naslov": "Ulica Ferda Kozaka 49",
+        "ds": "22779108",
+        "trr": "34000-1004329925"
+      }
+    },
+    {
+      "id": "school-0176",
+      "cells": {
+        "zavsif": "270",
+        "prsmss": "5089913000",
+        "naziv": "OŠ Bežigrad",
+        "naslov": "Črtomirova ulica 12",
+        "ds": "51149877",
+        "trr": "01261-6030662758"
+      }
+    },
+    {
+      "id": "school-0177",
+      "cells": {
+        "zavsif": "605",
+        "prsmss": "5623758000",
+        "naziv": "OŠ Božidarja Jakca Ljubljana",
+        "naslov": "Nusdorferjeva ulica 10",
+        "ds": "44901062",
+        "trr": "01261-6030663437"
+      }
+    },
+    {
+      "id": "school-0178",
+      "cells": {
+        "zavsif": "266",
+        "prsmss": "5083389000",
+        "naziv": "OŠ Danile Kumar",
+        "naslov": "Gogalova ulica 15",
+        "ds": "42494940",
+        "trr": "01261-6030662176"
+      }
+    },
+    {
+      "id": "school-0179",
+      "cells": {
+        "zavsif": "268",
+        "prsmss": "5083397000",
+        "naziv": "OŠ dr. Vita Kraigherja Ljubljana",
+        "naslov": "Trg 9. maja 1",
+        "ds": "69049408",
+        "trr": "01261-6030662564"
+      }
+    },
+    {
+      "id": "school-0180",
+      "cells": {
+        "zavsif": "303",
+        "prsmss": "5204950000",
+        "naziv": "OŠ Dravlje",
+        "naslov": "Klopčičeva ulica 1",
+        "ds": "79401392",
+        "trr": "01261-6030664989"
+      }
+    },
+    {
+      "id": "school-0181",
+      "cells": {
+        "zavsif": "302",
+        "prsmss": "5086701000",
+        "naziv": "OŠ Franca Rozmana - Staneta Ljubljana",
+        "naslov": "Prušnikova ulica 85",
+        "ds": "55290639",
+        "trr": "01261-6030664213"
+      }
+    },
+    {
+      "id": "school-0182",
+      "cells": {
+        "zavsif": "269",
+        "prsmss": "5083419000",
+        "naziv": "OŠ Franceta Bevka",
+        "naslov": "Ulica Pohorskega bataljona 1",
+        "ds": "75844818",
+        "trr": "01261-6030662661"
+      }
+    },
+    {
+      "id": "school-0183",
+      "cells": {
+        "zavsif": "295",
+        "prsmss": "5084369000",
+        "naziv": "OŠ Hinka Smrekarja Ljubljana",
+        "naslov": "Gorazdova ulica 16",
+        "ds": "23541300",
+        "trr": "01261-6030664698"
+      }
+    },
+    {
+      "id": "school-0184",
+      "cells": {
+        "zavsif": "284",
+        "prsmss": "5084954000",
+        "naziv": "OŠ Jožeta Moškriča",
+        "naslov": "Jarška cesta 34",
+        "ds": "26121018",
+        "trr": "01261-6030662952"
+      }
+    },
+    {
+      "id": "school-0185",
+      "cells": {
+        "zavsif": "288",
+        "prsmss": "5086655000",
+        "naziv": "OŠ Karla Destovnika Kajuha Ljubljana",
+        "naslov": "Jakčeva ulica 42",
+        "ds": "10592849",
+        "trr": "01261-6030663922"
+      }
+    },
+    {
+      "id": "school-0186",
+      "cells": {
+        "zavsif": "17510",
+        "prsmss": "3765229000",
+        "naziv": "OŠ Kašelj",
+        "naslov": "Kašeljska cesta 119 A",
+        "ds": "21120234",
+        "trr": "01261-6000002416"
+      }
+    },
+    {
+      "id": "school-0187",
+      "cells": {
+        "zavsif": "289",
+        "prsmss": "5084270000",
+        "naziv": "OŠ Ketteja in Murna",
+        "naslov": "Koširjeva ulica 2",
+        "ds": "48351784",
+        "trr": "01261-6030662855"
+      }
+    },
+    {
+      "id": "school-0188",
+      "cells": {
+        "zavsif": "316",
+        "prsmss": "5428394000",
+        "naziv": "OŠ Kolezija",
+        "naslov": "Cesta v Mestni log 46",
+        "ds": "38359073",
+        "trr": "01261-6030661885"
+      }
+    },
+    {
+      "id": "school-0189",
+      "cells": {
+        "zavsif": "298",
+        "prsmss": "5062926000",
+        "naziv": "OŠ Koseze",
+        "naslov": "Ledarska ulica 23",
+        "ds": "85738271",
+        "trr": "01261-6030664892"
+      }
+    },
+    {
+      "id": "school-0190",
+      "cells": {
+        "zavsif": "112",
+        "prsmss": "5084148000",
+        "naziv": "OŠ Ledina",
+        "naslov": "Komenskega ulica 19",
+        "ds": "89487273",
+        "trr": "01261-6030661691"
+      }
+    },
+    {
+      "id": "school-0191",
+      "cells": {
+        "zavsif": "614",
+        "prsmss": "5375827000",
+        "naziv": "OŠ Livada",
+        "naslov": "Ulica Dušana Kraigherja 2",
+        "ds": "85566543",
+        "trr": "01261-6030661788"
+      }
+    },
+    {
+      "id": "school-0192",
+      "cells": {
+        "zavsif": "275",
+        "prsmss": "5083486000",
+        "naziv": "OŠ Majde Vrhovnik Ljubljana",
+        "naslov": "Gregorčičeva ulica 16",
+        "ds": "36181455",
+        "trr": "01261-6030661303"
+      }
+    },
+    {
+      "id": "school-0193",
+      "cells": {
+        "zavsif": "285",
+        "prsmss": "5236681000",
+        "naziv": "OŠ Martina Krpana Ljubljana",
+        "naslov": "Gašperšičeva ulica 10",
+        "ds": "98721089",
+        "trr": "01261-6030663631"
+      }
+    },
+    {
+      "id": "school-0194",
+      "cells": {
+        "zavsif": "271",
+        "prsmss": "5204291000",
+        "naziv": "OŠ Milana Šuštaršiča",
+        "naslov": "Štembalova ulica 2 A",
+        "ds": "11555050",
+        "trr": "01261-6030665183"
+      }
+    },
+    {
+      "id": "school-0195",
+      "cells": {
+        "zavsif": "267",
+        "prsmss": "5084105000",
+        "naziv": "OŠ Mirana Jarca",
+        "naslov": "Ipavčeva ulica 1",
+        "ds": "32234945",
+        "trr": "01261-6030662370"
+      }
+    },
+    {
+      "id": "school-0196",
+      "cells": {
+        "zavsif": "301",
+        "prsmss": "5255279000",
+        "naziv": "OŠ Miška Kranjca",
+        "naslov": "Kamnogoriška cesta 35",
+        "ds": "47126027",
+        "trr": "01261-6030665086"
+      }
+    },
+    {
+      "id": "school-0197",
+      "cells": {
+        "zavsif": "272",
+        "prsmss": "5084091000",
+        "naziv": "OŠ narodnega heroja Maksa Pečarja",
+        "naslov": "Črnuška cesta 9",
+        "ds": "79338119",
+        "trr": "01261-6030662273"
+      }
+    },
+    {
+      "id": "school-0198",
+      "cells": {
+        "zavsif": "287",
+        "prsmss": "5280052000",
+        "naziv": "OŠ Nove Fužine",
+        "naslov": "Preglov trg 8",
+        "ds": "59223332",
+        "trr": "01261-6030663825"
+      }
+    },
+    {
+      "id": "school-0199",
+      "cells": {
+        "zavsif": "286",
+        "prsmss": "5273935000",
+        "naziv": "OŠ Nove Jarše",
+        "naslov": "Clevelandska ulica 11",
+        "ds": "15729257",
+        "trr": "01261-6030663728"
+      }
+    },
+    {
+      "id": "school-0200",
+      "cells": {
+        "zavsif": "315",
+        "prsmss": "5088798000",
+        "naziv": "OŠ Oskarja Kovačiča",
+        "naslov": "Ob dolenjski železnici 48",
+        "ds": "81115997",
+        "trr": "01261-6030661982"
+      }
+    },
+    {
+      "id": "school-0201",
+      "cells": {
+        "zavsif": "279",
+        "prsmss": "5083494000",
+        "naziv": "OŠ Poljane Ljubljana",
+        "naslov": "Zemljemerska ulica 7",
+        "ds": "73742309",
+        "trr": "01261-6030661109"
+      }
+    },
+    {
+      "id": "school-0202",
+      "cells": {
+        "zavsif": "293",
+        "prsmss": "5084288000",
+        "naziv": "OŠ Polje",
+        "naslov": "Zaloška cesta 189",
+        "ds": "99728508",
+        "trr": "01261-6030663049"
+      }
+    },
+    {
+      "id": "school-0203",
+      "cells": {
+        "zavsif": "274",
+        "prsmss": "5084156000",
+        "naziv": "OŠ Prežihovega Voranca",
+        "naslov": "Prežihova ulica 8",
+        "ds": "32732686",
+        "trr": "01261-6030661012"
+      }
+    },
+    {
+      "id": "school-0204",
+      "cells": {
+        "zavsif": "280",
+        "prsmss": "5084164000",
+        "naziv": "OŠ Prule",
+        "naslov": "Prule 13",
+        "ds": "89177606",
+        "trr": "01261-6030661206"
+      }
+    },
+    {
+      "id": "school-0205",
+      "cells": {
+        "zavsif": "300",
+        "prsmss": "5086132000",
+        "naziv": "OŠ Riharda Jakopiča Ljubljana",
+        "naslov": "Derčeva ulica 1",
+        "ds": "43483461",
+        "trr": "01261-6030664504"
+      }
+    },
+    {
+      "id": "school-0206",
+      "cells": {
+        "zavsif": "265",
+        "prsmss": "5083362000",
+        "naziv": "OŠ Savsko naselje",
+        "naslov": "Matjaževa ulica 4",
+        "ds": "71148922",
+        "trr": "01261-6030662467"
+      }
+    },
+    {
+      "id": "school-0207",
+      "cells": {
+        "zavsif": "294",
+        "prsmss": "5086124000",
+        "naziv": "OŠ Sostro",
+        "naslov": "Cesta II. grupe odredov 47",
+        "ds": "19630646",
+        "trr": "01261-6030663243"
+      }
+    },
+    {
+      "id": "school-0208",
+      "cells": {
+        "zavsif": "296",
+        "prsmss": "5084326000",
+        "naziv": "OŠ Spodnja Šiška",
+        "naslov": "Gasilska cesta 17",
+        "ds": "94204390",
+        "trr": "01261-6030664310"
+      }
+    },
+    {
+      "id": "school-0209",
+      "cells": {
+        "zavsif": "305",
+        "prsmss": "5090016000",
+        "naziv": "OŠ Šentvid",
+        "naslov": "Prušnikova ulica 98",
+        "ds": "51719070",
+        "trr": "01261-6030664116"
+      }
+    },
+    {
+      "id": "school-0210",
+      "cells": {
+        "zavsif": "306",
+        "prsmss": "5133785000",
+        "naziv": "OŠ Šmartno pod Šmarno goro",
+        "naslov": "Cesta v Gameljne 7",
+        "ds": "61510971",
+        "trr": "01261-6030664019"
+      }
+    },
+    {
+      "id": "school-0211",
+      "cells": {
+        "zavsif": "277",
+        "prsmss": "5088755000",
+        "naziv": "OŠ Toneta Čufarja",
+        "naslov": "Čufarjeva ulica 11",
+        "ds": "98088742",
+        "trr": "01261-6030660915"
+      }
+    },
+    {
+      "id": "school-0212",
+      "cells": {
+        "zavsif": "312",
+        "prsmss": "5084440000",
+        "naziv": "OŠ Trnovo",
+        "naslov": "Karunova ulica 14 A",
+        "ds": "67940650",
+        "trr": "01261-6030662079"
+      }
+    },
+    {
+      "id": "school-0213",
+      "cells": {
+        "zavsif": "299",
+        "prsmss": "5084342000",
+        "naziv": "OŠ Valentina Vodnika Ljubljana",
+        "naslov": "Adamičeva ulica 16",
+        "ds": "94718164",
+        "trr": "01261-6030664407"
+      }
+    },
+    {
+      "id": "school-0214",
+      "cells": {
+        "zavsif": "317",
+        "prsmss": "5084458000",
+        "naziv": "OŠ Vič",
+        "naslov": "Abramova ulica 26",
+        "ds": "35103086",
+        "trr": "01261-6030665377"
+      }
+    },
+    {
+      "id": "school-0215",
+      "cells": {
+        "zavsif": "283",
+        "prsmss": "5084300000",
+        "naziv": "OŠ Vide Pregarc Ljubljana",
+        "naslov": "Bazoviška ulica 1",
+        "ds": "52386368",
+        "trr": "01261-6030663146"
+      }
+    },
+    {
+      "id": "school-0216",
+      "cells": {
+        "zavsif": "297",
+        "prsmss": "5084407000",
+        "naziv": "OŠ Vižmarje - Brod",
+        "naslov": "Na gaju 2",
+        "ds": "31191070",
+        "trr": "01261-6030664795"
+      }
+    },
+    {
+      "id": "school-0217",
+      "cells": {
+        "zavsif": "278",
+        "prsmss": "5083478000",
+        "naziv": "OŠ Vodmat",
+        "naslov": "Potrčeva ulica 1",
+        "ds": "43102913",
+        "trr": "01261-6030661497"
+      }
+    },
+    {
+      "id": "school-0218",
+      "cells": {
+        "zavsif": "313",
+        "prsmss": "5084989000",
+        "naziv": "OŠ Vrhovci",
+        "naslov": "Cesta na Bokalce 1",
+        "ds": "34317627",
+        "trr": "01261-6030665280"
+      }
+    },
+    {
+      "id": "school-0219",
+      "cells": {
+        "zavsif": "291",
+        "prsmss": "5205239000",
+        "naziv": "OŠ Zadobrova",
+        "naslov": "Zadobrovška cesta 35",
+        "ds": "32930798",
+        "trr": "01261-6030663534"
+      }
+    },
+    {
+      "id": "school-0220",
+      "cells": {
+        "zavsif": "292",
+        "prsmss": "5084296000",
+        "naziv": "OŠ Zalog",
+        "naslov": "Cerutova ulica 7",
+        "ds": "75894190",
+        "trr": "01261-6030663340"
+      }
+    },
+    {
+      "id": "school-0221",
+      "cells": {
+        "zavsif": "3767",
+        "prsmss": "5642574000",
+        "naziv": "Waldorfska šola Ljubljana",
+        "naslov": "Streliška ulica 12",
+        "ds": "65714415",
+        "trr": "04302-0001018775"
+      }
+    },
+    {
+      "id": "school-0222",
+      "cells": {
+        "zavsif": "25976",
+        "prsmss": "9839674000",
+        "naziv": "Zasebna osnovna šola Locus Montessorium",
+        "naslov": "Slovenska cesta 19",
+        "ds": "61949868",
+        "trr": "61000-0030024466"
+      }
+    },
+    {
+      "id": "school-0223",
+      "cells": {
+        "zavsif": "340",
+        "prsmss": "5088941000",
+        "naziv": "OŠ Ljubno ob Savinji",
+        "naslov": "Cesta v Rastke 10",
+        "ds": "67789943",
+        "trr": "01100-6008352984"
+      }
+    },
+    {
+      "id": "school-0224",
+      "cells": {
+        "zavsif": "330",
+        "prsmss": "5085012000",
+        "naziv": "OŠ Ivana Cankarja Ljutomer",
+        "naslov": "Cankarjeva cesta 10",
+        "ds": "92006582",
+        "trr": "01263-6030665667"
+      }
+    },
+    {
+      "id": "school-0225",
+      "cells": {
+        "zavsif": "329",
+        "prsmss": "5084628000",
+        "naziv": "OŠ Janka Ribiča Cezanjevci",
+        "naslov": "Cezanjevci 39",
+        "ds": "94576980",
+        "trr": "01263-6030665861"
+      }
+    },
+    {
+      "id": "school-0226",
+      "cells": {
+        "zavsif": "333",
+        "prsmss": "5084610000",
+        "naziv": "OŠ Mala Nedelja",
+        "naslov": "Mala Nedelja 37",
+        "ds": "36663417",
+        "trr": "01263-6030665764"
+      }
+    },
+    {
+      "id": "school-0227",
+      "cells": {
+        "zavsif": "328",
+        "prsmss": "5085004000",
+        "naziv": "OŠ Stročja vas",
+        "naslov": "Stročja vas 101",
+        "ds": "91516943",
+        "trr": "01263-6030665958"
+      }
+    },
+    {
+      "id": "school-0228",
+      "cells": {
+        "zavsif": "1234",
+        "prsmss": "5912792000",
+        "naziv": "OŠ Rovte",
+        "naslov": "Rovte 90 A",
+        "ds": "57121133",
+        "trr": "01264-6030666394"
+      }
+    },
+    {
+      "id": "school-0229",
+      "cells": {
+        "zavsif": "335",
+        "prsmss": "5085071000",
+        "naziv": "OŠ Tabor Logatec",
+        "naslov": "Tržaška cesta 150",
+        "ds": "24675750",
+        "trr": "01264-6030666297"
+      }
+    },
+    {
+      "id": "school-0230",
+      "cells": {
+        "zavsif": "334",
+        "prsmss": "5084687000",
+        "naziv": "OŠ 8 talcev Logatec",
+        "naslov": "Notranjska cesta 3",
+        "ds": "45289018",
+        "trr": "01264-6030666103"
+      }
+    },
+    {
+      "id": "school-0231",
+      "cells": {
+        "zavsif": "534",
+        "prsmss": "5207045000",
+        "naziv": "OŠ Log - Dragomer",
+        "naslov": "Šolska ulica 1",
+        "ds": "49698125",
+        "trr": "01408-6000000063"
+      }
+    },
+    {
+      "id": "school-0232",
+      "cells": {
+        "zavsif": "148",
+        "prsmss": "5089891000",
+        "naziv": "OŠ heroja Janeza Hribarja Stari trg pri Ložu",
+        "naslov": "Cesta Notranjskega odreda 32",
+        "ds": "58122982",
+        "trr": "01265-6030666442"
+      }
+    },
+    {
+      "id": "school-0233",
+      "cells": {
+        "zavsif": "448",
+        "prsmss": "5087422000",
+        "naziv": "OŠ dr. Antona Debeljaka Loški Potok",
+        "naslov": "Hrib-Loški Potok 101",
+        "ds": "58814515",
+        "trr": "01266-6030666587"
+      }
+    },
+    {
+      "id": "school-0234",
+      "cells": {
+        "zavsif": "1203",
+        "prsmss": "5085179000",
+        "naziv": "OŠ Lovrenc na Pohorju",
+        "naslov": "Šolska ulica 6",
+        "ds": "89983882",
+        "trr": "01367-6030666682"
+      }
+    },
+    {
+      "id": "school-0235",
+      "cells": {
+        "zavsif": "341",
+        "prsmss": "5085551000",
+        "naziv": "OŠ Blaža Arniča Luče",
+        "naslov": "Luče 77",
+        "ds": "64095053",
+        "trr": "01100-6008352790"
+      }
+    },
+    {
+      "id": "school-0236",
+      "cells": {
+        "zavsif": "157",
+        "prsmss": "5082790000",
+        "naziv": "OŠ Janka Kersnika Brdo",
+        "naslov": "Brdo pri Lukovici 5",
+        "ds": "50409484",
+        "trr": "01100-6000067729"
+      }
+    },
+    {
+      "id": "school-0237",
+      "cells": {
+        "zavsif": "422",
+        "prsmss": "5087074000",
+        "naziv": "OŠ Majšperk",
+        "naslov": "Majšperk 32 B",
+        "ds": "57555559",
+        "trr": "01100-6007816283"
+      }
+    },
+    {
+      "id": "school-0238",
+      "cells": {
+        "zavsif": "476",
+        "prsmss": "5087651000",
+        "naziv": "OŠ Anice Černejeve Makole",
+        "naslov": "Makole 24",
+        "ds": "53210336",
+        "trr": "01398-6000000068"
+      }
+    },
+    {
+      "id": "school-0239",
+      "cells": {
+        "zavsif": "560",
+        "prsmss": "5085187000",
+        "naziv": "OŠ Angela Besednjaka Maribor",
+        "naslov": "Celjska ulica 11",
+        "ds": "86623265",
+        "trr": "01270-6030667943"
+      }
+    },
+    {
+      "id": "school-0240",
+      "cells": {
+        "zavsif": "557",
+        "prsmss": "5085110000",
+        "naziv": "OŠ Bojana Ilicha Maribor",
+        "naslov": "Mladinska ulica 13",
+        "ds": "90652363",
+        "trr": "01270-6030667167"
+      }
+    },
+    {
+      "id": "school-0241",
+      "cells": {
+        "zavsif": "558",
+        "prsmss": "5197449000",
+        "naziv": "OŠ \"Borcev za severno mejo\" Maribor",
+        "naslov": "Borcev za severno mejo 16",
+        "ds": "27553078",
+        "trr": "01270-6030668719"
+      }
+    },
+    {
+      "id": "school-0242",
+      "cells": {
+        "zavsif": "559",
+        "prsmss": "5085080000",
+        "naziv": "OŠ bratov Polančičev Maribor",
+        "naslov": "Prešernova ulica 19",
+        "ds": "36197254",
+        "trr": "01270-6030667264"
+      }
+    },
+    {
+      "id": "school-0243",
+      "cells": {
+        "zavsif": "564",
+        "prsmss": "5085250000",
+        "naziv": "OŠ Draga Kobala Maribor",
+        "naslov": "Tolstojeva ulica 3",
+        "ds": "87328704",
+        "trr": "01270-6030668234"
+      }
+    },
+    {
+      "id": "school-0244",
+      "cells": {
+        "zavsif": "565",
+        "prsmss": "5085837000",
+        "naziv": "OŠ Franca Rozmana - Staneta Maribor",
+        "naslov": "Kersnikova ulica 10",
+        "ds": "25901010",
+        "trr": "01270-6030667458"
+      }
+    },
+    {
+      "id": "school-0245",
+      "cells": {
+        "zavsif": "556",
+        "prsmss": "5085195000",
+        "naziv": "OŠ Franceta Prešerna Maribor",
+        "naslov": "Žolgarjeva ulica 2",
+        "ds": "78028116",
+        "trr": "01270-6030667846"
+      }
+    },
+    {
+      "id": "school-0246",
+      "cells": {
+        "zavsif": "561",
+        "prsmss": "5085217000",
+        "naziv": "OŠ Janka Padežnika Maribor",
+        "naslov": "Iztokova ulica 6",
+        "ds": "82112037",
+        "trr": "01270-6030668040"
+      }
+    },
+    {
+      "id": "school-0247",
+      "cells": {
+        "zavsif": "581",
+        "prsmss": "5086710000",
+        "naziv": "OŠ Kamnica",
+        "naslov": "Vrbanska cesta 93",
+        "ds": "31795609",
+        "trr": "01270-6030668622"
+      }
+    },
+    {
+      "id": "school-0248",
+      "cells": {
+        "zavsif": "604",
+        "prsmss": "5610494000",
+        "naziv": "OŠ Leona Štuklja Maribor",
+        "naslov": "Klinetova ulica 18",
+        "ds": "59613432",
+        "trr": "01270-6030669010"
+      }
+    },
+    {
+      "id": "school-0249",
+      "cells": {
+        "zavsif": "568",
+        "prsmss": "5086728000",
+        "naziv": "OŠ Ludvika Pliberška Maribor",
+        "naslov": "Lackova cesta 4",
+        "ds": "84740299",
+        "trr": "01270-6030668525"
+      }
+    },
+    {
+      "id": "school-0250",
+      "cells": {
+        "zavsif": "563",
+        "prsmss": "5085209000",
+        "naziv": "OŠ Maksa Durjave Maribor",
+        "naslov": "Ruška cesta 15",
+        "ds": "81376847",
+        "trr": "01270-6030667749"
+      }
+    },
+    {
+      "id": "school-0251",
+      "cells": {
+        "zavsif": "554",
+        "prsmss": "5206634000",
+        "naziv": "OŠ Malečnik",
+        "naslov": "Malečnik 61",
+        "ds": "79836682",
+        "trr": "01270-6030668816"
+      }
+    },
+    {
+      "id": "school-0252",
+      "cells": {
+        "zavsif": "555",
+        "prsmss": "5085268000",
+        "naziv": "OŠ Martina Konšaka Maribor",
+        "naslov": "Prekmurska ulica 67",
+        "ds": "53839773",
+        "trr": "01270-6030668331"
+      }
+    },
+    {
+      "id": "school-0253",
+      "cells": {
+        "zavsif": "553",
+        "prsmss": "5085101000",
+        "naziv": "OŠ Prežihovega Voranca Maribor",
+        "naslov": "Gosposvetska cesta 10",
+        "ds": "97870692",
+        "trr": "01270-6030667070"
+      }
+    },
+    {
+      "id": "school-0254",
+      "cells": {
+        "zavsif": "580",
+        "prsmss": "5085845000",
+        "naziv": "OŠ Rada Robiča Limbuš",
+        "naslov": "Limbuška cesta 62",
+        "ds": "61528714",
+        "trr": "01270-6030668428"
+      }
+    },
+    {
+      "id": "school-0255",
+      "cells": {
+        "zavsif": "567",
+        "prsmss": "5085322000",
+        "naziv": "OŠ Slave Klavore Maribor",
+        "naslov": "Štrekljeva ulica 31",
+        "ds": "38028654",
+        "trr": "01270-6030667555"
+      }
+    },
+    {
+      "id": "school-0256",
+      "cells": {
+        "zavsif": "603",
+        "prsmss": "5610508000",
+        "naziv": "OŠ Tabor I Maribor",
+        "naslov": "Ulica Arnolda Tovornika 21",
+        "ds": "50654802",
+        "trr": "01270-6030668913"
+      }
+    },
+    {
+      "id": "school-0257",
+      "cells": {
+        "zavsif": "562",
+        "prsmss": "5085284000",
+        "naziv": "OŠ Toneta Čufarja Maribor",
+        "naslov": "Zrkovska cesta 67",
+        "ds": "26804964",
+        "trr": "01270-6030668137"
+      }
+    },
+    {
+      "id": "school-0258",
+      "cells": {
+        "zavsif": "21915",
+        "prsmss": "6651518000",
+        "naziv": "Waldorfska šola Maribor",
+        "naslov": "Valvasorjeva ulica 75",
+        "ds": "89476646",
+        "trr": "61000-0007677315"
+      }
+    },
+    {
+      "id": "school-0259",
+      "cells": {
+        "zavsif": "21875",
+        "prsmss": "5921449003",
+        "naziv": "Zavod Antona Martina Slomška Maribor, OŠ Montessori",
+        "naslov": "Vrbanska cesta 30",
+        "ds": "26341395",
+        "trr": "29000-0052718775"
+      }
+    },
+    {
+      "id": "school-0260",
+      "cells": {
+        "zavsif": "417",
+        "prsmss": "5087104000",
+        "naziv": "OŠ Markovci",
+        "naslov": "Markovci 33 D",
+        "ds": "19017910",
+        "trr": "01100-6000044546"
+      }
+    },
+    {
+      "id": "school-0261",
+      "cells": {
+        "zavsif": "307",
+        "prsmss": "5222575000",
+        "naziv": "OŠ Medvode",
+        "naslov": "Ostrovrharjeva ulica 4",
+        "ds": "26623404",
+        "trr": "01271-6030669543"
+      }
+    },
+    {
+      "id": "school-0262",
+      "cells": {
+        "zavsif": "309",
+        "prsmss": "5084393000",
+        "naziv": "OŠ Pirniče",
+        "naslov": "Zgornje Pirniče 37 B",
+        "ds": "52479668",
+        "trr": "01271-6030669349"
+      }
+    },
+    {
+      "id": "school-0263",
+      "cells": {
+        "zavsif": "308",
+        "prsmss": "5084334000",
+        "naziv": "OŠ Preska",
+        "naslov": "Preška cesta 22",
+        "ds": "34416170",
+        "trr": "01271-6030669252"
+      }
+    },
+    {
+      "id": "school-0264",
+      "cells": {
+        "zavsif": "310",
+        "prsmss": "5084385000",
+        "naziv": "OŠ Simona Jenka",
+        "naslov": "Smlednik 73",
+        "ds": "11413743",
+        "trr": "01271-6030669446"
+      }
+    },
+    {
+      "id": "school-0265",
+      "cells": {
+        "zavsif": "164",
+        "prsmss": "5082820000",
+        "naziv": "OŠ Mengeš",
+        "naslov": "Šolska ulica 11",
+        "ds": "94625387",
+        "trr": "01100-6000032130"
+      }
+    },
+    {
+      "id": "school-0266",
+      "cells": {
+        "zavsif": "336",
+        "prsmss": "5088925000",
+        "naziv": "OŠ Metlika",
+        "naslov": "Šolska ulica 7",
+        "ds": "25802925",
+        "trr": "01273-6030669736"
+      }
+    },
+    {
+      "id": "school-0267",
+      "cells": {
+        "zavsif": "338",
+        "prsmss": "5085543000",
+        "naziv": "OŠ Podzemelj",
+        "naslov": "Podzemelj 11 A",
+        "ds": "68512902",
+        "trr": "01273-6030669833"
+      }
+    },
+    {
+      "id": "school-0268",
+      "cells": {
+        "zavsif": "443",
+        "prsmss": "5087376000",
+        "naziv": "OŠ Mežica",
+        "naslov": "Partizanska cesta 16",
+        "ds": "93869126",
+        "trr": "01274-6030669978"
+      }
+    },
+    {
+      "id": "school-0269",
+      "cells": {
+        "zavsif": "576",
+        "prsmss": "5085276000",
+        "naziv": "OŠ Miklavž na Dravskem polju",
+        "naslov": "Cesta v Dobrovce 21",
+        "ds": "70073627",
+        "trr": "01369-6030670076"
+      }
+    },
+    {
+      "id": "school-0270",
+      "cells": {
+        "zavsif": "368",
+        "prsmss": "5085829000",
+        "naziv": "OŠ Miren",
+        "naslov": "Miren 140",
+        "ds": "57887411",
+        "trr": "01275-6030670123"
+      }
+    },
+    {
+      "id": "school-0271",
+      "cells": {
+        "zavsif": "517",
+        "prsmss": "5090083000",
+        "naziv": "OŠ Mirna",
+        "naslov": "Cesta na Fužine 1",
+        "ds": "49417398",
+        "trr": "01100-6000040084"
+      }
+    },
+    {
+      "id": "school-0272",
+      "cells": {
+        "zavsif": "380",
+        "prsmss": "5086256000",
+        "naziv": "OŠ Toneta Pavčka",
+        "naslov": "Postaja 1",
+        "ds": "57013357",
+        "trr": "01100-6008373063"
+      }
+    },
+    {
+      "id": "school-0273",
+      "cells": {
+        "zavsif": "467",
+        "prsmss": "5087589000",
+        "naziv": "OŠ Mislinja",
+        "naslov": "Šentilj pod Turjakom 1",
+        "ds": "53705181",
+        "trr": "01276-6030670365"
+      }
+    },
+    {
+      "id": "school-0274",
+      "cells": {
+        "zavsif": "515",
+        "prsmss": "5088062000",
+        "naziv": "OŠ Mokronog",
+        "naslov": "Gubčeva cesta 4",
+        "ds": "11475064",
+        "trr": "01100-6000036786"
+      }
+    },
+    {
+      "id": "school-0275",
+      "cells": {
+        "zavsif": "167",
+        "prsmss": "5082838000",
+        "naziv": "OŠ Jurija Vege",
+        "naslov": "Vegova ulica 38",
+        "ds": "11448750",
+        "trr": "01277-6030670413"
+      }
+    },
+    {
+      "id": "school-0276",
+      "cells": {
+        "zavsif": "348",
+        "prsmss": "5243289000",
+        "naziv": "Dvojezična osnovna šola Prosenjakovci",
+        "naslov": "Prosenjakovci 97 C",
+        "ds": "67749925",
+        "trr": "01278-6030670752"
+      }
+    },
+    {
+      "id": "school-0277",
+      "cells": {
+        "zavsif": "350",
+        "prsmss": "5088976000",
+        "naziv": "OŠ Bogojina",
+        "naslov": "Bogojina 134",
+        "ds": "72026804",
+        "trr": "01278-6030670655"
+      }
+    },
+    {
+      "id": "school-0278",
+      "cells": {
+        "zavsif": "349",
+        "prsmss": "5085624000",
+        "naziv": "OŠ Fokovci",
+        "naslov": "Fokovci 32",
+        "ds": "79277802",
+        "trr": "01278-6030670558"
+      }
+    },
+    {
+      "id": "school-0279",
+      "cells": {
+        "zavsif": "339",
+        "prsmss": "5088950000",
+        "naziv": "OŠ Mozirje",
+        "naslov": "Šolska ulica 23",
+        "ds": "86633619",
+        "trr": "01279-6030670897"
+      }
+    },
+    {
+      "id": "school-0280",
+      "cells": {
+        "zavsif": "343",
+        "prsmss": "5088968000",
+        "naziv": "OŠ Bakovci",
+        "naslov": "Poljska ulica 2",
+        "ds": "10335234",
+        "trr": "01280-6030670945"
+      }
+    },
+    {
+      "id": "school-0281",
+      "cells": {
+        "zavsif": "634",
+        "prsmss": "5640245000",
+        "naziv": "OŠ I Murska Sobota",
+        "naslov": "Ulica Štefana Kovača 32",
+        "ds": "28051076",
+        "trr": "01280-6030671042"
+      }
+    },
+    {
+      "id": "school-0282",
+      "cells": {
+        "zavsif": "635",
+        "prsmss": "5640270000",
+        "naziv": "OŠ II Murska Sobota",
+        "naslov": "Cankarjeva ulica 91",
+        "ds": "10690336",
+        "trr": "01280-6030671139"
+      }
+    },
+    {
+      "id": "school-0283",
+      "cells": {
+        "zavsif": "636",
+        "prsmss": "5640261000",
+        "naziv": "OŠ III Murska Sobota",
+        "naslov": "Trstenjakova ulica 73",
+        "ds": "53080548",
+        "trr": "01280-6030671236"
+      }
+    },
+    {
+      "id": "school-0284",
+      "cells": {
+        "zavsif": "429",
+        "prsmss": "5087287000",
+        "naziv": "OŠ Muta",
+        "naslov": "Šolska ulica 6",
+        "ds": "69843716",
+        "trr": "01281-6030671478"
+      }
+    },
+    {
+      "id": "school-0285",
+      "cells": {
+        "zavsif": "1312",
+        "prsmss": "1193830000",
+        "naziv": "OŠ Naklo",
+        "naslov": "Glavna cesta 47",
+        "ds": "53817753",
+        "trr": "01100-6008339210"
+      }
+    },
+    {
+      "id": "school-0286",
+      "cells": {
+        "zavsif": "1374",
+        "prsmss": "1253484000",
+        "naziv": "OŠ Nazarje",
+        "naslov": "Zadrečka cesta 37",
+        "ds": "34152563",
+        "trr": "01100-6008340665"
+      }
+    },
+    {
+      "id": "school-0287",
+      "cells": {
+        "zavsif": "371",
+        "prsmss": "5085799000",
+        "naziv": "OŠ Branik",
+        "naslov": "Branik 31",
+        "ds": "33669040",
+        "trr": "01284-6030671719"
+      }
+    },
+    {
+      "id": "school-0288",
+      "cells": {
+        "zavsif": "364",
+        "prsmss": "5088992000",
+        "naziv": "OŠ Čepovan",
+        "naslov": "Čepovan 87",
+        "ds": "46864237",
+        "trr": "01284-6030671816"
+      }
+    },
+    {
+      "id": "school-0289",
+      "cells": {
+        "zavsif": "370",
+        "prsmss": "5085802000",
+        "naziv": "OŠ Dornberk",
+        "naslov": "Gregorčičeva ulica 30 A",
+        "ds": "30649366",
+        "trr": "01284-6030672107"
+      }
+    },
+    {
+      "id": "school-0290",
+      "cells": {
+        "zavsif": "357",
+        "prsmss": "5221625000",
+        "naziv": "OŠ Frana Erjavca Nova Gorica",
+        "naslov": "Kidričeva ulica 36",
+        "ds": "50989456",
+        "trr": "01284-6030672495"
+      }
+    },
+    {
+      "id": "school-0291",
+      "cells": {
+        "zavsif": "358",
+        "prsmss": "5089352000",
+        "naziv": "OŠ Milojke Štrukelj Nova Gorica",
+        "naslov": "Delpinova ulica 7",
+        "ds": "96298197",
+        "trr": "01284-6030672398"
+      }
+    },
+    {
+      "id": "school-0292",
+      "cells": {
+        "zavsif": "359",
+        "prsmss": "5089042000",
+        "naziv": "OŠ Solkan",
+        "naslov": "Šolska ulica 25",
+        "ds": "15978346",
+        "trr": "01284-6030671913"
+      }
+    },
+    {
+      "id": "school-0293",
+      "cells": {
+        "zavsif": "365",
+        "prsmss": "5086353000",
+        "naziv": "OŠ Šempas",
+        "naslov": "Šempas 76 C",
+        "ds": "76094693",
+        "trr": "01284-6030672010"
+      }
+    },
+    {
+      "id": "school-0294",
+      "cells": {
+        "zavsif": "377",
+        "prsmss": "5086868000",
+        "naziv": "OŠ Bršljin",
+        "naslov": "Kočevarjeva ulica 40",
+        "ds": "78931606",
+        "trr": "01100-6008343866"
+      }
+    },
+    {
+      "id": "school-0295",
+      "cells": {
+        "zavsif": "383",
+        "prsmss": "5086361000",
+        "naziv": "OŠ Brusnice",
+        "naslov": "Velike Brusnice 101",
+        "ds": "49987836",
+        "trr": "01100-6008343672"
+      }
+    },
+    {
+      "id": "school-0296",
+      "cells": {
+        "zavsif": "376",
+        "prsmss": "5086825000",
+        "naziv": "OŠ Center Novo mesto",
+        "naslov": "Seidlova cesta 7",
+        "ds": "38521610",
+        "trr": "01100-6008344157"
+      }
+    },
+    {
+      "id": "school-0297",
+      "cells": {
+        "zavsif": "9854",
+        "prsmss": "1574710000",
+        "naziv": "OŠ Drska",
+        "naslov": "Ulica Slavka Gruma 63",
+        "ds": "63882612",
+        "trr": "01100-6008344933"
+      }
+    },
+    {
+      "id": "school-0298",
+      "cells": {
+        "zavsif": "374",
+        "prsmss": "5086850000",
+        "naziv": "OŠ Grm Novo mesto",
+        "naslov": "Trdinova ulica 7",
+        "ds": "87598167",
+        "trr": "01100-6008344254"
+      }
+    },
+    {
+      "id": "school-0299",
+      "cells": {
+        "zavsif": "372",
+        "prsmss": "5086264000",
+        "naziv": "OŠ Otočec",
+        "naslov": "Šolska cesta 20",
+        "ds": "95753443",
+        "trr": "01100-6008343769"
+      }
+    },
+    {
+      "id": "school-0300",
+      "cells": {
+        "zavsif": "384",
+        "prsmss": "5086833000",
+        "naziv": "OŠ Stopiče",
+        "naslov": "Stopiče 37",
+        "ds": "92232787",
+        "trr": "01100-6008344060"
+      }
+    },
+    {
+      "id": "school-0301",
+      "cells": {
+        "zavsif": "375",
+        "prsmss": "5086841000",
+        "naziv": "OŠ Šmihel",
+        "naslov": "Šmihel 2",
+        "ds": "39971953",
+        "trr": "01100-6008343963"
+      }
+    },
+    {
+      "id": "school-0302",
+      "cells": {
+        "zavsif": "261",
+        "prsmss": "5089743000",
+        "naziv": "OŠ Odranci",
+        "naslov": "Prešernova ulica 1",
+        "ds": "21296626",
+        "trr": "01286-6030673464"
+      }
+    },
+    {
+      "id": "school-0303",
+      "cells": {
+        "zavsif": "472",
+        "prsmss": "5087660000",
+        "naziv": "OŠ Pohorskega bataljona Oplotnica",
+        "naslov": "Ulica Pohorskega bataljona 19",
+        "ds": "12215279",
+        "trr": "01371-3000000135"
+      }
+    },
+    {
+      "id": "school-0304",
+      "cells": {
+        "zavsif": "1233",
+        "prsmss": "5900026000",
+        "naziv": "OŠ Ivanjkovci",
+        "naslov": "Ivanjkovci 71 A",
+        "ds": "41002270",
+        "trr": "01100-6007817350"
+      }
+    },
+    {
+      "id": "school-0305",
+      "cells": {
+        "zavsif": "394",
+        "prsmss": "5089158000",
+        "naziv": "OŠ Miklavž pri Ormožu",
+        "naslov": "Miklavž pri Ormožu 29",
+        "ds": "29832063",
+        "trr": "01100-6007817059"
+      }
+    },
+    {
+      "id": "school-0306",
+      "cells": {
+        "zavsif": "390",
+        "prsmss": "5089875000",
+        "naziv": "OŠ Ormož",
+        "naslov": "Hardek 5",
+        "ds": "59310197",
+        "trr": "01100-6007817156"
+      }
+    },
+    {
+      "id": "school-0307",
+      "cells": {
+        "zavsif": "393",
+        "prsmss": "5090148000",
+        "naziv": "OŠ Velika Nedelja",
+        "naslov": "Velika Nedelja 13",
+        "ds": "82142211",
+        "trr": "01100-6007817253"
+      }
+    },
+    {
+      "id": "school-0308",
+      "cells": {
+        "zavsif": "587",
+        "prsmss": "5088836000",
+        "naziv": "OŠ Jakobski Dol",
+        "naslov": "Spodnji Jakobski Dol 4",
+        "ds": "10092293",
+        "trr": "01289-6030674384"
+      }
+    },
+    {
+      "id": "school-0309",
+      "cells": {
+        "zavsif": "586",
+        "prsmss": "5088844000",
+        "naziv": "OŠ Jarenina",
+        "naslov": "Jareninski Dol 26",
+        "ds": "26152363",
+        "trr": "01289-6030674190"
+      }
+    },
+    {
+      "id": "school-0310",
+      "cells": {
+        "zavsif": "583",
+        "prsmss": "5085128000",
+        "naziv": "OŠ Pesnica",
+        "naslov": "Pesnica pri Mariboru 44",
+        "ds": "83806547",
+        "trr": "01289-6030674287"
+      }
+    },
+    {
+      "id": "school-0311",
+      "cells": {
+        "zavsif": "399",
+        "prsmss": "5090075000",
+        "naziv": "OŠ Cirila Kosmača Piran",
+        "naslov": "Oljčna pot 24",
+        "ds": "84652594",
+        "trr": "01100-6008349395"
+      }
+    },
+    {
+      "id": "school-0312",
+      "cells": {
+        "zavsif": "396",
+        "prsmss": "5089174000",
+        "naziv": "OŠ Lucija",
+        "naslov": "Fazan 1",
+        "ds": "11997907",
+        "trr": "01100-6008344836"
+      }
+    },
+    {
+      "id": "school-0313",
+      "cells": {
+        "zavsif": "400",
+        "prsmss": "5086876000",
+        "naziv": "OŠ Sečovlje",
+        "naslov": "Sečovlje 78",
+        "ds": "93348428",
+        "trr": "01100-6008349589"
+      }
+    },
+    {
+      "id": "school-0314",
+      "cells": {
+        "zavsif": "398",
+        "prsmss": "5086442000",
+        "naziv": "OŠ Vincenzo e Diego de Castro Piran",
+        "naslov": "Vojkova ulica 1",
+        "ds": "53413440",
+        "trr": "01100-6008349104"
+      }
+    },
+    {
+      "id": "school-0315",
+      "cells": {
+        "zavsif": "404",
+        "prsmss": "5086922000",
+        "naziv": "OŠ Košana",
+        "naslov": "Dolnja Košana 61",
+        "ds": "11274824",
+        "trr": "01100-6000038047"
+      }
+    },
+    {
+      "id": "school-0316",
+      "cells": {
+        "zavsif": "405",
+        "prsmss": "5089212000",
+        "naziv": "OŠ Pivka",
+        "naslov": "Prečna ulica 3",
+        "ds": "42909872",
+        "trr": "01100-6000037950"
+      }
+    },
+    {
+      "id": "school-0317",
+      "cells": {
+        "zavsif": "501",
+        "prsmss": "5087945000",
+        "naziv": "OŠ Podčetrtek",
+        "naslov": "Trška cesta 66",
+        "ds": "96126043",
+        "trr": "01292-6030675013"
+      }
+    },
+    {
+      "id": "school-0318",
+      "cells": {
+        "zavsif": "420",
+        "prsmss": "5087112000",
+        "naziv": "OŠ Podlehnik",
+        "naslov": "Podlehnik 7 A",
+        "ds": "88073106",
+        "trr": "01372-6030675167"
+      }
+    },
+    {
+      "id": "school-0319",
+      "cells": {
+        "zavsif": "427",
+        "prsmss": "5089816000",
+        "naziv": "OŠ Brezno - Podvelka",
+        "naslov": "Brezno 78",
+        "ds": "42630142",
+        "trr": "01100-6008379368"
+      }
+    },
+    {
+      "id": "school-0320",
+      "cells": {
+        "zavsif": "475",
+        "prsmss": "5087678000",
+        "naziv": "OŠ Kajetana Koviča Poljčane",
+        "naslov": "Dravinjska cesta 26",
+        "ds": "17144442",
+        "trr": "01100-6007816380"
+      }
+    },
+    {
+      "id": "school-0321",
+      "cells": {
+        "zavsif": "551",
+        "prsmss": "5088500000",
+        "naziv": "OŠ Polzela",
+        "naslov": "Šolska ulica 3",
+        "ds": "33941688",
+        "trr": "01100-6008391687"
+      }
+    },
+    {
+      "id": "school-0322",
+      "cells": {
+        "zavsif": "402",
+        "prsmss": "5496829000",
+        "naziv": "OŠ Antona Globočnika Postojna",
+        "naslov": "Cesta na Kremenco 2",
+        "ds": "44439407",
+        "trr": "01294-6030675497"
+      }
+    },
+    {
+      "id": "school-0323",
+      "cells": {
+        "zavsif": "401",
+        "prsmss": "5496837000",
+        "naziv": "OŠ Miroslava Vilharja Postojna",
+        "naslov": "Trg padlih borcev 1 A",
+        "ds": "92694969",
+        "trr": "01294-6030675691"
+      }
+    },
+    {
+      "id": "school-0324",
+      "cells": {
+        "zavsif": "406",
+        "prsmss": "5086949000",
+        "naziv": "OŠ Prestranek",
+        "naslov": "Ulica 25. maja 14 A",
+        "ds": "98956574",
+        "trr": "01294-6030675594"
+      }
+    },
+    {
+      "id": "school-0325",
+      "cells": {
+        "zavsif": "550",
+        "prsmss": "5088518000",
+        "naziv": "OŠ Prebold",
+        "naslov": "Graščinska cesta 7",
+        "ds": "81995270",
+        "trr": "01100-6008369086"
+      }
+    },
+    {
+      "id": "school-0326",
+      "cells": {
+        "zavsif": "231",
+        "prsmss": "5083214000",
+        "naziv": "OŠ Matije Valjavca Preddvor",
+        "naslov": "Šolska ulica 9",
+        "ds": "75535211",
+        "trr": "01100-6008368116"
+      }
+    },
+    {
+      "id": "school-0327",
+      "cells": {
+        "zavsif": "442",
+        "prsmss": "5087384000",
+        "naziv": "OŠ Franja Goloba Prevalje",
+        "naslov": "Polje 4",
+        "ds": "73077500",
+        "trr": "01375-6030675990"
+      }
+    },
+    {
+      "id": "school-0328",
+      "cells": {
+        "zavsif": "409",
+        "prsmss": "5087155000",
+        "naziv": "OŠ Breg",
+        "naslov": "Rogaška cesta 6",
+        "ds": "70196958",
+        "trr": "01296-6030676272"
+      }
+    },
+    {
+      "id": "school-0329",
+      "cells": {
+        "zavsif": "410",
+        "prsmss": "5087147000",
+        "naziv": "OŠ Ljudski vrt Ptuj",
+        "naslov": "Župančičeva ulica 10",
+        "ds": "86058932",
+        "trr": "01296-6030676175"
+      }
+    },
+    {
+      "id": "school-0330",
+      "cells": {
+        "zavsif": "407",
+        "prsmss": "5087163000",
+        "naziv": "OŠ Mladika Ptuj",
+        "naslov": "Žnidaričevo nabrežje 1",
+        "ds": "80951147",
+        "trr": "01100-6008359095"
+      }
+    },
+    {
+      "id": "school-0331",
+      "cells": {
+        "zavsif": "408",
+        "prsmss": "5174309000",
+        "naziv": "OŠ Olge Meglič",
+        "naslov": "Prešernova ulica 31",
+        "ds": "73389439",
+        "trr": "01100-6008359386"
+      }
+    },
+    {
+      "id": "school-0332",
+      "cells": {
+        "zavsif": "345",
+        "prsmss": "5085691000",
+        "naziv": "OŠ Puconci",
+        "naslov": "Puconci 178",
+        "ds": "96341742",
+        "trr": "01297-6030676417"
+      }
+    },
+    {
+      "id": "school-0333",
+      "cells": {
+        "zavsif": "578",
+        "prsmss": "5085241000",
+        "naziv": "OŠ Fram",
+        "naslov": "Turnerjeva ulica 120",
+        "ds": "20947879",
+        "trr": "01298-6030676562"
+      }
+    },
+    {
+      "id": "school-0334",
+      "cells": {
+        "zavsif": "579",
+        "prsmss": "5085292000",
+        "naziv": "OŠ Rače",
+        "naslov": "Grajski trg 1",
+        "ds": "97890898",
+        "trr": "01298-6030676659"
+      }
+    },
+    {
+      "id": "school-0335",
+      "cells": {
+        "zavsif": "1342",
+        "prsmss": "5924502000",
+        "naziv": "Javni zavod OŠ Marjana Nemca Radeče",
+        "naslov": "Šolska pot 5",
+        "ds": "93174705",
+        "trr": "01299-6030676707"
+      }
+    },
+    {
+      "id": "school-0336",
+      "cells": {
+        "zavsif": "175",
+        "prsmss": "5082919000",
+        "naziv": "OŠ Kajetana Koviča Radenci",
+        "naslov": "Radgonska cesta 10",
+        "ds": "57189684",
+        "trr": "01300-6030676949"
+      }
+    },
+    {
+      "id": "school-0337",
+      "cells": {
+        "zavsif": "174",
+        "prsmss": "5084776000",
+        "naziv": "OŠ Kapela",
+        "naslov": "Kapelski Vrh 95",
+        "ds": "26126885",
+        "trr": "01300-6030676852"
+      }
+    },
+    {
+      "id": "school-0338",
+      "cells": {
+        "zavsif": "425",
+        "prsmss": "5089271000",
+        "naziv": "OŠ Radlje ob Dravi",
+        "naslov": "Koroška cesta 17",
+        "ds": "54093899",
+        "trr": "01301-6030677094"
+      }
+    },
+    {
+      "id": "school-0339",
+      "cells": {
+        "zavsif": "431",
+        "prsmss": "5087341000",
+        "naziv": "OŠ Antona Tomaža Linharta Radovljica",
+        "naslov": "Kranjska cesta 27",
+        "ds": "18782400",
+        "trr": "01302-6030677239"
+      }
+    },
+    {
+      "id": "school-0340",
+      "cells": {
+        "zavsif": "435",
+        "prsmss": "5087325000",
+        "naziv": "OŠ F. S. Finžgarja Lesce",
+        "naslov": "Begunjska cesta 7",
+        "ds": "61563455",
+        "trr": "01302-6030677142"
+      }
+    },
+    {
+      "id": "school-0341",
+      "cells": {
+        "zavsif": "433",
+        "prsmss": "5087333000",
+        "naziv": "OŠ Staneta Žagarja Lipnica",
+        "naslov": "Lipnica 12",
+        "ds": "81968060",
+        "trr": "01302-6030677336"
+      }
+    },
+    {
+      "id": "school-0342",
+      "cells": {
+        "zavsif": "439",
+        "prsmss": "5185815000",
+        "naziv": "OŠ \"Koroški jeklarji\" Ravne na Koroškem",
+        "naslov": "Javornik 35",
+        "ds": "83712143",
+        "trr": "01303-6030677578"
+      }
+    },
+    {
+      "id": "school-0343",
+      "cells": {
+        "zavsif": "438",
+        "prsmss": "5087392000",
+        "naziv": "OŠ Prežihovega Voranca Ravne na Koroškem",
+        "naslov": "Gozdarska pot 11",
+        "ds": "26935465",
+        "trr": "01303-6030677481"
+      }
+    },
+    {
+      "id": "school-0344",
+      "cells": {
+        "zavsif": "327",
+        "prsmss": "5089344000",
+        "naziv": "OŠ Janeza Kuharja Razkrižje",
+        "naslov": "Šafarsko 24 C",
+        "ds": "10804412",
+        "trr": "01376-6030677687"
+      }
+    },
+    {
+      "id": "school-0345",
+      "cells": {
+        "zavsif": "6688",
+        "prsmss": "5171008000",
+        "naziv": "OŠ Rečica ob Savinji",
+        "naslov": "Rečica ob Savinji 152",
+        "ds": "71818065",
+        "trr": "01279-6091342748"
+      }
+    },
+    {
+      "id": "school-0346",
+      "cells": {
+        "zavsif": "369",
+        "prsmss": "5089034000",
+        "naziv": "OŠ Lucijana Bratkoviča Bratuša Renče",
+        "naslov": "Trg 31",
+        "ds": "44215932",
+        "trr": "01401-6000000018"
+      }
+    },
+    {
+      "id": "school-0347",
+      "cells": {
+        "zavsif": "445",
+        "prsmss": "5087449000",
+        "naziv": "OŠ dr. Franceta Prešerna",
+        "naslov": "Šolska ulica 2",
+        "ds": "66532060",
+        "trr": "01100-6008361617"
+      }
+    },
+    {
+      "id": "school-0348",
+      "cells": {
+        "zavsif": "428",
+        "prsmss": "5087252000",
+        "naziv": "OŠ Ribnica na Pohorju",
+        "naslov": "Ribnica na Pohorju 29",
+        "ds": "93310510",
+        "trr": "01377-6030677832"
+      }
+    },
+    {
+      "id": "school-0349",
+      "cells": {
+        "zavsif": "497",
+        "prsmss": "5087953000",
+        "naziv": "JVIZ I. OŠ Rogaška Slatina",
+        "naslov": "Kidričeva ulica 24",
+        "ds": "16457617",
+        "trr": "01306-6030677916"
+      }
+    },
+    {
+      "id": "school-0350",
+      "cells": {
+        "zavsif": "498",
+        "prsmss": "5278945000",
+        "naziv": "VIZ II. OŠ Rogaška Slatina",
+        "naslov": "Ulica Kozjanskega odreda 4",
+        "ds": "60425571",
+        "trr": "01306-6030678013"
+      }
+    },
+    {
+      "id": "school-0351",
+      "cells": {
+        "zavsif": "354",
+        "prsmss": "5085705000",
+        "naziv": "OŠ Sveti Jurij",
+        "naslov": "Sveti Jurij 13",
+        "ds": "99951525",
+        "trr": "01100-6008340083"
+      }
+    },
+    {
+      "id": "school-0352",
+      "cells": {
+        "zavsif": "500",
+        "prsmss": "5087970000",
+        "naziv": "VIZ OŠ Rogatec",
+        "naslov": "Ptujska cesta 30",
+        "ds": "98183443",
+        "trr": "01307-6030678255"
+      }
+    },
+    {
+      "id": "school-0353",
+      "cells": {
+        "zavsif": "588",
+        "prsmss": "5088852000",
+        "naziv": "OŠ Janka Glazerja Ruše",
+        "naslov": "Lesjakova ulica 4",
+        "ds": "51038315",
+        "trr": "01308-6030678303"
+      }
+    },
+    {
+      "id": "school-0354",
+      "cells": {
+        "zavsif": "590",
+        "prsmss": "5085136000",
+        "naziv": "OŠ Selnica ob Dravi",
+        "naslov": "Mariborska cesta 30",
+        "ds": "21101736",
+        "trr": "01378-6030678462"
+      }
+    },
+    {
+      "id": "school-0355",
+      "cells": {
+        "zavsif": "149",
+        "prsmss": "5085349000",
+        "naziv": "OŠ Belokranjskega odreda Semič",
+        "naslov": "Šolska ulica 1",
+        "ds": "78628326",
+        "trr": "01309-6030678545"
+      }
+    },
+    {
+      "id": "school-0356",
+      "cells": {
+        "zavsif": "450",
+        "prsmss": "5087473000",
+        "naziv": "OŠ Blanca",
+        "naslov": "Blanca 13",
+        "ds": "49104624",
+        "trr": "01100-6008332226"
+      }
+    },
+    {
+      "id": "school-0357",
+      "cells": {
+        "zavsif": "449",
+        "prsmss": "5087481000",
+        "naziv": "OŠ Boštanj",
+        "naslov": "Boštanj 54 A",
+        "ds": "48285200",
+        "trr": "01100-6008332129"
+      }
+    },
+    {
+      "id": "school-0358",
+      "cells": {
+        "zavsif": "454",
+        "prsmss": "5087520000",
+        "naziv": "OŠ Krmelj",
+        "naslov": "Krmelj 104",
+        "ds": "20318936",
+        "trr": "01100-6008332323"
+      }
+    },
+    {
+      "id": "school-0359",
+      "cells": {
+        "zavsif": "455",
+        "prsmss": "5089328000",
+        "naziv": "OŠ Milana Majcna Šentjanž",
+        "naslov": "Šentjanž 58 A",
+        "ds": "68625260",
+        "trr": "01100-6008332032"
+      }
+    },
+    {
+      "id": "school-0360",
+      "cells": {
+        "zavsif": "451",
+        "prsmss": "5087490000",
+        "naziv": "OŠ Sava Kladnika Sevnica",
+        "naslov": "Trg svobode 42",
+        "ds": "69230307",
+        "trr": "01100-6008331838"
+      }
+    },
+    {
+      "id": "school-0361",
+      "cells": {
+        "zavsif": "453",
+        "prsmss": "5087503000",
+        "naziv": "OŠ Tržišče",
+        "naslov": "Tržišče 47",
+        "ds": "33629927",
+        "trr": "01100-6008331935"
+      }
+    },
+    {
+      "id": "school-0362",
+      "cells": {
+        "zavsif": "459",
+        "prsmss": "5087546000",
+        "naziv": "OŠ Dutovlje",
+        "naslov": "Dutovlje 135",
+        "ds": "71215719",
+        "trr": "01100-6008333875"
+      }
+    },
+    {
+      "id": "school-0363",
+      "cells": {
+        "zavsif": "456",
+        "prsmss": "5210429000",
+        "naziv": "OŠ Srečka Kosovela Sežana",
+        "naslov": "Kosovelova ulica 6",
+        "ds": "94094306",
+        "trr": "01100-6008333972"
+      }
+    },
+    {
+      "id": "school-0364",
+      "cells": {
+        "zavsif": "969",
+        "prsmss": "5635772000",
+        "naziv": "Druga osnovna šola Slovenj Gradec",
+        "naslov": "Kopališka ulica 29",
+        "ds": "22973389",
+        "trr": "01312-6030679756"
+      }
+    },
+    {
+      "id": "school-0365",
+      "cells": {
+        "zavsif": "466",
+        "prsmss": "5087597000",
+        "naziv": "OŠ Podgorje pri Slovenj Gradcu",
+        "naslov": "Podgorje 172",
+        "ds": "93058187",
+        "trr": "01312-6030679659"
+      }
+    },
+    {
+      "id": "school-0366",
+      "cells": {
+        "zavsif": "462",
+        "prsmss": "5089409000",
+        "naziv": "OŠ Šmartno pri Slovenj Gradcu",
+        "naslov": "Šmartno pri Slovenj Gradcu 69",
+        "ds": "15598586",
+        "trr": "01312-6030679562"
+      }
+    },
+    {
+      "id": "school-0367",
+      "cells": {
+        "zavsif": "463",
+        "prsmss": "5089395000",
+        "naziv": "Prva osnovna šola Slovenj Gradec",
+        "naslov": "Šercerjeva ulica 7",
+        "ds": "23083972",
+        "trr": "01312-6030679465"
+      }
+    },
+    {
+      "id": "school-0368",
+      "cells": {
+        "zavsif": "477",
+        "prsmss": "5090032000",
+        "naziv": "OŠ Antona Ingoliča Spodnja Polskava",
+        "naslov": "Spodnja Polskava 240",
+        "ds": "67396488",
+        "trr": "01313-6030679998"
+      }
+    },
+    {
+      "id": "school-0369",
+      "cells": {
+        "zavsif": "474",
+        "prsmss": "5087635000",
+        "naziv": "OŠ dr. Jožeta Pučnika Črešnjevec",
+        "naslov": "Črešnjevec 47",
+        "ds": "33029512",
+        "trr": "01313-6030680289"
+      }
+    },
+    {
+      "id": "school-0370",
+      "cells": {
+        "zavsif": "473",
+        "prsmss": "5087643000",
+        "naziv": "OŠ Gustava Šiliha Laporje",
+        "naslov": "Laporje 31",
+        "ds": "36415006",
+        "trr": "01313-6030680386"
+      }
+    },
+    {
+      "id": "school-0371",
+      "cells": {
+        "zavsif": "471",
+        "prsmss": "5012554000",
+        "naziv": "OŠ Partizanska bolnišnica Jesen Tinje",
+        "naslov": "Veliko Tinje 29",
+        "ds": "29406285",
+        "trr": "01313-6030680677"
+      }
+    },
+    {
+      "id": "school-0372",
+      "cells": {
+        "zavsif": "468",
+        "prsmss": "5087686000",
+        "naziv": "OŠ Pohorskega odreda Slovenska Bistrica",
+        "naslov": "Kopališka ulica 1",
+        "ds": "48238112",
+        "trr": "01313-6030679804"
+      }
+    },
+    {
+      "id": "school-0373",
+      "cells": {
+        "zavsif": "470",
+        "prsmss": "5089425000",
+        "naziv": "OŠ Šmartno na Pohorju",
+        "naslov": "Šmartno na Pohorju 24 A",
+        "ds": "15317765",
+        "trr": "01313-6030680580"
+      }
+    },
+    {
+      "id": "school-0374",
+      "cells": {
+        "zavsif": "14849",
+        "prsmss": "3348008000",
+        "naziv": "2. osnovna šola Slovenska Bistrica",
+        "naslov": "Šolska ulica 5",
+        "ds": "52959856",
+        "trr": "01313-6000000353"
+      }
+    },
+    {
+      "id": "school-0375",
+      "cells": {
+        "zavsif": "609",
+        "prsmss": "5089433000",
+        "naziv": "OŠ Loče",
+        "naslov": "Šolska ulica 5",
+        "ds": "49210220",
+        "trr": "01314-6030680919"
+      }
+    },
+    {
+      "id": "school-0376",
+      "cells": {
+        "zavsif": "607",
+        "prsmss": "5089441000",
+        "naziv": "OŠ Ob Dravinji Slovenske Konjice",
+        "naslov": "Ulica Dušana Jereba 1",
+        "ds": "11833173",
+        "trr": "01314-6030680725"
+      }
+    },
+    {
+      "id": "school-0377",
+      "cells": {
+        "zavsif": "608",
+        "prsmss": "5087716000",
+        "naziv": "OŠ Pod goro Slovenske Konjice",
+        "naslov": "Šolska ulica 3",
+        "ds": "67612261",
+        "trr": "01314-6030680822"
+      }
+    },
+    {
+      "id": "school-0378",
+      "cells": {
+        "zavsif": "447",
+        "prsmss": "5087465000",
+        "naziv": "OŠ dr. Ivana Prijatelja Sodražica",
+        "naslov": "Cesta Notranjskega odreda 10",
+        "ds": "41016017",
+        "trr": "01100-6008365982"
+      }
+    },
+    {
+      "id": "school-0379",
+      "cells": {
+        "zavsif": "395",
+        "prsmss": "5086426000",
+        "naziv": "OŠ Središče ob Dravi",
+        "naslov": "Slovenska cesta 22",
+        "ds": "92129196",
+        "trr": "01100-6000034555"
+      }
+    },
+    {
+      "id": "school-0380",
+      "cells": {
+        "zavsif": "572",
+        "prsmss": "5085314000",
+        "naziv": "OŠ Starše",
+        "naslov": "Starše 5",
+        "ds": "25722824",
+        "trr": "01100-6008372481"
+      }
+    },
+    {
+      "id": "school-0381",
+      "cells": {
+        "zavsif": "386",
+        "prsmss": "5086329000",
+        "naziv": "OŠ Vavta vas",
+        "naslov": "Vavta vas 1",
+        "ds": "86730738",
+        "trr": "01403-6000000017"
+      }
+    },
+    {
+      "id": "school-0382",
+      "cells": {
+        "zavsif": "248",
+        "prsmss": "5084865000",
+        "naziv": "OŠ Sveta Ana",
+        "naslov": "Sv. Ana v Slov. goricah 14",
+        "ds": "81069472",
+        "trr": "01100-6000036883"
+      }
+    },
+    {
+      "id": "school-0383",
+      "cells": {
+        "zavsif": "250",
+        "prsmss": "5084024000",
+        "naziv": "OŠ in vrtec Sveta Trojica",
+        "naslov": "Meznaričeva ulica 1",
+        "ds": "94208247",
+        "trr": "01404-6000000065"
+      }
+    },
+    {
+      "id": "school-0384",
+      "cells": {
+        "zavsif": "169",
+        "prsmss": "5083753000",
+        "naziv": "OŠ Sveti Jurij ob Ščavnici",
+        "naslov": "Ulica Edvarda Kocbeka 4",
+        "ds": "19644051",
+        "trr": "01100-6000037659"
+      }
+    },
+    {
+      "id": "school-0385",
+      "cells": {
+        "zavsif": "245",
+        "prsmss": "5090105000",
+        "naziv": "OŠ Jožeta Hudalesa Jurovski dol",
+        "naslov": "Jurovski Dol 13",
+        "ds": "40918807",
+        "trr": "01100-6000036980"
+      }
+    },
+    {
+      "id": "school-0386",
+      "cells": {
+        "zavsif": "389",
+        "prsmss": "5089166000",
+        "naziv": "OŠ Sveti Tomaž",
+        "naslov": "Sveti Tomaž 11",
+        "ds": "70846057",
+        "trr": "01100-6000034652"
+      }
+    },
+    {
+      "id": "school-0387",
+      "cells": {
+        "zavsif": "347",
+        "prsmss": "5085713000",
+        "naziv": "OŠ Šalovci",
+        "naslov": "Šalovci 172",
+        "ds": "81487754",
+        "trr": "01100-6008339889"
+      }
+    },
+    {
+      "id": "school-0388",
+      "cells": {
+        "zavsif": "366",
+        "prsmss": "5089069000",
+        "naziv": "OŠ Ivana Roba Šempeter pri Gorici",
+        "naslov": "Ulica Andreja Gabrščka 1",
+        "ds": "11522399",
+        "trr": "01383-6030681515"
+      }
+    },
+    {
+      "id": "school-0389",
+      "cells": {
+        "zavsif": "233",
+        "prsmss": "5083249000",
+        "naziv": "OŠ Šenčur",
+        "naslov": "Pipanova cesta 43",
+        "ds": "36605069",
+        "trr": "01100-6008339404"
+      }
+    },
+    {
+      "id": "school-0390",
+      "cells": {
+        "zavsif": "584",
+        "prsmss": "5086167000",
+        "naziv": "OŠ Rudolfa Maistra Šentilj",
+        "naslov": "Mladinska ulica 13",
+        "ds": "62160559",
+        "trr": "01100-6008377816"
+      }
+    },
+    {
+      "id": "school-0391",
+      "cells": {
+        "zavsif": "585",
+        "prsmss": "5085144000",
+        "naziv": "OŠ Sladki Vrh",
+        "naslov": "Sladki Vrh 8 A",
+        "ds": "74840959",
+        "trr": "01100-6008377913"
+      }
+    },
+    {
+      "id": "school-0392",
+      "cells": {
+        "zavsif": "382",
+        "prsmss": "5086299000",
+        "naziv": "OŠ Šentjernej",
+        "naslov": "Prvomajska cesta 9",
+        "ds": "77005821",
+        "trr": "01319-6030681935"
+      }
+    },
+    {
+      "id": "school-0393",
+      "cells": {
+        "zavsif": "1352",
+        "prsmss": "5087783000",
+        "naziv": "OŠ Blaža Kocena Ponikva",
+        "naslov": "Ponikva 29 A",
+        "ds": "34597085",
+        "trr": "01320-6030682371"
+      }
+    },
+    {
+      "id": "school-0394",
+      "cells": {
+        "zavsif": "478",
+        "prsmss": "5087775000",
+        "naziv": "OŠ Dramlje",
+        "naslov": "Dramlje 7 A",
+        "ds": "84523603",
+        "trr": "01320-6030682080"
+      }
+    },
+    {
+      "id": "school-0395",
+      "cells": {
+        "zavsif": "480",
+        "prsmss": "5087805000",
+        "naziv": "OŠ Franja Malgaja Šentjur",
+        "naslov": "Ulica skladateljev Ipavcev 2",
+        "ds": "48313033",
+        "trr": "01320-6030682177"
+      }
+    },
+    {
+      "id": "school-0396",
+      "cells": {
+        "zavsif": "1241",
+        "prsmss": "5914914000",
+        "naziv": "OŠ Hruševec Šentjur",
+        "naslov": "Gajstova pot 2 A",
+        "ds": "54735289",
+        "trr": "01320-6030682565"
+      }
+    },
+    {
+      "id": "school-0397",
+      "cells": {
+        "zavsif": "479",
+        "prsmss": "5089450000",
+        "naziv": "OŠ Planina pri Sevnici",
+        "naslov": "Planina pri Sevnici 69",
+        "ds": "18080774",
+        "trr": "01320-6030682468"
+      }
+    },
+    {
+      "id": "school-0398",
+      "cells": {
+        "zavsif": "482",
+        "prsmss": "5087791000",
+        "naziv": "OŠ Slivnica pri Celju",
+        "naslov": "Gorica pri Slivnici 61",
+        "ds": "33404569",
+        "trr": "01320-6030682274"
+      }
+    },
+    {
+      "id": "school-0399",
+      "cells": {
+        "zavsif": "516",
+        "prsmss": "5088089000",
+        "naziv": "OŠ dr. Pavla Lunačka Šentrupert",
+        "naslov": "Šentrupert 57",
+        "ds": "79666981",
+        "trr": "01100-6008352596"
+      }
+    },
+    {
+      "id": "school-0400",
+      "cells": {
+        "zavsif": "373",
+        "prsmss": "5086388000",
+        "naziv": "OŠ Frana Metelka Škocjan",
+        "naslov": "Škocjan 51",
+        "ds": "70483345",
+        "trr": "01321-6030682613"
+      }
+    },
+    {
+      "id": "school-0401",
+      "cells": {
+        "zavsif": "485",
+        "prsmss": "5087821000",
+        "naziv": "OŠ Cvetka Golarja Škofja Loka",
+        "naslov": "Frankovo naselje 51",
+        "ds": "72155680",
+        "trr": "01322-6030682855"
+      }
+    },
+    {
+      "id": "school-0402",
+      "cells": {
+        "zavsif": "483",
+        "prsmss": "5263620000",
+        "naziv": "OŠ Ivana Groharja",
+        "naslov": "Podlubnik 1",
+        "ds": "94792259",
+        "trr": "01322-6030682952"
+      }
+    },
+    {
+      "id": "school-0403",
+      "cells": {
+        "zavsif": "484",
+        "prsmss": "5089468000",
+        "naziv": "OŠ Škofja Loka - Mesto",
+        "naslov": "Šolska ulica 1",
+        "ds": "24921394",
+        "trr": "01322-6030682758"
+      }
+    },
+    {
+      "id": "school-0404",
+      "cells": {
+        "zavsif": "319",
+        "prsmss": "5084482000",
+        "naziv": "OŠ Škofljica",
+        "naslov": "Klanec 5",
+        "ds": "59782820",
+        "trr": "01100-6008380726"
+      }
+    },
+    {
+      "id": "school-0405",
+      "cells": {
+        "zavsif": "495",
+        "prsmss": "5087988000",
+        "naziv": "OŠ Šmarje pri Jelšah",
+        "naslov": "Vegova ulica 26",
+        "ds": "94363455",
+        "trr": "01324-6030683145"
+      }
+    },
+    {
+      "id": "school-0406",
+      "cells": {
+        "zavsif": "381",
+        "prsmss": "5086302000",
+        "naziv": "OŠ Šmarjeta",
+        "naslov": "Šmarjeta 1",
+        "ds": "73055956",
+        "trr": "01100-6008377622"
+      }
+    },
+    {
+      "id": "school-0407",
+      "cells": {
+        "zavsif": "533",
+        "prsmss": "5088178000",
+        "naziv": "OŠ bratov Letonja Šmartno ob Paki",
+        "naslov": "Šmartno ob Paki 117",
+        "ds": "40878333",
+        "trr": "01100-6008381017"
+      }
+    },
+    {
+      "id": "school-0408",
+      "cells": {
+        "zavsif": "263",
+        "prsmss": "5084083000",
+        "naziv": "OŠ Šmartno",
+        "naslov": "Pungrt 9",
+        "ds": "76955052",
+        "trr": "01394-6000000070"
+      }
+    },
+    {
+      "id": "school-0409",
+      "cells": {
+        "zavsif": "10167",
+        "prsmss": "2136147000",
+        "naziv": "OŠ Karla Destovnika-Kajuha Šoštanj",
+        "naslov": "Koroška cesta 7",
+        "ds": "96822341",
+        "trr": "01100-6008364139"
+      }
+    },
+    {
+      "id": "school-0410",
+      "cells": {
+        "zavsif": "143",
+        "prsmss": "5082676000",
+        "naziv": "OŠ Štore",
+        "naslov": "Ulica Cvetke Jerin 5",
+        "ds": "24735779",
+        "trr": "01100-6000014088"
+      }
+    },
+    {
+      "id": "school-0411",
+      "cells": {
+        "zavsif": "352",
+        "prsmss": "5085721000",
+        "naziv": "OŠ Tišina",
+        "naslov": "Tišina 4 B",
+        "ds": "56492987",
+        "trr": "01210-6030683687"
+      }
+    },
+    {
+      "id": "school-0412",
+      "cells": {
+        "zavsif": "505",
+        "prsmss": "5089506000",
+        "naziv": "OŠ Dušana Muniha Most na Soči",
+        "naslov": "Most na Soči 18 A",
+        "ds": "59594063",
+        "trr": "01328-6030683725"
+      }
+    },
+    {
+      "id": "school-0413",
+      "cells": {
+        "zavsif": "506",
+        "prsmss": "5272653000",
+        "naziv": "OŠ Franceta Bevka Tolmin",
+        "naslov": "Dijaška ulica 12 B",
+        "ds": "27755975",
+        "trr": "01328-6030683919"
+      }
+    },
+    {
+      "id": "school-0414",
+      "cells": {
+        "zavsif": "511",
+        "prsmss": "5088011000",
+        "naziv": "OŠ Simona Kosa Podbrdo",
+        "naslov": "Podbrdo 32",
+        "ds": "86390465",
+        "trr": "01328-6030683822"
+      }
+    },
+    {
+      "id": "school-0415",
+      "cells": {
+        "zavsif": "1217",
+        "prsmss": "5889286000",
+        "naziv": "OŠ Ivana Cankarja Trbovlje",
+        "naslov": "Trg Franca Fakina 8",
+        "ds": "59416815",
+        "trr": "01100-6008385576"
+      }
+    },
+    {
+      "id": "school-0416",
+      "cells": {
+        "zavsif": "1218",
+        "prsmss": "5899508000",
+        "naziv": "OŠ Tončke Čeč Trbovlje",
+        "naslov": "Keršičeva cesta 50",
+        "ds": "96660902",
+        "trr": "01100-6008386546"
+      }
+    },
+    {
+      "id": "school-0417",
+      "cells": {
+        "zavsif": "1216",
+        "prsmss": "5889235000",
+        "naziv": "OŠ Trbovlje",
+        "naslov": "Mestni trg 6",
+        "ds": "55876811",
+        "trr": "01100-6008384606"
+      }
+    },
+    {
+      "id": "school-0418",
+      "cells": {
+        "zavsif": "513",
+        "prsmss": "5088097000",
+        "naziv": "OŠ Trebnje",
+        "naslov": "Kidričeva ulica 11",
+        "ds": "41249356",
+        "trr": "01100-6000064819"
+      }
+    },
+    {
+      "id": "school-0419",
+      "cells": {
+        "zavsif": "514",
+        "prsmss": "5088119000",
+        "naziv": "OŠ Veliki Gaber",
+        "naslov": "Veliki Gaber 41",
+        "ds": "47660759",
+        "trr": "01100-6000064916"
+      }
+    },
+    {
+      "id": "school-0420",
+      "cells": {
+        "zavsif": "165",
+        "prsmss": "5255287000",
+        "naziv": "OŠ Trzin",
+        "naslov": "Mengeška cesta 7 B",
+        "ds": "54697751",
+        "trr": "01386-6030684860"
+      }
+    },
+    {
+      "id": "school-0421",
+      "cells": {
+        "zavsif": "520",
+        "prsmss": "5088135000",
+        "naziv": "OŠ Bistrica",
+        "naslov": "Begunjska cesta 2",
+        "ds": "55429483",
+        "trr": "01331-6030684936"
+      }
+    },
+    {
+      "id": "school-0422",
+      "cells": {
+        "zavsif": "519",
+        "prsmss": "5088127000",
+        "naziv": "OŠ Križe",
+        "naslov": "Cesta Kokrškega odreda 16",
+        "ds": "57553629",
+        "trr": "01331-6030685130"
+      }
+    },
+    {
+      "id": "school-0423",
+      "cells": {
+        "zavsif": "521",
+        "prsmss": "5088143000",
+        "naziv": "OŠ Tržič",
+        "naslov": "Šolska ulica 7",
+        "ds": "41934911",
+        "trr": "01331-6030685033"
+      }
+    },
+    {
+      "id": "school-0424",
+      "cells": {
+        "zavsif": "259",
+        "prsmss": "5084059000",
+        "naziv": "OŠ Turnišče",
+        "naslov": "Prešernova ulica 2",
+        "ds": "12307572",
+        "trr": "01100-6008365206"
+      }
+    },
+    {
+      "id": "school-0425",
+      "cells": {
+        "zavsif": "525",
+        "prsmss": "5088224000",
+        "naziv": "OŠ Antona Aškerca Velenje",
+        "naslov": "Jenkova cesta 2",
+        "ds": "25656317",
+        "trr": "01333-6030685808"
+      }
+    },
+    {
+      "id": "school-0426",
+      "cells": {
+        "zavsif": "526",
+        "prsmss": "5221340000",
+        "naziv": "OŠ Gorica Velenje",
+        "naslov": "Goriška cesta 48",
+        "ds": "55683398",
+        "trr": "01333-6030685711"
+      }
+    },
+    {
+      "id": "school-0427",
+      "cells": {
+        "zavsif": "527",
+        "prsmss": "5088208000",
+        "naziv": "OŠ Gustava Šiliha Velenje",
+        "naslov": "Vodnikova cesta 3",
+        "ds": "87755246",
+        "trr": "01333-6030685614"
+      }
+    },
+    {
+      "id": "school-0428",
+      "cells": {
+        "zavsif": "524",
+        "prsmss": "5081939000",
+        "naziv": "OŠ Livada Velenje",
+        "naslov": "Efenkova cesta 60",
+        "ds": "45242372",
+        "trr": "01333-6030685420"
+      }
+    },
+    {
+      "id": "school-0429",
+      "cells": {
+        "zavsif": "528",
+        "prsmss": "5088216000",
+        "naziv": "OŠ Mihe Pintarja - Toleda Velenje",
+        "naslov": "Kidričeva cesta 21",
+        "ds": "39145522",
+        "trr": "01333-6030685517"
+      }
+    },
+    {
+      "id": "school-0430",
+      "cells": {
+        "zavsif": "523",
+        "prsmss": "5278902000",
+        "naziv": "OŠ Šalek Velenje",
+        "naslov": "Šalek 87",
+        "ds": "85859966",
+        "trr": "01333-6030685323"
+      }
+    },
+    {
+      "id": "school-0431",
+      "cells": {
+        "zavsif": "252",
+        "prsmss": "5089760000",
+        "naziv": "OŠ Miška Kranjca Velika Polana",
+        "naslov": "Velika Polana 215 B",
+        "ds": "29619904",
+        "trr": "01387-6030685975"
+      }
+    },
+    {
+      "id": "school-0432",
+      "cells": {
+        "zavsif": "321",
+        "prsmss": "5084539000",
+        "naziv": "OŠ Primoža Trubarja Velike Lašče",
+        "naslov": "Šolska ulica 11",
+        "ds": "21805865",
+        "trr": "01100-6008362005"
+      }
+    },
+    {
+      "id": "school-0433",
+      "cells": {
+        "zavsif": "3709",
+        "prsmss": "5051215000",
+        "naziv": "OŠ Veržej",
+        "naslov": "Puščenjakova ulica 7",
+        "ds": "32512864",
+        "trr": "01100-6030719535"
+      }
+    },
+    {
+      "id": "school-0434",
+      "cells": {
+        "zavsif": "419",
+        "prsmss": "5087171000",
+        "naziv": "OŠ Videm",
+        "naslov": "Videm pri Ptuju 47",
+        "ds": "13592793",
+        "trr": "01335-6030686195"
+      }
+    },
+    {
+      "id": "school-0435",
+      "cells": {
+        "zavsif": "120",
+        "prsmss": "5083532000",
+        "naziv": "OŠ Draga Bajca Vipava",
+        "naslov": "Vinarska cesta 4",
+        "ds": "10582789",
+        "trr": "01336-6030686243"
+      }
+    },
+    {
+      "id": "school-0436",
+      "cells": {
+        "zavsif": "610",
+        "prsmss": "5087724000",
+        "naziv": "OŠ Vitanje",
+        "naslov": "Doliška cesta 1",
+        "ds": "65089600",
+        "trr": "01337-6030686485"
+      }
+    },
+    {
+      "id": "school-0437",
+      "cells": {
+        "zavsif": "311",
+        "prsmss": "5084377000",
+        "naziv": "OŠ Vodice",
+        "naslov": "Ob šoli 2",
+        "ds": "23124741",
+        "trr": "01100-6008378592"
+      }
+    },
+    {
+      "id": "school-0438",
+      "cells": {
+        "zavsif": "142",
+        "prsmss": "5084709000",
+        "naziv": "OŠ Antona Bezenška Frankolovo",
+        "naslov": "Frankolovo 11",
+        "ds": "12132233",
+        "trr": "01339-6030686678"
+      }
+    },
+    {
+      "id": "school-0439",
+      "cells": {
+        "zavsif": "141",
+        "prsmss": "5082684000",
+        "naziv": "OŠ Vojnik",
+        "naslov": "Prušnikova ulica 14",
+        "ds": "95289763",
+        "trr": "01339-6030686775"
+      }
+    },
+    {
+      "id": "school-0440",
+      "cells": {
+        "zavsif": "26139",
+        "prsmss": "7400217000",
+        "naziv": "Zavod Srčna pot, vzgoja in izobraževanje montessori, Nova Cerkev",
+        "naslov": "Nova Cerkev 25",
+        "ds": "58704469",
+        "trr": "61000-0031007173"
+      }
+    },
+    {
+      "id": "school-0441",
+      "cells": {
+        "zavsif": "545",
+        "prsmss": "5088526000",
+        "naziv": "OŠ Vransko - Tabor",
+        "naslov": "Vransko 23",
+        "ds": "65135482",
+        "trr": "01389-6030686847"
+      }
+    },
+    {
+      "id": "school-0442",
+      "cells": {
+        "zavsif": "6687",
+        "prsmss": "1534980000",
+        "naziv": "OŠ Antona Martina Slomška Vrhnika",
+        "naslov": "Pod Hruševco 33",
+        "ds": "60066792",
+        "trr": "01340-6030723780"
+      }
+    },
+    {
+      "id": "school-0443",
+      "cells": {
+        "zavsif": "536",
+        "prsmss": "5088330000",
+        "naziv": "OŠ Ivana Cankarja Vrhnika",
+        "naslov": "Lošca 1",
+        "ds": "78824966",
+        "trr": "01340-6030686920"
+      }
+    },
+    {
+      "id": "school-0444",
+      "cells": {
+        "zavsif": "430",
+        "prsmss": "5087279000",
+        "naziv": "OŠ Vuzenica",
+        "naslov": "Mladinska ulica 3",
+        "ds": "64020673",
+        "trr": "01341-6030687162"
+      }
+    },
+    {
+      "id": "school-0445",
+      "cells": {
+        "zavsif": "541",
+        "prsmss": "5088372000",
+        "naziv": "OŠ Ivana Kavčiča Izlake",
+        "naslov": "Izlake 4",
+        "ds": "33761663",
+        "trr": "01100-6008367631"
+      }
+    },
+    {
+      "id": "school-0446",
+      "cells": {
+        "zavsif": "539",
+        "prsmss": "5088402000",
+        "naziv": "OŠ Ivana Skvarče",
+        "naslov": "Cesta 9. avgusta 44",
+        "ds": "44831994",
+        "trr": "01100-6008367534"
+      }
+    },
+    {
+      "id": "school-0447",
+      "cells": {
+        "zavsif": "540",
+        "prsmss": "5088399000",
+        "naziv": "OŠ Toneta Okrogarja",
+        "naslov": "Šolska ulica 1",
+        "ds": "62408534",
+        "trr": "01100-6008367437"
+      }
+    },
+    {
+      "id": "school-0448",
+      "cells": {
+        "zavsif": "611",
+        "prsmss": "5087732000",
+        "naziv": "OŠ Zreče",
+        "naslov": "Šolska cesta 3",
+        "ds": "69998558",
+        "trr": "01344-6030687597"
+      }
+    },
+    {
+      "id": "school-0449",
+      "cells": {
+        "zavsif": "546",
+        "prsmss": "5088534000",
+        "naziv": "I. osnovna šola Žalec",
+        "naslov": "Šilihova ulica 1",
+        "ds": "17565553",
+        "trr": "01100-6008355312"
+      }
+    },
+    {
+      "id": "school-0450",
+      "cells": {
+        "zavsif": "544",
+        "prsmss": "5090059000",
+        "naziv": "OŠ Griže",
+        "naslov": "Griže 1 A",
+        "ds": "75852390",
+        "trr": "01100-6008355118"
+      }
+    },
+    {
+      "id": "school-0451",
+      "cells": {
+        "zavsif": "543",
+        "prsmss": "5088569000",
+        "naziv": "OŠ Petrovče",
+        "naslov": "Petrovče 32",
+        "ds": "94658609",
+        "trr": "01100-6008355506"
+      }
+    },
+    {
+      "id": "school-0452",
+      "cells": {
+        "zavsif": "549",
+        "prsmss": "5088577000",
+        "naziv": "OŠ Šempeter v Savinjski dolini",
+        "naslov": "Šolska ulica 2",
+        "ds": "77871430",
+        "trr": "01100-6008355797"
+      }
+    },
+    {
+      "id": "school-0453",
+      "cells": {
+        "zavsif": "490",
+        "prsmss": "5087830000",
+        "naziv": "OŠ Železniki",
+        "naslov": "Otoki 13",
+        "ds": "36326020",
+        "trr": "01346-6030688178"
+      }
+    },
+    {
+      "id": "school-0454",
+      "cells": {
+        "zavsif": "1260",
+        "prsmss": "5968330000",
+        "naziv": "OŠ Žetale",
+        "naslov": "Čermožiše 45 B",
+        "ds": "59442018",
+        "trr": "01100-6008368310"
+      }
+    },
+    {
+      "id": "school-0455",
+      "cells": {
+        "zavsif": "489",
+        "prsmss": "5089476000",
+        "naziv": "OŠ Žiri",
+        "naslov": "Jobstova cesta 22",
+        "ds": "79208843",
+        "trr": "01100-6000038532"
+      }
+    },
+    {
+      "id": "school-0456",
+      "cells": {
+        "zavsif": "1229",
+        "prsmss": "5719062000",
+        "naziv": "OŠ Žirovnica",
+        "naslov": "Zabreznica 4",
+        "ds": "55702759",
+        "trr": "01100-6008340374"
+      }
+    },
+    {
+      "id": "school-0457",
+      "cells": {
+        "zavsif": "388",
+        "prsmss": "5086272000",
+        "naziv": "OŠ Prevole",
+        "naslov": "Prevole 32",
+        "ds": "69795819",
+        "trr": "01100-6008339016"
+      }
+    },
+    {
+      "id": "school-0458",
+      "cells": {
+        "zavsif": "387",
+        "prsmss": "5086337000",
+        "naziv": "OŠ Žužemberk",
+        "naslov": "Baragova cesta 1",
+        "ds": "97836311",
+        "trr": "01100-6008339113"
+      }
+    }
+  ]
+}

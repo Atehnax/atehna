@@ -1,0 +1,1320 @@
+{
+  "version": 5,
+  "batchId": "category-composites-2026-09-23-natural",
+  "status": "local-review",
+  "publicationAuthorized": false,
+  "supersedes": "data/catalog/category-composites-v4-2026-09.json",
+  "scope": "Replace the rigid arrangements of safety, hand tools and geometry with natural, compact product groups. Other five category assignments and website layout unchanged.",
+  "protectedCategories": [
+    "materiali",
+    "stroji-in-naprave"
+  ],
+  "categoryOnlyReferences": {
+    "glasses": "Genuine TTS safety-glasses photo; exact ATEHNA model unknown. Category-only illustration under requested best effort. Not assigned to any SKU.",
+    "batteryHolderAndScrews": "User explicitly approved real category-only reference photos. Exact ATEHNA models/stock unverified; no product-gallery or inventory assignment."
+  },
+  "assets": [
+    {
+      "categorySlug": "tehnika-in-tehnologija",
+      "categoryName": "Tehnika in tehnologija",
+      "categoryId": "ddb7068a-22e6-42f4-aa91-a5750ceb1cde",
+      "image": "/images/catalog/2026-09/category-composites-v4/tehnika-in-tehnologija-v4.webp",
+      "dimensions": [
+        508,
+        508
+      ],
+      "hasAlpha": true,
+      "bytes": 39000,
+      "sha256": "ff10df66d657c19efcea5b3b5d974015cf7620d1e2c10c73e3a1c7823e6d30b8",
+      "components": [
+        {
+          "product": "Konstrukcija Eitech160 generator",
+          "sourcePage": "https://atehna.si/product/kontstrukcija-eitech-160-generator/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2015/04/41fBkFIyY9L.jpg",
+          "originalDimensions": [
+            500,
+            600
+          ],
+          "sourceSha256": "3fadd51af29e1bf9932071b2ad26685fbb1fc3aed5379af8761068af63bbf3b2",
+          "limitations": "Native source below1024 pixels; sufficient for category-card supporting image only. Do not claim HD.",
+          "extraction": "Exact original pixels retained. Deterministic white-background alpha removal; no generation, recolouring, replacement, or enlargement. Manual exterior floor-shadow exclusion below base; original product pixels remain unchanged.",
+          "cutout": "output/category-composites/2026-09-23-revision/sources/electrical/eitech160-generator-alpha.png",
+          "cutoutSha256": "af617f76751515307028e507207c8d8de31d115f2b6aeae90d3fb2543e176d12",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.24,
+          "crop": {
+            "left": 20,
+            "top": 153,
+            "width": 463,
+            "height": 323
+          },
+          "placed": {
+            "left": 0,
+            "top": 0,
+            "width": 463,
+            "height": 323
+          },
+          "scale": 1,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        }
+      ],
+      "centering": {
+        "method": "Visible group bounds centered on square canvas with 11% minimum margin along the longest dimension. No layout overlap for safety, tools or geometry; tools/geometry use aligned baselines.",
+        "bounds": {
+          "x0": 151,
+          "y0": 153,
+          "w": 462,
+          "h": 323,
+          "side": 593
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/tehnika-in-tehnologija-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "7b56dcd2e2143f3e83810671ee9ef75f"
+      },
+      "sourceDetailLimit": "Smaller native sources preserved without enlargement. This is a category thumbnail asset, not a claim of 1024px product detail.",
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Three redesigned groups reviewed at full resolution and 180px image size",
+          "No awkward tangencies or overlap",
+          "Shared baselines for tools and measuring instruments",
+          "11% outer canvas margin; no enlarging product pixels"
+        ]
+      },
+      "revisedInBatch": false
+    },
+    {
+      "categorySlug": "merilno-orodje-in-geometrija",
+      "categoryName": "Merilno orodje in geometrija",
+      "categoryId": "bdd46c8e-d4b0-4996-ab7d-e67837e66032",
+      "image": "/images/catalog/2026-09/category-composites-v5/merilno-orodje-in-geometrija-v5.webp",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "hasAlpha": true,
+      "bytes": 166906,
+      "sha256": "8ea8a2f3002bf61786be5f44d122dfa78d79df7ede8d5f2569209fcbbd741692",
+      "components": [
+        {
+          "product": "Šestilo za tablo z magnetnimi nogami",
+          "sourcePage": "https://atehna.si/product/sestilo-za-tablo/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2017/10/magnetno-šestilo.jpg",
+          "originalDimensions": [
+            1584,
+            1584
+          ],
+          "sourceSha256": "349455c4d454036c870e5ae635a2b23eb826367f20747bdcc7a85cc489897777",
+          "cutout": "output/category-composites/2026-09-23-layout/compass-only.png",
+          "cutoutSha256": "fc00652baa6bc2c6f2c40a235be1a787563cef4a8cd4a447f31a6f5e57890648",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.18,
+          "isolation": "Complete connected compass silhouette retained with its original soft edge. Detached chalk pieces and unrelated faint exterior matte omitted for uncluttered category layout; original compass RGB unchanged.",
+          "crop": {
+            "left": 410,
+            "top": 251,
+            "width": 667,
+            "height": 1281
+          },
+          "placed": {
+            "left": 100,
+            "top": 40,
+            "width": 415,
+            "height": 649
+          },
+          "scale": 0.4992503748125937,
+          "rotation": 24,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        },
+        {
+          "product": "Geotrikotnik za tablo 60 cm, Wissner 017050",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Geometriewinkel-60-cm/017050.000",
+          "atehnaPage": "https://atehna.si/product/geotrikotnik/",
+          "sourceImage": "https://www.wissner-aktiv-lernen.com/media/3b/61/fe/1736336828/Wissner_017050.000.png?ts=1761749054",
+          "originalDimensions": [
+            2400,
+            1600
+          ],
+          "sourceSha256": "f5eea51ab5d469e222de9cf51a47fd9565e3cc0343f9052512a65fffecbd704d",
+          "limitations": "Existing reviewed optical alpha recovery of transparent manufacturer photograph; original scale marks retained.",
+          "cutout": "public/images/catalog/2026-09/transparent-v1/geotrikotnik-22d2f366b6506e5e-original.webp",
+          "cutoutSha256": "22d2f366b6506e5e9f32c03804141c9f03b782258f9e95901298f3d391234fbe",
+          "inkContrastExposure": -0.23,
+          "shadowOpacity": 0.26,
+          "crop": {
+            "left": 319,
+            "top": 761,
+            "width": 1789,
+            "height": 972
+          },
+          "placed": {
+            "left": 260,
+            "top": 315,
+            "width": 853,
+            "height": 458
+          },
+          "scale": 0.47512576858580213,
+          "rotation": 1,
+          "edits": "Existing yellow ink contrast treatment retained. Whole photograph rotated; no strokes or numbers recreated."
+        }
+      ],
+      "centering": {
+        "method": "Compact asymmetric group with a dominant anchor, supporting objects at varied angles, restrained overlap and 10% minimum square-canvas margin. Visible group bounds centered.",
+        "bounds": {
+          "x0": 251,
+          "y0": 191,
+          "w": 1011,
+          "h": 736,
+          "side": 1264
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/merilno-orodje-in-geometrija-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "ab5a102ca02c13fabed6b8700327e3d0"
+      },
+      "sourceDetailLimit": null,
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Full-size and category-card-size visual review",
+          "Compact asymmetric grouping with varied angles and limited overlap",
+          "Whole products remain recognizable; geometry scale stays visible",
+          "Clear margins on desktop, mobile and hover"
+        ],
+        "independentReview": "Passed: groups read as natural arrangements rather than rows or columns."
+      },
+      "revisedInBatch": true
+    },
+    {
+      "categorySlug": "elektricni-in-mehanicni-elementi",
+      "categoryName": "Električni in mehanični elementi",
+      "categoryId": "0ed1aaf2-497c-4522-97dd-2476a28b4029",
+      "image": "/images/catalog/2026-09/category-composites-v4/elektricni-in-mehanicni-elementi-v4.webp",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "hasAlpha": true,
+      "bytes": 207318,
+      "sha256": "1fa6efe801a6043f85aebf354c632d6e21427e63d681c6d7854f111d67b35e73",
+      "components": [
+        {
+          "product": "Ohišje za 2 bateriji AA — predstavitvena fotografija",
+          "sourcePage": "https://www.opitec.com/de-de/batteriehalter-2-x-mignon-aa-mit-anschlussdraht/206197",
+          "sourceImage": "https://www.opitec.com/media/a6/74/b5/1764707775/206197-000-000-VO-01_v_9.jpg?ts=1764707775",
+          "originalDimensions": [
+            1810,
+            2560
+          ],
+          "sourceSha256": "3c7851f664746c9ef72eacf871c9da4569ed875305bfa5e8f886e0655ea48da6",
+          "limitations": "User-approved CATEGORY-ONLY REFERENCE PHOTO. Exact ATEHNA stocked model is unverified; never use as exact product-gallery representation.",
+          "extraction": "Exact native product pixels. Exterior white-background flood and explicit background openings removed to alpha, no redrawing, no resizing, no stock/model claim.",
+          "categoryReferenceOnly": true,
+          "authorization": "Use real category-only reference photos — user, 23 September 2026",
+          "cutout": "output/category-composites/2026-09-23-revision/sources/electrical/battery-holder-reference-alpha.png",
+          "cutoutSha256": "add2d3cb1b2de9f0a70709b38491157c6e117c8c3a36bce405c7e789ef09134d",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.16,
+          "crop": {
+            "left": 32,
+            "top": 60,
+            "width": 1751,
+            "height": 2392
+          },
+          "placed": {
+            "left": 520,
+            "top": 0,
+            "width": 380,
+            "height": 503
+          },
+          "scale": 0.20559680182752713,
+          "rotation": 8,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Motorček R20 / OPITEC RE140-2170",
+          "sourcePage": "https://www.opitec.com/de-de/motor-re-140-2170/224013",
+          "sourceImage": "https://www.opitec.com/media/69/41/29/1764938911/224013-000-000-VO-02_v_9.jpg?ts=1764938911",
+          "originalDimensions": [
+            2560,
+            2346
+          ],
+          "cutout": "public/images/catalog/2026-09/transparent-v1/motorcek-5b0481aa9bfcee4f-original.webp",
+          "cutoutSha256": "5b0481aa9bfcee4f80a796d69a5119b85f21180a470f9111f33e51688bf01f89",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.42,
+          "crop": {
+            "left": 148,
+            "top": 301,
+            "width": 2220,
+            "height": 1918
+          },
+          "placed": {
+            "left": 0,
+            "top": 30,
+            "width": 500,
+            "height": 432
+          },
+          "scale": 0.22522522522522523,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Vgradno stikalo",
+          "sourcePage": "https://www.textilkabel-fachhandel.de/leuchtenteile/einbauschalter/",
+          "sourceImage": "https://image.jimcdn.com/app/cms/image/transf/none/path/sa0ce1c188da8cf85/image/i68fae69aa7464030/version/1521728593/image.jpg",
+          "originalDimensions": [
+            1706,
+            1708
+          ],
+          "sourceSha256": "103aa5045e089ab8ce92f4a06919f5e3fb22a8096946cff6093e23af12b090e8",
+          "cutout": "public/images/catalog/2026-09/transparent-v1/vgradno-stikalo-86e533d7c7f59230-original.webp",
+          "cutoutSha256": "86e533d7c7f592301aa8a1562be69418dc9da31d77b45af9f1b950122e2d1695",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.29,
+          "crop": {
+            "left": 96,
+            "top": 243,
+            "width": 1452,
+            "height": 1161
+          },
+          "placed": {
+            "left": 15,
+            "top": 530,
+            "width": 345,
+            "height": 276
+          },
+          "scale": 0.23760330578512398,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Krokodil kleme",
+          "sourcePage": "https://atehna.si/product/krokodil-kleme/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2015/04/krokodilkleme.png",
+          "originalDimensions": [
+            500,
+            500
+          ],
+          "sourceSha256": "36a0933e80bf1a4c52cc8bdbe1d6f0f1417b2597c2d3bb023f2a57123e4418db",
+          "limitations": "Native source below1024 pixels; sufficient for category-card supporting image only. Do not claim HD.",
+          "extraction": "Exact original pixels retained. Deterministic white-background alpha removal; no generation, recolouring, replacement, or enlargement.",
+          "cutout": "output/category-composites/2026-09-23-revision/sources/electrical/crocodile-leads-alpha.png",
+          "cutoutSha256": "c383a457f9b603f2306ece48c265d0231cf0e839a55dfe56600660a60a8d27b5",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.16,
+          "crop": {
+            "left": 3,
+            "top": 67,
+            "width": 496,
+            "height": 362
+          },
+          "placed": {
+            "left": 440,
+            "top": 575,
+            "width": 470,
+            "height": 343
+          },
+          "scale": 0.9475806451612904,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        }
+      ],
+      "centering": {
+        "method": "Visible group bounds centered on square canvas with 11% minimum margin along the longest dimension. No layout overlap for safety, tools or geometry; tools/geometry use aligned baselines.",
+        "bounds": {
+          "x0": 145,
+          "y0": 152,
+          "w": 916,
+          "h": 921,
+          "side": 1181
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/elektricni-in-mehanicni-elementi-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "122514562e8aa2cf3f144df38103c109"
+      },
+      "sourceDetailLimit": "Contains smaller native photos, each used without enlargement. Canvas dimensions do not add source detail.",
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Three redesigned groups reviewed at full resolution and 180px image size",
+          "No awkward tangencies or overlap",
+          "Shared baselines for tools and measuring instruments",
+          "11% outer canvas margin; no enlarging product pixels"
+        ]
+      },
+      "revisedInBatch": false
+    },
+    {
+      "categorySlug": "rocno-orodje-in-delavniski-pribor",
+      "categoryName": "Ročno orodje in delavniški pribor",
+      "categoryId": "979abbb8-3dbb-45f4-9872-444cf63921b2",
+      "image": "/images/catalog/2026-09/category-composites-v5/rocno-orodje-in-delavniski-pribor-v5.webp",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "hasAlpha": true,
+      "bytes": 106556,
+      "sha256": "59ff0871a9b2e1e55f629d39f398e7083f3bda3fc4d0edd1122757a31dc109d8",
+      "components": [
+        {
+          "product": "Rezbarski lok Pebaro 750",
+          "sourcePage": "https://atehna.si/product/rezbarski-lok-z-maticami-in-vzmetjo-tip-750/",
+          "sourceImage": "https://shop.pebaro.de/out/pictures/master/product/1/750.jpg",
+          "originalDimensions": [
+            1000,
+            1772
+          ],
+          "sourceSha256": "e90a6be1a7bfe584da4926db4880ce63a596bfbb0638661e82f8d213e64672be",
+          "limitations": "Official PEBARO 750 steel-wing-nut spring-tension frame; ATEHNA names exact type750.",
+          "extraction": "Exact alpha extraction only; no geometry changes, no upscaling, no generated product details. Flood paths preserve RGB. Glasses white-background unmatting recovers semi-transparent lens shading.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/safety-tools/fretsaw-pebaro-750-cutout.png",
+          "cutoutSha256": "023281afd3c39cabafe748154be81f82fe7b33a40115859f9969f4df498b7749",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.18,
+          "crop": {
+            "left": 138,
+            "top": 89,
+            "width": 739,
+            "height": 1496
+          },
+          "placed": {
+            "left": 250,
+            "top": 0,
+            "width": 517,
+            "height": 785
+          },
+          "scale": 0.5074424898511503,
+          "rotation": 18,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        },
+        {
+          "product": "Kladivo UNIOR 812",
+          "sourcePage": "https://atehna.si/product/kladivo-200-g/",
+          "sourceImage": "https://uniorusa.com/cdn/shop/products/812.jpg?v=1642726035",
+          "originalDimensions": [
+            1024,
+            1024
+          ],
+          "sourceSha256": "2b963f0b717fa123cc72bc915cfbffb1aef7f527feacd1b405d5622fe37f644e",
+          "limitations": "Category-only UNIOR 812-300 matches marking and construction in ATEHNA historical 328516.jpg. Historical 200g versus 300g listing mismatch remains unresolved; no product variant claim or gallery change.",
+          "extraction": "Exact alpha extraction only; no geometry changes, no upscaling, no generated product details. Flood paths preserve RGB. Glasses white-background unmatting recovers semi-transparent lens shading.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/safety-tools/hammer-unior-cutout.png",
+          "cutoutSha256": "dc8924885e1985f0e18ed597f7563cb27437a278bd31b42a6ddcc4f66cb5f3b4",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.2,
+          "crop": {
+            "left": 2,
+            "top": 346,
+            "width": 1013,
+            "height": 336
+          },
+          "placed": {
+            "left": 600,
+            "top": 290,
+            "width": 475,
+            "height": 581
+          },
+          "scale": 0.6416584402764067,
+          "rotation": 55,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        },
+        {
+          "product": "Tooltech klešče za snemanje izolacije — en kos iz stojala",
+          "sourcePage": "https://www.edunikum.de/werkzeug/zangen/abisolierzange/a-6195/",
+          "sourceImage": "https://cdn02.plentyone.com/t77l3iqhnbrj/item/images/6195/full/340038-Abisolierzange.jpg",
+          "originalDimensions": [
+            940,
+            2000
+          ],
+          "sourceSha256": "b1f563cc682ad27d3a935f1ab6ee0c87139ade69bd0627c90d267482cf8c6a30",
+          "cutout": "public/images/catalog/2026-09/transparent-v1/elektricarske-klesce-za-snemanje-izolacije-570288c0a5377055-original.webp",
+          "cutoutSha256": "570288c0a53770558738060aaf7075d006fab65ef6f4187c0896ee06bd556970",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.2,
+          "crop": {
+            "left": 672,
+            "top": 128,
+            "width": 821,
+            "height": 1914
+          },
+          "placed": {
+            "left": 30,
+            "top": 340,
+            "width": 375,
+            "height": 535
+          },
+          "scale": 0.2850182704019488,
+          "rotation": -28,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        }
+      ],
+      "centering": {
+        "method": "Compact asymmetric group with a dominant anchor, supporting objects at varied angles, restrained overlap and 10% minimum square-canvas margin. Visible group bounds centered.",
+        "bounds": {
+          "x0": 181,
+          "y0": 152,
+          "w": 1044,
+          "h": 876,
+          "side": 1305
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/rocno-orodje-in-delavniski-pribor-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "5c193ec7e3c0ecd546422e8c0268f6c3"
+      },
+      "sourceDetailLimit": "Contains smaller native photos, each used without enlargement. Canvas dimensions do not add source detail.",
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Full-size and category-card-size visual review",
+          "Compact asymmetric grouping with varied angles and limited overlap",
+          "Whole products remain recognizable; geometry scale stays visible",
+          "Clear margins on desktop, mobile and hover"
+        ],
+        "independentReview": "Passed: groups read as natural arrangements rather than rows or columns."
+      },
+      "revisedInBatch": true
+    },
+    {
+      "categorySlug": "dodatki-in-nadomestni-deli",
+      "categoryName": "Dodatki in nadomestni deli",
+      "categoryId": "627ff18f-81ac-45a2-b7f3-08b4d1fc331e",
+      "image": "/images/catalog/2026-09/category-composites-v4/dodatki-in-nadomestni-deli-v4.webp",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "hasAlpha": true,
+      "bytes": 211680,
+      "sha256": "9e0183410f67d81f320344f83939b863d804d3369fc0b079783a27a37f2f607d",
+      "components": [
+        {
+          "product": "Magnetni trinog Wissner",
+          "sourcePage": "https://www.wissner-aktiv-lernen.com/Ersatzdreifuss-magnetisch/010012.000",
+          "sourceImage": "https://www.wissner-aktiv-lernen.com/media/45/be/80/1736147488/Wissner_010012.000.jpg?ts=1761747330",
+          "originalDimensions": [
+            1485,
+            915
+          ],
+          "sourceSha256": "658e2c0a1ffcbacf6b42c2027d5435ad133d82232d7891cc5c967f824c01db53",
+          "limitations": "Native source below 1024px in one or both dimensions; intended only as small category-composite component, do not enlarge.",
+          "extraction": "Removed pale fabric background with alpha mask; retained original RGB, manually protected three metal disc highlights from foreground removal. No resize/enlargement.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/spares/magnetni-trinog-cutout.png",
+          "cutoutSha256": "7992b9e9148f79f1d679dd909ed0c6f4b6dd418c1243ba75296bcfdd8b798e03",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.2,
+          "crop": {
+            "left": 317,
+            "top": 200,
+            "width": 899,
+            "height": 532
+          },
+          "placed": {
+            "left": 0,
+            "top": 85,
+            "width": 455,
+            "height": 269
+          },
+          "scale": 0.5061179087875417,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Svedri (Forstner set15/20/25/30/35mm)",
+          "sourcePage": "https://atehna.si/product/svedri/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2014/09/svedri2.jpg",
+          "originalDimensions": [
+            497,
+            500
+          ],
+          "sourceSha256": "14016989e9b24f0ca4380a8907e52ff7a1905670fa804a5575698288f0984b09",
+          "limitations": "Native 497×500 product photo. Entire actual wooden storage case retained as part of the sold set; exterior background removed.",
+          "cutout": "output/category-composites/2026-09-23/sources/tech-accessories/svedri-open-case-alpha.png",
+          "cutoutSha256": "d7a0cb1df0d8fce242dc7ba8014483de2cd9217463604fb9adc42694f4288106",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.19,
+          "crop": {
+            "left": 13,
+            "top": 6,
+            "width": 466,
+            "height": 487
+          },
+          "placed": {
+            "left": 485,
+            "top": 0,
+            "width": 450,
+            "height": 470
+          },
+          "scale": 0.9656652360515021,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Matice M3",
+          "sourcePage": "https://atehna.si/product/matica-m3/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2015/04/m3.png",
+          "originalDimensions": [
+            700,
+            700
+          ],
+          "sourceSha256": "e446a44d26b911b4ba8845f73805c8d1306f6cd2227a1d3ab27b85dc31f4cf9e",
+          "limitations": "Native source below 1024px in one or both dimensions; intended only as small category-composite component, do not enlarge.",
+          "extraction": "Removed white background and white through-hole backgrounds; retained original object RGB and native dimensions. No enlargement.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/spares/m3-cutout.png",
+          "cutoutSha256": "aa43d66c9505bf5b73b7452e233964efb7ca7312c86198584474b48282915264",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.25,
+          "crop": {
+            "left": 15,
+            "top": 97,
+            "width": 684,
+            "height": 505
+          },
+          "placed": {
+            "left": 0,
+            "top": 570,
+            "width": 255,
+            "height": 188
+          },
+          "scale": 0.37280701754385964,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Podložka M4",
+          "sourcePage": "https://atehna.si/product/podlozka-m4/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2015/04/m4.png",
+          "originalDimensions": [
+            600,
+            600
+          ],
+          "sourceSha256": "cfbb85cb56b92f242e6bdcf2f0b98789c1cb26e34097d2b3f7970f0ceb851c02",
+          "limitations": "Native source below 1024px in one or both dimensions; intended only as small category-composite component, do not enlarge.",
+          "extraction": "Removed white background and white central hole; retained object RGB and native dimensions. No enlargement.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/spares/m4-cutout.png",
+          "cutoutSha256": "05e813b21a1a94bfb27a9ffe5bdfeb64e3173425343a000985b996bc24f85b57",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.27,
+          "crop": {
+            "left": 110,
+            "top": 130,
+            "width": 378,
+            "height": 297
+          },
+          "placed": {
+            "left": 285,
+            "top": 635,
+            "width": 155,
+            "height": 122
+          },
+          "scale": 0.41005291005291006,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        },
+        {
+          "product": "Vijaki M3 — predstavitvena fotografija",
+          "sourcePage": "https://www.opitec.com/de-de/zylinderkopfschrauben-m-3-x-35-mm-100-stueck/265175",
+          "sourceImage": "https://www.opitec.com/media/62/8e/08/1764724547/265175-000-000-VO-01_v_9.jpg?ts=1764724547",
+          "originalDimensions": [
+            2560,
+            1920
+          ],
+          "sourceSha256": "bf644abd8523007dcaa3d6950e0e99a495e6da20ac5dbe150a3f725d7cc98d32",
+          "limitations": "Category-only reference photograph. User approved real category-only reference photos; never assign as exact ATEHNA SKU product image.",
+          "extraction": "Removed pure-white backdrop and white interstices via alpha only. Preserved original RGB, dimensions and every screw. No enlargement; no labels or geometry invented.",
+          "categoryReferenceOnly": true,
+          "authorization": "Use real category-only reference photos — user, 23 September 2026",
+          "cutout": "output/category-composites/2026-09-23-revision/sources/spares/opitec-m3x35-cutout.png",
+          "cutoutSha256": "5d5fda409e6aacbc074b3bbe1d86028784b0792e18db288a2d461c24f0d884b3",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.24,
+          "crop": {
+            "left": 14,
+            "top": 29,
+            "width": 2486,
+            "height": 1853
+          },
+          "placed": {
+            "left": 490,
+            "top": 535,
+            "width": 455,
+            "height": 339
+          },
+          "scale": 0.1830249396621078,
+          "rotation": 0,
+          "edits": "Exact compositing and proportional reduction only; original product shape and markings retained."
+        }
+      ],
+      "centering": {
+        "method": "Visible group bounds centered on square canvas with 11% minimum margin along the longest dimension. No layout overlap for safety, tools or geometry; tools/geometry use aligned baselines.",
+        "bounds": {
+          "x0": 146,
+          "y0": 153,
+          "w": 953,
+          "h": 878,
+          "side": 1222
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/dodatki-in-nadomestni-deli-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "ae19415e3cd513415f8e8eafbb5bd882"
+      },
+      "sourceDetailLimit": "Contains smaller native photos, each used without enlargement. Canvas dimensions do not add source detail.",
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Three redesigned groups reviewed at full resolution and 180px image size",
+          "No awkward tangencies or overlap",
+          "Shared baselines for tools and measuring instruments",
+          "11% outer canvas margin; no enlarging product pixels"
+        ]
+      },
+      "revisedInBatch": false
+    },
+    {
+      "categorySlug": "zascita-pri-delu",
+      "categoryName": "Zaščita pri delu",
+      "categoryId": "2e789ad2-acea-4138-9114-311a88979610",
+      "image": "/images/catalog/2026-09/category-composites-v5/zascita-pri-delu-v5.webp",
+      "dimensions": [
+        754,
+        754
+      ],
+      "hasAlpha": true,
+      "bytes": 61358,
+      "sha256": "1a95798a388555f7052489b7b55bcbcab299da4095b53224dd29951247c457e6",
+      "components": [
+        {
+          "product": "Zaščitni predpasnik",
+          "sourcePage": "https://atehna.si/product/zascitni-predpasnik/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2017/12/6-1038-zascitni-predpasnik-iz-blaga-500x500.jpg",
+          "originalDimensions": [
+            500,
+            500
+          ],
+          "sourceSha256": "2443ea34cf49828b19916649bffe78d6ae2ec026ef63086ebc137c8b7bddaf73",
+          "limitations": "Previously verified original ATEHNA page photo; category-only. Existing child/adult size ambiguity remains documented and no specific size claim made.",
+          "extraction": "Existing exact flood-fill alpha cutout; source shape and native pixels retained. No enlargement.",
+          "categoryReferenceOnly": false,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/safety-tools/apron-cutout.png",
+          "cutoutSha256": "804c46225df0f82ed3aebf701ff2e112552c1b3cac64ebc3830250ccc127f5dc",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.16,
+          "crop": {
+            "left": 157,
+            "top": 12,
+            "width": 192,
+            "height": 475
+          },
+          "placed": {
+            "left": 0,
+            "top": 0,
+            "width": 226,
+            "height": 483
+          },
+          "scale": 1,
+          "rotation": -12,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        },
+        {
+          "product": "Stenska in prenosna omarica za prvo pomoč",
+          "sourcePage": "https://atehna.si/product/stenska-in-prenosna-omarica-za-prvo-pomoc/",
+          "sourceImage": "https://atehna.si/wp-content/uploads/2015/03/pp3.jpg",
+          "originalDimensions": [
+            640,
+            424
+          ],
+          "sourceSha256": "0fefce4313cf53cdf7933a12419a2b6aed3e44b0b993628ba356ccd6eaa82a3a",
+          "limitations": [
+            "Below1024px on both axes; must not upscale product pixels to imply higher detail",
+            "Small label text not legible at category-card scale"
+          ],
+          "cutout": "output/category-composites/2026-09-23/sources/safety/cutouts/first-aid-case-cutout.png",
+          "cutoutSha256": "0114f192de32383be966aadb8f96b0f0edde768a316d645b722351810775bda2",
+          "shadowOpacity": 0.2,
+          "crop": {
+            "left": 40,
+            "top": 18,
+            "width": 558,
+            "height": 383
+          },
+          "placed": {
+            "left": 250,
+            "top": 150,
+            "width": 355,
+            "height": 271
+          },
+          "scale": 0.5913978494623656,
+          "rotation": 9,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        },
+        {
+          "product": "Zaščitna očala TTS — predstavitvena fotografija",
+          "sourcePage": "https://www.tts-group.co.uk/childrens-eye-protection-safety-glasses/1032927.html",
+          "sourceImage": "https://www.tts-group.co.uk/on/demandware.static/-/Sites-TTSGroupE-commerceMaster/default/dw84debe55/images/hi-res/1032927_00_035049_01.jpg",
+          "originalDimensions": [
+            900,
+            900
+          ],
+          "sourceSha256": "4caf19cf1bf546d3a4e9530fa0ff666af4be258aae83fd03fca8cc809d4b9006",
+          "limitations": "CATEGORY REPRESENTATIVE ONLY: genuine TTS child safety glasses; unknown ATEHNA45001/45002 manufacturer and exact match NOT established. User requested glasses category image and previously authorized best effort. Never assign as exact-product photo.",
+          "extraction": "Exact alpha extraction only; no geometry changes, no upscaling, no generated product details. Flood paths preserve RGB. Glasses white-background unmatting recovers semi-transparent lens shading.",
+          "categoryReferenceOnly": true,
+          "cutout": "output/category-composites/2026-09-23-revision/sources/safety-tools/glasses-tts-cutout.png",
+          "cutoutSha256": "69e5bab33a972c8a9edf71fd7551f952b80eaf006b2be2b30bfcaf9070a8d2cb",
+          "inkContrastExposure": 0,
+          "shadowOpacity": 0.22,
+          "crop": {
+            "left": 42,
+            "top": 223,
+            "width": 816,
+            "height": 454
+          },
+          "placed": {
+            "left": 155,
+            "top": 345,
+            "width": 338,
+            "height": 202
+          },
+          "scale": 0.4166666666666667,
+          "rotation": -10,
+          "edits": "Exact whole-object compositing, rotation and proportional reduction. Original product shape and details retained."
+        }
+      ],
+      "centering": {
+        "method": "Compact asymmetric group with a dominant anchor, supporting objects at varied angles, restrained overlap and 10% minimum square-canvas margin. Visible group bounds centered.",
+        "bounds": {
+          "x0": 152,
+          "y0": 153,
+          "w": 603,
+          "h": 545,
+          "side": 754
+        }
+      },
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-composites-v4/zascita-pri-delu-v4.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 1,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        },
+        "revision": "cb4661b86cd7a7f8ae33a646a1cbb227"
+      },
+      "sourceDetailLimit": "Smaller native sources preserved without enlargement. This is a category thumbnail asset, not a claim of 1024px product detail.",
+      "visualReview": {
+        "verified": true,
+        "scope": [
+          "Full-size and category-card-size visual review",
+          "Compact asymmetric grouping with varied angles and limited overlap",
+          "Whole products remain recognizable; geometry scale stays visible",
+          "Clear margins on desktop, mobile and hover"
+        ],
+        "independentReview": "Passed: groups read as natural arrangements rather than rows or columns."
+      },
+      "revisedInBatch": true
+    }
+  ],
+  "verification": {
+    "origin": "http://localhost:3012",
+    "checkedAt": "2026-09-23T18:05:35.273Z",
+    "results": [
+      {
+        "route": "/",
+        "width": 1440,
+        "images": [
+          {
+            "slug": "tehnika-in-tehnologija",
+            "box": {
+              "x": 184.15625,
+              "y": 526.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "merilno-orodje-in-geometrija",
+            "box": {
+              "x": 1171.90625,
+              "y": 526.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "elektricni-in-mehanicni-elementi",
+            "box": {
+              "x": 184.15625,
+              "y": 710.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "rocno-orodje-in-delavniski-pribor",
+            "box": {
+              "x": 513.40625,
+              "y": 710.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "dodatki-in-nadomestni-deli",
+            "box": {
+              "x": 1171.90625,
+              "y": 710.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "zascita-pri-delu",
+            "box": {
+              "x": 842.65625,
+              "y": 710.75,
+              "width": 191.09375,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          }
+        ],
+        "pageErrors": []
+      },
+      {
+        "route": "/",
+        "width": 390,
+        "images": [
+          {
+            "slug": "tehnika-in-tehnologija",
+            "box": {
+              "x": 156.796875,
+              "y": 418,
+              "width": 170.203125,
+              "height": 132
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "merilno-orodje-in-geometrija",
+            "box": {
+              "x": 156.796875,
+              "y": 862,
+              "width": 170.203125,
+              "height": 132
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "elektricni-in-mehanicni-elementi",
+            "box": {
+              "x": 156.796875,
+              "y": 918,
+              "width": 170.203125,
+              "height": 132
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "rocno-orodje-in-delavniski-pribor",
+            "box": {
+              "x": 156.796875,
+              "y": 459,
+              "width": 170.203125,
+              "height": 132
+            },
+            "background": "rgb(245, 243, 239)"
+          }
+        ],
+        "pageErrors": []
+      },
+      {
+        "route": "/admin/kategorije/predogled",
+        "width": 1440,
+        "images": [
+          {
+            "slug": "tehnika-in-tehnologija",
+            "box": {
+              "x": 228.625,
+              "y": 264,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "merilno-orodje-in-geometrija",
+            "box": {
+              "x": 1196.875,
+              "y": 264,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "elektricni-in-mehanicni-elementi",
+            "box": {
+              "x": 228.625,
+              "y": 448,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "rocno-orodje-in-delavniski-pribor",
+            "box": {
+              "x": 551.375,
+              "y": 448,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "dodatki-in-nadomestni-deli",
+            "box": {
+              "x": 1196.875,
+              "y": 448,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          },
+          {
+            "slug": "zascita-pri-delu",
+            "box": {
+              "x": 874.125,
+              "y": 448,
+              "width": 187.125,
+              "height": 168
+            },
+            "background": "rgb(245, 243, 239)"
+          }
+        ],
+        "pageErrors": []
+      }
+    ],
+    "protectedCategoriesUnchanged": true,
+    "persistenceReadBack": true,
+    "productionPublished": false,
+    "unchangedOtherCategories": 5,
+    "reviewPageDesktopAndMobile": true,
+    "hoverChecked": [
+      "zascita-pri-delu",
+      "rocno-orodje-in-delavniski-pribor",
+      "merilno-orodje-in-geometrija"
+    ],
+    "visualResult": "Three new compositions inspected at full size and rendered category-card size. No clipped objects or edge crowding. Persistent local read-back passed. No application code or production change."
+  }
+}

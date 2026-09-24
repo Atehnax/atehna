@@ -3587,7 +3587,16 @@ create table catalog_supplier_rows (
 create index catalog_supplier_rows_position_idx on catalog_supplier_rows(position, id);
 create index catalog_supplier_rows_catalog_item_idx on catalog_supplier_rows(catalog_item_id);
 
+create table institution_directories (
+  id text constraint institution_directories_pkey primary key,
+  seed_version integer not null,
+  content jsonb not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint institution_directories_content_check check (jsonb_typeof(content) = 'object')
+);
+
 insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
-values ('20260908.catalog-suppliers-v1', 'd36a4541b84a9b3da8fe4dea4abf7d088ea370deee89da2274ddb64c6b58414e', 'fresh_schema');
+values ('20260924.institution-directories-v1', '97fd4e47991662b4aade6f09860e9ea57e29e59b3315d553c0afa7485a3593dd', 'fresh_schema');
 
 commit;

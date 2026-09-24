@@ -1,0 +1,367 @@
+{
+  "version": 1,
+  "batchId": "category-composites-release-2026-09-24",
+  "publicationAuthorized": true,
+  "sourceManifest": "data/catalog/category-composites-v5-2026-09.json",
+  "sourceManifestSha256": "07e0d8c5ae3de360e2f5a97e42bb671f44ee45b013509b69292f9d1e11681c6a",
+  "protectedCategories": [
+    "materiali",
+    "stroji-in-naprave"
+  ],
+  "assets": [
+    {
+      "categorySlug": "tehnika-in-tehnologija",
+      "categoryId": "ddb7068a-22e6-42f4-aa91-a5750ceb1cde",
+      "image": "/images/catalog/2026-09/category-composites-v4/tehnika-in-tehnologija-v4.webp",
+      "sha256": "ff10df66d657c19efcea5b3b5d974015cf7620d1e2c10c73e3a1c7823e6d30b8",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/next60-v1/sestavljive-kocke-3c3fdc358513-v2.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    },
+    {
+      "categorySlug": "merilno-orodje-in-geometrija",
+      "categoryId": "bdd46c8e-d4b0-4996-ab7d-e67837e66032",
+      "image": "/images/catalog/2026-09/category-composites-v5/merilno-orodje-in-geometrija-v5.webp",
+      "sha256": "8ea8a2f3002bf61786be5f44d122dfa78d79df7ede8d5f2569209fcbbd741692",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/next60-v1/komplet-ravnil-na-tabli-c094f901a02a-v1.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    },
+    {
+      "categorySlug": "elektricni-in-mehanicni-elementi",
+      "categoryId": "0ed1aaf2-497c-4522-97dd-2476a28b4029",
+      "image": "/images/catalog/2026-09/category-composites-v4/elektricni-in-mehanicni-elementi-v4.webp",
+      "sha256": "1fa6efe801a6043f85aebf354c632d6e21427e63d681c6d7854f111d67b35e73",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/transparent-v1/motorcek-5b0481aa9bfcee4f-1024.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    },
+    {
+      "categorySlug": "rocno-orodje-in-delavniski-pribor",
+      "categoryId": "979abbb8-3dbb-45f4-9872-444cf63921b2",
+      "image": "/images/catalog/2026-09/category-composites-v5/rocno-orodje-in-delavniski-pribor-v5.webp",
+      "sha256": "59ff0871a9b2e1e55f629d39f398e7083f3bda3fc4d0edd1122757a31dc109d8",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/transparent-v1/elektricarske-klesce-za-snemanje-izolacije-1942ec665238cc88-1024.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    },
+    {
+      "categorySlug": "dodatki-in-nadomestni-deli",
+      "categoryId": "627ff18f-81ac-45a2-b7f3-08b4d1fc331e",
+      "image": "/images/catalog/2026-09/category-composites-v4/dodatki-in-nadomestni-deli-v4.webp",
+      "sha256": "9e0183410f67d81f320344f83939b863d804d3369fc0b079783a27a37f2f607d",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/transparent-v1/spiralne-zagice-za-les-in-mehke-kovine-ded17c0c8410e3f5-1024.webp",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    },
+    {
+      "categorySlug": "zascita-pri-delu",
+      "categoryId": "2e789ad2-acea-4138-9114-311a88979610",
+      "image": "/images/catalog/2026-09/category-composites-v5/zascita-pri-delu-v5.webp",
+      "sha256": "1a95798a388555f7052489b7b55bcbcab299da4095b53224dd29951247c457e6",
+      "presentation": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "scale": 1,
+        "offsetOriginX": 0,
+        "offsetOriginY": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "fit": "contain",
+        "titleColor": "#111827",
+        "titleHoverColor": "#111827",
+        "backgroundColor": "#F5F3EF",
+        "backgroundHoverColor": "#F6F1EA",
+        "ordinalFontSizePx": 11,
+        "ordinalColor": "#354052",
+        "ordinalHoverColor": "#354052"
+      },
+      "previous": {
+        "image": "/images/catalog/2026-09/category-photos-v1/otroski-zascitni-predpasnik-v1.jpg",
+        "presentation": {
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "focalPoint": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "scale": 0.9,
+          "offsetOriginX": 0,
+          "offsetOriginY": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "fit": "contain",
+          "titleColor": "#111827",
+          "titleHoverColor": "#111827",
+          "backgroundColor": "#F5F3EF",
+          "backgroundHoverColor": "#F6F1EA",
+          "ordinalFontSizePx": 11,
+          "ordinalColor": "#354052",
+          "ordinalHoverColor": "#354052"
+        }
+      }
+    }
+  ]
+}

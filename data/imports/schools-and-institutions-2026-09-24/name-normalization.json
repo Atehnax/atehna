@@ -1,0 +1,921 @@
+{
+  "version": 1,
+  "textHashEncoding": "UTF-8 with LF line endings",
+  "rule": "Case-insensitive complete phrase Osnovna šola -> OŠ in canonical institution names; preserve all other name text and all source audit snapshots.",
+  "previousCanonicalSha256": "c150b38e031e1c0518234c3d50127463168ed606d9adfb569c43270889a8157b",
+  "canonicalSeedSha256": "1162e2b9777a6705e444ea8fe99cad5614d08afd4d199250ef37f5d17f6ea049",
+  "changedNames": 144,
+  "directoryCounts": [
+    {
+      "id": "osnovne-sole",
+      "rows": 452,
+      "changedNames": 13
+    },
+    {
+      "id": "dijaski-domovi",
+      "rows": 15,
+      "changedNames": 0
+    },
+    {
+      "id": "glasbene-sole",
+      "rows": 67,
+      "changedNames": 0
+    },
+    {
+      "id": "vrtci",
+      "rows": 684,
+      "changedNames": 105
+    },
+    {
+      "id": "srednje-sole",
+      "rows": 165,
+      "changedNames": 0
+    },
+    {
+      "id": "visje-strokovne-sole",
+      "rows": 52,
+      "changedNames": 0
+    },
+    {
+      "id": "izobrazevanje-odraslih",
+      "rows": 78,
+      "changedNames": 1
+    },
+    {
+      "id": "osnovne-sole-posebne-potrebe",
+      "rows": 28,
+      "changedNames": 24
+    },
+    {
+      "id": "zavodi-posebne-potrebe",
+      "rows": 13,
+      "changedNames": 1
+    }
+  ],
+  "changes": [
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0029",
+      "before": "I. osnovna šola Celje",
+      "after": "I. OŠ Celje"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0030",
+      "before": "II. osnovna šola Celje",
+      "after": "II. OŠ Celje"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0031",
+      "before": "III. osnovna šola Celje",
+      "after": "III. OŠ Celje"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0032",
+      "before": "IV. osnovna šola Celje",
+      "after": "IV. OŠ Celje"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0059",
+      "before": "Dvojezična osnovna šola Dobrovnik",
+      "after": "Dvojezična OŠ Dobrovnik"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0169",
+      "before": "Dvojezična osnovna šola Genterovci",
+      "after": "Dvojezična OŠ Genterovci"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0170",
+      "before": "Dvojezična osnovna šola I Lendava",
+      "after": "Dvojezična OŠ I Lendava"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0222",
+      "before": "Zasebna osnovna šola Locus Montessorium",
+      "after": "Zasebna OŠ Locus Montessorium"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0276",
+      "before": "Dvojezična osnovna šola Prosenjakovci",
+      "after": "Dvojezična OŠ Prosenjakovci"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0364",
+      "before": "Druga osnovna šola Slovenj Gradec",
+      "after": "Druga OŠ Slovenj Gradec"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0367",
+      "before": "Prva osnovna šola Slovenj Gradec",
+      "after": "Prva OŠ Slovenj Gradec"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0374",
+      "before": "2. osnovna šola Slovenska Bistrica",
+      "after": "2. OŠ Slovenska Bistrica"
+    },
+    {
+      "directoryId": "osnovne-sole",
+      "rowId": "school-0449",
+      "before": "I. osnovna šola Žalec",
+      "after": "I. OŠ Žalec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-22535",
+      "before": "Osnovna šola in vrtec Ankaran, Enota Vrtec Ankaran",
+      "after": "OŠ in vrtec Ankaran, Enota Vrtec Ankaran"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3785",
+      "before": "Osnovna šola Benedikt, Enota Vrtec",
+      "after": "OŠ Benedikt, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-6684",
+      "before": "Osnovna šola Toneta Šraja Aljoše, enota Vrtec Nova vas",
+      "after": "OŠ Toneta Šraja Aljoše, enota Vrtec Nova vas"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1332",
+      "before": "Osnovna šola dr.Janeza Mencingerja Bohinjska Bistrica, Enota Vrtec",
+      "after": "OŠ dr.Janeza Mencingerja Bohinjska Bistrica, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1187",
+      "before": "Osnovna šola Bovec, Enota Vrtec",
+      "after": "OŠ Bovec, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-24115",
+      "before": "Osnovna šola Alojza Gradnika, DO vrtca Dobrovo v Biljani",
+      "after": "OŠ Alojza Gradnika, DO vrtca Dobrovo v Biljani"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1224",
+      "before": "Osnovna šola dr. Jožeta Toporišiča Dobova, Vrtec Najdihojca",
+      "after": "OŠ dr. Jožeta Toporišiča Dobova, Vrtec Najdihojca"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1128",
+      "before": "Osnovna šola Artiče, Vrtec Ringa Raja",
+      "after": "OŠ Artiče, Vrtec Ringa Raja"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3688",
+      "before": "Osnovna šola Cerklje ob Krki, enota Vrtec Pikapolonica",
+      "after": "OŠ Cerklje ob Krki, enota Vrtec Pikapolonica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3786",
+      "before": "Osnovna šola Cerkvenjak - Vitomarci, Enota Vrtec Cerkvenjak",
+      "after": "OŠ Cerkvenjak - Vitomarci, Enota Vrtec Cerkvenjak"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-13169",
+      "before": "Osnovna šola Cerkvenjak - Vitomarci, Enota Vrtec Vitomarci",
+      "after": "OŠ Cerkvenjak - Vitomarci, Enota Vrtec Vitomarci"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-15149",
+      "before": "Osnovna šola Cirkulane - Zavrč, Vrtec Cirkulane",
+      "after": "OŠ Cirkulane - Zavrč, Vrtec Cirkulane"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3718",
+      "before": "Osnovna šola Franceta Prešerna Črenšovci, Enota Vrtec Črenšovci",
+      "after": "OŠ Franceta Prešerna Črenšovci, Enota Vrtec Črenšovci"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1121",
+      "before": "Osnovna šola Komandanta Staneta Dragatuš, Enota Vrtec Dragatuš",
+      "after": "OŠ Komandanta Staneta Dragatuš, Enota Vrtec Dragatuš"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1135",
+      "before": "Osnovna šola Polhov Gradec, Enota Vrtec",
+      "after": "OŠ Polhov Gradec, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3830",
+      "before": "Dvojezična osnovna šola Dobrovnik, enota Vrtec",
+      "after": "Dvojezična OŠ Dobrovnik, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-10088",
+      "before": "Osnovna šola Janka Modra Dol pri Ljubljani, Enota Vrtec",
+      "after": "OŠ Janka Modra Dol pri Ljubljani, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1339",
+      "before": "Osnovna šola dr. Franja Žgeča Dornava, Enota Vrtec",
+      "after": "OŠ dr. Franja Žgeča Dornava, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3672",
+      "before": "Osnovna šola Ivana Tavčarja Gorenja vas, Vrtec Zala",
+      "after": "OŠ Ivana Tavčarja Gorenja vas, Vrtec Zala"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-12050",
+      "before": "Osnovna šola Ivana Tavčarja Gorenja vas, enota Vrtec Sovodenj",
+      "after": "OŠ Ivana Tavčarja Gorenja vas, enota Vrtec Sovodenj"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1283",
+      "before": "Osnovna šola Gorišnica, Vrtec Gorišnica",
+      "after": "OŠ Gorišnica, Vrtec Gorišnica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-17590",
+      "before": "Osnovna šola Gorje, Enota Vrtec Gorje",
+      "after": "OŠ Gorje, Enota Vrtec Gorje"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-13809",
+      "before": "Osnovna šola Frana Kocbeka Gornji Grad, Enota Vrtec Bočna",
+      "after": "OŠ Frana Kocbeka Gornji Grad, Enota Vrtec Bočna"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3660",
+      "before": "Osnovna šola Grad, Enota Vrtec",
+      "after": "OŠ Grad, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-17930",
+      "before": "Osnovna šola Hajdina, enota vrtca",
+      "after": "OŠ Hajdina, enota vrtca"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-6680",
+      "before": "Osnovna šola Franca Lešnika - Vuka Slivnica pri Mariboru, Enota Vrtec",
+      "after": "OŠ Franca Lešnika - Vuka Slivnica pri Mariboru, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3831",
+      "before": "Osnovna šola Dušana Flisa Hoče, VVE Rogoza",
+      "after": "OŠ Dušana Flisa Hoče, VVE Rogoza"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-12269",
+      "before": "Osnovna šola Dušana Flisa Hoče, VVE Hoče",
+      "after": "OŠ Dušana Flisa Hoče, VVE Hoče"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1134",
+      "before": "Osnovna šola Horjul, Enota Vrtec",
+      "after": "OŠ Horjul, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3746",
+      "before": "Osnovna šola Juršinci, Enota Vrtec",
+      "after": "OŠ Juršinci, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1144",
+      "before": "Osnovna šola Deskle, enota vrtec Deskle",
+      "after": "OŠ Deskle, enota vrtec Deskle"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19930",
+      "before": "Osnovna šola Cirkovce, Enota Vrtec Cirkovce",
+      "after": "OŠ Cirkovce, Enota Vrtec Cirkovce"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19850",
+      "before": "Osnovna šola Kidričevo, Enota Vrtec Kidričevo",
+      "after": "OŠ Kidričevo, Enota Vrtec Kidričevo"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3713",
+      "before": "Osnovna šola Kobilje, enota Vrtec",
+      "after": "OŠ Kobilje, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-17250",
+      "before": "Osnovna šola Orehek Kranj, enota vrtec Mavčiče",
+      "after": "OŠ Orehek Kranj, enota vrtec Mavčiče"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3653",
+      "before": "Osnovna šola Simona Jenka Kranj, Enota Vrtec",
+      "after": "OŠ Simona Jenka Kranj, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-24975",
+      "before": "Osnovna šola Simona Jenka, enota vrtca v Podružnici Center",
+      "after": "OŠ Simona Jenka, enota vrtca v Podružnici Center"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1205",
+      "before": "Osnovna šola Predoslje, enota Vrtec",
+      "after": "OŠ Predoslje, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1149",
+      "before": "Osnovna šola Franceta Prešerna Kranj, Enota Vrtec Kokrica",
+      "after": "OŠ Franceta Prešerna Kranj, Enota Vrtec Kokrica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-25135",
+      "before": "Osnovna šola Janeza Puharja Kranj - Center, enota vrtec",
+      "after": "OŠ Janeza Puharja Kranj - Center, enota vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-25136",
+      "before": "Osnovna šola Janeza Puharja Kranj - Center, enota vrtca Primskovo",
+      "after": "OŠ Janeza Puharja Kranj - Center, enota vrtca Primskovo"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3677",
+      "before": "Osnovna šola 16. decembra Mojstrana, Enota Vrtec",
+      "after": "OŠ 16. decembra Mojstrana, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1127",
+      "before": "Osnovna šola Raka, Enota Vrtec",
+      "after": "OŠ Raka, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3710",
+      "before": "Osnovna šola Kungota, Enota Vrtec Zgornja Kungota",
+      "after": "OŠ Kungota, Enota Vrtec Zgornja Kungota"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-10058",
+      "before": "Osnovna šola Lenart, Enota vrtec Lenart",
+      "after": "OŠ Lenart, Enota vrtec Lenart"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-12789",
+      "before": "Osnovna šola Danile Kumar, International Kindergarten",
+      "after": "OŠ Danile Kumar, International Kindergarten"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1136",
+      "before": "Osnovna šola Mala Nedelja, Enota vrtec",
+      "after": "OŠ Mala Nedelja, Enota vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3658",
+      "before": "Osnovna šola Stročja vas, Enota Vrtec",
+      "after": "OŠ Stročja vas, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1139",
+      "before": "Osnovna šola Ivana Cankarja Ljutomer, enota Vrtec",
+      "after": "OŠ Ivana Cankarja Ljutomer, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3748",
+      "before": "Osnovna šola Majšperk, Vrtec Majšperk",
+      "after": "OŠ Majšperk, Vrtec Majšperk"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19190",
+      "before": "Center za sluh in govor Maribor, OE Osnovna šola in vrtec",
+      "after": "Center za sluh in govor Maribor, OE OŠ in vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-10089",
+      "before": "Osnovna šola Markovci, Enota Vrtec",
+      "after": "OŠ Markovci, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-9598",
+      "before": "Osnovna šola Mežica, Enota vrtec Mežica",
+      "after": "OŠ Mežica, Enota vrtec Mežica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3828",
+      "before": "Osnovna šola Miklavž na Dravskem polju, Vrtec Vrtiljak",
+      "after": "OŠ Miklavž na Dravskem polju, Vrtec Vrtiljak"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3694",
+      "before": "Osnovna šola Mirna, Enota Vrtec Mirna",
+      "after": "OŠ Mirna, Enota Vrtec Mirna"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3666",
+      "before": "Osnovna šola Toneta Pavčka, Vrtec Cepetavček",
+      "after": "OŠ Toneta Pavčka, Vrtec Cepetavček"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19390",
+      "before": "Osnovna šola Naklo, OE Vrtec, Vrtec Jelka",
+      "after": "OŠ Naklo, OE Vrtec, Vrtec Jelka"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1145",
+      "before": "Osnovna šola Branik, Vrtec Rastja",
+      "after": "OŠ Branik, Vrtec Rastja"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-25095",
+      "before": "Osnovna šola Otočec, enota vrtec Otočec",
+      "after": "OŠ Otočec, enota vrtec Otočec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3670",
+      "before": "Osnovna šola Brusnice, Vrtec Muca - enota Brusnice",
+      "after": "OŠ Brusnice, Vrtec Muca - enota Brusnice"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-26055",
+      "before": "Osnovna šola Brusnice, Vrtec Cvetnik - enota Gabrje",
+      "after": "OŠ Brusnice, Vrtec Cvetnik - enota Gabrje"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3714",
+      "before": "Osnovna šola Odranci, Vrtec Mavrica",
+      "after": "OŠ Odranci, Vrtec Mavrica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-15253",
+      "before": "Osnovna šola Miklavž pri Ormožu, enota Vrtec Kog",
+      "after": "OŠ Miklavž pri Ormožu, enota Vrtec Kog"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-15252",
+      "before": "Osnovna šola Miklavž pri Ormožu, enota Vrtec Miklavž pri Ormožu",
+      "after": "OŠ Miklavž pri Ormožu, enota Vrtec Miklavž pri Ormožu"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-23195",
+      "before": "Osnovna šola Velika Nedelja, Enota vrtca v Podgorcih",
+      "after": "OŠ Velika Nedelja, Enota vrtca v Podgorcih"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3706",
+      "before": "Osnovna šola Jarenina, Vrtec Jarenina",
+      "after": "OŠ Jarenina, Vrtec Jarenina"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-24215",
+      "before": "Osnovna šola Sečovlje, Podružnični vrtec Sveti Peter",
+      "after": "OŠ Sečovlje, Podružnični vrtec Sveti Peter"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19710",
+      "before": "Osnovna šola Podlehnik, Enota Vrtec",
+      "after": "OŠ Podlehnik, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-16389",
+      "before": "Osnovna šola Brezno - Podvelka, Oddelek vrtca Ožbalt",
+      "after": "OŠ Brezno - Podvelka, Oddelek vrtca Ožbalt"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-13149",
+      "before": "POŠ, Osnovna šola Franja Goloba Prevalje, Vrtec Leše",
+      "after": "POŠ, OŠ Franja Goloba Prevalje, Vrtec Leše"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-25395",
+      "before": "Osnovna šola dr. Ljudevita Pivka Ptuj, OE Predšolska vzgoja, Vrtec Pivkolin",
+      "after": "OŠ dr. Ljudevita Pivka Ptuj, OE Predšolska vzgoja, Vrtec Pivkolin"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1329",
+      "before": "Osnovna šola Fram, Enota Vrtec Fram",
+      "after": "OŠ Fram, Enota Vrtec Fram"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1285",
+      "before": "Osnovna šola Rače, enota vrtec Rače",
+      "after": "OŠ Rače, enota vrtec Rače"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-25735",
+      "before": "Osnovna šola Kapela, vrtec Grozdek",
+      "after": "OŠ Kapela, vrtec Grozdek"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-12069",
+      "before": "Osnovna šola Radlje ob Dravi, Enota vrtca Vuhred",
+      "after": "OŠ Radlje ob Dravi, Enota vrtca Vuhred"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-22795",
+      "before": "Osnovna šola Radlje ob Dravi, Enota Vrtca Remšnik",
+      "after": "OŠ Radlje ob Dravi, Enota Vrtca Remšnik"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1180",
+      "before": "Osnovna šola Razkrižje, Enota Vrtec",
+      "after": "OŠ Razkrižje, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1158",
+      "before": "Osnovna šola Ribnica na Pohorju, Enota Vrtec Ribnica na Pohorju",
+      "after": "OŠ Ribnica na Pohorju, Enota Vrtec Ribnica na Pohorju"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1142",
+      "before": "Osnovna šola Sveti Jurij, Enota Vrtec",
+      "after": "OŠ Sveti Jurij, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1248",
+      "before": "VIZ Osnovna šola Rogatec, Enota Vrtec Rogatec",
+      "after": "VIZ OŠ Rogatec, Enota Vrtec Rogatec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-11949",
+      "before": "Osnovna šola Janka Glazerja Ruše - enota Vrtec Ruše",
+      "after": "OŠ Janka Glazerja Ruše - enota Vrtec Ruše"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-18690",
+      "before": "Osnovna šola Selnica ob Dravi, podružnica Sveti Duh na Ostrem vrhu - enota vrtec",
+      "after": "OŠ Selnica ob Dravi, podružnica Sveti Duh na Ostrem vrhu - enota vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19530",
+      "before": "Osnovna šola Selnica ob Dravi, enota Vrtec Gradišče na Kozjaku",
+      "after": "OŠ Selnica ob Dravi, enota Vrtec Gradišče na Kozjaku"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1274",
+      "before": "Osnovna šola Belokranjskega odreda Semič, enota vrtec Sonček",
+      "after": "OŠ Belokranjskega odreda Semič, enota vrtec Sonček"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1162",
+      "before": "Osnovna šola dr. Ivana Prijatelja Sodražica, enota Vrtec",
+      "after": "OŠ dr. Ivana Prijatelja Sodražica, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1275",
+      "before": "Osnovna šola Starše, Vrtec Najdihojca Starše",
+      "after": "OŠ Starše, Vrtec Najdihojca Starše"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1330",
+      "before": "Osnovna šola Sv. Jurij ob Ščavnici, Enota Vrtec Sonček",
+      "after": "OŠ Sv. Jurij ob Ščavnici, Enota Vrtec Sonček"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1176",
+      "before": "Osnovna šola Ivana Roba Šempeter pri Gorici, Enota vrtec",
+      "after": "OŠ Ivana Roba Šempeter pri Gorici, Enota vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1126",
+      "before": "Osnovna šola Šenčur, Enota Vrtec",
+      "after": "OŠ Šenčur, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3705",
+      "before": "Osnovna šola Sladki vrh, enota Vrtec Sladki Vrh",
+      "after": "OŠ Sladki vrh, enota Vrtec Sladki Vrh"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1227",
+      "before": "Osnovna šola dr. Pavla Lunačka Šentrupert, Vrtec Čebelica",
+      "after": "OŠ dr. Pavla Lunačka Šentrupert, Vrtec Čebelica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3668",
+      "before": "Osnovna šola Šmarjeta, Enota Vrtec Sonček",
+      "after": "OŠ Šmarjeta, Enota Vrtec Sonček"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-16269",
+      "before": "Osnovna šola bratov Letonja Šmartno ob Paki, enota vrtec Sonček",
+      "after": "OŠ bratov Letonja Šmartno ob Paki, enota vrtec Sonček"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-12569",
+      "before": "Osnovna šola Šmartno, enota vrtca Ciciban",
+      "after": "OŠ Šmartno, enota vrtca Ciciban"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1258",
+      "before": "Osnovna šola Štore, Enota Vrtec Lipa",
+      "after": "OŠ Štore, Enota Vrtec Lipa"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1182",
+      "before": "Osnovna šola Dušana Muniha Most na Soči, Enota Vrtec",
+      "after": "OŠ Dušana Muniha Most na Soči, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-3715",
+      "before": "Osnovna šola Veliki Gaber, enota Vrtec",
+      "after": "OŠ Veliki Gaber, enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-11589",
+      "before": "Osnovna šola Trzin, Enota vrtec Žabica",
+      "after": "OŠ Trzin, Enota vrtec Žabica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1372",
+      "before": "Osnovna šola Primoža Trubarja Velike Lašče, Enota Vrtec Sončni žarek",
+      "after": "OŠ Primoža Trubarja Velike Lašče, Enota Vrtec Sončni žarek"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-24375",
+      "before": "Osnovna šola Primoža Trubarja Velike Lašče, Enota Vrtec Sončni žarek, enota Karlovica",
+      "after": "OŠ Primoža Trubarja Velike Lašče, Enota Vrtec Sončni žarek, enota Karlovica"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1167",
+      "before": "Osnovna šola Železniki, Vrtec Železniki",
+      "after": "OŠ Železniki, Vrtec Železniki"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-19071",
+      "before": "Osnovna šola Žetale, Enota vrtec",
+      "after": "OŠ Žetale, Enota vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-z-enotami-1181",
+      "before": "Osnovna šola Žiri, Enota Vrtec",
+      "after": "OŠ Žiri, Enota Vrtec"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-169",
+      "before": "Osnovna šola Sveti Jurij ob Ščavnici",
+      "after": "OŠ Sveti Jurij ob Ščavnici"
+    },
+    {
+      "directoryId": "vrtci",
+      "rowId": "institution-vrtci-25115",
+      "before": "Osnovna šola Cvetka Golarja Ljutomer",
+      "after": "OŠ Cvetka Golarja Ljutomer"
+    },
+    {
+      "directoryId": "izobrazevanje-odraslih",
+      "rowId": "institution-izobrazevanje-odraslih-8927",
+      "before": "Osnovna šola Antona Žnideršiča Ilirska Bistrica, OE Ljudska univerza",
+      "after": "OŠ Antona Žnideršiča Ilirska Bistrica, OE Ljudska univerza"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-138",
+      "before": "Osnovna šola Glazija",
+      "after": "OŠ Glazija"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-152",
+      "before": "Osnovna šola Milke Šobar - Nataše Črnomelj",
+      "after": "OŠ Milke Šobar - Nataše Črnomelj"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-161",
+      "before": "Osnovna šola Roje",
+      "after": "OŠ Roje"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-3492",
+      "before": "Osnovna šola Poldeta Stražišarja Jesenice",
+      "after": "OŠ Poldeta Stražišarja Jesenice"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-202",
+      "before": "Osnovna šola 27. julij",
+      "after": "OŠ 27. julij"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-206",
+      "before": "Osnovna šola Ljubo Šercer",
+      "after": "OŠ Ljubo Šercer"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-229",
+      "before": "Osnovna šola Helene Puhar Kranj",
+      "after": "OŠ Helene Puhar Kranj"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-235",
+      "before": "Osnovna šola dr. Mihajla Rostoharja Krško",
+      "after": "OŠ dr. Mihajla Rostoharja Krško"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-254",
+      "before": "Dvojezična osnovna šola II Lendava",
+      "after": "Dvojezična OŠ II Lendava"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-25115",
+      "before": "Osnovna šola Cvetka Golarja Ljutomer",
+      "after": "OŠ Cvetka Golarja Ljutomer"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-637",
+      "before": "Osnovna šola IV. Murska Sobota",
+      "after": "OŠ IV. Murska Sobota"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-360",
+      "before": "Osnovna šola Kozara Nova Gorica",
+      "after": "OŠ Kozara Nova Gorica"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-378",
+      "before": "Osnovna šola Dragotina Ketteja",
+      "after": "OŠ Dragotina Ketteja"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-391",
+      "before": "Osnovna šola Stanka Vraza Ormož",
+      "after": "OŠ Stanka Vraza Ormož"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-411",
+      "before": "Osnovna šola dr. Ljudevita Pivka Ptuj",
+      "after": "OŠ dr. Ljudevita Pivka Ptuj"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-3518",
+      "before": "Osnovna šola Antona Janše Radovljica",
+      "after": "OŠ Antona Janše Radovljica"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-440",
+      "before": "Osnovna šola Juričevega Drejčka Ravne na Koroškem",
+      "after": "OŠ Juričevega Drejčka Ravne na Koroškem"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-499",
+      "before": "JVIZ III. Osnovna šola Rogaška Slatina",
+      "after": "JVIZ III. OŠ Rogaška Slatina"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-452",
+      "before": "Osnovna šola Ane Gale Sevnica",
+      "after": "OŠ Ane Gale Sevnica"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-464",
+      "before": "Tretja osnovna šola Slovenj Gradec",
+      "after": "Tretja OŠ Slovenj Gradec"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-469",
+      "before": "Osnovna šola Minke Namestnik- Sonje Slovenska Bistrica",
+      "after": "OŠ Minke Namestnik- Sonje Slovenska Bistrica"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-486",
+      "before": "Osnovna šola Jela Janežiča",
+      "after": "OŠ Jela Janežiča"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-542",
+      "before": "Osnovna šola dr. Slavka Gruma",
+      "after": "OŠ dr. Slavka Gruma"
+    },
+    {
+      "directoryId": "osnovne-sole-posebne-potrebe",
+      "rowId": "institution-osnovne-sole-posebne-potrebe-547",
+      "before": "II. Osnovna šola Žalec",
+      "after": "II. OŠ Žalec"
+    },
+    {
+      "directoryId": "zavodi-posebne-potrebe",
+      "rowId": "institution-zavodi-posebne-potrebe-10529",
+      "before": "Osnovna šola Veržej - Zav",
+      "after": "OŠ Veržej - Zav"
+    }
+  ]
+}

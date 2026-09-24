@@ -5,9 +5,12 @@ import { AdminAccountSetupError } from './admin-account-core.mjs';
 import { createAdminSetupPool } from './admin-setup-database.mjs';
 import { loadManifest, requirementsSha256, verifyDatabaseContract } from './check-database-schema.mjs';
 
+import { previousInstitutionsContract } from './migrate-institution-directories.mjs';
+
 const previousContractId = '20260908.admin-auth-v1';
 const previousContractSha256 = 'aaa39829b4667551c9736c21a786f809421f91f58435ff6e5ba981236edbf026';
 export function previousSuppliersContract(manifest) {
+  if (manifest.contractId === '20260924.institution-directories-v1') manifest = previousInstitutionsContract(manifest);
   if (manifest.contractId !== '20260908.catalog-suppliers-v1') throw new AdminAccountSetupError('This migration is only for the catalog-suppliers-v1 release.');
   const requirements = structuredClone(manifest.requirements);
   requirements.tables = requirements.tables.filter(table => table !== 'catalog_supplier_rows');
@@ -18,7 +21,8 @@ export function previousSuppliersContract(manifest) {
   return { contractId: previousContractId, contractSha256: previousContractSha256, requirements };
 }
 export async function migrateCatalogSuppliers(pool) {
-  const manifest = await loadManifest();
+  const loaded = await loadManifest();
+  const manifest = loaded.contractId === '20260924.institution-directories-v1' ? previousInstitutionsContract(loaded) : loaded;
   const baseline = previousSuppliersContract(manifest);
   const sql = await readFile(new URL('../database/migrations/20260908.catalog-suppliers-v1.sql', import.meta.url), 'utf8');
   const client = await pool.connect();

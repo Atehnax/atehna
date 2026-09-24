@@ -81,6 +81,17 @@ check, and binds Next.js only to 127.0.0.1:3000. It never prepares, resets, or
 reseeds the database. Use the explicit guarded E2E preparation command only
 when intentionally resetting disposable test data.
 
+For a worktree using that already-running database, start the review server with:
+
+    npm run dev:review -- --env-file C:/path/to/main-checkout/.env.development.local --port 3012
+
+This uses Turbopack and its persistent development cache, checks the existing
+schema without changing data, and binds to `http://localhost:3012`. It sets
+the matching authentication origin and disables external mail/blob writes.
+The development configuration also resolves shared `node_modules` junctions.
+Keep the `.next` cache between normal restarts; deleting it makes the next
+visit compile the app again.
+
 Copy `.env.example` to `.env.local` for local development and provide the
 corresponding environment variables in production.
 

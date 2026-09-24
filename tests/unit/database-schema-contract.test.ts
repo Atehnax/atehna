@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260908.catalog-suppliers-v1';
+const contractId = '20260924.institution-directories-v1';
 const contractSha256 =
-  'd36a4541b84a9b3da8fe4dea4abf7d088ea370deee89da2274ddb64c6b58414e';
+  '97fd4e47991662b4aade6f09860e9ea57e29e59b3315d553c0afa7485a3593dd';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -47,7 +47,7 @@ test('schema manifest carries a deterministic requirements checksum', () => {
       /^create table ([a-z0-9_]+) \(/gmu
     )
   ].map((match) => match[1]).sort();
-  assert.equal(manifest.requirements.tables.length, 78);
+  assert.equal(manifest.requirements.tables.length, 79);
   assert.deepEqual(
     [...manifest.requirements.tables, 'app_schema_contracts'].sort(),
     schemaTables
@@ -234,6 +234,8 @@ test('commerce contract preserves insert defaults while treating inventory polic
       ])
   );
   assert.deepEqual(exactDefaults, {
+    'institution_directories.created_at': 'now()',
+    'institution_directories.updated_at': 'now()',
     'catalog_supplier_rows.article_label': "''::text",
     'catalog_supplier_rows.cells': "'{}'::jsonb",
     'catalog_supplier_rows.created_at': 'now()',

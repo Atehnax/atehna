@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { INSTITUTION_DIRECTORIES, INSTITUTION_DIRECTORY_VIEWS, type InstitutionDirectoryId } from '@/shared/domain/institutionDirectory';
+import { qualifyInstitutionRowId, parseInstitutionRowId } from '@/shared/domain/institutionDirectoryView';
 import type { SupplierCatalogOption } from '@/shared/domain/supplierDirectory';
 import { CustomSelect } from '@/shared/ui/select';
 import { formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
@@ -323,10 +325,20 @@ const getResponsiveSchoolColumnWidth = (columnId: string, totalColumnWidth: numb
   return `calc(${percentage}% - ${fixedColumnOffset}px)`;
 };
 
-type DirectoryTableProps = { initialDirectory: SchoolDirectoryData; supplierArticles?: SupplierCatalogOption[] };
+type DirectoryTableProps = {
+  initialDirectory: SchoolDirectoryData;
+  supplierArticles?: SupplierCatalogOption[];
+  directoryId?: string;
+  directoryLabel?: string;
+  onNavigationStateChange?: (state: { dirty: boolean; saving: boolean }) => void;
+};
 
-export default function AdminSchoolsTable({ initialDirectory, supplierArticles }: DirectoryTableProps) {
+export default function AdminSchoolsTable({ initialDirectory, supplierArticles, directoryId, directoryLabel, onNavigationStateChange }: DirectoryTableProps) {
   const isSupplierDirectory = supplierArticles !== undefined;
+  const isInstitutionDirectory = Boolean(directoryId && directoryId !== 'osnovne-sole');
+  const sourceDirectories = INSTITUTION_DIRECTORY_VIEWS.find(view => view.id === directoryId)?.directoryIds ?? [];
+  const isCombinedDirectory = sourceDirectories.length > 1;
+  const exportName = isSupplierDirectory ? 'dobavitelji' : directoryId ?? 'seznam-sol';
   const FILTERABLE_COLUMN_IDS: readonly string[] = useMemo(() => isSupplierDirectory
     ? ['artikel', 'dobavitelj', 'naslov', 'kontakt', 'e-naslov', 'spletna-stran']
     : SCHOOL_FILTERABLE_COLUMN_IDS, [isSupplierDirectory]);
@@ -341,13 +353,17 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
   const [columnFilters, setColumnFilters] = useState<SchoolColumnFilters>(() => ({ ...EMPTY_COLUMN_FILTERS }));
   const [openColumnFilter, setOpenColumnFilter] = useState<FilterableColumnId | null>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isNewRowMenuOpen, setIsNewRowMenuOpen] = useState(false);
+  const newRowMenuRootRef = useRef<HTMLDivElement | null>(null);
+  const newRowMenuDismissRefs = useMemo(() => [newRowMenuRootRef], []);
+  useDropdownDismiss({ open: isNewRowMenuOpen, onClose: () => setIsNewRowMenuOpen(false), refs: newRowMenuDismissRefs });
   const [visibleMap, setVisibleMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       initialDirectory.columns.map((column) => [column.id, !DEFAULT_HIDDEN_COLUMN_IDS.has(column.id)])
     )
   );
   const [activeRowEdit, setActiveRowEdit] = useState<ActiveRowEdit | null>(null);
-  const [sortState, setSortState] = useState<SortState | null>(null);
+  const [sortState, setSortState] = useState<SortState | null>(isCombinedDirectory ? { columnId: 'naziv', direction: 'asc' } : null);
   const [hoveredCellMatch, setHoveredCellMatch] = useState<HoveredCellMatch | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -458,7 +474,9 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
   }, [filteredRows, rows, sortState, cellDisplayValue]);
   const filteredCountLabel = formatSlCount(filteredRows.length, isSupplierDirectory
     ? { one: 'dobavitelj', two: 'dobavitelja', few: 'dobavitelji', other: 'dobaviteljev' }
-    : { one: 'šola', two: 'šoli', few: 'šole', other: 'šol' });
+    : isInstitutionDirectory
+      ? { one: 'zapis', two: 'zapisa', few: 'zapisi', other: 'zapisov' }
+      : { one: 'šola', two: 'šoli', few: 'šole', other: 'šol' });
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
     storageKey: isSupplierDirectory ? 'admin-suppliers-page-size-v1' : 'admin-schools-page-size-v3',
@@ -538,11 +556,15 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
     return () => window.cancelAnimationFrame(frameId);
   }, [openColumnFilter]);
 
+  useEffect(() => {
+    onNavigationStateChange?.({ dirty: Boolean(isActiveRowDirty), saving: pendingMutations > 0 });
+  }, [isActiveRowDirty, pendingMutations, onNavigationStateChange]);
+
   const persistMutation = async (mutation: SchoolDirectoryMutation) => {
     if (!persistenceAvailable) throw new Error('Povezava z bazo ni nastavljena.');
     setPendingMutations((count) => count + 1);
     try {
-      const response = await fetch(isSupplierDirectory ? '/api/admin/suppliers' : '/api/admin/schools', {
+      const response = await fetch(isSupplierDirectory ? '/api/admin/suppliers' : directoryId ? `/api/admin/schools?directory=${encodeURIComponent(directoryId)}` : '/api/admin/schools', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(mutation)
@@ -671,7 +693,7 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
     setIsExportMenuOpen(false);
     const sourceRows = hasSelectedRows ? selectedRows : filteredAndSortedRows;
     if (sourceRows.length === 0) {
-      toast.info(isSupplierDirectory ? 'Ni dobaviteljev za izvoz glede na trenutne filtre.' : 'Ni šol za izvoz glede na trenutne filtre.');
+      toast.info(isSupplierDirectory ? 'Ni dobaviteljev za izvoz glede na trenutne filtre.' : 'Ni zapisov za izvoz glede na trenutne filtre.');
       return;
     }
 
@@ -683,9 +705,9 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
 
     try {
       if (format === 'csv') {
-        downloadTableAsCsv(exportRows, isSupplierDirectory ? 'dobavitelji.csv' : 'seznam-sol.csv');
+        downloadTableAsCsv(exportRows, `${exportName}.csv`);
       } else {
-        downloadTableAsXlsx(exportRows, isSupplierDirectory ? 'dobavitelji.xlsx' : 'seznam-sol.xlsx', { sheetName: isSupplierDirectory ? 'Dobavitelji' : 'Seznam šol' });
+        downloadTableAsXlsx(exportRows, `${exportName}.xlsx`, { sheetName: isSupplierDirectory ? 'Dobavitelji' : (directoryLabel ?? 'Seznam šol').slice(0, 31) });
       }
       toast.success(`${hasSelectedRows ? 'Izbrane vrstice so izvožene' : 'Tabela je izvožena'} kot ${format.toUpperCase()}.`);
     } catch {
@@ -721,7 +743,7 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
         expectedCells
       });
       setRows((currentRows) => currentRows.map((row) => row.id === edit.rowId
-        ? (response.row ?? { ...row, cells: { ...row.cells, ...changedCells } })
+        ? (response.row ? { ...response.row, position: isCombinedDirectory ? row.position : response.row.position } : { ...row, cells: { ...row.cells, ...changedCells } })
         : row));
       setActiveRowEdit(null);
       toast.success('Vrstica je posodobljena.');
@@ -755,10 +777,13 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
     }
   };
 
-  const addRow = async () => {
+  const addRow = async (targetDirectoryId?: InstitutionDirectoryId) => {
     if (!persistenceAvailable || isStructuralMutationPending || pendingMutations > 0 || activeRowEdit) return;
     setIsStructuralMutationPending(true);
-    const rowId = createClientId();
+    setIsNewRowMenuOpen(false);
+    const rowId = isCombinedDirectory && targetDirectoryId
+      ? qualifyInstitutionRowId(targetDirectoryId, createClientId())
+      : createClientId();
     const position = rows.reduce((minimum, row) => Math.min(minimum, row.position), 0) - 1;
     const optimisticRow: SchoolDirectoryRow = {
       id: rowId,
@@ -775,9 +800,9 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
     try {
       const response = await persistMutation({ operation: 'add-row', rowId });
       if (response.row) {
-        setRows((currentRows) => currentRows.map((row) => row.id === rowId ? response.row as SchoolDirectoryRow : row));
+        setRows((currentRows) => currentRows.map((row) => row.id === rowId ? { ...response.row as SchoolDirectoryRow, position: isCombinedDirectory ? position : (response.row as SchoolDirectoryRow).position } : row));
       }
-      toast.success(isSupplierDirectory ? 'Dobavitelj je dodan.' : 'Nova stranka je dodana.');
+      toast.success(isSupplierDirectory ? 'Dobavitelj je dodan.' : directoryId ? 'Nov zapis je dodan.' : 'Nova stranka je dodana.');
     } catch (error) {
       setRows((currentRows) => currentRows.filter((row) => row.id !== rowId));
       toast.error(error instanceof Error ? error.message : 'Vrstice ni bilo mogoče dodati.');
@@ -817,15 +842,19 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
         operation: 'duplicate-rows',
         rows: sourceRows.map((row) => ({
           sourceRowId: row.id,
-          newRowId: createClientId(),
+          newRowId: isCombinedDirectory
+            ? qualifyInstitutionRowId(parseInstitutionRowId(row.id).directoryId, createClientId())
+            : createClientId(),
           expectedCells: row.cells
         }))
       });
       if (!response.rows?.length) throw new Error('Strežnik ni vrnil podvojenih vrstic.');
 
-      const duplicatedRowIds = new Set(response.rows.map((row) => row.id));
+      const firstNewPosition = rows.reduce((minimum, row) => Math.min(minimum, row.position), 0) - response.rows.length;
+      const duplicatedRows = response.rows.map((row, index) => isCombinedDirectory ? { ...row, position: firstNewPosition + index } : row);
+      const duplicatedRowIds = new Set(duplicatedRows.map((row) => row.id));
       setRows((currentRows) => [
-        ...response.rows as SchoolDirectoryRow[],
+        ...duplicatedRows,
         ...currentRows.filter((row) => !duplicatedRowIds.has(row.id))
       ]);
       setSelectedRowIds(duplicatedRowIds);
@@ -901,15 +930,15 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
       <AdminTableLayout
         className={adminTableCardClassName}
         style={adminTableCardStyle}
-        headerClassName={adminTableHeaderClassName}
-        contentClassName={`${adminTableContentClassName} !overflow-x-hidden`}
+        headerClassName={directoryId ? `${adminTableHeaderClassName} [&>div:first-child]:flex-wrap sm:[&>div:first-child]:flex-nowrap [&>div:first-child>div:first-child]:basis-full sm:[&>div:first-child>div:first-child]:basis-auto` : adminTableHeaderClassName}
+        contentClassName={`${adminTableContentClassName} ${directoryId ? '!overflow-x-auto' : '!overflow-x-hidden'}`}
         showDivider={false}
         headerLeft={
           <AdminSearchInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             disabled={Boolean(activeRowEdit)}
-            placeholder={isSupplierDirectory ? 'Išči po vseh podatkih dobaviteljev ...' : 'Išči po vseh podatkih šol ...'}
+            placeholder={isSupplierDirectory ? 'Išči po vseh podatkih dobaviteljev ...' : isInstitutionDirectory ? 'Išči po vseh podatkih zavodov ...' : 'Išči po vseh podatkih šol ...'}
             wrapperClassName={adminTableToolbarSearchWrapperClassName}
           />
         }
@@ -1016,13 +1045,32 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
               triggerClassName={adminTableNeutralIconButtonClassName}
               menuWidth={240}
             />
-            <AdminTablePrimaryActionButton
-              type="button"
-              disabled={!persistenceAvailable || isStructuralMutationPending || pendingMutations > 0 || Boolean(activeRowEdit)}
-              onClick={() => void addRow()}
-            >
-              {isSupplierDirectory ? 'Nov dobavitelj' : 'Nova stranka'}
-            </AdminTablePrimaryActionButton>
+            <div ref={newRowMenuRootRef} className="relative">
+              <AdminTablePrimaryActionButton
+                type="button"
+                disabled={!persistenceAvailable || isStructuralMutationPending || pendingMutations > 0 || Boolean(activeRowEdit)}
+                aria-haspopup={isCombinedDirectory ? 'menu' : undefined}
+                aria-expanded={isCombinedDirectory ? isNewRowMenuOpen : undefined}
+                onClick={() => isCombinedDirectory ? setIsNewRowMenuOpen(current => !current) : void addRow()}
+              >
+                {isSupplierDirectory ? 'Nov dobavitelj' : directoryId ? 'Nov zapis' : 'Nova stranka'}
+              </AdminTablePrimaryActionButton>
+              {isNewRowMenuOpen ? (
+                <div className="absolute right-0 top-10 z-40" role="menu" aria-label="Seznam za nov zapis">
+                  <MenuPanel className="w-72 max-w-[calc(100vw-6rem)]">
+                    {sourceDirectories.map(sourceId => (
+                      <MenuItem
+                        key={sourceId}
+                        className="whitespace-normal !text-[12px]"
+                        onClick={() => void addRow(sourceId)}
+                      >
+                        {INSTITUTION_DIRECTORIES.find(source => source.id === sourceId)?.label}
+                      </MenuItem>
+                    ))}
+                  </MenuPanel>
+                </div>
+              ) : null}
+            </div>
           </div>
         }
         filterRowLeft={activeColumnFilters.length > 0 ? (
@@ -1087,7 +1135,7 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
           </div>
         }
       >
-        <Table className="w-full table-fixed">
+        <Table className="w-full table-fixed" style={directoryId ? { minWidth: Math.min(1200, visibleSchoolColumnWidth + SCHOOL_FIXED_COLUMNS_WIDTH) } : undefined}>
           <colgroup>
             <col style={{ width: SCHOOL_SELECTION_COLUMN_WIDTH }} />
             <col style={{ width: SCHOOL_ROW_NUMBER_COLUMN_WIDTH }} />
@@ -1200,7 +1248,7 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
                   <EmptyState
                     title={query || activeColumnFilters.length > 0
                       ? 'Ni zadetkov za izbrano iskanje ali filtre.'
-                      : isSupplierDirectory ? 'Seznam dobaviteljev je prazen.' : 'Seznam šol je prazen.'}
+                      : isSupplierDirectory ? 'Seznam dobaviteljev je prazen.' : isInstitutionDirectory ? 'Seznam zavodov je prazen.' : 'Seznam šol je prazen.'}
                     description={query || activeColumnFilters.length > 0
                       ? 'Poskusite z drugim iskalnim nizom ali odstranite katerega od filtrov.'
                       : 'Dodajte prvo vrstico.'}

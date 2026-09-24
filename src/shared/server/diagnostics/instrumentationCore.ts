@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
+import { isValidElement } from 'react';
 import type { DiagnosticEvent, DiagnosticKind } from '@/shared/domain/analytics/diagnostics';
 
 type Phase = 'route' | 'db' | 'cache' | 'transform' | 'payload' | 'helper';
@@ -13,7 +14,10 @@ function errorCode(error: unknown) {
   return /^[A-Z0-9_]{1,48}$/.test(candidate) ? candidate : 'UNHANDLED';
 }
 function payloadSize(payload: unknown): number | null {
-  if (payload == null) return null;
+  // A rendered React element is not a JSON response. In development its owner
+  // metadata can reach Next's asynchronous route props; measuring it would read
+  // those props synchronously. Explicit data estimates still measure route payloads.
+  if (payload == null || isValidElement(payload)) return null;
   if (payload instanceof Response) {
     const length = payload.headers.get('content-length');
     return length && /^\d+$/.test(length) ? Number(length) : null;

@@ -2,7 +2,8 @@ import 'server-only';
 
 import { unstable_noStore as noStore } from 'next/cache';
 import type { Pool, PoolClient } from 'pg';
-import schoolSeed from '@/shared/data/schools-seed.json';
+import consolidatedSeed from '@/shared/data/schools-and-institutions-seed.json';
+import { normalizeInstitutionName } from '@/shared/domain/institutionName';
 import {
   SCHOOL_DIRECTORY_MAX_CELL_LENGTH,
   SCHOOL_DIRECTORY_MAX_COLUMNS,
@@ -15,11 +16,13 @@ import {
 } from '@/shared/domain/schoolDirectory';
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 
+const primarySeed = consolidatedSeed.directories.find(directory => directory.id === 'osnovne-sole');
+if (!primarySeed) throw new Error('Consolidated primary-school seed is missing.');
+const schoolSeed = { ...primarySeed, version: consolidatedSeed.version };
+
 const DIRECTORY_KEY = 'schools';
 const ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/;
 const DUPLICATE_NAME_SUFFIX = ' kopija';
-const SCHOOL_NAME_LONG_FORM = 'Osnovna šola';
-const SCHOOL_NAME_SHORT_FORM = 'OŠ';
 
 type SeedShape = {
   version: number;
@@ -147,7 +150,7 @@ const toSchoolDirectoryRow = (rowId: string, row: Record<string, unknown>): Scho
 
 const normalizeSeedCells = (cells: Record<string, string>) => ({
   ...cells,
-  naziv: (cells.naziv ?? '').replaceAll(SCHOOL_NAME_LONG_FORM, SCHOOL_NAME_SHORT_FORM)
+  naziv: normalizeInstitutionName(cells.naziv ?? '')
 });
 
 const cloneSeedDirectory = (): SchoolDirectoryData => {
